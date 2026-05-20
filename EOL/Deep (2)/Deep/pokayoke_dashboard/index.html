@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Poka Yoke Dashboard</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+<style>
+*{box-sizing:border-box}
+:root{--brand:#1e3a5f;--brand2:#2563eb;--accent:#0ea5e9;--match:#16a34a;--match-bg:#dcfce7;
+      --mis:#dc2626;--mis-bg:#fee2e2;--nd:#6b7280;--nd-bg:#f3f4f6;--warn:#f59e0b}
+body{background:#f0f4f8;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;margin:0}
+
+/* ── Navbar ── */
+.top-nav{background:linear-gradient(135deg,var(--brand) 0%,#0f2942 100%);color:#fff;padding:10px 24px;
+         display:flex;align-items:center;gap:16px;flex-wrap:wrap;box-shadow:0 2px 12px rgba(0,0,0,.15)}
+.top-nav .logo{font-size:1.3rem;font-weight:800;letter-spacing:-.5px;display:flex;align-items:center;gap:8px}
+.top-nav .logo i{font-size:1.5rem;color:var(--accent)}
+.top-nav .meta{margin-left:auto;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.stat-pill{padding:4px 14px;border-radius:99px;font-size:.75rem;font-weight:700;display:inline-flex;align-items:center;gap:4px}
+.sp-total{background:rgba(255,255,255,.15);color:#fff}
+.sp-match{background:rgba(22,163,74,.2);color:#86efac}
+.sp-mis{background:rgba(220,38,38,.2);color:#fca5a5}
+.sp-nd{background:rgba(255,255,255,.1);color:#94a3b8}
+
+/* ── Model selector ── */
+.model-section{background:#fff;border-radius:12px;padding:14px 18px;margin-bottom:16px;
+               border:1px solid #e2e8f0;box-shadow:0 1px 4px rgba(0,0,0,.04)}
+.model-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(195px,1fr));gap:8px;
+            max-height:240px;overflow-y:auto;padding:4px}
+.m-card{cursor:pointer;border:2px solid #e2e8f0;border-radius:8px;padding:8px 12px;transition:all .12s;background:#fff}
+.m-card:hover{border-color:var(--brand2);background:#eff6ff}
+.m-card.active{border-color:var(--brand2);background:#dbeafe}
+.m-card .mc-code{font-size:1rem;font-weight:800;color:var(--brand2)}
+.m-card .mc-type{font-size:.65rem;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.m-card .mc-name{font-size:.6rem;color:#94a3b8;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.m-card-all{background:var(--brand);color:#fff;border-color:var(--brand)}
+.m-card-all:hover{opacity:.9}
+.m-card-all .mc-code,.m-card-all .mc-type,.m-card-all .mc-name{color:#fff}
+
+/* ── Filter bar ── */
+.filter-bar{background:#fff;border-radius:10px;padding:10px 16px;margin-bottom:12px;
+            border:1px solid #e2e8f0;display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.filter-bar input,.filter-bar select{font-size:.8rem;padding:6px 10px;border:1px solid #cbd5e1;border-radius:6px}
+
+/* ── Table ── */
+.tbl-wrap{background:#fff;border-radius:10px;border:1px solid #e2e8f0;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.04)}
+.tbl-wrap table{width:100%;border-collapse:collapse;font-size:.82rem}
+.tbl-wrap th{font-size:.65rem;text-transform:uppercase;letter-spacing:.06em;color:#64748b;
+             border-bottom:2px solid #e2e8f0;padding:8px 10px;white-space:nowrap;position:sticky;top:0;background:#fff;z-index:2}
+.tbl-wrap td{padding:7px 10px;border-bottom:1px solid #f1f5f9;vertical-align:middle}
+.tbl-wrap tbody tr:hover{background:#f8fafc}
+.tbl-scroll{max-height:calc(100vh - 420px);overflow-y:auto}
+
+/* ── Pills / badges ── */
+.pill{padding:2px 10px;border-radius:99px;font-size:.7rem;font-weight:700;display:inline-block;min-width:48px;text-align:center}
+.p-pass{background:#dbeafe;color:#1e40af}.p-off{background:#ffedd5;color:#c2410c}
+.p-on{background:#dcfce7;color:#16a34a}.p-na{background:#f3f4f6;color:#9ca3af}
+.s-match{background:var(--match-bg);color:var(--match)}.s-mis{background:var(--mis-bg);color:var(--mis)}
+.s-nd{background:var(--nd-bg);color:var(--nd)}
+.py-no{font-family:'Cascadia Code','Fira Code',monospace;font-weight:700;color:var(--brand2);font-size:.75rem}
+.bit-cell{font-family:monospace;font-weight:700;color:#7c3aed}
+.side-lh{background:#dbeafe;color:#1e40af}.side-rh{background:#dcfce7;color:#16a34a}.side-both{background:#f3f4f6;color:#64748b}
+
+/* ── Edit mode ── */
+.edit-sel{padding:2px 6px;font-size:.78rem;border-radius:5px;border:1px solid #cbd5e1;min-width:85px}
+tr.edited{background:#fef9c3 !important}
+
+/* ── Modals ── */
+.modal-header.dark{background:var(--brand);color:#fff}
+.modal-header.dark .btn-close{filter:brightness(0) invert(1)}
+
+/* ── Spinner ── */
+.spinner-wrap{display:flex;justify-content:center;align-items:center;padding:60px;flex-direction:column;gap:12px}
+
+/* ── Import area ── */
+.drop-zone{border:2px dashed #cbd5e1;border-radius:12px;padding:30px;text-align:center;cursor:pointer;transition:.15s}
+.drop-zone:hover,.drop-zone.dragover{border-color:var(--brand2);background:#eff6ff}
+
+/* ── Responsive ── */
+@media(max-width:768px){
+  .model-grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}
+  .top-nav{padding:8px 12px}.top-nav .logo{font-size:1rem}
+}
+
+.toast-box{position:fixed;top:14px;right:14px;z-index:99999}
+.tbl-footer{padding:6px 14px;font-size:.72rem;color:#94a3b8;border-top:1px solid #f1f5f9;background:#fafbfc}
+</style>
+</head>
+<body>
+
+<!-- ═══════ NAVBAR ═══════ -->
+<div class="top-nav">
+  <div class="logo"><i class="bi bi-shield-fill-check"></i> POKA YOKE DASHBOARD</div>
+  <div class="meta">
+    <span class="stat-pill sp-total" id="hTotal"><i class="bi bi-list-check"></i> <span>0</span></span>
+    <span class="stat-pill sp-match" id="hMatch"><i class="bi bi-check-circle-fill"></i> <span>0</span></span>
+    <span class="stat-pill sp-mis" id="hMis"><i class="bi bi-x-circle-fill"></i> <span>0</span></span>
+    <span class="stat-pill sp-nd" id="hNd"><i class="bi bi-dash-circle"></i> <span>0</span></span>
+    <span style="font-size:.65rem;color:#94a3b8" id="hTime"></span>
+    <button class="btn btn-sm btn-outline-light" onclick="showSensorModal()"><i class="bi bi-cpu me-1"></i>Sensors</button>
+    <button class="btn btn-sm btn-outline-light" onclick="showImportModal()"><i class="bi bi-upload me-1"></i>Import</button>
+    <button class="btn btn-sm btn-warning fw-bold" onclick="showAddModelModal()"><i class="bi bi-plus-lg me-1"></i>Add Model</button>
+  </div>
+</div>
+
+<div class="container-fluid py-3" style="max-width:1600px">
+
+<!-- ═══════ MODEL SELECTOR ═══════ -->
+<div class="model-section">
+  <div class="d-flex align-items-center gap-3 mb-2 flex-wrap">
+    <h6 class="mb-0 fw-bold" style="font-size:.85rem"><i class="bi bi-grid-3x3-gap me-1"></i>Models</h6>
+    <select class="form-select form-select-sm" style="width:120px;font-size:.78rem" id="codeFilter"><option value="">All Codes</option></select>
+    <input class="form-control form-control-sm" style="width:180px;font-size:.78rem" placeholder="Search model..." id="modelSearch">
+  </div>
+  <div class="model-grid" id="modelGrid"></div>
+</div>
+
+<!-- ═══════ FILTER BAR ═══════ -->
+<div class="filter-bar">
+  <i class="bi bi-funnel text-muted"></i>
+  <input style="width:200px" placeholder="Search PY name / number..." id="fSearch">
+  <select style="width:140px" id="fStatus"><option value="">All Status</option><option value="MATCH">Match</option><option value="MISMATCH">Mismatch</option><option value="NO_DATA">No Data</option></select>
+  <select style="width:170px" id="fMachine"><option value="">All Machines</option></select>
+  <select style="width:130px" id="fType"><option value="">All PY Types</option></select>
+  <select style="width:100px" id="fSide"><option value="">All Sides</option><option>LH</option><option>RH</option><option>BOTH</option></select>
+  <div class="ms-auto d-flex gap-2 align-items-center">
+    <span class="badge bg-secondary" style="font-size:.7rem" id="rowCount">0</span>
+    <button class="btn btn-sm btn-outline-primary" id="editBtn" onclick="toggleEdit()"><i class="bi bi-pencil-square me-1"></i>Edit Mode</button>
+    <button class="btn btn-sm btn-success d-none" id="saveBtn" onclick="saveEdits()"><i class="bi bi-check-lg me-1"></i>Save</button>
+    <button class="btn btn-sm btn-outline-secondary d-none" id="cancelBtn" onclick="cancelEdit()">Cancel</button>
+  </div>
+</div>
+
+<!-- ═══════ MAIN TABLE ═══════ -->
+<div class="tbl-wrap">
+  <div class="tbl-scroll" id="tblScroll">
+    <table>
+      <thead><tr>
+        <th>#</th><th>PY No</th><th>Poka Yoke Name</th><th>D Bit</th><th>Machine</th>
+        <th>Model Type</th><th>Side</th><th>Desired</th><th>Actual</th><th>Status</th>
+      </tr></thead>
+      <tbody id="tBody"></tbody>
+    </table>
+  </div>
+  <div class="tbl-footer" id="tFoot">Select a model above</div>
+</div>
+
+</div><!-- /container -->
+
+<!-- ═══════ ADD MODEL MODAL ═══════ -->
+<div class="modal fade" id="addModelModal" tabindex="-1">
+<div class="modal-dialog"><div class="modal-content">
+  <div class="modal-header dark">
+    <h5 class="modal-title"><i class="bi bi-plus-circle me-2"></i>Add New Model</h5>
+    <button class="btn-close" data-bs-dismiss="modal"></button>
+  </div>
+  <div class="modal-body">
+    <div class="row g-3">
+      <div class="col-4"><label class="form-label fw-bold" style="font-size:.75rem">Model Code *</label>
+        <input class="form-control" id="amCode" placeholder="YZZ"></div>
+      <div class="col-8"><label class="form-label fw-bold" style="font-size:.75rem">Full Model Name *</label>
+        <input class="form-control" id="amName" placeholder="TRACK ASSY FRONT SEAT YZZ 4 WAY INR LH"></div>
+      <div class="col-6"><label class="form-label fw-bold" style="font-size:.75rem">Type *</label>
+        <select class="form-select" id="amType"><option value="">-- Select --</option>
+          <option>4 Way Inr LH</option><option>4 Way Inr RH</option><option>4 Way OTR</option>
+          <option>6 Way Inr LH</option><option>6 Way Inr RH</option><option>6 Way Otr LH</option><option>6 Way Otr RH</option>
+        </select></div>
+      <div class="col-6"><label class="form-label fw-bold" style="font-size:.75rem">Old Part Number</label>
+        <input class="form-control" id="amOldNo" placeholder="433140-14240-YZZ"></div>
+    </div>
+  </div>
+  <div class="modal-footer">
+    <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+    <button class="btn btn-primary btn-sm fw-bold" onclick="submitAddModel()"><i class="bi bi-plus-lg me-1"></i>Add Model</button>
+  </div>
+</div></div></div>
+
+<!-- ═══════ IMPORT MODAL ═══════ -->
+<div class="modal fade" id="importModal" tabindex="-1">
+<div class="modal-dialog modal-lg"><div class="modal-content">
+  <div class="modal-header dark">
+    <h5 class="modal-title"><i class="bi bi-upload me-2"></i>Import Excel Data</h5>
+    <button class="btn-close" data-bs-dismiss="modal"></button>
+  </div>
+  <div class="modal-body">
+    <p style="font-size:.82rem;color:#64748b">Upload <b>poka_yoke_full.xlsx</b> (PLC actuals) or <b>poka_yoke_export.xlsx</b> (master+assignments).</p>
+    <div class="drop-zone" id="dropZone" onclick="document.getElementById('impFile').click()"
+         ondragover="event.preventDefault();this.classList.add('dragover')"
+         ondragleave="this.classList.remove('dragover')"
+         ondrop="event.preventDefault();this.classList.remove('dragover');doUpload(event.dataTransfer.files[0])">
+      <i class="bi bi-cloud-arrow-up" style="font-size:2.5rem;color:var(--brand2)"></i>
+      <div class="mt-2 fw-bold">Drop Excel here or click to browse</div>
+      <div style="font-size:.75rem;color:#94a3b8">.xlsx files only</div>
+    </div>
+    <input type="file" class="d-none" id="impFile" accept=".xlsx,.xls" onchange="doUpload(this.files[0])">
+
+    <div class="mt-3 mb-2"><b style="font-size:.8rem">Model Column Mapping</b> <span style="font-size:.7rem;color:#94a3b8">(for PLC import — which PLC column maps to which model)</span></div>
+    <table class="table table-sm table-bordered" style="font-size:.78rem" id="colMapTable">
+      <thead><tr><th>Column #</th><th>Model Code</th><th>Model Type</th><th>Side</th><th>Full Name</th></tr></thead>
+      <tbody id="colMapBody"></tbody>
+    </table>
+    <button class="btn btn-sm btn-outline-secondary" onclick="addColMapRow()"><i class="bi bi-plus me-1"></i>Add Column</button>
+
+    <div id="impResult" class="mt-3 d-none"></div>
+  </div>
+</div></div></div>
+
+<!-- ═══════ SENSOR MAPPING MODAL ═══════ -->
+<div class="modal fade" id="sensorModal" tabindex="-1">
+<div class="modal-dialog modal-lg"><div class="modal-content">
+  <div class="modal-header dark">
+    <h5 class="modal-title"><i class="bi bi-cpu me-2"></i>Sensor → D.Bit Mapping</h5>
+    <button class="btn-close" data-bs-dismiss="modal"></button>
+  </div>
+  <div class="modal-body">
+    <p style="font-size:.8rem;color:#64748b">Maps PLC sensor names (from Sheet1) to D.bit addresses (used in final seat). Edit inline and save.</p>
+    <div style="max-height:400px;overflow-y:auto">
+      <table class="table table-sm table-bordered" style="font-size:.8rem">
+        <thead><tr><th>Sensor Name</th><th>D.Bit</th><th>Device No</th></tr></thead>
+        <tbody id="sensorBody"></tbody>
+      </table>
+    </div>
+  </div>
+  <div class="modal-footer">
+    <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+    <button class="btn btn-primary btn-sm fw-bold" onclick="saveSensorMap()"><i class="bi bi-check-lg me-1"></i>Save Mappings</button>
+  </div>
+</div></div></div>
+
+<!-- ═══════ DETAIL SIDE PANEL ═══════ -->
+<div class="offcanvas offcanvas-end" tabindex="-1" id="detailPanel" style="width:380px">
+  <div class="offcanvas-header" style="background:var(--brand);color:#fff">
+    <h6 class="offcanvas-title fw-bold"><i class="bi bi-info-circle me-1"></i>Check Details</h6>
+    <button class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
+  </div>
+  <div class="offcanvas-body" id="detailBody" style="font-size:.85rem"></div>
+</div>
+
+<!-- Toast -->
+<div class="toast-box" id="toastBox"></div>
+
+<!-- Loading spinner -->
+<div class="spinner-wrap d-none" id="spinner">
+  <div class="spinner-border text-primary" style="width:3rem;height:3rem"></div>
+  <div style="color:#64748b;font-size:.85rem">Loading data...</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+/* ═══════════════════════════════════════════════════════════
+   STATE
+   ═══════════════════════════════════════════════════════════ */
+let D = null;           // full data object
+let selModel = null;    // selected full model_name or null = all
+let editMode = false;
+let edits = {};         // { rowIndex: newDesired }
+const VL = {0:'PASS',1:'OFF',2:'ON'};
+const VC = {0:'p-pass',1:'p-off',2:'p-on'};
+const SC = {MATCH:'s-match',MISMATCH:'s-mis',NO_DATA:'s-nd',ACTUAL_ONLY:'s-nd'};
+const SI = {MATCH:'bi-check-circle-fill',MISMATCH:'bi-x-circle-fill',NO_DATA:'bi-dash-circle',ACTUAL_ONLY:'bi-dash-circle'};
+let refreshTimer = null;
+
+/* ═══════════════════════════════════════════════════════════
+   LOAD
+   ═══════════════════════════════════════════════════════════ */
+async function loadData(showSpinner){
+  if(showSpinner){document.getElementById('spinner').classList.remove('d-none')}
+  try{
+    const r = await fetch('/api/data?_='+Date.now());
+    D = await r.json();
+    render();
+  }catch(e){toast('Load failed: '+e.message,'danger')}
+  finally{document.getElementById('spinner').classList.add('d-none')}
+}
+
+function render(){
+  renderModels(); renderFilters(); renderTable(); renderStats();
+  const t = D.last_updated;
+  document.getElementById('hTime').textContent = t ? 'Updated '+new Date(t).toLocaleString('en-IN') : '';
+}
+
+/* ═══════════════════════════════════════════════════════════
+   MODELS GRID
+   ═══════════════════════════════════════════════════════════ */
+function renderModels(){
+  const cf = document.getElementById('codeFilter').value;
+  const ms = document.getElementById('modelSearch').value.toLowerCase();
+
+  // Populate code filter (once)
+  const sel = document.getElementById('codeFilter');
+  if(sel.options.length <= 1 && D.stats?.model_codes){
+    D.stats.model_codes.forEach(c=>{const o=document.createElement('option');o.value=c;o.textContent=c;sel.appendChild(o)});
+    sel.value = cf;
+  }
+
+  const models = (D.models||[]).filter(m=>{
+    if(cf && m.model!==cf) return false;
+    if(ms && !(m.model_name+' '+m.model+' '+m.type).toLowerCase().includes(ms)) return false;
+    return true;
+  });
+
+  // "ALL" card
+  const allActive = !selModel;
+  let html = `<div class="m-card ${allActive?'m-card-all':''}" onclick="pickModel(null)">
+    <div class="mc-code">ALL</div><div class="mc-type">All Models</div>
+    <div class="mc-name">${D.stats?.total_models||0} models total</div></div>`;
+
+  // Group by code for visual order
+  const byCode = {};
+  models.forEach(m=>{(byCode[m.model]=byCode[m.model]||[]).push(m)});
+
+  for(const [code, arr] of Object.entries(byCode).sort((a,b)=>a[0].localeCompare(b[0]))){
+    arr.forEach(m=>{
+      const act = selModel===m.model_name;
+      html += `<div class="m-card ${act?'active':''}" onclick="pickModel('${esc(m.model_name)}')">
+        <div class="mc-code">${esc(m.model)}</div>
+        <div class="mc-type">${esc(m.type)}</div>
+        <div class="mc-name" title="${esc(m.model_name)}">${esc(m.model_name)}</div>
+        <div class="mc-name">${esc(m.old_model_no)}</div>
+      </div>`;
+    });
+  }
+  document.getElementById('modelGrid').innerHTML = html;
+}
+
+function pickModel(name){
+  selModel = (selModel===name) ? null : name;
+  renderModels(); renderTable(); renderStats();
+}
+
+/* ═══════════════════════════════════════════════════════════
+   STATS
+   ═══════════════════════════════════════════════════════════ */
+function renderStats(){
+  const rows = getFilteredRows();
+  let match=0, mis=0, nd=0;
+  rows.forEach(r=>{if(r.status==='MATCH')match++;else if(r.status==='MISMATCH')mis++;else nd++});
+  document.querySelector('#hTotal span').textContent = rows.length;
+  document.querySelector('#hMatch span').textContent = match;
+  document.querySelector('#hMis span').textContent   = mis;
+  document.querySelector('#hNd span').textContent    = nd;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   FILTERS
+   ═══════════════════════════════════════════════════════════ */
+function renderFilters(){
+  const machines = new Set(), types = new Set();
+  (D.compiled||[]).forEach(c=>{if(c.machine)machines.add(c.machine);if(c.model_type)types.add(c.model_type)});
+
+  const fm = document.getElementById('fMachine');
+  const cv = fm.value;
+  fm.innerHTML = '<option value="">All Machines</option>';
+  [...machines].sort().forEach(m=>{const o=document.createElement('option');o.value=m;o.textContent=m;fm.appendChild(o)});
+  fm.value = cv;
+
+  const ft = document.getElementById('fType');
+  const tv = ft.value;
+  ft.innerHTML = '<option value="">All PY Types</option>';
+  [...types].sort().forEach(t=>{const o=document.createElement('option');o.value=t;o.textContent=t;ft.appendChild(o)});
+  ft.value = tv;
+}
+
+function getFilteredRows(){
+  const s    = document.getElementById('fSearch').value.toLowerCase();
+  const st   = document.getElementById('fStatus').value;
+  const mc   = document.getElementById('fMachine').value;
+  const tp   = document.getElementById('fType').value;
+  const side = document.getElementById('fSide').value;
+
+  return (D.compiled||[]).filter((c,i)=>{
+    if(selModel && c.model_name !== selModel) return false;
+    if(st && c.status !== st) return false;
+    if(mc && c.machine !== mc) return false;
+    if(tp && c.model_type !== tp) return false;
+    if(side && c.type_side !== side) return false;
+    if(s && !(c.py_no+' '+c.py_name+' '+c.model_name+' '+(c.sensor_name||'')).toLowerCase().includes(s)) return false;
+    return true;
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════
+   TABLE
+   ═══════════════════════════════════════════════════════════ */
+function renderTable(){
+  const rows = getFilteredRows();
+  document.getElementById('rowCount').textContent = rows.length+' rows';
+
+  if(!rows.length){
+    document.getElementById('tBody').innerHTML = `<tr><td colspan="10" class="text-center text-muted py-5">
+      <i class="bi bi-inbox" style="font-size:2rem"></i><br>
+      ${selModel?'No checks for this model':'Select a model or adjust filters'}</td></tr>`;
+    document.getElementById('tFoot').textContent = selModel?'No results for: '+selModel:'No results';
+    return;
+  }
+
+  // Find original index for each row (for edit tracking)
+  const allComp = D.compiled||[];
+
+  let html = '';
+  rows.forEach((c,vi)=>{
+    const oi = allComp.indexOf(c); // original index
+    const isEdited = edits.hasOwnProperty(oi);
+
+    const sideC = c.type_side==='LH'?'side-lh':c.type_side==='RH'?'side-rh':'side-both';
+
+    // Desired cell
+    let desCell;
+    if(editMode){
+      const curVal = isEdited ? edits[oi] : c.desired;
+      desCell = `<select class="edit-sel" data-oi="${oi}" onchange="onEdit(this)">
+        <option value="0" ${curVal===0?'selected':''}>0 — PASS</option>
+        <option value="1" ${curVal===1?'selected':''}>1 — OFF</option>
+        <option value="2" ${curVal===2?'selected':''}>2 — ON</option>
+      </select>`;
+    } else {
+      desCell = valPill(c.desired);
+    }
+
+    const statusCls = SC[c.status]||'s-nd';
+    const statusIcon = SI[c.status]||'bi-dash-circle';
+
+    html += `<tr class="${isEdited?'edited':''}" style="cursor:pointer" onclick="showDetail(${oi},event)">
+      <td class="text-muted" style="font-size:.72rem">${vi+1}</td>
+      <td class="py-no">${esc(c.py_no)}</td>
+      <td>${esc(c.py_name)}${!selModel?'<br><span style=\"font-size:.6rem;color:#94a3b8\">'+esc(c.model_name)+'</span>':''}</td>
+      <td class="bit-cell">${esc(c.d_bit||'—')}</td>
+      <td style="font-size:.75rem;color:#64748b">${esc(c.machine||'—')}</td>
+      <td style="font-size:.72rem">${esc(c.model_type||'—')}</td>
+      <td><span class="pill ${sideC}">${esc(c.type_side||'—')}</span></td>
+      <td>${desCell}</td>
+      <td>${valPill(c.actual)}</td>
+      <td><span class="pill ${statusCls}"><i class="bi ${statusIcon} me-1"></i>${esc(c.status)}</span></td>
+    </tr>`;
+  });
+
+  document.getElementById('tBody').innerHTML = html;
+  document.getElementById('tFoot').textContent = selModel
+    ? `Showing ${rows.length} checks for: ${selModel}`
+    : `Showing ${rows.length} of ${allComp.length} total checks`;
+}
+
+function valPill(v){
+  if(v===null||v===undefined) return '<span class="pill p-na">—</span>';
+  return `<span class="pill ${VC[v]||'p-na'}">${VL[v]||v}</span>`;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   DETAIL PANEL
+   ═══════════════════════════════════════════════════════════ */
+function showDetail(oi, ev){
+  if(ev && ev.target.closest('select')) return; // don't open for edit dropdowns
+  const c = D.compiled[oi]; if(!c) return;
+  const body = document.getElementById('detailBody');
+  const statusCls = SC[c.status]||'s-nd';
+
+  body.innerHTML = `
+    <div class="mb-3"><span class="pill ${statusCls}" style="font-size:.9rem;padding:6px 18px">
+      <i class="bi ${SI[c.status]} me-1"></i>${c.status}</span></div>
+    <table class="table table-sm" style="font-size:.82rem">
+      <tr><th style="width:40%">PY No</th><td class="py-no">${esc(c.py_no)}</td></tr>
+      <tr><th>Name</th><td>${esc(c.py_name)}</td></tr>
+      <tr><th>D Bit</th><td class="bit-cell">${esc(c.d_bit)}</td></tr>
+      <tr><th>Machine</th><td>${esc(c.machine)}</td></tr>
+      <tr><th>Model</th><td>${esc(c.model_name)}</td></tr>
+      <tr><th>Model Code</th><td><b>${esc(c.model)}</b></td></tr>
+      <tr><th>Model Type</th><td>${esc(c.model_type)}</td></tr>
+      <tr><th>Side</th><td><span class="pill ${c.type_side==='LH'?'side-lh':c.type_side==='RH'?'side-rh':'side-both'}">${esc(c.type_side)}</span></td></tr>
+      <tr><th>Old Part No</th><td>${esc(c.old_model_no)}</td></tr>
+      <tr><th>Desired</th><td>${valPill(c.desired)}</td></tr>
+      <tr><th>Actual</th><td>${valPill(c.actual)}</td></tr>
+      ${c.sensor_name?'<tr><th>PLC Sensor</th><td>'+esc(c.sensor_name)+'</td></tr>':''}
+      ${c.plc_column?'<tr><th>PLC Column</th><td>Model '+esc(c.plc_column)+'</td></tr>':''}
+    </table>
+    ${c.status==='MISMATCH'?'<div class="alert alert-danger" style="font-size:.8rem"><i class="bi bi-exclamation-triangle-fill me-1"></i><b>MISMATCH:</b> PLC reports <b>'+VL[c.actual]+'</b> but desired is <b>'+VL[c.desired]+'</b></div>':''}
+  `;
+  new bootstrap.Offcanvas(document.getElementById('detailPanel')).show();
+}
+
+/* ═══════════════════════════════════════════════════════════
+   EDIT MODE
+   ═══════════════════════════════════════════════════════════ */
+function toggleEdit(){
+  editMode = true; edits = {};
+  document.getElementById('editBtn').classList.add('d-none');
+  document.getElementById('saveBtn').classList.remove('d-none');
+  document.getElementById('cancelBtn').classList.remove('d-none');
+  renderTable();
+}
+function cancelEdit(){
+  editMode = false; edits = {};
+  document.getElementById('editBtn').classList.remove('d-none');
+  document.getElementById('saveBtn').classList.add('d-none');
+  document.getElementById('cancelBtn').classList.add('d-none');
+  renderTable();
+}
+function onEdit(sel){
+  const oi = parseInt(sel.dataset.oi);
+  const nv = parseInt(sel.value);
+  const orig = D.compiled[oi].desired;
+  if(nv === orig) delete edits[oi]; else edits[oi] = nv;
+  sel.closest('tr').classList.toggle('edited', edits.hasOwnProperty(oi));
+}
+
+async function saveEdits(){
+  const updates = Object.entries(edits).map(([oi,dv])=>{
+    const c = D.compiled[parseInt(oi)];
+    return {py_no:c.py_no, model:c.model, model_type:c.model_type, type_side:c.type_side, desired_value:dv};
+  });
+  if(!updates.length){toast('No changes','warning');cancelEdit();return}
+  try{
+    const r = await fetch('/api/update-desired',{method:'POST',headers:{'Content-Type':'application/json'},
+                body:JSON.stringify({updates})});
+    const d = await r.json();
+    if(d.ok){toast(d.updated+' values saved','success');cancelEdit();await loadData(false)}
+    else toast(d.error||'Save failed','danger');
+  }catch(e){toast('Error: '+e.message,'danger')}
+}
+
+/* ═══════════════════════════════════════════════════════════
+   ADD MODEL
+   ═══════════════════════════════════════════════════════════ */
+function showAddModelModal(){
+  ['amCode','amName','amOldNo'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('amType').value='';
+  new bootstrap.Modal(document.getElementById('addModelModal')).show();
+}
+async function submitAddModel(){
+  const code = document.getElementById('amCode').value.trim();
+  const name = document.getElementById('amName').value.trim();
+  const type = document.getElementById('amType').value;
+  const oldNo = document.getElementById('amOldNo').value.trim();
+  if(!code||!name){toast('Code and Name required','warning');return}
+  try{
+    const r = await fetch('/api/add-model',{method:'POST',headers:{'Content-Type':'application/json'},
+                body:JSON.stringify({model_code:code,model_name:name,type,old_model_no:oldNo})});
+    const d = await r.json();
+    if(d.ok){toast('Model added: '+name,'success');bootstrap.Modal.getInstance(document.getElementById('addModelModal')).hide();await loadData(false)}
+    else toast(d.error,'danger');
+  }catch(e){toast('Error: '+e.message,'danger')}
+}
+
+/* ═══════════════════════════════════════════════════════════
+   IMPORT
+   ═══════════════════════════════════════════════════════════ */
+function showImportModal(){
+  document.getElementById('impFile').value='';
+  document.getElementById('impResult').classList.add('d-none');
+  renderColMapTable();
+  new bootstrap.Modal(document.getElementById('importModal')).show();
+}
+
+function renderColMapTable(){
+  const mc = D.model_columns||{};
+  let html = '';
+  for(const [col,info] of Object.entries(mc)){
+    html += `<tr>
+      <td><input class="form-control form-control-sm cm-col" value="${esc(col)}" style="width:60px"></td>
+      <td><input class="form-control form-control-sm cm-model" value="${esc(info.model||'')}"></td>
+      <td><input class="form-control form-control-sm cm-type" value="${esc(info.model_type||'')}"></td>
+      <td><input class="form-control form-control-sm cm-side" value="${esc(info.type_side||'')}"></td>
+      <td><input class="form-control form-control-sm cm-name" value="${esc(info.full_name||'')}"></td>
+    </tr>`;
+  }
+  if(!html) html = defaultColMapRows();
+  document.getElementById('colMapBody').innerHTML = html;
+}
+
+function defaultColMapRows(){
+  return [
+    {col:'9',model:'YHB',type:'4 WAY OUTER',side:'BOTH',name:'TRACK ASSY FRONT SEAT YHB 4 WAY OTR'},
+    {col:'10',model:'YHB',type:'4 WAY INNER',side:'RH',name:'TRACK ASSY FRONT SEAT YHB 4 WAY INR RH'},
+    {col:'11',model:'YHB',type:'4 WAY INNER',side:'LH',name:'TRACK ASSY FRONT SEAT YHB 4 WAY INR LH'},
+  ].map(r=>`<tr>
+    <td><input class="form-control form-control-sm cm-col" value="${r.col}" style="width:60px"></td>
+    <td><input class="form-control form-control-sm cm-model" value="${r.model}"></td>
+    <td><input class="form-control form-control-sm cm-type" value="${r.type}"></td>
+    <td><input class="form-control form-control-sm cm-side" value="${r.side}"></td>
+    <td><input class="form-control form-control-sm cm-name" value="${r.name}"></td>
+  </tr>`).join('');
+}
+
+function addColMapRow(){
+  const tbody = document.getElementById('colMapBody');
+  tbody.insertAdjacentHTML('beforeend',`<tr>
+    <td><input class="form-control form-control-sm cm-col" value="" style="width:60px" placeholder="12"></td>
+    <td><input class="form-control form-control-sm cm-model" value="" placeholder="YZZ"></td>
+    <td><input class="form-control form-control-sm cm-type" value="" placeholder="4 WAY INNER"></td>
+    <td><input class="form-control form-control-sm cm-side" value="" placeholder="LH"></td>
+    <td><input class="form-control form-control-sm cm-name" value="" placeholder="Full name..."></td>
+  </tr>`);
+}
+
+function getColMap(){
+  const mc = {};
+  document.querySelectorAll('#colMapBody tr').forEach(tr=>{
+    const col   = tr.querySelector('.cm-col').value.trim();
+    const model = tr.querySelector('.cm-model').value.trim();
+    const type  = tr.querySelector('.cm-type').value.trim();
+    const side  = tr.querySelector('.cm-side').value.trim();
+    const name  = tr.querySelector('.cm-name').value.trim();
+    if(col) mc[col] = {model,model_type:type,type_side:side,full_name:name};
+  });
+  return mc;
+}
+
+async function doUpload(file){
+  if(!file) return;
+  const res = document.getElementById('impResult');
+  res.className = 'mt-3 alert alert-info'; res.textContent = 'Uploading...'; res.classList.remove('d-none');
+
+  const fd = new FormData();
+  fd.append('file', file);
+  fd.append('model_columns', JSON.stringify(getColMap()));
+
+  try{
+    const r = await fetch('/api/import-excel',{method:'POST',body:fd});
+    const d = await r.json();
+    if(d.ok){
+      res.className = 'mt-3 alert alert-success';
+      res.innerHTML = `<i class="bi bi-check-circle-fill me-1"></i><b>Import OK!</b> Type: ${d.type}
+        ${d.models?', Models: <b>'+d.models+'</b>':''}
+        ${d.assignments?', Assignments: <b>'+d.assignments+'</b>':''}
+        ${d.updated!=null?', Updated: <b>'+d.updated+'</b> actuals':''}
+        ${d.stats?'<br>Match: '+d.stats.match+' | Mismatch: '+d.stats.mismatch+' | No Data: '+d.stats.no_data:''}`;
+      await loadData(false);
+    } else {
+      res.className = 'mt-3 alert alert-danger'; res.textContent = d.error||'Import failed';
+    }
+  }catch(e){res.className='mt-3 alert alert-danger';res.textContent='Error: '+e.message}
+}
+
+/* ═══════════════════════════════════════════════════════════
+   SENSOR MAPPING
+   ═══════════════════════════════════════════════════════════ */
+function showSensorModal(){
+  const sm = D.sensor_mapping||{};
+  // Also show device info from plc_actuals_raw
+  const par = D.plc_actuals_raw||{};
+  const dbitToDevice = {};
+  for(const [dbit,info] of Object.entries(par)){
+    dbitToDevice[dbit] = info.device_no||'';
+  }
+
+  let html = '';
+  for(const [sensor,dbit] of Object.entries(sm).sort((a,b)=>a[0].localeCompare(b[0]))){
+    const dev = dbitToDevice[dbit]||'';
+    html += `<tr>
+      <td>${esc(sensor)}</td>
+      <td><input class="form-control form-control-sm sm-dbit" data-sensor="${esc(sensor)}" value="${esc(dbit||'')}" style="width:100px"></td>
+      <td style="color:#94a3b8">${esc(dev)}</td>
+    </tr>`;
+  }
+  document.getElementById('sensorBody').innerHTML = html;
+  new bootstrap.Modal(document.getElementById('sensorModal')).show();
+}
+
+async function saveSensorMap(){
+  const mappings = {};
+  document.querySelectorAll('.sm-dbit').forEach(inp=>{
+    mappings[inp.dataset.sensor] = inp.value.trim();
+  });
+  try{
+    const r = await fetch('/api/update-sensor-mapping',{method:'POST',headers:{'Content-Type':'application/json'},
+                body:JSON.stringify({mappings})});
+    const d = await r.json();
+    if(d.ok){toast('Sensor mappings saved','success');bootstrap.Modal.getInstance(document.getElementById('sensorModal')).hide();await loadData(false)}
+    else toast(d.error,'danger');
+  }catch(e){toast('Error: '+e.message,'danger')}
+}
+
+/* ═══════════════════════════════════════════════════════════
+   TOAST
+   ═══════════════════════════════════════════════════════════ */
+function toast(msg,type='info'){
+  const icons={success:'check-circle-fill',danger:'x-circle-fill',warning:'exclamation-triangle-fill',info:'info-circle-fill'};
+  const box = document.getElementById('toastBox');
+  box.insertAdjacentHTML('beforeend',`<div class="toast show align-items-center text-bg-${type} border-0 mb-2" role="alert">
+    <div class="d-flex"><div class="toast-body"><i class="bi bi-${icons[type]||'info-circle-fill'} me-1"></i>${msg}</div>
+    <button class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button></div></div>`);
+  const el = box.lastElementChild;
+  setTimeout(()=>el.remove(), 4000);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   HELPERS
+   ═══════════════════════════════════════════════════════════ */
+function esc(s){const d=document.createElement('div');d.textContent=s||'';return d.innerHTML}
+
+/* ═══════════════════════════════════════════════════════════
+   FILTER EVENT LISTENERS
+   ═══════════════════════════════════════════════════════════ */
+['fSearch','fStatus','fMachine','fType','fSide'].forEach(id=>{
+  const el = document.getElementById(id);
+  el.addEventListener(el.tagName==='INPUT'?'input':'change', ()=>{renderTable();renderStats()});
+});
+document.getElementById('codeFilter').addEventListener('change', renderModels);
+document.getElementById('modelSearch').addEventListener('input', renderModels);
+
+/* ═══════════════════════════════════════════════════════════
+   AUTO-REFRESH (every 30s)
+   ═══════════════════════════════════════════════════════════ */
+function startRefresh(){
+  if(refreshTimer) clearInterval(refreshTimer);
+  refreshTimer = setInterval(()=>loadData(false), 30000);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   INIT
+   ═══════════════════════════════════════════════════════════ */
+loadData(true).then(startRefresh);
+</script>
+</body>
+</html>

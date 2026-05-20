@@ -1,0 +1,653 @@
+/* Reset & Base - EXACTLY SAME AS YOUR ORIGINAL CSS */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Arial', sans-serif;
+}
+
+body {
+  background: #000000;
+  color: #ffffff;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+.container {
+  max-width: 200px;
+  margin: 0 auto;
+  padding: 0px;
+}
+
+/* ========== DASHBOARD HEADER - THREE COLUMNS ========== */
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: transparent;
+  padding: 2px 2px;
+  margin-bottom: 0px;
+  gap: 5px;
+}
+
+/* Left: Date & Time Table */
+.datetime-table-left {
+  flex: 1;
+  max-width: 350px;
+  background: #111111;
+  border-radius: 8px;
+  border: 2px solid #333333;
+  padding: 0px;
+}
+
+.datetime-table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.datetime-table tr {
+  border-bottom: 1px solid #333;
+}
+
+.datetime-table tr:last-child {
+  border-bottom: none;
+}
+
+.datetime-label {
+  padding: 4px 10px;
+  color: #ffffff;
+  font-weight: bold;
+  font-size: 22px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  border-right: 2px solid #333;
+  background: #1a1a1a;
+  width: 110px;
+  font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
+}
+
+.datetime-value {
+  padding: 4px 10px;
+  width: 100px;
+  color: #d3fa38;
+  font-weight: bold;
+  font-size: 22px;
+  text-align: center;
+  background: rgba(0, 0, 0, 0.05);
+  font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
+}
+
+/* Middle: Operating Status */
+.status-row-middle {
+  flex: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  background: #111111;
+  border-radius: 8px;
+  padding: 8px 150px;
+  border: 2px solid #333333;
+  min-height: 70px;
+}
+
+.status-label {
+  font-weight: bold;
+  font-size: 30px;
+  color: #ffffff;
+  min-width: 280px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
+}
+
+.status-value {
+  flex: 1;
+  display: flex;
+  justify-content: right;
+  align-items: center;
+}
+
+.status-box {
+  background: #000000;
+  text-align: center;
+  border-radius: 15px;
+  font-size: 30px;
+  font-weight: bold;
+  letter-spacing: 1px;
+  border: 3px solid transparent;
+  color: #7af97a;
+  background: rgba(0, 255, 0, 0.1);
+  padding: 15px 15px;
+  border-radius: 2px;
+  border: 2px solid #aec2ae;
+  text-align: center;
+  min-width: 200px;
+}
+
+/* Status Colors */
+.status-running {
+  border-color: #00ff00;
+  color: #00ff00;
+}
+
+.status-breakdown {
+  border-color: #ff0000;
+  color: #ff0000;
+}
+
+.status-quality {
+  border-color: #ffff00;
+  color: #ffff00;
+}
+
+.status-setup {
+  border-color: #0080ff;
+  color: #0080ff;
+}
+
+.status-material {
+  border-color: #ff9800;
+  color: #ff9800;
+}
+
+.status-others-losses {
+  border-color: #00ffff;
+  color: #00ffff;
+}
+
+/* Right: Shift Only */
+.shift-only-right {
+  flex: 1;
+  max-width: 250px;
+  background: #111111;
+  border-radius: 8px;
+  border: 2px solid #333333;
+  padding: 5px;
+  height: 80px;
+}
+
+.shift-container {
+  text-align: center;
+  padding: 0px;
+}
+
+.shift-label {
+  color: #ffffff;
+  font-weight: bold;
+  font-size: 20px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 8px;
+  padding-bottom: 1px;
+  border-bottom: 1px solid #333;
+  font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
+}
+
+.shift-value-large {
+  color: #ffff00;
+  font-size: 36px;
+  font-weight: bold;
+  margin: 0px 0;
+  text-shadow: 0 0 10px rgba(255, 255, 0, 0.5);
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-top: 10px;
+}
+
+
+
+/* ========== LEFT TABLE (Line Details) ========== */
+.table-left {
+  flex: 1;
+  background: #2c2c2c;
+  border-radius: 8px;
+  padding: 0px;
+  margin-top: 0px;
+  border: 2px solid #444;
+  overflow-y: auto;
+  height: 315px;
+}
+
+.table-left .dashboard-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table-left .dashboard-table tr {
+  height: 51px;
+  border-bottom: 1px solid #555;
+}
+
+.table-left .dashboard-table tr:last-child {
+  border-bottom: none;
+}
+
+.table-left .param-label {
+  width: 40%;
+  padding: 0px 10px;
+  color: #ffffff;
+  font-weight: bold;
+  background: #333;
+  border-right: 1px solid #555;
+  font-size: 20px;
+  font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
+}
+
+.table-left .param-label i {
+  color: #00ff00;
+  width: 18px;
+  margin-right: 8px;
+}
+
+.table-left .param-value {
+  width: 40%;
+  padding: 2px 15px;
+  color: #ffffff;
+  font-weight: bold;
+  font-size: 22px;
+  background: #222;
+  font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
+  text-align: center;
+}
+
+.table-left .achievement {
+  color: #00ff00 !important;
+  font-size: 25px;
+}
+
+/* ========== MIDDLE TABLE (OEE Calculation) ========== */
+.table-middle {
+  flex: 1;
+  background: #2c2c2c;
+  border-radius: 8px;
+  padding: 5px;
+  border: 2px solid #444;
+  overflow-y: auto;
+  margin-top: 0px;
+  height: 315px;
+}
+
+.oee-table {
+  width: 100%;
+  border-collapse: collapse;
+  color: white;
+  font-size: 22px;
+  margin-top: 1px;
+}
+
+.oee-table thead {
+  border-bottom: 2px solid #555;
+}
+
+.oee-header {
+  padding: 10px 2px;
+  text-align: center;
+  font-weight: bold;
+  color: #ffffff;
+  background: #333;
+  font-size: 22px;
+  font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
+  text-transform: uppercase;
+}
+
+.oee-table td {
+  padding: 6px 20px;
+  border-bottom: 1px solid #444;
+}
+
+.oee-table tr:last-child td {
+  border-bottom: none;
+}
+
+.oee-table tr.oee-total-row {
+  background: rgba(0, 255, 0, 0.1);
+  border-top: 2px solid #cecfce;
+}
+
+.oee-param {
+  color: #ffffff;
+  font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
+  width: 60%;
+}
+
+.oee-param i {
+  color: #00ff00;
+  margin-right: 8px;
+  width: 16px;
+  text-align: center;
+}
+
+.oee-formula {
+  font-size: 10px;
+  color: #aaa;
+  font-style: italic;
+  margin-top: 3px;
+}
+
+.oee-value {
+  width: 60%;
+  text-align: center;
+}
+
+.oee-percent {
+  color: #00ff00;
+  font-weight: bold;
+  font-size: 16px;
+  margin-bottom: 5px;
+}
+
+.oee-percent.total-percent {
+  color: #00ff00;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.oee-bar {
+  width: 100%;
+  height: 18px;
+  background: #ffffff;
+  border-radius: 4px;
+  overflow: hidden;
+  margin: 0 auto;
+}
+
+.oee-bar.total-bar {
+  height: 18px;
+  border: 1px solid #ffffff;
+}
+
+.oee-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.5s ease;
+}
+
+.availability-fill {
+  background: linear-gradient(90deg, #3498db, #5dade2);
+}
+
+.performance-fill {
+  background: linear-gradient(90deg, #f39c12, #f1c40f);
+}
+
+.quality-fill {
+  background: linear-gradient(90deg, #27ae60, #2ecc71);
+}
+
+.total-fill {
+  background: linear-gradient(90deg, #9b59b6, #8e44ad);
+  box-shadow: 0 0 5px rgba(155, 89, 182, 0.5);
+}
+
+.oee-grade {
+  margin-top: 5px;
+  font-size: 17px;
+  color: #0d0d0d;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+/* ========== RIGHT TABLE (Loss Parameters) ========== */
+.table-right {
+  flex: 1;
+  background: #2c2c2c;
+  border-radius: 8px;
+  padding-left: 5px;
+  padding-top: 5px;
+  padding-right: 5px;
+  border: 2px solid #444;
+  overflow-y: auto;
+  margin-top: 0px;
+height: 415px;
+}
+
+.loss-table {
+  width: 100%;
+  border-collapse: collapse;
+  color: white;
+}
+
+.loss-table thead {
+  border-bottom: 2px solid #555;
+}
+
+.loss-table th {
+  padding: 8px 10px;
+  text-align: center;
+  font-weight: bold;
+  color: #FF9800;
+  background: #333;
+  font-size: 20px;
+}
+
+.loss-table td {
+  padding: 9px 10px;
+  border-bottom: 1px solid #444;
+  font-size: 22px;
+  font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
+}
+
+.loss-table tr:last-child td {
+  border-bottom: none;
+}
+
+.loss-table tr.loss-total-row {
+  background: rgba(255, 152, 0, 0.1);
+  border-top: 2px solid #FF9800;
+}
+
+.loss-name {
+  color: #ffffff;
+  font-weight: bold;
+}
+
+.loss-name.total-loss {
+  color: #FF9800;
+  font-weight: 800;
+}
+
+.loss-time {
+  color: #ff0505;
+  font-weight: bold;
+  text-align: center;
+}
+
+.loss-time.total-time {
+  color: #FF9800;
+  font-weight: 800;
+}
+
+/* ========== HORIZONTAL HOURLY TABLE ========== */
+.horizontal-hourly-table {
+  display: flex;
+  flex-direction: column;
+  gap: 0px;
+  min-width: 500px;
+  background: #111111;
+  padding: 0px;
+  border-radius: 8px;
+  border: 2px solid #333;
+  margin-top: 0px;
+}
+
+.hourly-row {
+  display: flex;
+  background: #111111;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 2px solid #4d4d4d;
+}
+
+.row-label {
+  width: 150px;
+  padding: 2px 2px;
+  background: #1a1a1a;
+  font-weight: bold;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-right: 2px solid #333;
+  font-size: 20px;
+  text-transform: uppercase;
+  font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
+}
+
+/* Hour Row */
+.hour-row .hour-cell {
+  flex: 1;
+  padding: 5px 5px;
+  text-align: center;
+  color: #ffffff;
+  border-right: 1px solid #333;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  min-width: 100px;
+  font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
+}
+
+.hour-row .hour-total-cell {
+  width: 150px;
+  padding: 5px 5px;
+  background: #000000;
+  color: #ffffff;
+  font-weight: bold;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
+}
+
+/* Plan Row */
+.plan-row .plan-cell {
+  flex: 1;
+  padding: 5px 5px;
+  text-align: center;
+  color: #3498db;
+  font-weight: bold;
+  border-right: 1px solid #333;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  min-width: 100px;
+  background: rgba(0, 0, 0, 0.1);
+  font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
+}
+
+.plan-row .plan-total-cell {
+  width: 150px;
+  padding: 5px 5px;
+  background: #000000;
+  color: #3498db;
+  font-weight: bold;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
+}
+
+/* Actual Row */
+.actual-row .actual-cell {
+  flex: 1;
+  padding: 2px 5px;
+  text-align: center;
+  border-right: 1px solid #333;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 100px;
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.actual-row .actual-total-cell {
+  width: 150px;
+  padding: 5px 5px;
+  background: #000000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.actual-value {
+  color: #2ecc71;
+  font-weight: bold;
+  font-size: 20px;
+  margin-bottom: 3px;
+}
+
+.variance {
+  font-size: 18px;
+  font-weight: bold;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+.variance.positive {
+  color: #00ff00;
+  background: rgba(0, 255, 0, 0.1);
+}
+
+.variance.negative {
+  color: #ff3333;
+  background: rgba(255, 51, 51, 0.1);
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+  .tables-container {
+    flex-wrap: wrap;
+    height: auto;
+  }
+
+  .table-left,
+  .table-middle,
+  .table-right {
+    flex: 1 1 calc(50% - 20px);
+    height: 270px;
+  }
+}
+
+@media (max-width: 900px) {
+  .tables-container {
+    flex-direction: column;
+    height: auto;
+  }
+
+  .table-left,
+  .table-middle,
+  .table-right {
+    height: 260px;
+    flex: 1 1 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboard-header {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .datetime-table-left,
+  .status-row-middle,
+  .shift-only-right {
+    max-width: 100%;
+    width: 100%;
+  }
+
+  .status-row-middle {
+    padding: 8px 20px;
+  }
+}

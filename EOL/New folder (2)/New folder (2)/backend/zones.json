@@ -1,0 +1,1771 @@
+{
+  "zones": [
+    {
+      "id": "zone_14",
+      "name": "Canteen",
+      "lines": [
+        {
+          "id": "line_46",
+          "name": "Canteen",
+          "machines": [
+            {
+              "id": "machine_273",
+              "name": "Canteen Chapati  M/C",
+              "camera_id": null
+            },
+            {
+              "id": "machine_275",
+              "name": "Canteen Dish Wash Mc",
+              "camera_id": null
+            },
+            {
+              "id": "machine_274",
+              "name": "Canteen Flour Dough M/C",
+              "camera_id": null
+            },
+            {
+              "id": "machine_276",
+              "name": "Canteen Lift",
+              "camera_id": null
+            },
+            {
+              "id": "machine_272",
+              "name": "Canteen Pill off Mc",
+              "camera_id": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "zone_13",
+      "name": "Dispatch",
+      "lines": [
+        {
+          "id": "line_45",
+          "name": "Dispatch Area",
+          "machines": [
+            {
+              "id": "machine_269",
+              "name": "Bin Washing Machine",
+              "camera_id": null
+            },
+            {
+              "id": "machine_270",
+              "name": "Scissor Hydrualic Lift #6 @DISPATCH",
+              "camera_id": null
+            },
+            {
+              "id": "machine_271",
+              "name": "Scissor Hydrualic Lift #6 @DISPATCH",
+              "camera_id": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "zone_10",
+      "name": "Laboratory",
+      "lines": [
+        {
+          "id": "line_42",
+          "name": "Standard Room",
+          "machines": [
+            {
+              "id": "machine_237",
+              "name": "Abresive Cutting Machine",
+              "camera_id": null
+            },
+            {
+              "id": "machine_250",
+              "name": "Cordinate Measuring M/c (CMM)",
+              "camera_id": null
+            },
+            {
+              "id": "machine_245",
+              "name": "Durability Test Ring Machine 6P+1M",
+              "camera_id": null
+            },
+            {
+              "id": "machine_246",
+              "name": "Durability Test Ring Machine 2P+1M",
+              "camera_id": null
+            },
+            {
+              "id": "machine_240",
+              "name": "Environment Chember",
+              "camera_id": null
+            },
+            {
+              "id": "machine_238",
+              "name": "Metal Cutting Machine",
+              "camera_id": null
+            },
+            {
+              "id": "machine_247",
+              "name": "Microscope Camera",
+              "camera_id": null
+            },
+            {
+              "id": "machine_248",
+              "name": "Microscope Camera",
+              "camera_id": null
+            },
+            {
+              "id": "machine_234",
+              "name": "Polishing and Buffing Machine",
+              "camera_id": null
+            },
+            {
+              "id": "machine_235",
+              "name": "Polishing and Buffing Machine",
+              "camera_id": null
+            },
+            {
+              "id": "machine_242",
+              "name": "Regulator Endurance Test Machine Manual",
+              "camera_id": null
+            },
+            {
+              "id": "machine_243",
+              "name": "Seat Recliner Endurance Test Machine",
+              "camera_id": null
+            },
+            {
+              "id": "machine_244",
+              "name": "Sheet Slider Endurance Test Machine",
+              "camera_id": null
+            },
+            {
+              "id": "machine_249",
+              "name": "Salt Spray Chamber",
+              "camera_id": null
+            },
+            {
+              "id": "machine_239",
+              "name": "Sound Test Chember",
+              "camera_id": null
+            },
+            {
+              "id": "machine_251",
+              "name": "Towel Bar Endurance Test Machine",
+              "camera_id": null
+            },
+            {
+              "id": "machine_236",
+              "name": "Universal Testing Machine",
+              "camera_id": null
+            },
+            {
+              "id": "machine_241",
+              "name": "Vibration Test Machine",
+              "camera_id": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "zone_4",
+      "name": "Loop Pipe",
+      "lines": [
+        {
+          "id": "line_22",
+          "name": "Loop Pipe \u2013 Line 1",
+          "machines": [
+            {
+              "id": "machine_149",
+              "name": "Pipe Knoching/Squeezing  SPM",
+              "camera_id": null
+            },
+            {
+              "id": "machine_150",
+              "name": "YLM Pipe Bending (CNC20F)",
+              "camera_id": null
+            },
+            {
+              "id": "machine_151",
+              "name": "YLM Pipe Bending (CNC20F)",
+              "camera_id": null
+            },
+            {
+              "id": "machine_152",
+              "name": "Loop Pipe Sliting HYP2000",
+              "camera_id": null
+            },
+            {
+              "id": "machine_153",
+              "name": "Loop Pipe Sliting HYP2000",
+              "camera_id": null
+            }
+          ]
+        },
+        {
+          "id": "line_23",
+          "name": "Loop Pipe \u2013 Line 2",
+          "machines": [
+            {
+              "id": "machine_154",
+              "name": "Pipe Knoching/Squeezing  SPM",
+              "camera_id": null
+            },
+            {
+              "id": "machine_155",
+              "name": "YLM Pipe Bending (CNC20F)",
+              "camera_id": null
+            },
+            {
+              "id": "machine_156",
+              "name": "YLM Pipe Bending (CNC20F)",
+              "camera_id": null
+            },
+            {
+              "id": "machine_157",
+              "name": "Loop Pipe Sliting HYP2000",
+              "camera_id": null
+            },
+            {
+              "id": "machine_158",
+              "name": "Loop Pipe Sliting HYP2000",
+              "camera_id": null
+            }
+          ]
+        },
+        {
+          "id": "line_24",
+          "name": "Loop Pipe \u2013 Line 3",
+          "machines": [
+            {
+              "id": "machine_159",
+              "name": "Pipe Knoching/Squeezing  SPM",
+              "camera_id": null
+            },
+            {
+              "id": "machine_160",
+              "name": "YLM Pipe Bending (CNC20F)",
+              "camera_id": null
+            },
+            {
+              "id": "machine_161",
+              "name": "YLM Pipe Bending (CNC20F)",
+              "camera_id": null
+            },
+            {
+              "id": "machine_162",
+              "name": "Loop Pipe Sliting HYP2000",
+              "camera_id": null
+            },
+            {
+              "id": "machine_163",
+              "name": "Loop Pipe Sliting HYP2000",
+              "camera_id": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "zone_6",
+      "name": "Press Shop",
+      "lines": [
+        {
+          "id": "line_26",
+          "name": "Press Shop \u2013 Line 1",
+          "machines": [
+            {
+              "id": "machine_166",
+              "name": "Power Press Machine",
+              "camera_id": null
+            },
+            {
+              "id": "machine_167",
+              "name": "Power Press Machine",
+              "camera_id": null
+            },
+            {
+              "id": "machine_168",
+              "name": "Power Press Machine",
+              "camera_id": null
+            },
+            {
+              "id": "machine_169",
+              "name": "Power Press Machine",
+              "camera_id": null
+            },
+            {
+              "id": "machine_170",
+              "name": "Power Press Machine",
+              "camera_id": null
+            },
+            {
+              "id": "machine_171",
+              "name": "Power Press Machine",
+              "camera_id": null
+            },
+            {
+              "id": "machine_172",
+              "name": "Power Press Machine",
+              "camera_id": null
+            },
+            {
+              "id": "machine_173",
+              "name": "Power Press Machine",
+              "camera_id": null
+            },
+            {
+              "id": "machine_174",
+              "name": "Power Press Machine",
+              "camera_id": null
+            },
+            {
+              "id": "machine_175",
+              "name": "Part Pick & Place for  Press Machine",
+              "camera_id": null
+            }
+          ]
+        },
+        {
+          "id": "line_27",
+          "name": "Press Shop \u2013 Line 2",
+          "machines": [
+            {
+              "id": "machine_176",
+              "name": "Power Press Machine",
+              "camera_id": null
+            },
+            {
+              "id": "machine_177",
+              "name": "Power Press Machine",
+              "camera_id": null
+            },
+            {
+              "id": "machine_178",
+              "name": "Power Press Machine",
+              "camera_id": null
+            },
+            {
+              "id": "machine_179",
+              "name": "Power Press Machine",
+              "camera_id": null
+            },
+            {
+              "id": "machine_180",
+              "name": "Power Press Machine",
+              "camera_id": null
+            },
+            {
+              "id": "machine_181",
+              "name": "Power Press Machine",
+              "camera_id": null
+            },
+            {
+              "id": "machine_182",
+              "name": "Power Press Machine",
+              "camera_id": null
+            },
+            {
+              "id": "machine_183",
+              "name": "Power Press Machine",
+              "camera_id": null
+            },
+            {
+              "id": "machine_184",
+              "name": "Power Press Machine",
+              "camera_id": null
+            },
+            {
+              "id": "machine_185",
+              "name": "Part Pick & Place for  Press Machine",
+              "camera_id": null
+            }
+          ]
+        },
+        {
+          "id": "line_28",
+          "name": "Press Shop \u2013 Line 3",
+          "machines": [
+            {
+              "id": "machine_186",
+              "name": "Power Press Machine",
+              "camera_id": null
+            },
+            {
+              "id": "machine_187",
+              "name": "Power Press Machine",
+              "camera_id": null
+            },
+            {
+              "id": "machine_188",
+              "name": "Power Press Machine",
+              "camera_id": null
+            },
+            {
+              "id": "machine_189",
+              "name": "Power Press Machine",
+              "camera_id": null
+            },
+            {
+              "id": "machine_190",
+              "name": "Power Press Machine",
+              "camera_id": null
+            },
+            {
+              "id": "machine_191",
+              "name": "Power Press Machine",
+              "camera_id": null
+            },
+            {
+              "id": "machine_192",
+              "name": "Power Press Machine",
+              "camera_id": null
+            },
+            {
+              "id": "machine_193",
+              "name": "Power Press Machine",
+              "camera_id": null
+            },
+            {
+              "id": "machine_194",
+              "name": "Power Press Machine",
+              "camera_id": null
+            },
+            {
+              "id": "machine_195",
+              "name": "Part Pick & Place for  Press Machine",
+              "camera_id": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "zone_2",
+      "name": "Recliner",
+      "lines": [
+        {
+          "id": "line_12",
+          "name": "YHB Recliner",
+          "machines": [
+            {
+              "id": "machine_96",
+              "name": "MAG Welding of Arm x Recliner",
+              "camera_id": null
+            },
+            {
+              "id": "machine_97",
+              "name": "MAG Welding of  Lwr Hook with Lwr Arrm",
+              "camera_id": null
+            },
+            {
+              "id": "machine_98",
+              "name": "Press in REC with PIN Hinge & Date Code Stamping",
+              "camera_id": null
+            },
+            {
+              "id": "machine_99",
+              "name": "Mag Welding Relese x Hinge Pin",
+              "camera_id": null
+            },
+            {
+              "id": "machine_100",
+              "name": "SP Insert Fixture with Machine",
+              "camera_id": null
+            },
+            {
+              "id": "machine_101",
+              "name": "Final Inspection Machine",
+              "camera_id": null
+            },
+            {
+              "id": "machine_95",
+              "name": "Projection Welding of Washer with Lwr Arm UprBKT\uff58Nut PJW M/C",
+              "camera_id": null
+            }
+          ]
+        },
+        {
+          "id": "line_14",
+          "name": "YMC Recliner",
+          "machines": [
+            {
+              "id": "machine_109",
+              "name": "MAG Welding of Arm x Recliner",
+              "camera_id": null
+            },
+            {
+              "id": "machine_110",
+              "name": "MAG Welding of  Lwr Hook with Lwr Arrm",
+              "camera_id": null
+            },
+            {
+              "id": "machine_111",
+              "name": "Press in REC with PIN Hinge & Date Code Stamping",
+              "camera_id": null
+            },
+            {
+              "id": "machine_112",
+              "name": "Mag Welding Relese x Hinge Pin",
+              "camera_id": null
+            },
+            {
+              "id": "machine_113",
+              "name": "SP Insert Fixture with Machine",
+              "camera_id": null
+            },
+            {
+              "id": "machine_114",
+              "name": "Final Inspection Machine",
+              "camera_id": null
+            },
+            {
+              "id": "machine_115",
+              "name": "Projection Welding of Washer with Lwr Arm UprBKT\uff58Nut PJW M/C",
+              "camera_id": null
+            }
+          ]
+        },
+        {
+          "id": "line_13",
+          "name": "YNC Recliner",
+          "machines": [
+            {
+              "id": "machine_103",
+              "name": "MAG Welding of Arm x Recliner",
+              "camera_id": null
+            },
+            {
+              "id": "machine_104",
+              "name": "MAG Welding of  Lwr Hook with Lwr Arrm",
+              "camera_id": null
+            },
+            {
+              "id": "machine_105",
+              "name": "Press in REC with PIN Hinge & Date Code Stamping",
+              "camera_id": null
+            },
+            {
+              "id": "machine_106",
+              "name": "Mag Welding Relese x Hinge Pin",
+              "camera_id": null
+            },
+            {
+              "id": "machine_107",
+              "name": "SP Insert Fixture with Machine",
+              "camera_id": null
+            },
+            {
+              "id": "machine_108",
+              "name": "Final Inspection Machine",
+              "camera_id": null
+            },
+            {
+              "id": "machine_102",
+              "name": "Projection Welding of Washer with Lwr Arm UprBKT\uff58Nut PJW M/C",
+              "camera_id": null
+            }
+          ]
+        },
+        {
+          "id": "line_10",
+          "name": "YRA Recliner",
+          "machines": [
+            {
+              "id": "machine_82",
+              "name": "MAG Welding of Arm x Recliner",
+              "camera_id": null
+            },
+            {
+              "id": "machine_83",
+              "name": "MAG Welding of  Lwr Hook with Lwr Arrm",
+              "camera_id": null
+            },
+            {
+              "id": "machine_84",
+              "name": "Press in REC with PIN Hinge & Date Code Stamping",
+              "camera_id": null
+            },
+            {
+              "id": "machine_85",
+              "name": "Mag Welding Relese x Hinge Pin",
+              "camera_id": null
+            },
+            {
+              "id": "machine_86",
+              "name": "SP Insert Fixture with Machine",
+              "camera_id": null
+            },
+            {
+              "id": "machine_87",
+              "name": "Final Inspection Machine",
+              "camera_id": null
+            },
+            {
+              "id": "machine_81",
+              "name": "Projection Welding of Washer with Lwr Arm UprBKT\uff58Nut PJW M/C",
+              "camera_id": null
+            }
+          ]
+        },
+        {
+          "id": "line_11",
+          "name": "YSD Recliner",
+          "machines": [
+            {
+              "id": "machine_89",
+              "name": "MAG Welding of Arm x Recliner",
+              "camera_id": null
+            },
+            {
+              "id": "machine_90",
+              "name": "MAG Welding of  Lwr Hook with Lwr Arrm",
+              "camera_id": null
+            },
+            {
+              "id": "machine_91",
+              "name": "Press in REC with PIN Hinge & Date Code Stamping",
+              "camera_id": null
+            },
+            {
+              "id": "machine_92",
+              "name": "Mag Welding Relese x Hinge Pin",
+              "camera_id": null
+            },
+            {
+              "id": "machine_93",
+              "name": "SP Insert Fixture with Machine",
+              "camera_id": null
+            },
+            {
+              "id": "machine_94",
+              "name": "Final Inspection Machine",
+              "camera_id": null
+            },
+            {
+              "id": "machine_88",
+              "name": "Projection Welding of Washer with Lwr Arm UprBKT\uff58Nut PJW M/C",
+              "camera_id": null
+            }
+          ]
+        },
+        {
+          "id": "line_48",
+          "name": "YWD Recliner",
+          "machines": [
+            {
+              "id": "machine_280",
+              "name": "STICKER PRINT & PASTING M/C",
+              "camera_id": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "zone_15",
+      "name": "Rework Area",
+      "lines": [
+        {
+          "id": "line_47",
+          "name": "Rework Area",
+          "machines": [
+            {
+              "id": "machine_277",
+              "name": "Belt Grinder Machine",
+              "camera_id": null
+            },
+            {
+              "id": "machine_279",
+              "name": "Rework Drill Machine",
+              "camera_id": null
+            },
+            {
+              "id": "machine_278",
+              "name": "Pedastle Grinder",
+              "camera_id": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "zone_1",
+      "name": "Seat Slider",
+      "lines": [
+        {
+          "id": "line_1",
+          "name": "Y17 Seat Slider",
+          "machines": [
+            {
+              "id": "machine_1",
+              "name": "Upper Rail Greasing m/c",
+              "camera_id": null
+            },
+            {
+              "id": "machine_2",
+              "name": "Lock Bar Insert M/c",
+              "camera_id": null
+            },
+            {
+              "id": "machine_3",
+              "name": "Lower Rail Grease & Bar Coding M/c",
+              "camera_id": null
+            },
+            {
+              "id": "machine_4",
+              "name": "Rail Assy M/c # 01",
+              "camera_id": null
+            },
+            {
+              "id": "machine_5",
+              "name": "Rail Assy M/c # 02",
+              "camera_id": null
+            },
+            {
+              "id": "machine_6",
+              "name": "Semi Automatic & Bending M/c",
+              "camera_id": null
+            },
+            {
+              "id": "machine_7",
+              "name": "E_Ring,Lighter protector Assy & Pop Gun Riveter",
+              "camera_id": null
+            },
+            {
+              "id": "machine_8",
+              "name": "Final Inspection M/c",
+              "camera_id": null
+            }
+          ]
+        },
+        {
+          "id": "line_5",
+          "name": "YCA Seat Slider",
+          "machines": [
+            {
+              "id": "machine_34",
+              "name": "Upper Rail Grease Machine",
+              "camera_id": null
+            },
+            {
+              "id": "machine_35",
+              "name": "Lock Bar Insert M/c",
+              "camera_id": null
+            },
+            {
+              "id": "machine_36",
+              "name": "Lower Rail Grease & Bar Coding M/c",
+              "camera_id": null
+            },
+            {
+              "id": "machine_37",
+              "name": "Rail Assy M/c # 01",
+              "camera_id": null
+            },
+            {
+              "id": "machine_38",
+              "name": "Rail Assy M/c # 02",
+              "camera_id": null
+            },
+            {
+              "id": "machine_39",
+              "name": "Semi Automatic & Bending M/c",
+              "camera_id": null
+            },
+            {
+              "id": "machine_40",
+              "name": "E_Ring,Lighter protector Assy & Pop Gun Riveter",
+              "camera_id": null
+            },
+            {
+              "id": "machine_41",
+              "name": "Final Inspection M/c",
+              "camera_id": null
+            },
+            {
+              "id": "machine_42",
+              "name": "Advance Bending In Lower Rail M/c",
+              "camera_id": null
+            }
+          ]
+        },
+        {
+          "id": "line_2",
+          "name": "YFG Seat Slider",
+          "machines": [
+            {
+              "id": "machine_9",
+              "name": "Upper Rail Greasing m/c",
+              "camera_id": null
+            },
+            {
+              "id": "machine_10",
+              "name": "Lock Bar Insert M/c",
+              "camera_id": null
+            },
+            {
+              "id": "machine_11",
+              "name": "Lower Rail Grease & Bar Coding M/c",
+              "camera_id": null
+            },
+            {
+              "id": "machine_12",
+              "name": "Rail Assy M/c # 01",
+              "camera_id": null
+            },
+            {
+              "id": "machine_13",
+              "name": "Rail Assy M/c # 02",
+              "camera_id": null
+            },
+            {
+              "id": "machine_14",
+              "name": "Semi Automatic & Bending M/c",
+              "camera_id": null
+            },
+            {
+              "id": "machine_15",
+              "name": "E_Ring,Lighter protector Assy & Pop Gun Riveter",
+              "camera_id": null
+            },
+            {
+              "id": "machine_16",
+              "name": "Final Inspection M/c",
+              "camera_id": null
+            }
+          ]
+        },
+        {
+          "id": "line_7",
+          "name": "YHB Seat Slider",
+          "machines": [
+            {
+              "id": "machine_57",
+              "name": "Upper Rail Greasing m/c",
+              "camera_id": null
+            },
+            {
+              "id": "machine_58",
+              "name": "Lock Bar Insert M/c",
+              "camera_id": null
+            },
+            {
+              "id": "machine_59",
+              "name": "Lower Rail Grease & Bar Coding M/c",
+              "camera_id": null
+            },
+            {
+              "id": "machine_60",
+              "name": "Rail Assy M/c # 01",
+              "camera_id": null
+            },
+            {
+              "id": "machine_61",
+              "name": "Rail Assy M/c # 02",
+              "camera_id": null
+            },
+            {
+              "id": "machine_62",
+              "name": "Semi Automatic & Bending M/c",
+              "camera_id": null
+            },
+            {
+              "id": "machine_63",
+              "name": "E_Ring,Lighter protector Assy & Pop Gun Riveter",
+              "camera_id": null
+            },
+            {
+              "id": "machine_64",
+              "name": "Final Inspection M/c",
+              "camera_id": null
+            }
+          ]
+        },
+        {
+          "id": "line_4",
+          "name": "YJC Seat Slider",
+          "machines": [
+            {
+              "id": "machine_26",
+              "name": "Upper Rail Greasing m/c",
+              "camera_id": null
+            },
+            {
+              "id": "machine_27",
+              "name": "Lock Bar Insert M/c",
+              "camera_id": null
+            },
+            {
+              "id": "machine_28",
+              "name": "Lower Rail Grease & Bar Coding M/c",
+              "camera_id": null
+            },
+            {
+              "id": "machine_29",
+              "name": "Rail Assy M/c # 01",
+              "camera_id": null
+            },
+            {
+              "id": "machine_30",
+              "name": "Rail Assy M/c # 02",
+              "camera_id": null
+            },
+            {
+              "id": "machine_31",
+              "name": "Semi Automatic & Bending M/c",
+              "camera_id": null
+            },
+            {
+              "id": "machine_32",
+              "name": "E_Ring,Lighter protector Assy & Pop Gun Riveter",
+              "camera_id": null
+            },
+            {
+              "id": "machine_33",
+              "name": "Final Inspection M/c",
+              "camera_id": null
+            }
+          ]
+        },
+        {
+          "id": "line_9",
+          "name": "YMC Seat Slider",
+          "machines": [
+            {
+              "id": "machine_73",
+              "name": "Upper Rail Greasing m/c",
+              "camera_id": null
+            },
+            {
+              "id": "machine_74",
+              "name": "Lock Bar Insert M/c",
+              "camera_id": null
+            },
+            {
+              "id": "machine_75",
+              "name": "Lower Rail Grease & Bar Coding M/c",
+              "camera_id": null
+            },
+            {
+              "id": "machine_76",
+              "name": "Rail Assy M/c # 01",
+              "camera_id": null
+            },
+            {
+              "id": "machine_77",
+              "name": "Rail Assy M/c # 02",
+              "camera_id": null
+            },
+            {
+              "id": "machine_78",
+              "name": "Semi Automatic & Bending M/c",
+              "camera_id": null
+            },
+            {
+              "id": "machine_79",
+              "name": "E_Ring,Lighter protector Assy & Pop Gun Riveter",
+              "camera_id": null
+            },
+            {
+              "id": "machine_80",
+              "name": "Final Inspection M/c",
+              "camera_id": null
+            }
+          ]
+        },
+        {
+          "id": "line_3",
+          "name": "YNC Seat Slider",
+          "machines": [
+            {
+              "id": "machine_17",
+              "name": "Upper Rail Greasing m/c",
+              "camera_id": "cam_upper_side_greasing_1776851562"
+            },
+            {
+              "id": "machine_18",
+              "name": "Lock Bar Insert M/c",
+              "camera_id": null
+            },
+            {
+              "id": "machine_19",
+              "name": "Lower Rail Grease & Bar Coding M/c",
+              "camera_id": null
+            },
+            {
+              "id": "machine_20",
+              "name": "Rail Assy M/c # 01",
+              "camera_id": null
+            },
+            {
+              "id": "machine_21",
+              "name": "Rail Assy M/c # 02",
+              "camera_id": null
+            },
+            {
+              "id": "machine_22",
+              "name": "Semi Automatic & Bending M/c",
+              "camera_id": null
+            },
+            {
+              "id": "machine_23",
+              "name": "E_Ring,Lighter protector Assy & Pop Gun Riveter",
+              "camera_id": null
+            },
+            {
+              "id": "machine_24",
+              "name": "Final Inspection M/c",
+              "camera_id": "cam_panasonic_default"
+            },
+            {
+              "id": "machine_25",
+              "name": "Advance Bending In Lower Rail M/c",
+              "camera_id": null
+            }
+          ]
+        },
+        {
+          "id": "line_6",
+          "name": "YRA Seat Slider",
+          "machines": [
+            {
+              "id": "machine_43",
+              "name": "Upr Rail Greasing\u3000M/C",
+              "camera_id": null
+            },
+            {
+              "id": "machine_44",
+              "name": "Handle Supt Greasing\uff06Spr Supt Greasing",
+              "camera_id": null
+            },
+            {
+              "id": "machine_45",
+              "name": "Upr Rail\u00d7Lock Mecha Assy\u3000M/C",
+              "camera_id": null
+            },
+            {
+              "id": "machine_46",
+              "name": "Guide S/A Insert\u3000#1 M/C",
+              "camera_id": null
+            },
+            {
+              "id": "machine_47",
+              "name": "Guide S/A Insert\u3000#2 M/C",
+              "camera_id": null
+            },
+            {
+              "id": "machine_48",
+              "name": "Lwr Rail Greasing\u3000M/C",
+              "camera_id": null
+            },
+            {
+              "id": "machine_49",
+              "name": "Stopper Bending Rr & TAB Bending Rr M/C",
+              "camera_id": null
+            },
+            {
+              "id": "machine_50",
+              "name": "Lock Inspection\uff06Rail Slide( Fr most \u21d2Rr most) M/C",
+              "camera_id": null
+            },
+            {
+              "id": "machine_51",
+              "name": "Stopper Bending Fr & TAB Bending Fr M/C",
+              "camera_id": null
+            },
+            {
+              "id": "machine_52",
+              "name": "Slide Force Inspection M/C",
+              "camera_id": null
+            },
+            {
+              "id": "machine_53",
+              "name": "Rr. Lighter protector & End cap fitment",
+              "camera_id": null
+            },
+            {
+              "id": "machine_54",
+              "name": "Fr. Lighter protector & E_ring fitment",
+              "camera_id": null
+            },
+            {
+              "id": "machine_55",
+              "name": "Harness\u3000BKT\u3000Poprivet\u3000Staking M/C",
+              "camera_id": null
+            },
+            {
+              "id": "machine_56",
+              "name": "Final Inspection  M/C",
+              "camera_id": null
+            }
+          ]
+        },
+        {
+          "id": "line_8",
+          "name": "YSD Seat Slider",
+          "machines": [
+            {
+              "id": "machine_65",
+              "name": "Upper Rail Greasing m/c",
+              "camera_id": null
+            },
+            {
+              "id": "machine_66",
+              "name": "Lock Bar Insert M/c",
+              "camera_id": null
+            },
+            {
+              "id": "machine_67",
+              "name": "Lower Rail Grease & Bar Coding M/c",
+              "camera_id": null
+            },
+            {
+              "id": "machine_68",
+              "name": "Rail Assy M/c # 01",
+              "camera_id": null
+            },
+            {
+              "id": "machine_69",
+              "name": "Rail Assy M/c # 02",
+              "camera_id": null
+            },
+            {
+              "id": "machine_70",
+              "name": "Semi Automatic & Bending M/c",
+              "camera_id": null
+            },
+            {
+              "id": "machine_71",
+              "name": "E_Ring,Lighter protector Assy & Pop Gun Riveter",
+              "camera_id": null
+            },
+            {
+              "id": "machine_72",
+              "name": "Final Inspection M/c",
+              "camera_id": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "zone_12",
+      "name": "Store",
+      "lines": [
+        {
+          "id": "line_44",
+          "name": "Store",
+          "machines": [
+            {
+              "id": "machine_256",
+              "name": "Diesel Fork Lift",
+              "camera_id": null
+            },
+            {
+              "id": "machine_258",
+              "name": "Hand pilot Lifter LHM-230",
+              "camera_id": null
+            },
+            {
+              "id": "machine_259",
+              "name": "Hand pilot Lifter LHM-230",
+              "camera_id": null
+            },
+            {
+              "id": "machine_260",
+              "name": "Hand pilot Lifter LHM-230",
+              "camera_id": null
+            },
+            {
+              "id": "machine_261",
+              "name": "Hand pilot Lifter LHM-230",
+              "camera_id": null
+            },
+            {
+              "id": "machine_262",
+              "name": "Hand pilot Lifter LHM-230",
+              "camera_id": null
+            },
+            {
+              "id": "machine_263",
+              "name": "Hand pilot Lifter LHM-230",
+              "camera_id": null
+            },
+            {
+              "id": "machine_264",
+              "name": "Hand pilot Lifter LHM-230",
+              "camera_id": null
+            },
+            {
+              "id": "machine_265",
+              "name": "Hand pilot Lifter LHM-230",
+              "camera_id": null
+            },
+            {
+              "id": "machine_266",
+              "name": "Hand pilot Lifter LHM-230",
+              "camera_id": null
+            },
+            {
+              "id": "machine_267",
+              "name": "Hand pilot Lifter LHM-230",
+              "camera_id": null
+            },
+            {
+              "id": "machine_268",
+              "name": "Hand pilot Lifter LHM-230",
+              "camera_id": null
+            },
+            {
+              "id": "machine_257",
+              "name": "Maint.Scissor Hyd.Lift",
+              "camera_id": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "zone_3",
+      "name": "Sub Assembly",
+      "lines": [
+        {
+          "id": "line_15",
+          "name": "Sub Assembly 4W \u2013 Y17",
+          "machines": [
+            {
+              "id": "machine_116",
+              "name": "Rainforce Bolt PJW M/C (4 Way)",
+              "camera_id": null
+            },
+            {
+              "id": "machine_117",
+              "name": "Rinforce\u00d7Bolt PJW M/C\nUpr  Rail \u00d7Reinforce x Bolt PJW M/C",
+              "camera_id": null
+            },
+            {
+              "id": "machine_118",
+              "name": "BOLT STRENGTH CHECKING (4WAY)",
+              "camera_id": null
+            }
+          ]
+        },
+        {
+          "id": "line_20",
+          "name": "Sub Assembly 4W \u2013 YHB",
+          "machines": [
+            {
+              "id": "machine_140",
+              "name": "Rainforce Bolt PJW M/C",
+              "camera_id": null
+            },
+            {
+              "id": "machine_141",
+              "name": "Rinforce\u00d7Bolt PJW M/C\nUpr BKT Rail \u00d7Bolt PJW M/C Upr Rail Rr\uff09",
+              "camera_id": null
+            },
+            {
+              "id": "machine_142",
+              "name": "Upr Rail \u00d7Bolt Fr PJW M/C  ( 4 Way )",
+              "camera_id": null
+            },
+            {
+              "id": "machine_143",
+              "name": "Upr \u00d7Rinforce S/A\u00d7UprINRBKT PJW M/C",
+              "camera_id": null
+            },
+            {
+              "id": "machine_144",
+              "name": "BOLT STRENGTH CHECKING (4WAY)",
+              "camera_id": null
+            }
+          ]
+        },
+        {
+          "id": "line_19",
+          "name": "Sub Assembly 4W \u2013 YNC",
+          "machines": [
+            {
+              "id": "machine_135",
+              "name": "Rainforce Bolt PJW M/C",
+              "camera_id": null
+            },
+            {
+              "id": "machine_136",
+              "name": "Rinforce\u00d7Bolt PJW M/C\nUpr BKT Rail \u00d7Bolt PJW M/C Upr Rail Rr\uff09",
+              "camera_id": null
+            },
+            {
+              "id": "machine_137",
+              "name": "Upr Rail \u00d7Bolt Fr PJW M/C  ( 4 Way )",
+              "camera_id": null
+            },
+            {
+              "id": "machine_138",
+              "name": "Upr \u00d7Rinforce S/A\u00d7UprINRBKT PJW M/C",
+              "camera_id": null
+            },
+            {
+              "id": "machine_139",
+              "name": "BOLT STRENGTH CHECKING (4WAY)",
+              "camera_id": null
+            }
+          ]
+        },
+        {
+          "id": "line_17",
+          "name": "Sub Assembly 4W \u2013 YRA",
+          "machines": [
+            {
+              "id": "machine_124",
+              "name": "Rainforce Bolt PJW M/C (4 Way)",
+              "camera_id": null
+            },
+            {
+              "id": "machine_125",
+              "name": "Rinforce\u00d7Bolt PJW M/C\nUpr BKT Rail \u00d7Bolt PJW M/C Upr Rail Rr\uff09(4 Way)",
+              "camera_id": null
+            },
+            {
+              "id": "machine_126",
+              "name": "Upr Rail \u00d7Bolt Fr PJW M/C  ( 4 Way )",
+              "camera_id": null
+            },
+            {
+              "id": "machine_127",
+              "name": "Upr \u00d7Rinforce S/A\u00d7UprINRBKT PJW M/C (4 Way)",
+              "camera_id": null
+            },
+            {
+              "id": "machine_128",
+              "name": "BOLT STRENGTH CHECKING (4WAY)",
+              "camera_id": null
+            }
+          ]
+        },
+        {
+          "id": "line_16",
+          "name": "Sub Assembly 4W \u2013 YSD",
+          "machines": [
+            {
+              "id": "machine_119",
+              "name": "Rainforce Bolt PJW M/C",
+              "camera_id": null
+            },
+            {
+              "id": "machine_120",
+              "name": "Rinforce\u00d7Bolt PJW M/C\nUpr BKT Rail \u00d7Bolt PJW M/C Upr Rail Rr\uff09",
+              "camera_id": null
+            },
+            {
+              "id": "machine_121",
+              "name": "Upr Rail \u00d7Bolt Fr PJW M/C  ( 4 Way )",
+              "camera_id": null
+            },
+            {
+              "id": "machine_122",
+              "name": "Upr \u00d7Rinforce S/A\u00d7UprINRBKT PJW M/c",
+              "camera_id": null
+            },
+            {
+              "id": "machine_123",
+              "name": "BOLT STRENGTH CHECKING (4WAY)",
+              "camera_id": null
+            }
+          ]
+        },
+        {
+          "id": "line_21",
+          "name": "Sub Assembly 6W \u2013 YNC",
+          "machines": [
+            {
+              "id": "machine_145",
+              "name": "Upr \u00d7Rinforce S/A\u00d7UprINRBKT PJW\u3000M/C (6 Way)",
+              "camera_id": null
+            },
+            {
+              "id": "machine_146",
+              "name": "Riser Bkt. Staking Inner M/C",
+              "camera_id": null
+            },
+            {
+              "id": "machine_147",
+              "name": "Mag WELD Upr Brkt With T-Nut \uff06Bolt M/C",
+              "camera_id": null
+            },
+            {
+              "id": "machine_148",
+              "name": "Upr Rail Inspection M/C",
+              "camera_id": null
+            }
+          ]
+        },
+        {
+          "id": "line_18",
+          "name": "Sub Assembly 6W \u2013 YRA",
+          "machines": [
+            {
+              "id": "machine_134",
+              "name": "Upr \u00d7Rinforce S/A\u00d7UprINRBKT PJW\u3000M/C (6 Way)",
+              "camera_id": null
+            },
+            {
+              "id": "machine_129",
+              "name": "Riser Bkt. Staking Inner M/C",
+              "camera_id": null
+            },
+            {
+              "id": "machine_130",
+              "name": "Upr Bkt. Staking Outer M/C",
+              "camera_id": null
+            },
+            {
+              "id": "machine_131",
+              "name": "Mag WELD Upr Brkt With T-Nut \uff06Bolt M/C",
+              "camera_id": null
+            },
+            {
+              "id": "machine_132",
+              "name": "Mag WELD Upr Brkt With T-Nut \uff06Bolt M/C",
+              "camera_id": null
+            },
+            {
+              "id": "machine_133",
+              "name": "Upr Rail Inspection \u3000M/C",
+              "camera_id": null
+            }
+          ]
+        },
+        {
+          "id": "line_50",
+          "name": "Sub Assembly \u2013 LPS",
+          "machines": [
+            {
+              "id": "machine_282",
+              "name": "LOACTION PIN STUCKING #01",
+              "camera_id": null
+            },
+            {
+              "id": "machine_283",
+              "name": "LOACTION PIN STUCKING #02",
+              "camera_id": null
+            },
+            {
+              "id": "machine_284",
+              "name": "LOACTION PIN STUCKING #03",
+              "camera_id": null
+            },
+            {
+              "id": "machine_285",
+              "name": "LOACTION PIN STUCKING #04",
+              "camera_id": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "zone_5",
+      "name": "Thin Recliner",
+      "lines": [
+        {
+          "id": "line_25",
+          "name": "Thin Recliner",
+          "machines": [
+            {
+              "id": "machine_164",
+              "name": "Thin Recliner  Machine#01",
+              "camera_id": null
+            },
+            {
+              "id": "machine_165",
+              "name": "Thin Recliner  Machine#02",
+              "camera_id": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "zone_8",
+      "name": "Tool Room",
+      "lines": [
+        {
+          "id": "line_31",
+          "name": "Tool Room",
+          "machines": [
+            {
+              "id": "machine_203",
+              "name": "Electric Overhead Crane",
+              "camera_id": null
+            },
+            {
+              "id": "machine_198",
+              "name": "Lath Machine",
+              "camera_id": null
+            },
+            {
+              "id": "machine_205",
+              "name": "Lath Machine",
+              "camera_id": null
+            },
+            {
+              "id": "machine_200",
+              "name": "Milling Machine",
+              "camera_id": null
+            },
+            {
+              "id": "machine_202",
+              "name": "Pedastle Grinder",
+              "camera_id": null
+            },
+            {
+              "id": "machine_199",
+              "name": "Surface Grinder Machine",
+              "camera_id": null
+            },
+            {
+              "id": "machine_201",
+              "name": "Surface Grinder Machine",
+              "camera_id": null
+            },
+            {
+              "id": "machine_204",
+              "name": "Surface Grinder Machine",
+              "camera_id": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "zone_7",
+      "name": "Two UA",
+      "lines": [
+        {
+          "id": "line_30",
+          "name": "2UA \u2013 Gear Lift",
+          "machines": [
+            {
+              "id": "machine_197",
+              "name": "Gear Lifter Bush Pressing",
+              "camera_id": null
+            }
+          ]
+        },
+        {
+          "id": "line_29",
+          "name": "2UA \u2013 Recliner",
+          "machines": [
+            {
+              "id": "machine_196",
+              "name": "Hinge Pin Push Nut In Recliner 2UA M/c",
+              "camera_id": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "zone_38",
+      "name": "Utility",
+      "lines": [
+        {
+          "id": "line_115",
+          "name": "Conference",
+          "machines": [
+            {
+              "id": "machine_622",
+              "name": "Main_Incomer",
+              "camera_id": null
+            },
+            {
+              "id": "machine_623",
+              "name": "PDB",
+              "camera_id": null
+            },
+            {
+              "id": "machine_624",
+              "name": "Shed_Light",
+              "camera_id": null
+            },
+            {
+              "id": "machine_625",
+              "name": "Fume",
+              "camera_id": null
+            },
+            {
+              "id": "machine_626",
+              "name": "STP",
+              "camera_id": null
+            },
+            {
+              "id": "machine_627",
+              "name": "Compressor_4",
+              "camera_id": null
+            },
+            {
+              "id": "machine_628",
+              "name": "Old_STP",
+              "camera_id": null
+            },
+            {
+              "id": "machine_629",
+              "name": "Air_Washer_01",
+              "camera_id": null
+            },
+            {
+              "id": "machine_630",
+              "name": "Air_Washer_02",
+              "camera_id": null
+            },
+            {
+              "id": "machine_631",
+              "name": "Air_Washer_03",
+              "camera_id": null
+            }
+          ]
+        },
+        {
+          "id": "line_113",
+          "name": "LT Room",
+          "machines": [
+            {
+              "id": "machine_604",
+              "name": "Street Light",
+              "camera_id": null
+            },
+            {
+              "id": "machine_605",
+              "name": "Solar 50 kW",
+              "camera_id": null
+            },
+            {
+              "id": "machine_606",
+              "name": "Solar 360 kW",
+              "camera_id": null
+            },
+            {
+              "id": "machine_607",
+              "name": "Shed light",
+              "camera_id": null
+            },
+            {
+              "id": "machine_608",
+              "name": "cooling tower",
+              "camera_id": null
+            },
+            {
+              "id": "machine_609",
+              "name": "new air washer",
+              "camera_id": null
+            },
+            {
+              "id": "machine_610",
+              "name": "admin AC",
+              "camera_id": null
+            },
+            {
+              "id": "machine_611",
+              "name": "canten AC",
+              "camera_id": null
+            },
+            {
+              "id": "machine_612",
+              "name": "Compressor 1",
+              "camera_id": null
+            },
+            {
+              "id": "machine_613",
+              "name": "Compressor 2",
+              "camera_id": null
+            },
+            {
+              "id": "machine_614",
+              "name": "Compressor 3",
+              "camera_id": null
+            },
+            {
+              "id": "machine_615",
+              "name": "Stp 2",
+              "camera_id": null
+            },
+            {
+              "id": "machine_632",
+              "name": "Trinity 1",
+              "camera_id": null
+            },
+            {
+              "id": "machine_633",
+              "name": "Trinity 2",
+              "camera_id": null
+            },
+            {
+              "id": "machine_634",
+              "name": "Trinity 3",
+              "camera_id": null
+            },
+            {
+              "id": "machine_635",
+              "name": "Trinity 4",
+              "camera_id": null
+            }
+          ]
+        },
+        {
+          "id": "line_114",
+          "name": "Main DG",
+          "machines": [
+            {
+              "id": "machine_616",
+              "name": "main_01",
+              "camera_id": null
+            },
+            {
+              "id": "machine_617",
+              "name": "main_02",
+              "camera_id": null
+            },
+            {
+              "id": "machine_618",
+              "name": "main_03",
+              "camera_id": null
+            },
+            {
+              "id": "machine_619",
+              "name": "DG_01",
+              "camera_id": null
+            },
+            {
+              "id": "machine_620",
+              "name": "DG_02",
+              "camera_id": null
+            },
+            {
+              "id": "machine_621",
+              "name": "DG_03",
+              "camera_id": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "zone_16",
+      "name": "Weld Shop",
+      "lines": [
+        {
+          "id": "line_49",
+          "name": "Weld Shop",
+          "machines": [
+            {
+              "id": "machine_281",
+              "name": "Projection welding of Riser Bracket Nut welding",
+              "camera_id": null
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

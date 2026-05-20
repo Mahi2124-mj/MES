@@ -1,0 +1,105 @@
+{
+  "line_id": 2,
+  "date": "2026-05-19",
+  "shift": "A",
+  "shift_start": "2026-05-19T08:30:00",
+  "shift_end": "2026-05-19T17:15:00",
+  "episodes": [
+    {
+      "py_no": "D401",
+      "py_name": "LOCATE PIN",
+      "hit_count": 20,
+      "alert": "WARNING",
+      "start_at": "2026-05-19T09:38:58.641149",
+      "end_at": "2026-05-19T09:54:46.875621",
+      "start_slot": "09:30-10:30",
+      "slot": "09:30-10:30"
+    },
+    {
+      "py_no": "D407",
+      "py_name": "Rr.Lwr.Protector",
+      "hit_count": 1,
+      "alert": "WARNING",
+      "start_at": "2026-05-19T09:38:59.170731",
+      "end_at": null,
+      "start_slot": "09:30-10:30",
+      "slot": "09:30-10:30"
+    },
+    {
+      "py_no": "D413",
+      "py_name": "FR.LIGHTER PROTECTOR-1",
+      "hit_count": 1,
+      "alert": "WARNING",
+      "start_at": "2026-05-19T09:38:59.955382",
+      "end_at": null,
+      "start_slot": "09:30-10:30",
+      "slot": "09:30-10:30"
+    }
+  ],
+  "by_slot": {
+    "09:30-10:30": [
+      {
+        "py_no": "D401",
+        "py_name": "LOCATE PIN",
+        "hit_count": 20,
+        "alert": "WARNING",
+        "start_at": "2026-05-19T09:38:58.641149",
+        "end_at": "2026-05-19T09:54:46.875621",
+        "start_slot": "09:30-10:30",
+        "slot": "09:30-10:30",
+        "slot_label": "09:30-10:30",
+        "slot_segment_from": "2026-05-19T09:38:58.641149",
+        "slot_segment_to": "2026-05-19T09:54:46.875621",
+        "slot_segment_sec": 948.2,
+        "starts_here": true,
+        "ends_here": true,
+        "ongoing_now": false
+      },
+      {
+        "py_no": "D407",
+        "py_name": "Rr.Lwr.Protector",
+        "hit_count": 1,
+        "alert": "WARNING",
+        "start_at": "2026-05-19T09:38:59.170731",
+        "end_at": null,
+        "start_slot": "09:30-10:30",
+        "slot": "09:30-10:30",
+        "slot_label": "09:30-10:30",
+        "slot_segment_from": "2026-05-19T09:38:59.170731",
+        "slot_segment_to": "2026-05-19T09:54:55.959161",
+        "slot_segment_sec": 956.8,
+        "starts_here": true,
+        "ends_here": false,
+        "ongoing_now": true
+      },
+      {
+        "py_no": "D413",
+        "py_name": "FR.LIGHTER PROTECTOR-1",
+        "hit_count": 1,
+        "alert": "WARNING",
+        "start_at": "2026-05-19T09:38:59.955382",
+        "end_at": null,
+        "start_slot": "09:30-10:30",
+        "slot": "09:30-10:30",
+        "slot_label": "09:30-10:30",
+        "slot_segment_from": "2026-05-19T09:38:59.955382",
+        "slot_segment_to": "2026-05-19T09:54:55.959161",
+        "slot_segment_sec": 956.0,
+        "starts_here": true,
+        "ends_here": false,
+        "ongoing_now": true
+      }
+    ]
+  },
+  "slot_summary": {
+    "09:30-10:30": {
+      "total_bypass_sec": 2861.0,
+      "longest_sec": 956.8,
+      "episode_count": 3,
+      "ongoing_count": 2,
+      "distinct_py": 3
+    }
+  },
+  "merge_gap_sec": 60.0,
+  "generated_at": "2026-05-19T09:54:55.959161"
+}

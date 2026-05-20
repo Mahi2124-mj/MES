@@ -1,0 +1,22 @@
+{
+  "shifts": [
+    {
+      "id": "shift_a",
+      "name": "Shift A",
+      "start": "06:00",
+      "end": "14:00"
+    },
+    {
+      "id": "shift_b",
+      "name": "Shift B",
+      "start": "14:00",
+      "end": "22:00"
+    },
+    {
+      "id": "shift_c",
+      "name": "Shift C",
+      "start": "22:00",
+      "end": "06:00"
+    }
+  ]
+}

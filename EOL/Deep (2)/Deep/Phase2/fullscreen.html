@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Fullscreen — Production Monitor</title>
+    <link rel="icon" type="image/jpeg" href="/static/logo.jpg">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #000000;
+            color: #ffffff;
+            font-family: 'Segoe UI', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .fullscreen-container {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding: 12px;
+            overflow: hidden;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 16px;
+            background: #0a0a0a;
+            border-radius: 8px;
+            border-bottom: 1px solid #2a2a2a;
+            flex-shrink: 0;
+        }
+
+        .header-left h1 {
+            font-size: 20px;
+            font-weight: 700;
+            color: #ffffff;
+        }
+
+        .header-left p {
+            font-size: 9px;
+            color: #6b7280;
+            margin-top: 2px;
+        }
+
+        .shift-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .shift-badge {
+            background: #111111;
+            padding: 5px 12px;
+            border-radius: 6px;
+            border: 1px solid #2a2a2a;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .shift-badge span {
+            font-size: 11px;
+            color: #9ca3af;
+        }
+
+        .shift-badge strong {
+            font-size: 14px;
+            color: #ffffff;
+        }
+
+        .date-time {
+            font-size: 10px;
+            color: #6b7280;
+        }
+
+        .fullscreen-btn {
+            background: #111111;
+            border: 1px solid #2a2a2a;
+            color: #ffffff;
+            padding: 5px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 11px;
+        }
+
+        .fullscreen-btn:hover {
+            background: #2a2a2a;
+        }
+
+        .status-center {
+            background: #111111;
+            padding: 5px 14px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .status-dot.running { background: #22c55e; box-shadow: 0 0 6px #22c55e; }
+        .status-dot.stopped { background: #ef4444; }
+        .status-dot.break { background: #eab308; }
+        .status-dot.idle { background: #6b7280; }
+
+        .status-text {
+            font-size: 12px;
+            font-weight: 600;
+            color: #ffffff;
+        }
+
+        .main-content {
+            display: flex;
+            gap: 10px;
+            flex: 1;
+            min-height: 0;
+        }
+
+        .left-column {
+            width: 260px;
+            flex-shrink: 0;
+            background: #0a0a0a;
+            border-radius: 8px;
+            border: 1px solid #2a2a2a;
+            overflow: hidden;
+        }
+
+        .metrics-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .metrics-table tr {
+            border-bottom: 1px solid #2a2a2a;
+        }
+
+        .metrics-table td {
+            padding: 12px 14px;
+        }
+
+        .metrics-table td:first-child {
+            font-size: 11px;
+            color: #9ca3af;
+            font-weight: 500;
+        }
+
+        .metrics-table td:last-child {
+            font-size: 18px;
+            font-weight: 700;
+            color: #ffffff;
+            text-align: right;
+        }
+
+        .center-column {
+            flex: 2;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            min-width: 0;
+        }
+
+        .graph-card {
+            background: #0a0a0a;
+            border-radius: 8px;
+            padding: 12px;
+            border: 1px solid #2a2a2a;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .graph-title {
+            font-size: 11px;
+            font-weight: 600;
+            color: #9ca3af;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+
+        .graph-wrapper {
+            flex: 1;
+            min-height: 0;
+            position: relative;
+        }
+
+        canvas {
+            width: 100% !important;
+            height: 100% !important;
+            min-height: 240px;
+        }
+
+        .progress-card {
+            background: #0a0a0a;
+            border-radius: 8px;
+            padding: 8px 12px;
+            border: 1px solid #2a2a2a;
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+            font-size: 10px;
+            color: #9ca3af;
+        }
+
+        .progress-bar-container {
+            background: #2a2a2a;
+            border-radius: 2px;
+            height: 4px;
+            overflow: hidden;
+        }
+
+        .progress-bar-fill {
+            background: #22c55e;
+            height: 100%;
+            width: 0%;
+            border-radius: 2px;
+        }
+
+        .right-column {
+            width: 280px;
+            flex-shrink: 0;
+            background: #0a0a0a;
+            border-radius: 8px;
+            padding: 12px;
+            border: 1px solid #2a2a2a;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .loss-title {
+            font-size: 11px;
+            font-weight: 600;
+            color: #9ca3af;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+
+        .loss-list {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .loss-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #2a2a2a;
+            font-size: 10px;
+        }
+
+        .loss-name {
+            width: 75px;
+            color: #e5e7eb;
+        }
+
+        .loss-duration {
+            font-family: monospace;
+            color: #9ca3af;
+            font-size: 9px;
+            width: 65px;
+            text-align: right;
+        }
+
+        .loss-percent {
+            color: #ffffff;
+            font-weight: 600;
+            font-size: 10px;
+            width: 40px;
+            text-align: right;
+        }
+
+        .loss-bar {
+            flex: 1;
+            height: 3px;
+            background: #2a2a2a;
+            border-radius: 2px;
+            overflow: hidden;
+            margin-left: 8px;
+        }
+
+        .loss-bar-fill {
+            height: 100%;
+            width: 0%;
+            border-radius: 2px;
+        }
+
+        .bottom-table {
+            background: #0a0a0a;
+            border-radius: 8px;
+            padding: 8px 10px;
+            border: 1px solid #2a2a2a;
+            flex-shrink: 0;
+        }
+
+        .table-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+            padding-bottom: 4px;
+            border-bottom: 1px solid #2a2a2a;
+        }
+
+        .table-title {
+            font-size: 10px;
+            font-weight: 600;
+            color: #9ca3af;
+            text-transform: uppercase;
+        }
+
+        .table-date-shift {
+            font-size: 10px;
+            color: #9ca3af;
+        }
+
+        .table-date-shift strong {
+            color: #ffffff;
+        }
+
+        .horizontal-table {
+            overflow-x: auto;
+        }
+
+        .slots-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 10px;
+        }
+
+        .slots-table th, .slots-table td {
+            padding: 6px 8px;
+            text-align: center;
+            border-right: 1px solid #2a2a2a;
+            border-bottom: 1px solid #2a2a2a;
+        }
+
+        .slots-table th:last-child, .slots-table td:last-child {
+            border-right: none;
+        }
+
+        .slots-table th {
+            background: #111111;
+            color: #ffffff;
+            font-weight: 600;
+            font-size: 9px;
+        }
+
+        .slots-table .row-label {
+            background: #111111;
+            color: #9ca3af;
+            text-align: left;
+            font-weight: 600;
+            font-size: 9px;
+        }
+
+        .efficiency-high { color: #22c55e; font-weight: 600; }
+        .efficiency-medium { color: #eab308; font-weight: 600; }
+        .efficiency-low { color: #ef4444; font-weight: 600; }
+
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            font-size: 14px;
+            color: #ffffff;
+            background: #000000;
+        }
+    </style>
+</head>
+<body>
+<div id="app" class="loading">Loading dashboard...</div>
+
+<script>
+    const API = '';
+    const urlParams = new URLSearchParams(window.location.search);
+    const lineId = urlParams.get('line_id');
+    
+    if (!lineId) {
+        document.getElementById('app').innerHTML = '<div class="loading">Error: No line ID provided.</div>';
+    }
+
+    let refreshTimer = null;
+    let chart = null;
+    let idealCT = 15.0;
+    
+    // Cache DOM elements
+    let elements = {};
+    
+    // Cache data to prevent unnecessary updates
+    let cache = {
+        actualTotal: -1,
+        planTotal: -1,
+        oee: '',
+        avail: '',
+        perf: '',
+        qual: '',
+        status: '',
+        shift: '',
+        progress: -1,
+        cycleHash: '',
+        lossHash: '',
+        slotHash: ''
+    };
+
+    function formatTime(sec) {
+        if (!sec) return '00:00:00';
+        const h = Math.floor(sec / 3600);
+        const m = Math.floor((sec % 3600) / 60);
+        const s = Math.floor(sec % 60);
+        return `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+    }
+
+    function getStatusInfo(status) {
+        const s = (status || '').toUpperCase();
+        if (s === 'RUNNING') return { text: 'RUNNING', class: 'running' };
+        if (s === 'BREAK') return { text: 'BREAK', class: 'break' };
+        if (s === 'IDLE') return { text: 'IDLE', class: 'idle' };
+        return { text: 'STOPPED', class: 'stopped' };
+    }
+
+    function getEffClass(val) {
+        if (val >= 90) return 'efficiency-high';
+        if (val >= 70) return 'efficiency-medium';
+        return 'efficiency-low';
+    }
+
+    function updateDateTime() {
+        const now = new Date();
+        const d = now.toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit' });
+        const t = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false });
+        return `${d}, ${t}`;
+    }
+
+    function renderLosses(rt) {
+        const cats = [
+            { key: 'breakdown', label: 'Breakdown', color: '#ef4444' },
+            { key: 'quality', label: 'Quality', color: '#f97316' },
+            { key: 'material', label: 'Material', color: '#eab308' },
+            { key: 'setup', label: 'Setup', color: '#84cc16' },
+            { key: 'change_over', label: 'Change Over', color: '#06b6d4' },
+            { key: 'speed', label: 'Speed Loss', color: '#3b82f6' },
+            { key: 'others', label: 'Others', color: '#8b5cf6' }
+        ];
+        
+        let total = 0;
+        const secs = {};
+        for (let c of cats) {
+            secs[c.key] = rt[`loss_${c.key}_seconds`] || 0;
+            total += secs[c.key];
+        }
+        
+        return cats.map(c => {
+            const sec = secs[c.key];
+            const pct = total ? ((sec / total) * 100).toFixed(1) : 0;
+            const width = Math.min(100, pct);
+            return `
+                <div class="loss-item">
+                    <span class="loss-name" style="color:${c.color}">${c.label}</span>
+                    <span class="loss-duration">${formatTime(sec)}</span>
+                    <span class="loss-percent">${pct}%</span>
+                    <div class="loss-bar"><div class="loss-bar-fill" style="width:${width}%;background:${c.color}"></div></div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    function renderSlots(rt, slots, shiftName) {
+        const shiftSlots = slots.filter(s => s.shift_name === shiftName).sort((a,b) => a.start_time.localeCompare(b.start_time));
+        if (!shiftSlots.length) return '<div style="text-align:center;padding:15px;color:#6b7280">No slot data</div>';
+        
+        let headers = '', planRow = '', actualRow = '', effRow = '';
+        for (let s of shiftSlots) {
+            const p = s.db_column_prefix;
+            const plan = rt[`${p}_plan`] || 0;
+            const actual = rt[`${p}_actual`] || 0;
+            const eff = plan ? ((actual / plan) * 100).toFixed(1) : 0;
+            const effClass = getEffClass(parseFloat(eff));
+            headers += `<th>${s.slot_label}</th>`;
+            planRow += `<td>${plan}</td>`;
+            actualRow += `<td>${actual}</td>`;
+            effRow += `<td class="${effClass}">${eff}%</td>`;
+        }
+        
+        return `
+            <table class="slots-table">
+                <thead><tr><th style="text-align:left">Metric</th>${headers}</tr></thead>
+                <tbody>
+                    <tr><td class="row-label">Plan</td>${planRow}</tr>
+                    <tr><td class="row-label">Actual</td>${actualRow}</tr>
+                    <tr><td class="row-label">Efficiency</td>${effRow}</tr>
+                </tbody>
+            </table>
+        `;
+    }
+
+    function updateChartData(rt) {
+        if (!chart) return;
+        
+        const times = [];
+        for (let i = 1; i <= 20; i++) {
+            const v = rt[`ct${i}`];
+            times.push(v && v > 0 ? v : null);
+        }
+        
+        const avg = times.filter(v => v !== null).length ? 
+            (times.filter(v => v !== null).reduce((a,b) => a+b, 0) / times.filter(v => v !== null).length).toFixed(1) : '--';
+        
+        const colors = [];
+        for (let i = 0; i < times.length - 1; i++) {
+            const a = times[i], b = times[i+1];
+            if (a === null || b === null) colors.push('#2a2a2a');
+            else colors.push((a > idealCT || b > idealCT) ? '#ef4444' : '#22c55e');
+        }
+        
+        chart.data.datasets[0].data = times;
+        chart.data.datasets[0].label = `Cycle Time (Avg: ${avg !== '--' ? avg + 's' : '--'})`;
+        chart.data.datasets[0].pointBackgroundColor = times.map(v => v === null ? '#fff' : (v <= idealCT ? '#22c55e' : '#ef4444'));
+        chart.data.datasets[0].segment = { borderColor: ctx => colors[ctx.p0DataIndex] || '#ef4444' };
+        chart.update('none');
+    }
+
+    function initChart(rt) {
+        const times = [];
+        for (let i = 1; i <= 20; i++) {
+            const v = rt[`ct${i}`];
+            times.push(v && v > 0 ? v : null);
+        }
+        const avg = times.filter(v => v !== null).length ? 
+            (times.filter(v => v !== null).reduce((a,b) => a+b, 0) / times.filter(v => v !== null).length).toFixed(1) : '--';
+        
+        const colors = [];
+        for (let i = 0; i < times.length - 1; i++) {
+            const a = times[i], b = times[i+1];
+            if (a === null || b === null) colors.push('#2a2a2a');
+            else colors.push((a > idealCT || b > idealCT) ? '#ef4444' : '#22c55e');
+        }
+        
+        const ctx = document.getElementById('cycleChart').getContext('2d');
+        if (chart) chart.destroy();
+        
+        chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20'],
+                datasets: [
+                    {
+                        label: `Cycle Time (Avg: ${avg !== '--' ? avg + 's' : '--'})`,
+                        data: times,
+                        borderWidth: 2,
+                        tension: 0.2,
+                        fill: false,
+                        pointRadius: 4,
+                        pointBackgroundColor: times.map(v => v === null ? '#fff' : (v <= idealCT ? '#22c55e' : '#ef4444')),
+                        pointBorderColor: '#000',
+                        pointBorderWidth: 1,
+                        segment: { borderColor: ctx => colors[ctx.p0DataIndex] || '#ef4444' }
+                    },
+                    {
+                        label: `Ideal CT (${idealCT.toFixed(1)}s)`,
+                        data: Array(20).fill(idealCT),
+                        borderColor: '#fff',
+                        borderWidth: 1.5,
+                        borderDash: [6,4],
+                        pointRadius: 0,
+                        fill: false
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                animation: false,
+                plugins: { legend: { position: 'top', labels: { color: '#9ca3af', boxWidth: 10, font: { size: 9 } } } },
+                scales: {
+                    y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#9ca3af', font: { size: 9 } }, title: { display: true, text: 'Seconds', color: '#6b7280', font: { size: 9 } } },
+                    x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#9ca3af', font: { size: 8 } } }
+                }
+            }
+        });
+    }
+
+    async function fetchAndUpdate() {
+        const token = localStorage.getItem('mes_token');
+        if (!token) return;
+        
+        try {
+            const [realtimeRes, lineRes] = await Promise.all([
+                fetch(`${API}/api/lines/${lineId}/realtime`, { headers: { Authorization: `Bearer ${token}` } }),
+                fetch(`${API}/api/lines/${lineId}`, { headers: { Authorization: `Bearer ${token}` } })
+            ]);
+            
+            if (!realtimeRes.ok || !lineRes.ok) throw new Error('Fetch failed');
+            
+            const rt = await realtimeRes.json();
+            const line = await lineRes.json();
+            idealCT = line.plc_config?.ideal_cycle_time || 15.0;
+            
+            const actual = (rt.ok_count || 0) + (rt.ng_count || 0);
+            const plan = rt.shift_plan_completed || 1860;
+            const progress = plan ? Math.round(((actual / plan) * 100) * 10) / 10 : 0;
+            const finalProgress = Math.min(100, progress);
+            const oee = (rt.overall_oee || 0).toFixed(1);
+            const avail = (rt.availability || 0).toFixed(1);
+            const perf = (rt.performance || 0).toFixed(1);
+            const qual = (rt.quality_oee || 0).toFixed(1);
+            const statusInfo = getStatusInfo(rt.operating_status);
+            const shift = rt.shift_name || 'A';
+            const recordDate = rt.record_date || new Date().toISOString().split('T')[0];
+            
+            const cycleHash = Array.from({length:20}, (_,i) => rt[`ct${i+1}`] || 0).join(',');
+            const lossHash = `${rt.loss_breakdown_seconds}|${rt.loss_quality_seconds}|${rt.loss_material_seconds}|${rt.loss_setup_seconds}|${rt.loss_change_over_seconds}|${rt.loss_speed_seconds}|${rt.loss_others_seconds}`;
+            const slotHash = JSON.stringify((line.hourly_slots || []).map(s => [rt[`${s.db_column_prefix}_plan`], rt[`${s.db_column_prefix}_actual`]]));
+            
+            // Update metrics
+            if (cache.oee !== oee && elements.oee) { elements.oee.textContent = `${oee}%`; cache.oee = oee; }
+            if (cache.avail !== avail && elements.avail) { elements.avail.textContent = `${avail}%`; cache.avail = avail; }
+            if (cache.perf !== perf && elements.perf) { elements.perf.textContent = `${perf}%`; cache.perf = perf; }
+            if (cache.qual !== qual && elements.qual) { elements.qual.textContent = `${qual}%`; cache.qual = qual; }
+            if (cache.actualTotal !== actual && elements.actual) { elements.actual.textContent = actual; cache.actualTotal = actual; }
+            if (cache.planTotal !== plan && elements.plan) { elements.plan.textContent = plan; cache.planTotal = plan; }
+            
+            // Update status
+            if (cache.status !== statusInfo.text && elements.statusText && elements.statusDot) {
+                elements.statusText.textContent = statusInfo.text;
+                elements.statusDot.className = `status-dot ${statusInfo.class}`;
+                cache.status = statusInfo.text;
+            }
+            
+            // Update shift
+            if (cache.shift !== shift && elements.shift) { elements.shift.textContent = shift; cache.shift = shift; }
+            
+            // Update progress bar
+            if (Math.abs(cache.progress - finalProgress) >= 0.1 && elements.progressText && elements.progressFill) {
+                elements.progressText.textContent = `${actual} / ${plan} (${finalProgress.toFixed(1)}%)`;
+                elements.progressFill.style.width = `${finalProgress}%`;
+                cache.progress = finalProgress;
+            }
+            
+            // Update losses
+            if (cache.lossHash !== lossHash && elements.lossList) {
+                elements.lossList.innerHTML = renderLosses(rt);
+                cache.lossHash = lossHash;
+            }
+            
+            // Update slots
+            if (cache.slotHash !== slotHash && elements.slotTable) {
+                elements.slotTable.innerHTML = renderSlots(rt, line.hourly_slots || [], shift);
+                cache.slotHash = slotHash;
+            }
+            
+            // Update chart
+            if (cache.cycleHash !== cycleHash) {
+                if (chart) updateChartData(rt);
+                else initChart(rt);
+                cache.cycleHash = cycleHash;
+            }
+            
+            // Update time
+            if (elements.dateTime) elements.dateTime.textContent = updateDateTime();
+            
+        } catch (err) {
+            console.error('Update error:', err);
+        }
+    }
+
+    async function init() {
+        const token = localStorage.getItem('mes_token');
+        if (!token) {
+            document.getElementById('app').innerHTML = '<div class="loading">Please log in first.</div>';
+            return;
+        }
+        
+        try {
+            const [realtimeRes, lineRes] = await Promise.all([
+                fetch(`${API}/api/lines/${lineId}/realtime`, { headers: { Authorization: `Bearer ${token}` } }),
+                fetch(`${API}/api/lines/${lineId}`, { headers: { Authorization: `Bearer ${token}` } })
+            ]);
+            
+            if (!realtimeRes.ok || !lineRes.ok) throw new Error('Failed to load');
+            
+            const rt = await realtimeRes.json();
+            const line = await lineRes.json();
+            idealCT = line.plc_config?.ideal_cycle_time || 15.0;
+            
+            const actual = (rt.ok_count || 0) + (rt.ng_count || 0);
+            const plan = rt.shift_plan_completed || 1860;
+            const progress = plan ? Math.round(((actual / plan) * 100) * 10) / 10 : 0;
+            const finalProgress = Math.min(100, progress);
+            const statusInfo = getStatusInfo(rt.operating_status);
+            
+            document.getElementById('app').innerHTML = `
+                <div class="fullscreen-container" id="dashboard-root">
+                    <div class="header">
+                        <div class="header-left">
+                            <h1>${escapeHtml(line.line_name)}</h1>
+                            <p>Real-time Production Monitor</p>
+                        </div>
+                        <div class="shift-info">
+                            <div class="shift-badge"><span>Shift</span><strong id="shift-name">${rt.shift_name || 'A'}</strong></div>
+                            <div class="status-center"><div class="status-dot ${statusInfo.class}" id="status-dot"></div><div class="status-text" id="status-text">${statusInfo.text}</div></div>
+                            <div class="date-time" id="date-time">${updateDateTime()}</div>
+                            <button class="fullscreen-btn" onclick="toggleFullscreen()">⛶ Full</button>
+                        </div>
+                    </div>
+                    <div class="main-content">
+                        <div class="left-column">
+                            <table class="metrics-table">
+                                <tr><td>Overall OEE</td><td id="oee-val">${(rt.overall_oee || 0).toFixed(1)}%</td></tr>
+                                <tr><td>Availability</td><td id="avail-val">${(rt.availability || 0).toFixed(1)}%</td></tr>
+                                <tr><td>Performance</td><td id="perf-val">${(rt.performance || 0).toFixed(1)}%</td></tr>
+                                <tr><td>Quality</td><td id="qual-val">${(rt.quality_oee || 0).toFixed(1)}%</td></tr>
+                                <tr><td>Plan Target</td><td id="plan-val">${plan}</td></tr>
+                                <tr><td>Actual Produced</td><td id="actual-val">${actual}</td></tr>
+                            </table>
+                        </div>
+                        <div class="center-column">
+                            <div class="graph-card">
+                                <div class="graph-title">CYCLE TIME TREND (LAST 20 CYCLES)</div>
+                                <div class="graph-wrapper"><canvas id="cycleChart"></canvas></div>
+                            </div>
+                            <div class="progress-card">
+                                <div class="progress-header"><span>Production Progress</span><span id="progress-text">${actual} / ${plan} (${finalProgress.toFixed(1)}%)</span></div>
+                                <div class="progress-bar-container"><div class="progress-bar-fill" id="progress-fill" style="width:${finalProgress}%"></div></div>
+                            </div>
+                        </div>
+                        <div class="right-column">
+                            <div class="loss-title">LOSS BREAKDOWN</div>
+                            <div class="loss-list" id="loss-list">${renderLosses(rt)}</div>
+                        </div>
+                    </div>
+                    <div class="bottom-table">
+                        <div class="table-header"><div class="table-title">HOURLY SLOT PERFORMANCE</div><div class="table-date-shift"><strong>${rt.record_date || new Date().toISOString().split('T')[0]}</strong> | <strong>${rt.shift_name || 'A'} Shift</strong></div></div>
+                        <div class="horizontal-table" id="slot-table">${renderSlots(rt, line.hourly_slots || [], rt.shift_name || 'A')}</div>
+                    </div>
+                </div>
+            `;
+            
+            // Cache DOM elements
+            elements = {
+                oee: document.getElementById('oee-val'),
+                avail: document.getElementById('avail-val'),
+                perf: document.getElementById('perf-val'),
+                qual: document.getElementById('qual-val'),
+                plan: document.getElementById('plan-val'),
+                actual: document.getElementById('actual-val'),
+                statusText: document.getElementById('status-text'),
+                statusDot: document.getElementById('status-dot'),
+                shift: document.getElementById('shift-name'),
+                progressText: document.getElementById('progress-text'),
+                progressFill: document.getElementById('progress-fill'),
+                lossList: document.getElementById('loss-list'),
+                slotTable: document.getElementById('slot-table'),
+                dateTime: document.getElementById('date-time')
+            };
+            
+            // Initialize cache
+            cache = {
+                actualTotal: actual,
+                planTotal: plan,
+                oee: (rt.overall_oee || 0).toFixed(1),
+                avail: (rt.availability || 0).toFixed(1),
+                perf: (rt.performance || 0).toFixed(1),
+                qual: (rt.quality_oee || 0).toFixed(1),
+                status: statusInfo.text,
+                shift: rt.shift_name || 'A',
+                progress: finalProgress,
+                cycleHash: Array.from({length:20}, (_,i) => rt[`ct${i+1}`] || 0).join(','),
+                lossHash: `${rt.loss_breakdown_seconds}|${rt.loss_quality_seconds}|${rt.loss_material_seconds}|${rt.loss_setup_seconds}|${rt.loss_change_over_seconds}|${rt.loss_speed_seconds}|${rt.loss_others_seconds}`,
+                slotHash: JSON.stringify((line.hourly_slots || []).map(s => [rt[`${s.db_column_prefix}_plan`], rt[`${s.db_column_prefix}_actual`]]))
+            };
+            
+            // Initialize chart
+            initChart(rt);
+            
+            // Start refresh timer (3 seconds)
+            if (refreshTimer) clearInterval(refreshTimer);
+            refreshTimer = setInterval(fetchAndUpdate, 3000);
+            
+        } catch (err) {
+            document.getElementById('app').innerHTML = `<div class="loading">Error: ${err.message}</div>`;
+        }
+    }
+    
+    function toggleFullscreen() {
+        if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+        else document.exitFullscreen();
+    }
+    
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : (m === '<' ? '&lt;' : '&gt;'));
+    }
+    
+    // Start
+    init();
+    
+    window.addEventListener('beforeunload', () => {
+        if (refreshTimer) clearInterval(refreshTimer);
+    });
+</script>
+</body>
+</html>

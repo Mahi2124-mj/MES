@@ -1,0 +1,59 @@
+{
+  "active_camera_id": "cam_panasonic_default",
+  "cameras": [
+    {
+      "id": "cam_panasonic_default",
+      "name": "Panasonic Default",
+      "ip": "192.168.10.115",
+      "port": 554,
+      "username": "gAAAAABqCpkqaX0c8D-HUrk6kFfJbFtvLDtzJazrB76m-43VG6DEo84SqqRBj2QKe_AdGdUvWAaVJfWeG_yzICRvn3cNKQniFA==",
+      "password": "gAAAAABqCpkqlJNen0ImgLu5cs2VnNhOrtqOp-nw9pNhYkL8yrrF3urdv8kb2677s11XEQSta9bBqwDwXX_VWS2zW2eOTX6QfQ==",
+      "path": "/h264/ch1/sub/av_stream"
+    },
+    {
+      "id": "cam_upper_rail_greasing_1778650524",
+      "name": "Upper Rail Greasing",
+      "ip": "192.168.10.122",
+      "port": 554,
+      "username": "gAAAAABqCpkqipSW22dCxEdkjRn1dGaDQDsDhm80kI3syf-ybVv29-boWcEyyjEs6PSIw0IdUxppOKfou_JnkSq4iCFevbNXsw==",
+      "password": "gAAAAABqCpkqmRHWRVtvGhIrYZksLj8C0Hrpw5tEejegMm35T4TBTnr6ozAzROTTCSKIoTYHOumccWL6ZIaF_2d_tTHktLYUNQ==",
+      "path": "/h264/ch1/sub/av_stream"
+    },
+    {
+      "id": "cam_semi_auto_1779041507",
+      "name": "Semi auto",
+      "ip": "192.168.10.158",
+      "port": 554,
+      "username": "gAAAAABqCpkqw889Sz0CnmMfduyaNw9SO_fQpn4_TQrF_6fdi-KMosZ0fmVNsMdJuloRwDs8hgHykQcNMcnvVBRrAq-gvbqTSQ==",
+      "password": "gAAAAABqCpkqW4WJpr2iXd0VwHWyB8dqaMb6u_L8kIXh8_8_Niz5i5i2SvQou7LM6721wiQhwC2AcoOTUxgIPFuYl72XbSxYrw==",
+      "path": "/h264/ch1/sub/av_stream"
+    },
+    {
+      "id": "cam_lock_bar_insert_1779041857",
+      "name": "lock bar insert",
+      "ip": "192.168.10.121",
+      "port": 554,
+      "username": "gAAAAABqCpkqa_4p5gZp3p87eBJBFuOwSeXfSyGA1D2TjBgjMHCHsNbF7Hzj-jLI9-iYach-hCp4il79x-YWUw5xUKZ_ULJbVQ==",
+      "password": "gAAAAABqCpkqWxHh0OiONzNJrtNJqmajMfDjUu9_w8Nhl7LZ93Eu6ERka8vXCWcW3CE-LmazmGeIPXfW8L3vST86YKoB4ycuTg==",
+      "path": "/h264/ch1/sub/av_stream"
+    },
+    {
+      "id": "cam_lock_bar_1779043510",
+      "name": "lock-bar",
+      "ip": "192.168.10.118",
+      "port": 554,
+      "username": "gAAAAABqCpkqRr3315DoxPjZX6AsFyhAShv4zc6hb-B8LA0uMQSrP0FjbZbm4HYzOuu6z1B51nFbK_i_T9aFrMTb4mpzBJJfwA==",
+      "password": "gAAAAABqCpkqq_xUG1cVoF-xrABZsyEJm23oGa83nsaP_to3X5066dusMRq3ZzBMEf0SPNgnHf3jZ_iz0LJTta-74WPdaaNyyQ==",
+      "path": "/h264/ch1/sub/av_stream"
+    },
+    {
+      "id": "cam_ball_guide_1779079466",
+      "name": "ball guide",
+      "ip": "192.168.10.127",
+      "port": 554,
+      "username": "gAAAAABqCpkqMccS0XMTInbEZzZ-B-8DFLIOVWZbxrAmo6ONo1qwwnMafWEnwbYh2cCyRsrFssqAUO3O99nNo3i7c9CxEZztDQ==",
+      "password": "gAAAAABqCpkqExmso8_9KQMBd7suAC6tW0MBltA2WhOGTogHvi3xjrf4WphdeMuUpCwPOZHO7LXIp7Oc9Rq-AJr-kSqY8WzMdQ==",
+      "path": "/h264/ch1/sub/av_stream"
+    }
+  ]
+}

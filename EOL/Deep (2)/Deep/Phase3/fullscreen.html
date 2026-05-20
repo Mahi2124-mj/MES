@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Line Dashboard – Full Screen</title>
+    <link rel="icon" type="image/jpeg" href="/static/logo.jpg">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', 'Times New Roman', Times, serif;
+            background: #f8fafc;
+            color: #0f172a;
+            padding: 20px;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .dashboard-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            overflow-y: auto;
+            padding-right: 8px;
+        }
+        .dashboard-container::-webkit-scrollbar {
+            width: 6px;
+        }
+        .dashboard-container::-webkit-scrollbar-track {
+            background: #e2e8f0;
+            border-radius: 3px;
+        }
+        .dashboard-container::-webkit-scrollbar-thumb {
+            background: #1e40af;
+            border-radius: 3px;
+        }
+        h1 {
+            font-size: 1.8rem;
+            margin: 0 0 8px 0;
+            text-align: center;
+            color: #1e40af;
+            letter-spacing: 1px;
+            flex-shrink: 0;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 16px;
+            flex-shrink: 0;
+        }
+        .stat-card {
+            background: white;
+            border-radius: 20px;
+            padding: 16px;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            border: 1px solid #e2e8f0;
+        }
+        .stat-card.blue { border-top: 4px solid #3b82f6; }
+        .stat-card.green { border-top: 4px solid #22c55e; }
+        .stat-card.amber { border-top: 4px solid #f59e0b; }
+        .stat-card.purple { border-top: 4px solid #8b5cf6; }
+        .stat-label {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            font-weight: 600;
+            color: #475569;
+            margin-bottom: 8px;
+        }
+        .stat-value {
+            font-size: 2.4rem;
+            font-weight: 700;
+            color: #0f172a;
+        }
+        .two-columns {
+            display: flex;
+            gap: 20px;
+            flex: 1;
+            min-height: 0;
+        }
+        .left-col {
+            flex: 1.2;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            overflow-y: auto;
+        }
+        .right-col {
+            flex: 0.9;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            overflow-y: auto;
+        }
+        .card {
+            background: white;
+            border-radius: 20px;
+            padding: 16px;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+        }
+        .card-title {
+            font-size: 1rem;
+            font-weight: 700;
+            margin-bottom: 12px;
+            color: #1e293b;
+            border-left: 3px solid #3b82f6;
+            padding-left: 10px;
+            text-transform: uppercase;
+        }
+        .plan-actual-bar {
+            background: #e2e8f0;
+            border-radius: 20px;
+            overflow: hidden;
+            height: 28px;
+            margin: 12px 0;
+        }
+        .plan-fill {
+            background: #3b82f6;
+            height: 100%;
+            width: 0%;
+        }
+        .actual-fill {
+            background: #22c55e;
+            height: 100%;
+            width: 0%;
+        }
+        .flex-between {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 8px;
+        }
+        .pill {
+            background: #f1f5f9;
+            padding: 4px 10px;
+            border-radius: 30px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: #1e40af;
+        }
+        .loss-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8rem;
+        }
+        .loss-table th, .loss-table td {
+            padding: 8px 4px;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .loss-table th {
+            font-weight: 600;
+            color: #475569;
+            text-transform: uppercase;
+            font-size: 0.7rem;
+        }
+        .loss-percent-bar {
+            background: #e2e8f0;
+            border-radius: 12px;
+            overflow: hidden;
+            width: 80px;
+            height: 8px;
+        }
+        .loss-percent-fill {
+            height: 100%;
+            width: 0%;
+        }
+        canvas {
+            width: 100%;
+            height: 180px;
+            margin-top: 6px;
+        }
+        .slot-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.75rem;
+        }
+        .slot-table th, .slot-table td {
+            padding: 6px 4px;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .slot-table th {
+            font-weight: 600;
+            color: #475569;
+        }
+        .fullscreen-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #1e40af;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 40px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            cursor: pointer;
+            z-index: 1000;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        .fullscreen-btn:hover {
+            background: #2563eb;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            font-size: 1.2rem;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+<div class="dashboard-container" id="app">
+    <div class="loading">Loading dashboard...</div>
+</div>
+<button class="fullscreen-btn" onclick="toggleFullScreen()">⛶ Full Screen</button>
+
+<script>
+    const API = '';
+    const urlParams = new URLSearchParams(window.location.search);
+    const lineId = urlParams.get('line_id');
+    if (!lineId) {
+        document.getElementById('app').innerHTML = '<div class="loading">Error: No line ID provided.</div>';
+    }
+
+    let refreshInterval = null;
+    let cycleChart = null;
+
+    function formatSeconds(seconds) {
+        const h = Math.floor(seconds / 3600);
+        const m = Math.floor((seconds % 3600) / 60);
+        const s = Math.floor(seconds % 60);
+        return `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+    }
+
+    async function fetchData() {
+        const token = localStorage.getItem('mes_token');
+        if (!token) {
+            document.getElementById('app').innerHTML = '<div class="loading">Please log in first.</div>';
+            return;
+        }
+
+        try {
+            const res = await fetch(`${API}/api/lines/${lineId}/realtime`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!res.ok) throw new Error('Failed to fetch data');
+            const rt = await res.json();
+
+            const lineRes = await fetch(`${API}/api/lines/${lineId}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const lineDetail = await lineRes.json();
+
+            renderDashboard(rt, lineDetail);
+        } catch (err) {
+            document.getElementById('app').innerHTML = `<div class="loading">Error: ${err.message}</div>`;
+        }
+    }
+
+    function renderDashboard(rt, lineDetail) {
+        const oee = rt.overall_oee || 0;
+        const avail = rt.availability || 0;
+        const perf = rt.performance || 0;
+        const qual = rt.quality_oee || 0;
+        const actualTotal = (rt.ok_count || 0) + (rt.ng_count || 0);
+        const planTotal = rt.shift_plan_completed || 0;
+        const planPercent = planTotal ? (actualTotal / planTotal) * 100 : 0;
+
+        const idealCT = lineDetail.plc_config?.ideal_cycle_time || 15.0;
+        const actualAvgCT = rt.ct_avg_20 || 0;
+
+        const lossCategories = [
+            { key: "breakdown",   label: "Breakdown",   color: "#ef4444" },
+            { key: "quality",     label: "Quality",     color: "#f97316" },
+            { key: "material",    label: "Material",    color: "#eab308" },
+            { key: "setup",       label: "Setup",       color: "#84cc16" },
+            { key: "change_over", label: "Change Over", color: "#06b6d4" },
+            { key: "speed",       label: "Speed Loss",  color: "#3b82f6" },
+            { key: "others",      label: "Others",      color: "#8b5cf6" }
+        ];
+        const lossSeconds = {};
+        let totalLoss = 0;
+        for (let cat of lossCategories) {
+            let seconds = rt[`loss_${cat.key}_seconds`] || 0;
+            lossSeconds[cat.key] = seconds;
+            totalLoss += seconds;
+        }
+        const lossItems = lossCategories.map(cat => {
+            const sec = lossSeconds[cat.key];
+            const percent = totalLoss ? ((sec / totalLoss) * 100).toFixed(1) : 0;
+            return { ...cat, seconds: sec, percent };
+        }).filter(item => item.seconds > 0);
+
+        const cycleTimes = [];
+        for (let i = 1; i <= 20; i++) {
+            const ct = rt[`ct${i}`];
+            if (ct !== null && ct !== undefined) cycleTimes.push(ct);
+        }
+
+        const slots = lineDetail.hourly_slots || [];
+        const slotData = slots.map(slot => {
+            const prefix = slot.db_column_prefix;
+            const plan = rt[`${prefix}_plan`] || 0;
+            const actual = rt[`${prefix}_actual`] || 0;
+            const variance = rt[`${prefix}_variance`] || 0;
+            return { label: slot.slot_label, plan, actual, variance };
+        });
+
+        let html = `
+            <h1>${lineDetail.line_name} – Production Dashboard</h1>
+            <div class="stats-grid">
+                <div class="stat-card blue"><div class="stat-label">Overall OEE</div><div class="stat-value">${oee}%</div></div>
+                <div class="stat-card green"><div class="stat-label">Availability</div><div class="stat-value">${avail}%</div></div>
+                <div class="stat-card amber"><div class="stat-label">Performance</div><div class="stat-value">${perf}%</div></div>
+                <div class="stat-card purple"><div class="stat-label">Quality</div><div class="stat-value">${qual}%</div></div>
+            </div>
+            <div class="two-columns">
+                <div class="left-col">
+                    <div class="card">
+                        <div class="card-title">Plan vs Actual (Shift)</div>
+                        <div class="flex-between"><span>Actual: ${actualTotal}</span><span>Target: ${planTotal}</span></div>
+                        <div class="plan-actual-bar"><div class="actual-fill" style="width: ${planPercent}%; background: #22c55e;"></div></div>
+                        <div class="flex-between">
+                            <span class="pill">Ideal CT: ${idealCT.toFixed(1)}s</span>
+                            <span class="pill">Actual CT: ${actualAvgCT.toFixed(1)}s</span>
+                            <span class="pill">Achievement: ${planPercent.toFixed(0)}%</span>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-title">Loss Breakdown</div>
+                        ${lossItems.length ? `
+                        <table class="loss-table">
+                            <thead>
+                                <th>Loss Type</th><th>Duration</th><th>%</th><th></th>
+                            </thead>
+                            <tbody>
+                                ${lossItems.map(item => `
+                                <tr>
+                                    <td style="color:${item.color};">${item.label}</td>
+                                    <td>${formatSeconds(item.seconds)}</td>
+                                    <td>${item.percent}%</td>
+                                    <td><div class="loss-percent-bar"><div class="loss-percent-fill" style="width: ${item.percent}%; background: ${item.color};"></div></div></td>
+                                </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                        ` : '<div>No losses recorded yet</div>'}
+                    </div>
+                </div>
+                <div class="right-col">
+                    <div class="card">
+                        <div class="card-title">Cycle Time Trend (Last 20)</div>
+                        <canvas id="cycleChart" style="height:180px;"></canvas>
+                    </div>
+                    <div class="card">
+                        <div class="card-title">Hourly Slot Performance</div>
+                        <div style="max-height: 200px; overflow-y: auto;">
+                            <table class="slot-table">
+                                <thead>
+                                    <th>Slot</th><th>Plan</th><th>Actual</th><th>Eff%</th>
+                                </thead>
+                                <tbody>
+                                    ${slotData.map(s => {
+                                        const eff = s.plan ? ((s.actual / s.plan) * 100).toFixed(1) : '0';
+                                        return `<tr><td style="font-size:0.7rem">${s.label}</td><td>${s.plan}</td><td>${s.actual}</td><td><div style="background:#e2e8f0; border-radius:10px; width:60px;"><div style="width:${eff}%; background:#3b82f6; height:4px;"></div></div>${eff}%</td></tr>`;
+                                    }).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.getElementById('app').innerHTML = html;
+
+        if (cycleChart) cycleChart.destroy();
+        const ctx = document.getElementById('cycleChart').getContext('2d');
+        cycleChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: cycleTimes.map((_, i) => `#${i+1}`),
+                datasets: [{
+                    label: 'Cycle Time (s)',
+                    data: cycleTimes,
+                    borderColor: '#3b82f6',
+                    backgroundColor: 'rgba(59,130,246,0.05)',
+                    tension: 0.1,
+                    fill: true,
+                    pointRadius: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                scales: {
+                    y: { beginAtZero: true, ticks: { font: { size: 10 } } },
+                    x: { ticks: { font: { size: 9 } } }
+                },
+                plugins: {
+                    legend: { display: false }
+                }
+            }
+        });
+    }
+
+    function toggleFullScreen() {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen();
+        } else {
+            document.exitFullscreen();
+        }
+    }
+
+    fetchData();
+    refreshInterval = setInterval(fetchData, 5000);
+
+    window.addEventListener('beforeunload', () => {
+        if (refreshInterval) clearInterval(refreshInterval);
+    });
+</script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+{
+  "bindings": [
+    {
+      "id": "bind_1775559323930",
+      "machine_id": "machine_236",
+      "camera_id": "cam_panasonic_default",
+      "plc_id": "plc_default",
+      "target_time": 30
+    }
+  ]
+}

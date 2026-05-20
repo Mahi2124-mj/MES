@@ -1,0 +1,18 @@
+# ffmpeg binaries
+*.exe
+
+# logs
+*.err
+*.log
+
+# videos
+*.mp4
+*.ts
+
+# python
+venv/
+__pycache__/
+
+# node
+node_modules/
+dist/

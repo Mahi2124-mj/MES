@@ -1,0 +1,35 @@
+{
+  "_comment_1": "Updated 2026-05-20 — Toyota Boshoku actual 2-shift schedule.",
+  "_comment_2": "Earlier file had default 3-shift A/B/C @ 06-14/14-22/22-06 which",
+  "_comment_3": "mislabelled night-side cycles as 'Shift_C' in F: structured paths.",
+  "_comment_4": "Real schedule: Shift_1 08:30-17:20, Shift_2 18:30-03:20 (crosses",
+  "_comment_5": "midnight), and OT_Gap windows for lunch + night gap.",
+  "_comment_6": "Add/remove OT_* entries below to relabel gaps if needed.",
+
+  "shifts": [
+    {
+      "id":    "shift_1",
+      "name":  "Shift 1",
+      "start": "08:30",
+      "end":   "17:20"
+    },
+    {
+      "id":    "ot_lunch",
+      "name":  "OT Lunch Gap",
+      "start": "17:20",
+      "end":   "18:30"
+    },
+    {
+      "id":    "shift_2",
+      "name":  "Shift 2",
+      "start": "18:30",
+      "end":   "03:20"
+    },
+    {
+      "id":    "ot_night",
+      "name":  "OT Night Gap",
+      "start": "03:20",
+      "end":   "08:30"
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "ip": "",
+  "port": 502,
+  "bit_address": "M100",
+  "enabled": false,
+  "description": "Main PLC \u2013 Cycle trigger bit"
+}

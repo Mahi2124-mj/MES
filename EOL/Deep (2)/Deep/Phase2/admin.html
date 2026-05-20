@@ -1,0 +1,2470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Toyota Boshoku Device India</title>
+<link rel="icon" type="image/jpeg" href="/static/logo.jpg">
+<style>
+/* ======================= BASE STYLES ======================= */
+:root {
+  --bg-primary: #f8fafc;
+  --bg-secondary: #ffffff;
+  --text-primary: #0f172a;
+  --text-secondary: #334155;
+  --text-muted: #64748b;
+  --border: #e2e8f0;
+  --blue: #1e40af;
+  --blue2: #2563eb;
+  --blue3: #3b82f6;
+  --bluel: #60a5fa;
+  --bluell: #dbeafe;
+  --green: #16a34a;
+  --red: #dc2626;
+  --amber: #d97706;
+  --purple: #8b5cf6;
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --shadow: 0 1px 3px rgba(0,0,0,.1);
+  --shadow-lg: 0 10px 25px -5px rgba(0,0,0,.1);
+  --sans: 'Segoe UI', Times, serif;
+  --mono: monospace;
+  --r: 8px;
+  --transition: all 0.2s ease;
+}
+
+/* Dark mode variables */
+body.dark-mode {
+  --bg-primary: #0f172a;
+  --bg-secondary: #1e293b;
+  --text-primary: #f1f5f9;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+  --border: #334155;
+  --blue: #60a5fa;
+  --blue2: #3b82f6;
+  --blue3: #2563eb;
+  --bluel: #93c5fd;
+  --bluell: #1e3a8a;
+}
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;font-family:var(--sans);background:var(--bg-primary);color:var(--text-primary);font-size:14px;line-height:1.5}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:var(--border)}
+::-webkit-scrollbar-thumb{background:var(--blue);border-radius:3px}
+
+.dark-mode-toggle {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 6px 12px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  font-size: 12px;
+  transition: var(--transition);
+}
+.dark-mode-toggle:hover {
+  background: var(--blue);
+  color: white;
+  border-color: var(--blue);
+}
+
+/* Login screen */
+#login-screen{
+  display:flex;align-items:center;justify-content:center;
+  height:100vh;position:relative;z-index:1;
+  background:linear-gradient(135deg,var(--bg-primary) 0%,var(--bg-secondary) 100%);
+}
+.lw{
+  position:relative;z-index:1;
+  display:flex;width:820px;max-width:96vw;
+  border-radius:24px;overflow:hidden;
+  box-shadow:0 32px 100px rgba(0,0,0,.18),0 0 0 1px rgba(0,0,0,.1);
+  animation:up .5s cubic-bezier(.16,1,.3,1);
+}
+@keyframes up{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
+.ll{
+  width:340px;flex-shrink:0;
+  background:linear-gradient(160deg,var(--blue) 0%,#0f2b5e 100%);
+  padding:48px 40px;
+  display:flex;flex-direction:column;
+  position:relative;overflow:hidden;
+}
+.ll::before{
+  content:'';position:absolute;width:300px;height:300px;
+  border-radius:50%;border:60px solid rgba(255,255,255,.06);
+  bottom:-100px;right:-100px;pointer-events:none;
+}
+.ll::after{
+  content:'';position:absolute;width:150px;height:150px;
+  border-radius:50%;border:40px solid rgba(255,255,255,.06);
+  top:-50px;left:-50px;pointer-events:none;
+}
+.ll-logo{display:flex;align-items:center;gap:12px;margin-bottom:auto;position:relative}
+.ll-icon{
+  width:44px;height:44px;border-radius:12px;
+  background:rgba(255,255,255,.2);backdrop-filter:blur(10px);
+  border:1px solid rgba(255,255,255,.3);
+  display:flex;align-items:center;justify-content:center;
+  overflow:hidden;
+}
+.ll-icon img{width:100%;height:100%;object-fit:contain}
+.ll-brand{font-size:12px;color:rgba(255,255,255,.7);line-height:1.5}
+.ll-brand b{display:block;font-size:14px;color:#fff;font-weight:600}
+.ll-tagline{position:relative;margin-top:auto}
+.ll-big{font-size:36px;font-weight:700;color:#fff;line-height:1.1;margin-bottom:12px;letter-spacing:-.01em}
+.ll-big span{opacity:.5;display:block}
+.ll-desc{font-size:12px;color:rgba(255,255,255,.6);line-height:1.7}
+.lr{flex:1;background:var(--bg-secondary);padding:48px 44px;display:flex;flex-direction:column;justify-content:center}
+.lr-title{font-size:26px;font-weight:700;letter-spacing:-.01em;margin-bottom:4px;color:var(--text-primary)}
+.lr-sub{font-size:13px;color:var(--text-muted);margin-bottom:36px}
+.lfield{display:flex;flex-direction:column;gap:6px;margin-bottom:18px}
+.lfield label{font-size:11px;font-weight:600;color:var(--text-muted);letter-spacing:.1em;text-transform:uppercase}
+.lfield input{
+  background:var(--bg-primary);border:1.5px solid var(--border);border-radius:var(--r);
+  padding:12px 14px;color:var(--text-primary);font-family:var(--sans);font-size:14px;outline:none;
+  transition:all .15s;
+}
+.lfield input:focus{border-color:var(--blue);background:var(--bg-secondary);box-shadow:0 0 0 4px rgba(30,64,175,.08)}
+.lbtn{
+  width:100%;padding:14px;margin-top:6px;
+  background:linear-gradient(135deg,var(--blue),var(--blue2));
+  border:none;border-radius:var(--r);color:#fff;
+  font-family:var(--sans);font-size:14px;font-weight:600;
+  cursor:pointer;letter-spacing:.02em;
+  box-shadow:0 6px 24px rgba(0,0,0,.2);
+  transition:all .15s;
+}
+.lbtn:hover{transform:translateY(-1px);filter:brightness(1.05)}
+.lerr{
+  margin-top:14px;padding:11px 14px;
+  background:rgba(220,38,38,.1);border:1.5px solid rgba(220,38,38,.3);
+  border-radius:var(--r);color:var(--danger);font-size:12px;display:none;
+}
+
+/* App */
+#app{display:none;height:100vh;flex-direction:column;position:relative;z-index:1}
+
+/* Topbar */
+.topbar{
+  height:60px;flex-shrink:0;
+  background:var(--bg-secondary);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;padding:0 24px;gap:16px;
+  box-shadow:var(--shadow);
+  position:relative;z-index:10;
+}
+.topbar::after{
+  content:'';position:absolute;bottom:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,var(--blue),var(--blue2),var(--bluel));
+}
+.tb-logo{display:flex;align-items:center;gap:12px;flex-shrink:0}
+.tb-logo-icon{
+  width:36px;height:36px;
+  overflow:hidden;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.tb-logo-icon img{width:100%;height:100%;object-fit:contain}
+.tb-logo-text{font-size:16px;font-weight:700;color:var(--text-primary)}
+.tb-logo-text span{color:var(--blue)}
+.tb-divider{width:1px;height:24px;background:var(--border)}
+.tb-plant{font-size:12px;color:var(--text-muted);max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tb-health{display:flex;align-items:center;gap:7px;font-family:var(--mono);font-size:10px;color:var(--text-muted)}
+.hdot{width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0}
+.hdot.red{background:var(--danger)}
+.tb-right{margin-left:auto;display:flex;align-items:center;gap:12px}
+.tb-user{font-size:12px;color:var(--text-secondary)}
+.tb-logout{
+  padding:6px 14px;border-radius:6px;cursor:pointer;
+  background:none;border:1.5px solid var(--border);
+  color:var(--text-muted);font-size:12px;font-family:var(--sans);
+  transition:all .12s;
+}
+.tb-logout:hover{border-color:var(--blue);color:var(--blue);background:rgba(30,64,175,.1)}
+
+/* Layout */
+.layout{display:flex;flex:1;overflow:hidden}
+
+/* Sidebar */
+.sidebar{
+  width:240px;flex-shrink:0;
+  background:var(--bg-secondary);
+  border-right:1px solid var(--border);
+  display:flex;flex-direction:column;overflow-y:auto;
+}
+.sb-sec{
+  padding:20px 20px 8px;
+  font-size:10px;font-weight:600;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--text-muted);
+}
+.nav-item{
+  display:flex;align-items:center;gap:12px;
+  padding:10px 20px;margin:2px 12px;border-radius:var(--r);
+  cursor:pointer;color:var(--text-secondary);font-size:13px;font-weight:500;
+  transition:all .12s;
+}
+.nav-item:hover{background:var(--bg-primary);color:var(--text-primary)}
+.nav-item.active{
+  background:linear-gradient(135deg,rgba(30,64,175,.1),rgba(37,99,235,.05));
+  color:var(--blue);
+  border:1px solid rgba(30,64,175,.2);
+}
+.nav-icon{width:22px;text-align:center;font-size:15px;flex-shrink:0}
+.nav-badge{
+  margin-left:auto;font-size:9px;font-family:var(--mono);
+  background:var(--blue);color:#fff;padding:2px 7px;
+  border-radius:99px;
+}
+.sb-div{height:1px;background:var(--border);margin:8px 16px}
+
+/* Content */
+.content{flex:1;overflow-y:auto;padding:32px 40px;background:var(--bg-primary)}
+
+/* Typography */
+.page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:32px}
+.page-title{font-size:28px;font-weight:700;letter-spacing:-.02em;color:var(--text-primary)}
+.page-sub{font-size:14px;color:var(--text-muted);margin-top:4px}
+.card-title{font-size:16px;font-weight:700;margin-bottom:20px;display:flex;align-items:center;gap:8px;color:var(--text-primary)}
+.cbadge{
+  font-size:10px;font-family:var(--mono);padding:2px 8px;border-radius:4px;
+  background:rgba(30,64,175,.1);color:var(--blue);border:1px solid rgba(30,64,175,.2);
+}
+
+/* Stats */
+.stats-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:16px;margin-bottom:28px}
+.stat{
+  background:var(--bg-secondary);border:1px solid var(--border);border-radius:12px;
+  padding:20px;position:relative;transition:all .15s;box-shadow:var(--shadow);
+}
+.stat:hover{transform:translateY(-2px);border-color:var(--blue);box-shadow:var(--shadow-lg)}
+.stat::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:3px;
+  background:linear-gradient(90deg,var(--blue),var(--blue2));
+}
+.stat-val{font-family:var(--sans);font-size:34px;font-weight:500;color:var(--text-primary);margin-bottom:4px}
+.stat-lbl{font-size:12px;color:var(--text-muted);text-transform:capitalize}
+
+/* Cards */
+.card{
+  background:var(--bg-secondary);border:1px solid var(--border);border-radius:12px;
+  padding:24px;margin-bottom:20px;
+  box-shadow:var(--shadow);
+}
+.card:hover{border-color:var(--blue);}
+
+/* Table */
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th{
+  padding:12px 16px;text-align:left;
+  font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--text-muted);border-bottom:2px solid var(--border);
+}
+.tbl td{padding:12px 16px;border-bottom:1px solid var(--border);color:var(--text-secondary)}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tr:hover td{background:rgba(30,64,175,.05);color:var(--text-primary)}
+.mono{font-family:var(--mono);font-size:12px}
+
+/* Pills */
+.pill{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:4px 12px;border-radius:99px;font-size:11px;font-weight:600;
+}
+.pill::before{content:'';width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.pill.green{background:rgba(22,163,74,.1);color:var(--green);border:1px solid rgba(22,163,74,.2)}.pill.green::before{background:var(--green)}
+.pill.red{background:rgba(220,38,38,.1);color:var(--red);border:1px solid rgba(220,38,38,.2)}.pill.red::before{background:var(--red)}
+.pill.amber{background:rgba(217,119,6,.1);color:var(--amber);border:1px solid rgba(217,119,6,.2)}.pill.amber::before{background:var(--amber)}
+.pill.blue{background:rgba(30,64,175,.1);color:var(--blue);border:1px solid rgba(30,64,175,.2)}.pill.blue::before{background:var(--blue)}
+.pill.mute{background:var(--bg-primary);color:var(--text-muted);border:1px solid var(--border)}.pill.mute::before{background:var(--text-muted)}
+
+/* Buttons */
+.btn{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:8px 18px;border-radius:var(--r);
+  border:1px solid var(--border);background:var(--bg-primary);
+  color:var(--text-secondary);font-family:var(--sans);font-size:12px;font-weight:500;
+  cursor:pointer;transition:all .12s;
+}
+.btn:hover{background:var(--border);color:var(--text-primary);border-color:var(--blue)}
+.btn.primary{
+  background:linear-gradient(135deg,var(--blue),var(--blue2));
+  border:none;color:#fff;box-shadow:0 2px 8px rgba(0,0,0,.2);
+}
+.btn.primary:hover{transform:translateY(-1px);filter:brightness(1.05)}
+.btn.success{color:var(--green);border-color:rgba(22,163,74,.3);background:rgba(22,163,74,.05)}
+.btn.success:hover{background:rgba(22,163,74,.1)}
+.btn.danger{color:var(--red);border-color:rgba(220,38,38,.3);background:rgba(220,38,38,.05)}
+.btn.danger:hover{background:rgba(220,38,38,.1)}
+.btn.sm{padding:5px 12px;font-size:11px}
+
+/* Line Cards */
+.lc{
+  background:var(--bg-secondary);border:1px solid var(--border);border-radius:12px;
+  padding:20px;display:flex;flex-direction:column;gap:12px;
+  cursor:pointer;transition:all .15s;margin-bottom:12px;
+}
+.lc:hover{border-color:var(--blue);box-shadow:var(--shadow-lg);transform:translateX(2px)}
+.lc-row{display:flex;align-items:center;gap:16px;}
+.lc-dot{
+  width:44px;height:44px;border-radius:12px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;
+}
+.lc-dot.running{background:rgba(22,163,74,.1);border:1px solid rgba(22,163,74,.3);color:var(--green)}
+.lc-dot.stopped{background:var(--bg-primary);border:1px solid var(--border);color:var(--text-muted)}
+.lc-info{flex:1}
+.lc-name{font-size:15px;font-weight:600;color:var(--text-primary);margin-bottom:4px;text-transform:capitalize}
+.lc-meta{font-size:12px;color:var(--text-muted)}
+.lc-stats{display:flex;gap:16px;margin:8px 0 4px}
+.lc-stat{flex:1;text-align:center}
+.lc-stat-val{font-size:22px;font-weight:600;color:var(--text-primary)}
+.lc-stat-lbl{font-size:11px;color:var(--text-muted);text-transform:capitalize}
+.lc-loss-row{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-top:4px;
+  gap:8px;
+  font-size:11px;
+  color:var(--text-muted);
+}
+.lc-loss-total{
+  background:var(--bg-primary);
+  padding:3px 8px;
+  border-radius:12px;
+  font-weight:600;
+  font-family:var(--mono);
+}
+.lc-loss-pills{display:flex;gap:6px;flex-wrap:wrap;}
+.loss-pill{
+  background:rgba(30,64,175,.1);
+  padding:2px 8px;
+  border-radius:12px;
+  color:var(--blue);
+  font-size:10px;
+}
+.lc-progress{display:flex;gap:8px;margin:8px 0 4px}
+.lc-progress-bar{flex:1;background:var(--border);border-radius:4px;overflow:hidden}
+.lc-progress-fill{height:8px;border-radius:4px}
+.lc-act{display:flex;justify-content:flex-end;gap:8px;margin-top:8px}
+
+/* Forms */
+.fgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px}
+.ff{display:flex;flex-direction:column;gap:6px}
+.ff label{font-size:11px;font-weight:600;color:var(--text-muted);letter-spacing:.08em;text-transform:uppercase}
+.ff input,.ff select,.ff textarea{
+  background:var(--bg-primary);border:1px solid var(--border);border-radius:var(--r);
+  padding:10px 12px;color:var(--text-primary);font-family:var(--sans);font-size:13px;outline:none;
+}
+.ff input:focus,.ff select:focus{
+  border-color:var(--blue);
+  box-shadow:0 0 0 4px rgba(30,64,175,.1);
+}
+.hint{font-size:10px;color:var(--text-muted)}
+
+/* Modals */
+.modal-bg{
+  display:none;position:fixed;inset:0;
+  background:rgba(0,0,0,.5);backdrop-filter:blur(4px);
+  z-index:100;align-items:flex-start;justify-content:center;
+  padding:50px 16px;overflow-y:auto;
+}
+.modal-bg.open{display:flex}
+.modal{
+  background:var(--bg-secondary);border:1px solid var(--border);border-radius:20px;
+  padding:32px;width:90vw;max-width:620px;margin-bottom:40px;
+  box-shadow:var(--shadow-lg);
+  animation:up .25s ease;
+}
+.modal.wide{max-width:920px}
+.modal-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px}
+.modal-title{font-size:20px;font-weight:700;color:var(--text-primary);text-transform:capitalize}
+.modal-x{
+  width:32px;height:32px;display:flex;align-items:center;justify-content:center;
+  background:var(--bg-primary);border:1px solid var(--border);border-radius:8px;
+  color:var(--text-secondary);cursor:pointer;font-size:16px;
+}
+.modal-x:hover{background:rgba(30,64,175,.1);border-color:var(--blue);color:var(--blue)}
+.modal-act{display:flex;justify-content:flex-end;gap:12px;margin-top:28px}
+
+/* Tabs */
+.tabs{display:flex;gap:0;margin-bottom:24px;border-bottom:2px solid var(--border);overflow-x:auto}
+.tab{
+  padding:10px 20px;font-size:13px;font-weight:600;color:var(--text-muted);
+  cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;
+}
+.tab:hover{color:var(--text-secondary)}
+.tab.active{color:var(--blue);border-bottom-color:var(--blue)}
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+
+/* Alerts */
+.alert{padding:12px 16px;border-radius:var(--r);margin-bottom:14px;font-size:13px;display:flex;align-items:center;gap:10px}
+.alert.critical{background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.2);color:var(--red)}
+.alert.warning{background:rgba(217,119,6,.1);border:1px solid rgba(217,119,6,.2);color:var(--amber)}
+.alert.info{background:rgba(30,64,175,.1);border:1px solid rgba(30,64,175,.2);color:var(--blue)}
+
+/* Spinner */
+.spinner{width:20px;height:20px;border-radius:50%;border:2px solid var(--border);border-top-color:var(--blue);animation:spin .6s linear infinite;display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px;color:var(--text-muted);font-size:13px;gap:12px}
+.empty-icon{font-size:44px;opacity:.2}
+
+/* Toast */
+.toast-wrap{position:fixed;bottom:24px;right:24px;display:flex;flex-direction:column;gap:8px;z-index:999}
+.toast{
+  padding:12px 18px;border-radius:var(--r);font-size:13px;font-weight:500;
+  background:var(--bg-secondary);border-left:4px solid;
+  box-shadow:var(--shadow-lg);
+  animation:slideIn .2s ease;
+  max-width:320px;
+}
+.toast.ok{border-color:var(--green);color:var(--green)}
+.toast.err{border-color:var(--red);color:var(--red)}
+.toast.info{border-color:var(--blue);color:var(--blue)}
+@keyframes slideIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:none}}
+
+/* File upload */
+.file-upload-area{
+  border:2px dashed var(--border);
+  border-radius:var(--r);
+  padding:30px;
+  text-align:center;
+  cursor:pointer;
+  transition:var(--transition);
+  margin-bottom:20px;
+}
+.file-upload-area:hover{
+  border-color:var(--blue);
+  background:rgba(30,64,175,.05);
+}
+.file-upload-area.dragover{
+  border-color:var(--blue);
+  background:rgba(30,64,175,.1);
+}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+
+<!-- Login Screen -->
+<div id="login-screen">
+  <div class="lw">
+    <div class="ll">
+      <div class="ll-logo">
+        <div class="ll-icon"><img src="/static/logo.jpg" alt="logo"></div>
+        <div class="ll-brand">
+          <b>Toyota Boshoku Device India</b>
+          Pvt. Ltd. · Bawal, Haryana
+        </div>
+      </div>
+      <div class="ll-tagline">
+        <div class="ll-big">Manufacturing<span>Execution</span>System</div>
+        <div class="ll-desc">Centralized production control. Real-time data. Fully automated line provisioning.</div>
+      </div>
+    </div>
+    <div class="lr">
+      <div class="lr-title">Sign In</div>
+      <div class="lr-sub">Enter credentials to access the control panel</div>
+      <div class="lfield">
+        <label>Username</label>
+        <input type="text" id="l-user" placeholder="username" autocomplete="off">
+      </div>
+      <div class="lfield">
+        <label>Password</label>
+        <input type="password" id="l-pass" placeholder="••••••••" autocomplete="off" onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+      <button class="lbtn" onclick="doLogin()">Sign in →</button>
+      <div class="lerr" id="login-err"></div>
+    </div>
+  </div>
+</div>
+
+<!-- App -->
+<div id="app">
+  <div class="topbar">
+    <div class="tb-logo">
+      <div class="tb-logo-icon"><img src="/static/logo.jpg" alt="logo"></div>
+      <div class="tb-logo-text"></div>
+    </div>
+    <div class="tb-divider"></div>
+    <div class="tb-plant">Toyota Boshoku Device India Pvt. Ltd.</div>
+    <div class="tb-health">
+      <div class="hdot" id="health-dot"></div>
+      <span id="health-label">connecting...</span>
+    </div>
+    <div class="tb-right">
+      <span class="tb-user" id="tb-username">admin</span>
+      <button class="dark-mode-toggle" onclick="toggleDarkMode()">🌙 Dark Mode</button>
+      <button class="tb-logout" onclick="doLogout()">Sign out</button>
+    </div>
+  </div>
+
+  <div class="layout">
+    <div class="sidebar">
+      <div class="sb-sec">Overview</div>
+      <div class="nav-item active" onclick="navTo('dashboard')" id="nav-dashboard">
+        <span class="nav-icon">◈</span> Dashboard
+      </div>
+      <div class="sb-div"></div>
+      <div class="sb-sec">Configuration</div>
+      <div class="nav-item" onclick="navTo('plants')" id="nav-plants">
+        <span class="nav-icon">⬡</span> Plants
+      </div>
+      <div class="nav-item" onclick="navTo('lines')" id="nav-lines">
+        <span class="nav-icon">⬡</span> Production Lines
+      </div>
+      <div class="sb-div"></div>
+      <div class="sb-sec">Data</div>
+      <div class="nav-item" onclick="navTo('historical')" id="nav-historical">
+        <span class="nav-icon">📊</span> Historical Data
+      </div>
+      <div class="nav-item" onclick="navTo('import')" id="nav-import">
+        <span class="nav-icon">📁</span> Import Excel
+      </div>
+      <div class="sb-div"></div>
+      <div class="sb-sec">Safety</div>
+      <div class="nav-item" onclick="navTo('pokayoke')" id="nav-pokayoke">
+        <span class="nav-icon">⚑</span> Poka Yoke
+        <span class="nav-badge" id="poka-badge" style="display:none">0</span>
+      </div>
+      <div class="nav-item" onclick="navTo('status')" id="nav-status">
+        <span class="nav-icon">◉</span> Status Colors
+      </div>
+      <div class="sb-div"></div>
+      <div class="sb-sec">System</div>
+      <div class="nav-item" onclick="navTo('audit')" id="nav-audit">
+        <span class="nav-icon">≡</span> Audit Log
+      </div>
+      <div class="nav-item" onclick="navTo('users')" id="nav-users" style="display:none">
+        <span class="nav-icon">👥</span> Users
+      </div>
+      <div class="nav-item" onclick="navTo('settings')" id="nav-settings">
+        <span class="nav-icon">⚙</span> Settings
+      </div>
+    </div>
+    <div class="content" id="content">
+      <div class="empty"><div class="spinner"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- Static modals -->
+<div class="modal-bg" id="modal-plant"><div class="modal"><div class="modal-hdr"><div class="modal-title">Add Plant</div><button class="modal-x" onclick="closeModal('modal-plant')">✕</button></div><div class="fgrid"><div class="ff"><label>Plant Code *</label><input type="text" id="p-code" placeholder="TBI-BHW2"></div><div class="ff"><label>Plant Name *</label><input type="text" id="p-name" placeholder="Toyota Boshoku..."></div><div class="ff"><label>Location</label><input type="text" id="p-loc" placeholder="City, State"></div><div class="ff"><label>Timezone</label><input type="text" id="p-tz" value="Asia/Kolkata"></div></div><div class="modal-act"><button class="btn" onclick="closeModal('modal-plant')">Cancel</button><button class="btn primary" onclick="savePlant()">Create Plant</button></div></div></div>
+<div class="modal-bg" id="modal-line"><div class="modal wide"><div class="modal-hdr"><div class="modal-title" id="line-modal-title">Add Production Line</div><button class="modal-x" onclick="closeModal('modal-line')">✕</button></div><div class="tabs"><div class="tab active" onclick="lineTab('basic')">① Basic Info</div><div class="tab" onclick="lineTab('plc')">② PLC Config</div><div class="tab" onclick="lineTab('shifts')">③ Shifts & Breaks</div><div class="tab" onclick="lineTab('models')">④ Models</div><div class="tab" onclick="lineTab('operator')">⑤ Assign Operator</div></div><div class="tab-panel active" id="lt-basic"><div class="fgrid"><div class="ff"><label>Plant *</label><select id="l-plant"><option value="">Select plant...</option></select></div><div class="ff"><label>Line Code *</label><input type="text" id="l-code" placeholder="YNC-L2"></div><div class="ff"><label>Line Name *</label><input type="text" id="l-name" placeholder="YNC Seat Slider Line 2"></div><div class="ff"><label>DB Table Name *</label><input type="text" id="l-table" placeholder="ync_l2_dashboard"><div class="hint">Created automatically on provision</div></div></div></div><div class="tab-panel" id="lt-plc"><div class="fsect"><div class="fsect-title">Connection</div><div class="fgrid"><div class="ff"><label>PLC IP *</label><input type="text" id="lp-ip" placeholder="192.168.10.151"></div><div class="ff"><label>Port</label><input type="number" id="lp-port" value="5002"></div><div class="ff"><label>Protocol</label><select id="lp-proto"><option>MC4E</option><option>MC3E</option></select></div></div></div><div class="fsect"><div class="fsect-title">Signal Registers</div><div class="fgrid"><div class="ff"><label>OK Bit</label><input type="text" id="lp-ok" value="L108"></div><div class="ff"><label>NG Bit</label><input type="text" id="lp-ng" value="L109"></div><div class="ff"><label>Status Word</label><input type="text" id="lp-st" value="D6005"></div><div class="ff"><label>Model Word</label><input type="text" id="lp-md" value="D6048"></div></div></div><div class="fsect"><div class="fsect-title">Cycle Time</div><div class="fgrid"><div class="ff"><label>Ideal CT (sec)</label><input type="number" id="lp-ict" value="15.0" step="0.1"></div><div class="ff"><label>Max Allowed CT (sec)</label><input type="number" id="lp-mct" value="16.0" step="0.1"></div></div></div><div class="fsect"><div class="fsect-title">Poka Yoke Registers (optional)</div><div class="fgrid"><div class="ff"><label>Sensor OK</label><input type="text" id="lp-sok" placeholder="e.g. L110"></div><div class="ff"><label>Process Seq.</label><input type="text" id="lp-psq" placeholder="e.g. D6010"></div><div class="ff"><label>Override Bit</label><input type="text" id="lp-ovr" placeholder="e.g. D6011"></div></div></div></div><div class="tab-panel" id="lt-shifts"><div class="fsect"><div class="fsect-title">Shift A</div><div class="fgrid"><div class="ff"><label>Start</label><input type="time" id="sa-start" value="08:30"></div><div class="ff"><label>End</label><input type="time" id="sa-end" value="17:15"></div><div class="ff"><label>Total Plan</label><input type="number" id="sa-plan" value="1860"></div><div class="ff"><label>Working Min</label><input type="number" id="sa-wm" value="465"></div><div class="ff"><label>Startup Delay (min)</label><input type="number" id="sa-delay" value="5"></div></div></div><div class="fsect"><div class="fsect-title">Shift B (crosses midnight)</div><div class="fgrid"><div class="ff"><label>Start</label><input type="time" id="sb-start" value="18:30"></div><div class="ff"><label>End</label><input type="time" id="sb-end" value="03:15"></div><div class="ff"><label>Total Plan</label><input type="number" id="sb-plan" value="1860"></div><div class="ff"><label>Working Min</label><input type="number" id="sb-wm" value="465"></div><div class="ff"><label>Startup Delay (min)</label><input type="number" id="sb-delay" value="5"></div></div></div><div class="fsect"><div class="fsect-title">Break Schedule</div><div id="breaks-list"></div><button class="btn sm" style="margin-top:10px" onclick="addBreakRow()">+ Add Break</button></div></div><div class="tab-panel" id="lt-models"><div style="margin-bottom:14px;font-size:12px;color:var(--text-muted)">Map PLC model numbers to display names. Empty rows are ignored.</div><div id="models-list"></div><button class="btn sm" style="margin-top:10px" onclick="addModelRow()">+ Add Model</button></div><div class="tab-panel" id="lt-operator"><div class="fsect"><div class="fsect-title">Assign Operator (optional)</div><div class="ff"><label>Operator User</label><select id="line-operator"><option value="">-- None --</option></select><div class="hint">Select an existing operator user. If none, create one first in Users page.</div></div></div></div><div class="modal-act"><button class="btn" onclick="closeModal('modal-line')">Cancel</button><button class="btn primary" onclick="saveLine()">Save & Provision →</button></div></div></div>
+<div class="modal-bg" id="modal-line-detail"><div class="modal wide"><div class="modal-hdr"><div class="modal-title" id="ld-title">Line Details</div><button class="modal-x" onclick="closeModal('modal-line-detail')">✕</button></div><div id="ld-content" style="max-height:70vh; overflow-y:auto;"><div class="empty"><div class="spinner"></div><div>Loading...</div></div></div></div></div>
+<div class="modal-bg" id="modal-poka"><div class="modal"><div class="modal-hdr"><div class="modal-title">Add Poka Yoke Rule</div><button class="modal-x" onclick="closeModal('modal-poka')">✕</button></div><div class="fgrid"><div class="ff" style="grid-column:1/-1"><label>Rule Name *</label><input type="text" id="pk-name" placeholder="e.g. Sensor bypass detection"></div><div class="ff"><label>Rule Type *</label><select id="pk-type"><option value="SENSOR_BYPASS">Sensor Bypass</option><option value="PROCESS_SKIP">Process Skip</option><option value="MANUAL_OVERRIDE">Manual Override</option><option value="CONSECUTIVE_NG">Consecutive NG</option><option value="CYCLE_TOO_FAST">Cycle Too Fast</option><option value="CYCLE_TOO_SLOW">Cycle Too Slow</option></select></div><div class="ff"><label>Alert Level</label><select id="pk-level"><option value="WARNING">Warning</option><option value="CRITICAL">Critical</option></select></div><div class="ff"><label>PLC Address</label><input type="text" id="pk-addr" placeholder="e.g. L108"></div><div class="ff"><label>Threshold Count</label><input type="number" id="pk-thresh" value="1"></div><div class="ff"><label>Window (sec)</label><input type="number" id="pk-window" value="60"></div><div class="ff" style="grid-column:1/-1"><label>Alert Message</label><input type="text" id="pk-msg" placeholder="What to check when this triggers"></div><div class="ff"><label>Line *</label><select id="pk-line"><option value="">Select line...</option></select></div></div><div class="modal-act"><button class="btn" onclick="closeModal('modal-poka')">Cancel</button><button class="btn primary" onclick="savePokaRule()">Save Rule</button></div></div></div>
+<div class="modal-bg" id="modal-status"><div class="modal"><div class="modal-hdr"><div class="modal-title" id="ss-modal-title">Add New Status Type</div><button class="modal-x" onclick="closeModal('modal-status')">✕</button></div><div class="fgrid"><div class="ff"><label>Status Code *</label><input type="number" id="ss-code" placeholder="e.g. 8"><div class="hint">Integer matching PLC word value</div></div><div class="ff"><label>Status Name *</label><input type="text" id="ss-name" placeholder="e.g. TRIAL RUN"></div><div class="ff"><label>Color (hex) *</label><div style="display:flex;gap:8px;align-items:center"><input type="text" id="ss-hex" placeholder="#3b82f6" style="flex:1" oninput="document.getElementById('ss-hex-preview').style.background=this.value"><div id="ss-hex-preview" style="width:36px;height:36px;border-radius:6px;border:1px solid var(--border);background:#ccc;flex-shrink:0"></div></div></div><div class="ff"><label>Color Label *</label><input type="text" id="ss-label" placeholder="e.g. Blue"></div><div class="ff"><label>Loss Category</label><select id="ss-loss"><option value="">None — not a loss</option><option value="breakdown">Breakdown</option><option value="quality">Quality</option><option value="setup">Setup</option><option value="material">Material</option><option value="others">Others</option><option value="change_over">Change Over</option><option value="speed">Speed</option></select></div><div class="ff"><label>Machine State</label><select id="ss-prod"><option value="false">Stoppage (not producing)</option><option value="true">Production (making parts)</option></select></div></div><div class="modal-act"><button class="btn" onclick="closeModal('modal-status')">Cancel</button><button class="btn primary" onclick="saveStatus()">Save — applies to all lines</button></div></div></div>
+<div class="toast-wrap" id="toast-wrap"></div>
+
+<script>
+const API='';
+let TOKEN=localStorage.getItem('mes_token')||'';
+let PLANTS=[],LINES=[],EDITING_LINE=null;
+let GLOBAL_STATUS = {};
+let currentPage = 'dashboard';
+let refreshInterval = null;
+let USER_ROLE = localStorage.getItem('user_role') || '';
+let USER_ID = localStorage.getItem('user_id') || '';
+
+// Dark mode toggle
+function toggleDarkMode() {
+  document.body.classList.toggle('dark-mode');
+  const btn = document.querySelector('.dark-mode-toggle');
+  if(document.body.classList.contains('dark-mode')) {
+    btn.innerHTML = '☀️ Light Mode';
+    localStorage.setItem('darkMode', 'enabled');
+  } else {
+    btn.innerHTML = '🌙 Dark Mode';
+    localStorage.setItem('darkMode', 'disabled');
+  }
+}
+
+// Apply saved dark mode
+if(localStorage.getItem('darkMode') === 'enabled') {
+  document.body.classList.add('dark-mode');
+  document.querySelector('.dark-mode-toggle').innerHTML = '☀️ Light Mode';
+}
+
+// Helper functions
+function capitalizeWords(str) {
+  if (!str) return '';
+  return str.toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+}
+
+//  functions for incremental dashboard updates
+function updateElementText(elementId, text) {
+    const elem = document.getElementById(elementId);
+    if (elem && elem.textContent !== String(text)) {
+        elem.textContent = text;
+    }
+}
+
+function updateElementWidth(elementId, percent) {
+    const elem = document.getElementById(elementId);
+    if (elem && elem.style.width !== `${percent}%`) {
+        elem.style.width = `${percent}%`;
+    }
+}
+
+function updateElementPill(elementId, text, colorHex) {
+    const elem = document.getElementById(elementId);
+    if (elem) {
+        if (elem.textContent !== text) {
+            elem.textContent = text;
+        }
+        const newBackground = `${colorHex}20`;
+        const newColor = colorHex;
+        if (elem.style.background !== newBackground) {
+            elem.style.background = newBackground;
+            elem.style.color = newColor;
+        }
+    }
+}
+
+function formatSeconds(seconds) {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = Math.floor(seconds % 60);
+  return `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+}
+
+
+function debugLog(message, data = null) {
+    console.log(`[DEBUG] ${message}`, data ? data : '');
+}
+
+function getShiftProgress(shiftStart, shiftEnd, nowTime) {
+  const start = new Date();
+  start.setHours(shiftStart.hour, shiftStart.minute, 0, 0);
+  let end = new Date();
+  end.setHours(shiftEnd.hour, shiftEnd.minute, 0, 0);
+  if (end < start) end.setDate(end.getDate() + 1);
+  const current = new Date();
+  if (current < start) return 0;
+  if (current > end) return 100;
+  const total = (end - start) / 1000;
+  const elapsed = (current - start) / 1000;
+  return Math.min(100, Math.max(0, (elapsed / total) * 100));
+}
+
+function applyRolePermissions() {
+  const role = USER_ROLE;
+  if (role === 'admin') {
+    document.querySelectorAll('.nav-item').forEach(nav => nav.style.display = 'flex');
+    document.querySelectorAll('.btn.primary, .btn.danger, .btn.success').forEach(btn => btn.style.display = 'inline-flex');
+  } else if (role === 'department') {
+    document.querySelectorAll('.btn.primary, .btn.danger, .btn.success').forEach(btn => btn.style.display = 'none');
+    document.querySelectorAll('input, select, textarea').forEach(el => el.disabled = true);
+  } else if (role === 'operator') {
+    document.querySelectorAll('.nav-item').forEach(nav => {
+      if (nav.id !== 'nav-dashboard') nav.style.display = 'none';
+    });
+    document.querySelectorAll('.btn').forEach(btn => btn.style.display = 'none');
+  }
+}
+
+// ---------- LOGIN ----------
+async function doLogin(){
+  const user=document.getElementById('l-user').value.trim();
+  const pass=document.getElementById('l-pass').value;
+  const err=document.getElementById('login-err');
+  err.style.display='none';
+  console.log("Login attempt for:", user);
+  try{
+    const fd=new FormData();fd.append('username',user);fd.append('password',pass);
+    const res=await fetch(`${API}/api/auth/login`,{method:'POST',body:fd});
+    if(!res.ok){
+      const errorText = await res.text();
+      console.error("Login failed:", res.status, errorText);
+      throw new Error(errorText || 'Invalid credentials');
+    }
+    const data=await res.json();
+    console.log("Login success:", data);
+    TOKEN=data.access_token;
+    USER_ROLE=data.role;
+    USER_ID=data.user_id;
+    localStorage.setItem('mes_token',TOKEN);
+    localStorage.setItem('user_role',USER_ROLE);
+    localStorage.setItem('user_id',USER_ID);
+    document.getElementById('tb-username').textContent=data.username;
+    document.getElementById('login-screen').style.display='none';
+    document.getElementById('app').style.display='flex';
+    applyRolePermissions();
+    await init();
+  }catch(e){
+    console.error("Login error:", e);
+    err.textContent = e.message || "Login failed. Check credentials or server.";
+    err.style.display='block';
+  }
+}
+function doLogout(){
+  TOKEN='';USER_ROLE='';USER_ID='';
+  localStorage.removeItem('mes_token');
+  localStorage.removeItem('user_role');
+  localStorage.removeItem('user_id');
+  document.getElementById('login-screen').style.display='flex';
+  document.getElementById('app').style.display='none';
+  if(refreshInterval) clearInterval(refreshInterval);
+  document.getElementById('l-user').value = '';
+  document.getElementById('l-pass').value = '';
+}
+function authHdr(){return{Authorization:`Bearer ${TOKEN}`,'Content-Type':'application/json'}}
+
+function refreshCurrentPage() {
+  switch(currentPage) {
+    case 'dashboard':
+      dashboard();
+      break;
+    case 'plants':
+      plantsPage();
+      break;
+    case 'lines':
+      linesPage();
+      break;
+    case 'pokayoke':
+      pokaPage();
+      break;
+    case 'status':
+      statusPage();
+      break;
+    case 'audit':
+      auditPage();
+      break;
+    case 'users':
+      usersPage();
+      break;
+    case 'settings':
+      settingsPage();
+      break;
+    case 'historical':
+      historicalDataPage();
+      break;
+    case 'import':
+      importExcelPage();
+      break;
+    default:
+      dashboard();
+  }
+}
+async function init(){
+  await checkHealth();
+  await loadPlants();
+  await loadLines();
+  await loadGlobalStatusColors();
+  if(USER_ROLE === 'admin') await loadOperators();
+  
+  // Clear any existing interval before setting new one
+  if (refreshInterval) clearInterval(refreshInterval);
+  
+  // Set up dashboard refresh (will be started when navigating to dashboard)
+  // Don't start it here - navTo will handle it when dashboard is shown
+  
+  // Restore the last visited page
+  const savedPage = localStorage.getItem('currentPage');
+  navTo(savedPage || 'dashboard');
+  
+  setInterval(checkHealth, 30000);
+  setInterval(checkPokaAlerts, 15000);
+}
+async function loadGlobalStatusColors(){
+  try{
+    const res=await fetch(`${API}/api/status-schema/`,{headers:authHdr()});
+    if(!res.ok)throw new Error("Failed to load status colors");
+    const statuses=await res.json();
+    GLOBAL_STATUS={};
+    for(let s of statuses){
+      GLOBAL_STATUS[s.status_name]={
+        color_hex:s.color_hex,
+        color_label:s.color_label,
+        loss_type:s.loss_type,
+        is_production:s.is_production
+      };
+    }
+  }catch(e){console.error("Status colors load error",e);}
+}
+async function checkHealth(){
+  try{
+    const res=await fetch(`${API}/api/health`,{headers:authHdr()});const d=await res.json();
+    const ok=d.status==='ok';
+    document.getElementById('health-dot').className='hdot'+(ok?'':' red');
+    document.getElementById('health-label').textContent=ok?`Connected · ${d.plants} plant${d.plants!==1?'s':''}`:'Disconnected';
+  }catch{document.getElementById('health-dot').className='hdot red';}
+}
+async function loadPlants(){try{PLANTS=await(await fetch(`${API}/api/plants/`,{headers:authHdr()})).json();}catch{}}
+async function loadLines() {
+    try {
+        const res = await fetch(`${API}/api/lines/`, { headers: authHdr() });
+        if (res.ok) {
+            LINES = await res.json();
+        } else {
+            LINES = [];
+        }
+    } catch(e) {
+        console.error("Failed to load lines:", e);
+        LINES = [];
+    }
+}let OPERATORS = [];
+async function loadOperators(){
+  try{
+    const res=await fetch(`${API}/api/users`,{headers:authHdr()});
+    if(!res.ok) throw new Error(`HTTP ${res.status}`);
+    const users = await res.json();
+    if(!Array.isArray(users)) throw new Error('Invalid response');
+    OPERATORS = users.filter(u => u.role === 'operator');
+    const select = document.getElementById('line-operator');
+    if(select){
+      select.innerHTML = '<option value="">-- None --</option>' + OPERATORS.map(o => `<option value="${o.id}">${o.username}</option>`).join('');
+    }
+  }catch(e){console.error("Load operators error",e);}
+}
+async function checkPokaAlerts(){
+  let total=0;
+  for(const line of LINES){try{const d=await(await fetch(`${API}/api/poka-yoke/events/${line.id}/summary`,{headers:authHdr()})).json();total+=d?.total_unacked||0;}catch{}}
+  const b=document.getElementById('poka-badge');
+  if(total>0){b.textContent=total;b.style.display='';}else b.style.display='none';
+}
+function navTo(page) {
+    currentPage = page;
+    localStorage.setItem('currentPage', page);
+    
+    // Update active class in sidebar
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    const activeNav = document.getElementById('nav-' + page);
+    if (activeNav) activeNav.classList.add('active');
+    
+    // Clear existing refresh interval
+    if (refreshInterval) clearInterval(refreshInterval);
+    
+    // Special handling for dashboard navigation - reset state
+    if (page === 'dashboard') {
+        // Reset dashboard state to force fresh initialization
+        dashboardState = {
+            initialized: false,
+            lineCards: {},
+            statsElements: {
+                totalLines: null,
+                running: null,
+                stopped: null,
+                avgOee: null
+            },
+            lastUpdateTime: 0
+        };
+        
+        // Set up auto-refresh interval
+        refreshInterval = setInterval(() => {
+            if (currentPage === 'dashboard') {
+                dashboard();
+            }
+        }, 5000);
+    }
+    
+    // Call the appropriate page function
+    const pageFunctions = {
+        dashboard: dashboard,
+        plants: plantsPage,
+        lines: linesPage,
+        pokayoke: pokaPage,
+        status: statusPage,
+        audit: auditPage,
+        users: usersPage,
+        settings: settingsPage,
+        historical: historicalDataPage,
+        import: importExcelPage
+    };
+    
+    const pageFunc = pageFunctions[page];
+    if (pageFunc) {
+        console.log(`Navigating to ${page}`);
+        pageFunc();
+    } else {
+        console.error(`No function found for page: ${page}`);
+        dashboard();
+    }
+}
+
+// ======================= DASHBOARD =======================
+// Global variable to store current dashboard data
+// Store dashboard state for incremental updates
+let dashboardState = {
+    initialized: false,
+    lineCards: {},
+    statsElements: {
+        totalLines: null,
+        running: null,
+        stopped: null,
+        avgOee: null
+    },
+    lastUpdateTime: 0
+};
+
+async function dashboard() {
+    console.log("Dashboard function called");
+    
+    try {
+        const lines = LINES;
+        
+        if (!lines.length) {
+            if (!dashboardState.initialized) {
+                document.getElementById('content').innerHTML = `<div class="empty"><div>No lines configured yet.</div></div>`;
+            }
+            return;
+        }
+        
+        // Check if we need to rebuild because DOM elements might be missing
+        let needsRebuild = !dashboardState.initialized;
+        
+        // Verify that the main container exists
+        const container = document.getElementById('dashboard-lines-container');
+        if (!container) {
+            needsRebuild = true;
+        }
+        
+        // First time initialization OR DOM was replaced - rebuild full HTML structure
+        if (needsRebuild) {
+            // Calculate initial stats
+            let totalLines = lines.length;
+            let totalRunning = lines.filter(l => l.collector_status === 'running').length;
+            let totalStopped = totalLines - totalRunning;
+            
+            // Build initial HTML structure
+            let html = `
+                <div class="page-header">
+                    <div>
+                        <div class="page-title">Production Dashboard</div>
+                        <div class="page-sub">Real-time line performance & OEE</div>
+                    </div>
+                    ${USER_ROLE === 'admin' ? '<button class="btn" onclick="navTo(\'lines\')">Manage Lines →</button>' : ''}
+                </div>
+                <div class="stats-row" id="dashboard-stats">
+                    <div class="stat"><div class="stat-val" id="stat-total-lines">${totalLines}</div><div class="stat-lbl">Total Lines</div></div>
+                    <div class="stat green"><div class="stat-val" id="stat-running">${totalRunning}</div><div class="stat-lbl">Running Now</div></div>
+                    <div class="stat amber"><div class="stat-val" id="stat-stopped">${totalStopped}</div><div class="stat-lbl">Stopped</div></div>
+                    <div class="stat"><div class="stat-val" id="stat-avg-oee">0%</div><div class="stat-lbl">Avg OEE</div></div>
+                </div>
+                <div id="dashboard-lines-container"></div>
+            `;
+            
+            document.getElementById('content').innerHTML = html;
+            
+            // Store references to stat elements for quick updates
+            dashboardState.statsElements.totalLines = document.getElementById('stat-total-lines');
+            dashboardState.statsElements.running = document.getElementById('stat-running');
+            dashboardState.statsElements.stopped = document.getElementById('stat-stopped');
+            dashboardState.statsElements.avgOee = document.getElementById('stat-avg-oee');
+            
+            // Build line cards container
+            const cardsContainer = document.getElementById('dashboard-lines-container');
+            let cardsHtml = '';
+            
+            // Group by plant
+            for (let p of PLANTS) {
+                const plantLines = lines.filter(l => l.plant_id === p.id);
+                if (plantLines.length === 0) continue;
+                
+                cardsHtml += `<div class="card" style="margin-bottom:24px" data-plant-id="${p.id}">
+                    <div class="card-title">${escapeHtml(p.plant_name)} <span class="cbadge">${escapeHtml(p.plant_code)}</span></div>
+                    <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(340px,1fr)); gap:16px;" id="plant-${p.id}-cards">`;
+                
+                for (let line of plantLines) {
+                    const lineId = line.id;
+                    cardsHtml += `
+                        <div class="lc" id="line-card-${lineId}" data-line-id="${lineId}">
+                            <div class="lc-row">
+                                <div class="lc-dot ${line.collector_status === 'running' ? 'running' : 'stopped'}" id="status-dot-${lineId}">
+                                    ${line.collector_status === 'running' ? '▶' : '■'}
+                                </div>
+                                <div class="lc-info">
+                                    <div class="lc-name">${escapeHtml(line.line_name)}</div>
+                                    <div class="lc-meta">${escapeHtml(line.line_code)} · ${escapeHtml(line.db_table_name)}</div>
+                                </div>
+                                <div class="pill" id="status-pill-${lineId}" style="background:#3b82f620; color:#3b82f6">--</div>
+                            </div>
+                            <div class="lc-stats">
+                                <div class="lc-stat"><div class="lc-stat-val" id="oee-${lineId}">0%</div><div class="lc-stat-lbl">OEE</div></div>
+                                <div class="lc-stat"><div class="lc-stat-val" id="actual-${lineId}">0</div><div class="lc-stat-lbl">Actual</div></div>
+                                <div class="lc-stat"><div class="lc-stat-val" id="plan-${lineId}">0</div><div class="lc-stat-lbl">Plan</div></div>
+                            </div>
+                            <div class="lc-progress">
+                                <div class="lc-progress-bar"><div class="lc-progress-fill" id="plan-progress-${lineId}" style="width:0%; background:var(--blue);"></div></div>
+                                <div class="lc-progress-bar"><div class="lc-progress-fill" id="actual-progress-${lineId}" style="width:0%; background:var(--green);"></div></div>
+                            </div>
+                            <div class="lc-loss-row">
+                                <span class="lc-loss-total" id="loss-total-${lineId}">Total Loss: 00:00:00</span>
+                                <div class="lc-loss-pills" id="loss-pills-${lineId}"></div>
+                            </div>
+                            <div class="lc-act">
+                                <button class="btn sm" onclick="event.stopPropagation(); openLineDetailModal(${lineId})">📊 Details</button>
+                                <button class="btn sm primary" onclick="event.stopPropagation(); openFullScreen(${lineId})">🖥️ Full Screen</button>
+                            </div>
+                        </div>
+                    `;
+                    
+                    // Store references for incremental updates
+                    dashboardState.lineCards[lineId] = {
+                        oeeElem: `oee-${lineId}`,
+                        actualElem: `actual-${lineId}`,
+                        planElem: `plan-${lineId}`,
+                        planProgress: `plan-progress-${lineId}`,
+                        actualProgress: `actual-progress-${lineId}`,
+                        statusPill: `status-pill-${lineId}`,
+                        statusDot: `status-dot-${lineId}`,
+                        lossTotal: `loss-total-${lineId}`,
+                        lossPills: `loss-pills-${lineId}`
+                    };
+                }
+                cardsHtml += `</div></div>`;
+            }
+            
+            cardsContainer.innerHTML = cardsHtml;
+            dashboardState.initialized = true;
+            console.log("Dashboard fully initialized");
+        }
+        
+        // Fetch fresh realtime data for all lines and update incrementally
+        let totalOEE = 0;
+        let linesWithOEE = 0;
+        let totalRunning = 0;
+        let planTarget = 1860;
+        
+        for (let line of lines) {
+            try {
+                const res = await fetch(`${API}/api/lines/${line.id}/realtime`, { headers: authHdr() });
+                if (res.ok) {
+                    const rt = await res.json();
+                    
+                    // Update running count
+                    if (line.collector_status === 'running') {
+                        totalRunning++;
+                    }
+                    
+                    // Calculate values
+                    const oee = rt.overall_oee || 0;
+                    const actual = (rt.ok_count || 0) + (rt.ng_count || 0);
+                    const plan = rt.shift_plan_completed || 0;
+                    const planPercent = Math.min(100, (plan / planTarget) * 100);
+                    const actualPercent = Math.min(100, (actual / planTarget) * 100);
+                    
+                    // Update OEE counter for average calculation
+                    if (oee > 0) {
+                        totalOEE += oee;
+                        linesWithOEE++;
+                    }
+                    
+                    // Update status display
+                    const statusName = rt.operating_status || "IDLE";
+                    const displayStatus = capitalizeWords(statusName);
+                    const statusColorObj = GLOBAL_STATUS[statusName] || { color_hex: "#3b82f6" };
+                    
+                    // Incrementally update DOM elements
+                    const cards = dashboardState.lineCards[line.id];
+                    if (cards) {
+                        updateElementText(cards.oeeElem, `${oee}%`);
+                        updateElementText(cards.actualElem, actual);
+                        updateElementText(cards.planElem, plan);
+                        updateElementWidth(cards.planProgress, planPercent);
+                        updateElementWidth(cards.actualProgress, actualPercent);
+                        updateElementPill(cards.statusPill, displayStatus, statusColorObj.color_hex);
+                        
+                        // Update dot status
+                        const dotElem = document.getElementById(cards.statusDot);
+                        if (dotElem) {
+                            if (line.collector_status === 'running') {
+                                dotElem.className = 'lc-dot running';
+                                dotElem.textContent = '▶';
+                            } else {
+                                dotElem.className = 'lc-dot stopped';
+                                dotElem.textContent = '■';
+                            }
+                        }
+                        
+                        // Update loss display
+                        const totalLoss = (rt.loss_breakdown_seconds || 0) + (rt.loss_quality_seconds || 0) + 
+                                         (rt.loss_material_seconds || 0) + (rt.loss_setup_seconds || 0) +
+                                         (rt.loss_change_over_seconds || 0) + (rt.loss_speed_seconds || 0) +
+                                         (rt.loss_others_seconds || 0);
+                        const lossElem = document.getElementById(cards.lossTotal);
+                        if (lossElem) lossElem.textContent = `Total Loss: ${formatSeconds(totalLoss)}`;
+                    }
+                }
+            } catch (e) {
+                console.error(`Failed to fetch data for line ${line.id}:`, e);
+            }
+        }
+        
+        // Update summary stats
+        const totalLines = lines.length;
+        const totalStopped = totalLines - totalRunning;
+        const avgOEE = linesWithOEE ? (totalOEE / linesWithOEE).toFixed(1) : 0;
+        
+        updateElementText('stat-total-lines', totalLines);
+        updateElementText('stat-running', totalRunning);
+        updateElementText('stat-stopped', totalStopped);
+        updateElementText('stat-avg-oee', `${avgOEE}%`);
+        
+        dashboardState.lastUpdateTime = Date.now();
+        
+    } catch (error) {
+        console.error("Dashboard error:", error);
+        if (!dashboardState.initialized) {
+            document.getElementById('content').innerHTML = `<div class="alert critical">Failed to load dashboard: ${error.message}</div>`;
+        }
+        dashboardState.initialized = false;
+    }
+}
+
+async function renderFullDashboard(lines) {
+  // Get realtime data for all lines
+  const realtimeData = {};
+  for(let line of lines){
+    try{
+      const res=await fetch(`${API}/api/lines/${line.id}/realtime`,{headers:authHdr()});
+      if(res.ok) realtimeData[line.id]=await res.json();
+      else realtimeData[line.id]=null;
+    }catch(e){realtimeData[line.id]=null;}
+  }
+  
+  let totalLines=lines.length;
+  let totalRunning=lines.filter(l=>l.collector_status==='running').length;
+  let totalStopped=totalLines-totalRunning;
+  let totalOEE=0,linesWithOEE=0;
+  for(let line of lines){
+    let rt=realtimeData[line.id];
+    if(rt && rt.overall_oee!==undefined && rt.overall_oee>0){
+      totalOEE+=rt.overall_oee;
+      linesWithOEE++;
+    }
+  }
+  let avgOEE=linesWithOEE?(totalOEE/linesWithOEE).toFixed(1):0;
+  
+  let html=`
+    <div class="page-header">
+      <div><div class="page-title">Production Dashboard</div><div class="page-sub">Real-time line performance & OEE</div></div>
+      ${USER_ROLE==='admin' ? '<button class="btn" onclick="navTo(\'lines\')">Manage Lines →</button>' : ''}
+    </div>
+    <div class="stats-row">
+      <div class="stat blue" id="stat-total-lines"><div class="stat-val">${totalLines}</div><div class="stat-lbl">Total Lines</div></div>
+      <div class="stat green" id="stat-running"><div class="stat-val">${totalRunning}</div><div class="stat-lbl">Running Now</div></div>
+      <div class="stat amber" id="stat-stopped"><div class="stat-val">${totalStopped}</div><div class="stat-lbl">Stopped</div></div>
+      <div class="stat" id="stat-avg-oee"><div class="stat-val">${avgOEE}%</div><div class="stat-lbl">Avg OEE</div></div>
+    </div>
+  `;
+  
+  // Store line cards for incremental updates
+  currentDashboardData.lineCards = {};
+  
+  for(let p of PLANTS){
+    const plantLines=lines.filter(l=>l.plant_id===p.id);
+    if(plantLines.length===0) continue;
+    html+=`<div class="card" style="margin-bottom:24px" data-plant-id="${p.id}"><div class="card-title">${p.plant_name} <span class="cbadge">${p.plant_code}</span></div><div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(340px,1fr)); gap:16px;" id="plant-${p.id}-cards">`;
+    for(let line of plantLines){
+      const rt=realtimeData[line.id]||{};
+      const statusName=rt.operating_status||"IDLE";
+      const displayStatus=capitalizeWords(statusName);
+      const statusColorObj=GLOBAL_STATUS[statusName]||{color_hex:"#3b82f6",color_label:"Blue"};
+      const oee=rt.overall_oee||0;
+      const plan=rt.shift_plan_completed||0;
+      const actual=(rt.ok_count||0)+(rt.ng_count||0);
+      const planTarget=1860;
+      const planPercent=Math.min(100,(plan/planTarget)*100);
+      const actualPercent=Math.min(100,(actual/planTarget)*100);
+      
+      // Store line ID mapping for updates
+      currentDashboardData.lineCards[line.id] = {
+        oeeElement: `oee-${line.id}`,
+        actualElement: `actual-${line.id}`,
+        planElement: `plan-${line.id}`,
+        planPercentElement: `plan-percent-${line.id}`,
+        actualPercentElement: `actual-percent-${line.id}`,
+        statusElement: `status-${line.id}`,
+        lossTotalElement: `loss-total-${line.id}`
+      };
+      
+      html+=`
+        <div class="lc" id="line-card-${line.id}" data-line-id="${line.id}">
+          <div class="lc-row">
+            <div class="lc-dot ${rt.collector_status==='running'?'running':'stopped'}">${rt.collector_status==='running'?'▶':'■'}</div>
+            <div class="lc-info"><div class="lc-name">${line.line_name}</div><div class="lc-meta">${line.line_code} · ${line.db_table_name}</div></div>
+            <div class="pill" id="status-${line.id}" style="background:${statusColorObj.color_hex}20; color:${statusColorObj.color_hex}">${displayStatus}</div>
+          </div>
+          <div class="lc-stats">
+            <div class="lc-stat"><div class="lc-stat-val" id="oee-${line.id}">${oee}%</div><div class="lc-stat-lbl">OEE</div></div>
+            <div class="lc-stat"><div class="lc-stat-val" id="actual-${line.id}">${actual}</div><div class="lc-stat-lbl">Actual</div></div>
+            <div class="lc-stat"><div class="lc-stat-val" id="plan-${line.id}">${plan}</div><div class="lc-stat-lbl">Plan</div></div>
+          </div>
+          <div class="lc-progress">
+            <div class="lc-progress-bar"><div class="lc-progress-fill" id="plan-percent-${line.id}" style="width:${planPercent}%; background:var(--blue);"></div></div>
+            <div class="lc-progress-bar"><div class="lc-progress-fill" id="actual-percent-${line.id}" style="width:${actualPercent}%; background:var(--green);"></div></div>
+          </div>
+          <div class="lc-loss-row">
+            <span class="lc-loss-total" id="loss-total-${line.id}">Total Loss: 00:00:00</span>
+            <div class="lc-loss-pills" id="loss-pills-${line.id}"></div>
+          </div>
+          <div class="lc-act">
+            <button class="btn sm" onclick="event.stopPropagation(); openLineDetailModal(${line.id})">📊 Details</button>
+            <button class="btn sm primary" onclick="event.stopPropagation(); openFullScreen(${line.id})">🖥️ Full Screen</button>
+          </div>
+        </div>`;
+    }
+    html+=`</div></div>`;
+  }
+  document.getElementById('content').innerHTML=html;
+}
+
+async function updateDashboardValues(lines) {
+  // Fetch only realtime data
+  for(let line of lines){
+    try{
+      const res=await fetch(`${API}/api/lines/${line.id}/realtime`,{headers:authHdr()});
+      if(res.ok){
+        const rt=await res.json();
+        
+        // Update OEE
+        const oeeElem = document.getElementById(`oee-${line.id}`);
+        if(oeeElem) oeeElem.textContent = `${rt.overall_oee || 0}%`;
+        
+        // Update Actual and Plan
+        const actual = (rt.ok_count || 0) + (rt.ng_count || 0);
+        const plan = rt.shift_plan_completed || 0;
+        const actualElem = document.getElementById(`actual-${line.id}`);
+        const planElem = document.getElementById(`plan-${line.id}`);
+        if(actualElem) actualElem.textContent = actual;
+        if(planElem) planElem.textContent = plan;
+        
+        // Update progress bars
+        const planTarget = 1860;
+        const planPercent = Math.min(100, (plan / planTarget) * 100);
+        const actualPercent = Math.min(100, (actual / planTarget) * 100);
+        const planFill = document.getElementById(`plan-percent-${line.id}`);
+        const actualFill = document.getElementById(`actual-percent-${line.id}`);
+        if(planFill) planFill.style.width = `${planPercent}%`;
+        if(actualFill) actualFill.style.width = `${actualPercent}%`;
+        
+        // Update status
+        const statusName = rt.operating_status || "IDLE";
+        const displayStatus = capitalizeWords(statusName);
+        const statusColorObj = GLOBAL_STATUS[statusName] || {color_hex: "#3b82f6"};
+        const statusElem = document.getElementById(`status-${line.id}`);
+        if(statusElem) {
+          statusElem.textContent = displayStatus;
+          statusElem.style.background = `${statusColorObj.color_hex}20`;
+          statusElem.style.color = statusColorObj.color_hex;
+        }
+        
+        // Update loss display (simplified)
+        const totalLoss = (rt.loss_breakdown_seconds || 0) + (rt.loss_quality_seconds || 0) + 
+                         (rt.loss_material_seconds || 0) + (rt.loss_setup_seconds || 0) +
+                         (rt.loss_change_over_seconds || 0) + (rt.loss_speed_seconds || 0) +
+                         (rt.loss_others_seconds || 0);
+        const lossElem = document.getElementById(`loss-total-${line.id}`);
+        if(lossElem) lossElem.textContent = `Total Loss: ${formatSeconds(totalLoss)}`;
+      }
+    } catch(e) {
+      console.error(`Error updating line ${line.id}:`, e);
+    }
+  }
+  
+  // Update summary stats
+  let totalRunning = lines.filter(l=>l.collector_status==='running').length;
+  let totalStopped = lines.length - totalRunning;
+  const runningElem = document.getElementById('stat-running');
+  const stoppedElem = document.getElementById('stat-stopped');
+  if(runningElem) runningElem.querySelector('.stat-val').textContent = totalRunning;
+  if(stoppedElem) stoppedElem.querySelector('.stat-val').textContent = totalStopped;
+}
+
+// ======================= LINE DETAIL MODAL =======================
+async function openLineDetailModal(lineId) {
+    const line = LINES.find(l => l.id === lineId);
+    if (!line) return;
+    document.getElementById('ld-title').innerHTML = `${line.line_name} - Production Details`;
+    openModal('modal-line-detail');
+    document.getElementById('ld-content').innerHTML = `<div class="empty"><div class="spinner"></div><div>Loading...</div></div>`;
+
+    try {
+        // Fetch fresh realtime data
+        const realtimeRes = await fetch(`${API}/api/lines/${lineId}/realtime`, { headers: authHdr() });
+        const realtime = await realtimeRes.json();
+        console.log("REALTIME DATA:", realtime);
+
+        // Fetch fresh line config for hourly slots
+        const lineConfigRes = await fetch(`${API}/api/lines/${lineId}`, { headers: authHdr() });
+        const lineDetail = await lineConfigRes.json();
+        const allSlots = lineDetail.hourly_slots || [];
+        console.log("ALL SLOTS FROM CONFIG:", allSlots);
+
+        // Get current shift name
+        const currentShiftName = realtime.shift_name || 'A';
+        console.log("Current shift:", currentShiftName);
+
+        // Get ALL slots for current shift (including past, present, future)
+        const currentShiftSlots = allSlots.filter(slot => slot.shift_name === currentShiftName);
+        console.log("Slots for current shift:", currentShiftSlots);
+
+        // Map slot data with actual values from realtime
+        const slotData = currentShiftSlots.map(slot => {
+            const prefix = slot.db_column_prefix;
+            const plan = realtime[`${prefix}_plan`] || 0;
+            const actual = realtime[`${prefix}_actual`] || 0;
+            const variance = realtime[`${prefix}_variance`] || 0;
+            const ok = realtime[`${prefix}_ok`] || 0;
+            const ng = realtime[`${prefix}_ng`] || 0;
+            return {
+                label: slot.slot_label,
+                plan,
+                actual,
+                variance,
+                ok,
+                ng,
+                start_time: slot.start_time,
+                end_time: slot.end_time
+            };
+        }).sort((a, b) => a.start_time.localeCompare(b.start_time));
+
+        console.log("SLOT DATA:", slotData);
+
+        // Calculate totals
+        const totalFromSlots = slotData.reduce((sum, s) => sum + s.actual, 0);
+        const actualTotal = (realtime.ok_count || 0) + (realtime.ng_count || 0);
+        const mismatch = totalFromSlots !== actualTotal;
+        const mismatchAmount = actualTotal - totalFromSlots;
+
+        console.log(`Total from slots: ${totalFromSlots}, Total OK: ${actualTotal}, Mismatch: ${mismatchAmount}`);
+
+        // Identify which slots have data
+        const slotsWithData = slotData.filter(s => s.actual > 0);
+        const slotsWithoutData = slotData.filter(s => s.actual === 0 && s.plan > 0);
+        console.log("Slots with data:", slotsWithData.map(s => `${s.label}: ${s.actual}`));
+        console.log("Slots without data:", slotsWithoutData.map(s => s.label));
+
+        // OEE components
+        const oee = realtime.overall_oee || 0;
+        const avail = realtime.availability || 0;
+        const perf = realtime.performance || 0;
+        const qual = realtime.quality_oee || 0;
+
+        const planTotal = realtime.shift_plan_completed || 0;
+        const planPercent = planTotal ? Math.min(100, (actualTotal / planTotal) * 100) : 0;
+
+        const idealCT = lineDetail.plc_config?.ideal_cycle_time || 15.0;
+        const actualAvgCT = realtime.ct_avg_20 || 0;
+
+        // Loss breakdown
+        const lossCategories = [
+            { key: "breakdown", label: "Breakdown", color: "#ef4444" },
+            { key: "quality", label: "Quality", color: "#f97316" },
+            { key: "material", label: "Material", color: "#eab308" },
+            { key: "setup", label: "Setup", color: "#84cc16" },
+            { key: "change_over", label: "Change Over", color: "#06b6d4" },
+            { key: "speed", label: "Speed Loss", color: "#3b82f6" },
+            { key: "others", label: "Others", color: "#8b5cf6" }
+        ];
+        const lossSeconds = {};
+        let totalLoss = 0;
+        for (let cat of lossCategories) {
+            let seconds = realtime[`loss_${cat.key}_seconds`] || 0;
+            lossSeconds[cat.key] = seconds;
+            totalLoss += seconds;
+        }
+        const lossItems = lossCategories.map(cat => {
+            const sec = lossSeconds[cat.key];
+            const percent = totalLoss ? ((sec / totalLoss) * 100).toFixed(1) : 0;
+            return { ...cat, seconds: sec, percent };
+        }).filter(item => item.seconds > 0);
+
+        // Cycle times
+        const cycleTimes = [];
+        for (let i = 1; i <= 20; i++) {
+            const ct = realtime[`ct${i}`];
+            if (ct !== null && ct !== undefined) cycleTimes.push(ct);
+        }
+
+        // Shift progress
+        const shifts = lineDetail.shifts || [];
+        const currentShiftConfig = shifts.find(s => s.shift_name === currentShiftName);
+        let shiftProgress = 0;
+        if (currentShiftConfig && !currentShiftName.startsWith('GAP')) {
+            const [sh, sm] = currentShiftConfig.start_time.split(':').map(Number);
+            const [eh, em] = currentShiftConfig.end_time.split(':').map(Number);
+            shiftProgress = getShiftProgress({ hour: sh, minute: sm }, { hour: eh, minute: em }, new Date());
+        }
+
+        // Build modal HTML
+        let modalHtml = `
+            <div class="stats-row" style="grid-template-columns:repeat(4,1fr); margin-bottom:20px;">
+                <div class="stat"><div class="stat-val">${oee}%</div><div class="stat-lbl">Overall OEE</div></div>
+                <div class="stat"><div class="stat-val">${avail}%</div><div class="stat-lbl">Availability</div></div>
+                <div class="stat"><div class="stat-val">${perf}%</div><div class="stat-lbl">Performance</div></div>
+                <div class="stat"><div class="stat-val">${qual}%</div><div class="stat-lbl">Quality</div></div>
+            </div>
+
+            <div class="card" style="margin-bottom:20px;">
+                <div class="card-title">Shift ${currentShiftName} Progress</div>
+                <div style="height:8px; background:var(--border); border-radius:4px; overflow:hidden;">
+                    <div style="width:${shiftProgress}%; background:var(--blue); height:100%;"></div>
+                </div>
+                <div style="display:flex; justify-content:space-between; margin-top:8px;">
+                    <span>${shiftProgress.toFixed(1)}% elapsed</span>
+                    <span>Total loss: ${formatSeconds(totalLoss)} (${((totalLoss / (planTotal * 15)) * 100).toFixed(1)}% of runtime)</span>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">Plan vs Actual (Shift)</div>
+                <div style="display:flex; gap:20px; align-items:center; margin-bottom:16px;">
+                    <div style="flex:1;"><div style="font-size:28px; font-weight:700;">${actualTotal}</div><div style="font-size:12px;">Actual Produced</div></div>
+                    <div style="flex:1;"><div style="font-size:28px; font-weight:700;">${planTotal}</div><div style="font-size:12px;">Plan Target</div></div>
+                </div>
+                <div style="height:16px; background:var(--border); border-radius:8px; overflow:hidden;">
+                    <div style="width:${planPercent}%; background:var(--green); height:100%;"></div>
+                </div>
+                <div style="margin-top:12px; display:flex; justify-content:space-between;">
+                    <div><span class="pill">Ideal CT: ${idealCT.toFixed(1)}s</span></div>
+                    <div><span class="pill">Actual CT: ${actualAvgCT.toFixed(1)}s</span></div>
+                    <div><span class="pill">Achievement: ${planPercent.toFixed(0)}%</span></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">Loss Breakdown</div>
+                ${lossItems.length ? `
+                <table class="tbl">
+                    <thead>
+                        <tr>
+                            <th>Loss Type</th>
+                            <th>Duration (HH:MM:SS)</th>
+                            <th>% of Total Loss</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${lossItems.map(item => `
+                            <tr>
+                                <td style="font-weight:600; color:${item.color};">${item.label}</td>
+                                <td class="mono">${formatSeconds(item.seconds)}</td>
+                                <td><div style="display:flex; align-items:center; gap:8px;"><div style="width:80px; background:var(--border); border-radius:4px;"><div style="width:${item.percent}%; background:${item.color}; height:6px;"></div></div>${item.percent}%</div></td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+                ` : '<div class="empty" style="padding:24px;">No losses recorded yet</div>'}
+            </div>
+
+            <div class="card">
+                <div class="card-title">Cycle Time Trend (Last 20 cycles)</div>
+                <canvas id="cycleChart" height="100" style="max-height:200px; width:100%;"></canvas>
+            </div>
+
+            <div class="card">
+                <div class="card-title">Hourly Slot Performance - ${currentShiftName} Shift</div>
+                <table class="tbl">
+                    <thead>
+                        <tr>
+                            <th>Slot</th>
+                            <th>Plan</th>
+                            <th>Actual</th>
+                            <th>Variance</th>
+                            <th>Efficiency</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${slotData.map(s => {
+                            const eff = s.plan ? ((s.actual / s.plan) * 100).toFixed(1) : '0';
+                            const varianceClass = s.variance < 0 ? 'red' : (s.variance > 0 ? 'green' : '');
+                            return `
+                                <tr>
+                                    <td class="mono">${s.label}</td>
+                                    <td class="mono">${s.plan}</td>
+                                    <td class="mono">${s.actual}</td>
+                                    <td class="mono ${varianceClass}">${s.variance > 0 ? '+' : ''}${s.variance}</td>
+                                    <td><div style="background:var(--border); width:100px; border-radius:4px;"><div style="width:${eff}%; background:var(--blue); height:6px;"></div></div></td>
+                                </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
+                <div class="alert ${mismatch ? 'warning' : 'info'}" style="margin-top:12px;">
+                    <strong>Total from slots: ${totalFromSlots}</strong> | 
+                    <strong>Total OK: ${actualTotal}</strong>
+                    ${mismatch ? 
+                        `<br><span style="color: red;">⚠️ Mismatch by ${mismatchAmount} parts!</span><br>
+                        <span style="font-size: 11px;">Missing data in slots: ${slotsWithoutData.map(s => s.label).join(', ') || 'all slots have data'}</span>
+                        <br><span style="font-size: 11px;">This means the collector is not writing to all hourly slots.</span>` : 
+                        '<span style="color: green;">✓ Data matches perfectly</span>'}
+                </div>
+            </div>
+        `;
+
+        document.getElementById('ld-content').innerHTML = modalHtml;
+
+        // Draw cycle chart
+        if (window.cycleChart && typeof window.cycleChart.destroy === 'function') {
+            window.cycleChart.destroy();
+        }
+        const ctx = document.getElementById('cycleChart').getContext('2d');
+        window.cycleChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: cycleTimes.map((_, i) => `#${i + 1}`),
+                datasets: [{
+                    label: 'Cycle Time (seconds)',
+                    data: cycleTimes,
+                    borderColor: '#3b82f6',
+                    backgroundColor: 'rgba(59,130,246,0.1)',
+                    tension: 0.1,
+                    fill: true,
+                    pointRadius: 3
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                scales: {
+                    y: { beginAtZero: true, title: { display: true, text: 'Seconds' } },
+                    x: { title: { display: true, text: 'Cycle Number' } }
+                }
+            }
+        });
+    } catch (e) {
+        console.error("Modal error:", e);
+        document.getElementById('ld-content').innerHTML = `<div class="alert critical">Failed: ${e.message}</div>`;
+    }
+}
+
+// ======================= PLANTS PAGE =======================
+async function plantsPage(){
+  await loadPlants();
+  document.getElementById('content').innerHTML=`
+    <div class="page-header"><div><div class="page-title">Plants</div><div class="page-sub">Manage manufacturing plants</div></div>${USER_ROLE==='admin' ? '<button class="btn primary" onclick="openModal(\'modal-plant\')">+ Add Plant</button>' : ''}</div>
+    <div class="card"><table class="tbl"><thead><tr><th>Code</th><th>Name</th><th>Location</th><th>Lines</th><th>Status</th></tr></thead><tbody>${PLANTS.map(p=>`<tr><td class="mono">${p.plant_code}</td><td style="font-weight:600">${p.plant_name}</td><td style="color:var(--text-muted)">${p.location||'—'}</td><td class="mono">${p.total_lines||0}</td><td><span class="pill ${p.is_active?'green':'mute'}">${p.is_active?'active':'inactive'}</span></td></tr>`).join('')||'<tr><td colspan="5"><div class="empty"><div>No plants</div></div></td></tr>'}</tbody></table></div>`;
+}
+async function savePlant(){
+  const body={plant_code:document.getElementById('p-code').value.trim(),plant_name:document.getElementById('p-name').value.trim(),location:document.getElementById('p-loc').value.trim(),timezone:document.getElementById('p-tz').value.trim()};
+  if(!body.plant_code||!body.plant_name){toast('Code and name required','err');return;}
+  try{
+    const res=await fetch(`${API}/api/plants/`,{method:'POST',headers:authHdr(),body:JSON.stringify(body)});
+    if(!res.ok)throw new Error((await res.json()).detail);
+    toast('Plant created ✓','ok');closeModal('modal-plant');await loadPlants();plantsPage();
+  }catch(e){toast(e.message,'err');}
+  toast('Plant created ✓','ok');
+  closeModal('modal-plant');
+  await loadPlants();
+  refreshCurrentPage();
+}
+
+// ======================= LINES PAGE =======================
+async function linesPage() {
+    // Show loading state
+    document.getElementById('content').innerHTML = `<div class="empty"><div class="spinner"></div><div>Loading lines...</div></div>`;
+    
+    try {
+        // Force fresh fetch from API - don't use cached LINES
+        const res = await fetch(`${API}/api/lines/`, { headers: authHdr() });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const freshLines = await res.json();
+        
+        // Update the global LINES variable
+        LINES = freshLines;
+        
+        // Build the HTML
+        let html = `
+            <div class="page-header">
+                <div>
+                    <div class="page-title">Production Lines</div>
+                    <div class="page-sub">Configure and provision all lines</div>
+                </div>
+                ${USER_ROLE === 'admin' ? '<button class="btn primary" onclick="openAddLine()">+ Add Line</button>' : ''}
+            </div>
+        `;
+        
+        if (freshLines.length === 0) {
+            html += '<div class="empty"><div class="empty-icon">⬡</div><div>No lines — add one to begin</div></div>';
+        } else {
+            for (let l of freshLines) {
+                // Determine the correct button text based on collector_status
+                const isRunning = l.collector_status === 'running';
+                const dotClass = isRunning ? 'running' : 'stopped';
+                const dotIcon = isRunning ? '▶' : '■';
+                const statusClass = isRunning ? 'green' : 'mute';
+                
+                html += `
+                    <div class="lc">
+                        <div class="lc-row">
+                            <div class="lc-dot ${dotClass}">${dotIcon}</div>
+                            <div class="lc-info">
+                                <div class="lc-name">${escapeHtml(l.line_name)}</div>
+                                <div class="lc-meta">${escapeHtml(l.plant_name)} · ${escapeHtml(l.line_code)} · ${escapeHtml(l.db_table_name)}</div>
+                            </div>
+                            <span class="pill ${statusClass}">${l.collector_status}</span>
+                            ${USER_ROLE === 'admin' ? `
+                                <div class="lc-act" onclick="event.stopPropagation()">
+                                    <button class="btn sm" onclick="openLineDetail(${l.id})">Configure</button>
+                                    <button class="btn sm ${isRunning ? 'danger' : 'success'}" onclick="${isRunning ? `stopLine(${l.id})` : `provisionLine(${l.id})`}">
+                                        ${isRunning ? 'Stop' : 'Start'}
+                                    </button>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            }
+        }
+        
+        document.getElementById('content').innerHTML = html;
+        
+    } catch (e) {
+        console.error("Error loading lines:", e);
+        document.getElementById('content').innerHTML = `<div class="alert critical">Failed to load lines: ${e.message}</div>`;
+    }
+}
+
+// Helper function to escape HTML
+function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/[&<>]/g, function(m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        return m;
+    });
+}
+async function openAddLine(){
+  EDITING_LINE=null;
+  document.getElementById('line-modal-title').textContent='Add Production Line';
+  document.getElementById('l-plant').innerHTML='<option value="">Select plant...</option>'+PLANTS.map(p=>`<option value="${p.id}">${p.plant_name}</option>`).join('');
+  // Clear ALL register fields on add — user must enter the actual PLC
+  // addresses for THIS line.  Earlier we pre-filled hardcoded defaults
+  // (port 5002, OK=L108, NG=L109, etc.) which silently overrode the
+  // user's typed values if the form was reset, causing the collector to
+  // poll the wrong PLC registers.
+  ['l-code','l-name','l-table','lp-ip','lp-port','lp-ok','lp-ng',
+   'lp-st','lp-md','lp-sok','lp-psq','lp-ovr','lp-ict','lp-mct'
+  ].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  // Sensible numeric defaults only for cycle-time fields (not register
+  // addresses) — these are easy to spot and edit if wrong.
+  document.getElementById('lp-ict').value='15.0';
+  document.getElementById('lp-mct').value='16.0';
+  const defBreaks=[['Morning Tea Break','10:00','10:10'],['Lunch Break','12:00','12:35'],['Evening Tea Break','14:30','14:40'],['Dinner Break 1','18:00','18:10'],['Tea Break','20:00','20:10'],['Dinner Break 2','22:00','22:35'],['Night Tea Break','01:00','01:10'],['Early Morning Break','04:00','04:10']];
+  document.getElementById('breaks-list').innerHTML='';
+  defBreaks.forEach(([n,s,e])=>addBreakRow(n,s,e));
+  document.getElementById('models-list').innerHTML='';
+  for(let i=0;i<5;i++) addModelRow();
+  if(USER_ROLE==='admin') await loadOperators();
+  lineTab('basic');openModal('modal-line');
+}
+async function openLineDetail(lineId){
+  try{
+    const line=await(await fetch(`${API}/api/lines/${lineId}`,{headers:authHdr()})).json();
+    EDITING_LINE=line;
+    document.getElementById('line-modal-title').textContent=`Configure — ${line.line_name}`;
+    document.getElementById('l-plant').innerHTML='<option value="">Select plant...</option>'+PLANTS.map(p=>`<option value="${p.id}" ${p.id===line.plant_id?'selected':''}>${p.plant_name}</option>`).join('');
+    document.getElementById('l-code').value=line.line_code;document.getElementById('l-name').value=line.line_name;document.getElementById('l-table').value=line.db_table_name;
+    if(line.plc_config){const pc=line.plc_config;document.getElementById('lp-ip').value=pc.plc_ip;document.getElementById('lp-port').value=pc.plc_port;document.getElementById('lp-ok').value=pc.ok_bit_address;document.getElementById('lp-ng').value=pc.ng_bit_address;document.getElementById('lp-st').value=pc.status_address;document.getElementById('lp-md').value=pc.model_address;document.getElementById('lp-ict').value=pc.ideal_cycle_time;document.getElementById('lp-mct').value=pc.max_allowed_cycle;document.getElementById('lp-sok').value=pc.sensor_ok_address||'';document.getElementById('lp-psq').value=pc.process_seq_address||'';document.getElementById('lp-ovr').value=pc.override_address||'';}
+    document.getElementById('breaks-list').innerHTML='';(line.breaks||[]).forEach(b=>addBreakRow(b.break_name,b.start_time,b.end_time));
+    document.getElementById('models-list').innerHTML='';(line.models||[]).forEach(m=>addModelRow(m.model_number,m.model_name));
+    if(!line.models?.length) for(let i=0;i<3;i++) addModelRow();
+    if(USER_ROLE==='admin') await loadOperators();
+    lineTab('basic');openModal('modal-line');
+  }catch(e){toast(e.message,'err');}
+  console.log("REALTIME DATA:", realtime);
+  console.log("Hourly slot keys:", Object.keys(realtime).filter(k => k.includes('hour_')));
+}
+async function saveLine(){
+  const plant_id=parseInt(document.getElementById('l-plant').value);
+  const line_code=document.getElementById('l-code').value.trim();
+  const line_name=document.getElementById('l-name').value.trim();
+  const table_name=document.getElementById('l-table').value.trim();
+  if(!plant_id||!line_code||!line_name||!table_name){toast('Fill all fields in Basic tab','err');return;}
+  const plcBody={plc_ip:document.getElementById('lp-ip').value.trim(),plc_port:parseInt(document.getElementById('lp-port').value),ok_bit_address:document.getElementById('lp-ok').value.trim(),ng_bit_address:document.getElementById('lp-ng').value.trim(),status_address:document.getElementById('lp-st').value.trim(),model_address:document.getElementById('lp-md').value.trim(),ideal_cycle_time:parseFloat(document.getElementById('lp-ict').value),max_allowed_cycle:parseFloat(document.getElementById('lp-mct').value),sensor_ok_address:document.getElementById('lp-sok').value.trim()||null,process_seq_address:document.getElementById('lp-psq').value.trim()||null,override_address:document.getElementById('lp-ovr').value.trim()||null};
+  if(!plcBody.plc_ip){toast('PLC IP required','err');return;}
+  const modelsData=[];document.querySelectorAll('.model-row').forEach(row=>{const num=parseInt(row.querySelector('.mdl-num').value),nm=row.querySelector('.mdl-name').value.trim();if(!isNaN(num)&&nm)modelsData.push({model_number:num,model_name:nm});});
+  const breaksData=[];document.querySelectorAll('.break-row').forEach(row=>{const n=row.querySelector('.brk-name').value.trim(),s=row.querySelector('.brk-start').value,e=row.querySelector('.brk-end').value;if(n&&s&&e)breaksData.push({break_name:n,start_time:s,end_time:e,crosses_midnight:e<s});});
+  const shiftsData=[{shift_name:'A',start_time:document.getElementById('sa-start').value,end_time:document.getElementById('sa-end').value,crosses_midnight:false,total_plan:parseInt(document.getElementById('sa-plan').value),working_minutes:parseInt(document.getElementById('sa-wm').value),startup_delay_min:parseInt(document.getElementById('sa-delay').value),is_production:true},{shift_name:'B',start_time:document.getElementById('sb-start').value,end_time:document.getElementById('sb-end').value,crosses_midnight:true,total_plan:parseInt(document.getElementById('sb-plan').value),working_minutes:parseInt(document.getElementById('sb-wm').value),startup_delay_min:parseInt(document.getElementById('sb-delay').value),is_production:true},{shift_name:'GAP_AB',start_time:'17:15',end_time:'18:30',crosses_midnight:false,total_plan:0,working_minutes:0,startup_delay_min:0,is_production:false},{shift_name:'GAP_BA',start_time:'03:15',end_time:'08:30',crosses_midnight:false,total_plan:0,working_minutes:0,startup_delay_min:0,is_production:false}];
+  try{
+    let lineId;
+    if(EDITING_LINE){lineId=EDITING_LINE.id;await fetch(`${API}/api/lines/${lineId}`,{method:'PUT',headers:authHdr(),body:JSON.stringify({line_name,is_active:true,db_table_name:table_name})});}
+    else{const res=await fetch(`${API}/api/lines/`,{method:'POST',headers:authHdr(),body:JSON.stringify({plant_id,line_code,line_name,db_table_name:table_name})});if(!res.ok)throw new Error((await res.json()).detail);lineId=(await res.json()).id;}
+    await Promise.all([fetch(`${API}/api/config/plc/${lineId}`,{method:'PUT',headers:authHdr(),body:JSON.stringify(plcBody)}),fetch(`${API}/api/config/shifts/${lineId}`,{method:'PUT',headers:authHdr(),body:JSON.stringify(shiftsData)}),fetch(`${API}/api/config/breaks/${lineId}`,{method:'PUT',headers:authHdr(),body:JSON.stringify(breaksData)}),...(modelsData.length?[fetch(`${API}/api/config/models/${lineId}`,{method:'PUT',headers:authHdr(),body:JSON.stringify(modelsData)})]:[] )]);
+    const pd=await(await fetch(`${API}/api/lines/${lineId}/provision`,{method:'POST',headers:authHdr()})).json();
+    if(pd.ok)toast(`Line provisioned ✓  PID ${pd.pid}`,'ok');else toast('Saved — provision: '+(pd.detail||'check logs'),'err');
+
+    const operatorId = document.getElementById('line-operator').value;
+    if(operatorId && operatorId !== ''){
+      const currentLinesRes = await fetch(`${API}/api/users/${operatorId}/lines`, {headers:authHdr()});
+      const currentLines = await currentLinesRes.json();
+      const newLines = [...currentLines, lineId];
+      await fetch(`${API}/api/users/${operatorId}/lines`, {method:'PUT', headers:authHdr(), body:JSON.stringify(newLines)});
+      toast(`Operator assigned to line`, 'ok');
+    }
+
+    closeModal('modal-line');await loadLines();linesPage();
+  }catch(e){toast('Error: '+e.message,'err');}
+  closeModal('modal-line');
+  await loadLines();
+  
+  refreshCurrentPage();
+}
+async function provisionLine(lineId){
+  toast('Provisioning...','info');
+  try{
+    const d=await(await fetch(`${API}/api/lines/${lineId}/provision`,{method:'POST',headers:authHdr()})).json();
+    if(d.ok){
+      toast(`Started ✓ PID ${d.pid}`,'ok');
+      await loadLines();
+      refreshCurrentPage(); // This will refresh whatever page you're on
+    } else throw new Error(d.detail);
+  } catch(e){
+    toast('Error: '+e.message,'err');
+  }
+}
+
+async function stopLine(lineId){
+  try{
+    const d=await(await fetch(`${API}/api/lines/${lineId}/stop`,{method:'POST',headers:authHdr()})).json();
+    toast(d.message,d.ok?'ok':'err');
+    await loadLines();
+    refreshCurrentPage(); // This will refresh whatever page you're on
+  } catch(e){
+    toast(e.message,'err');
+  }
+}
+function addBreakRow(name='',start='',end=''){
+  const d=document.createElement('div');d.className='break-row';
+  d.style.cssText='display:flex;gap:8px;margin-bottom:8px;align-items:center';
+  const inp='background:var(--bg-primary);border:1px solid var(--border);border-radius:var(--r);padding:9px 10px;color:var(--text-primary);font-size:12px;outline:none;font-family:var(--sans)';
+  d.innerHTML=`<input class="brk-name" type="text" placeholder="Break name" value="${name}" style="${inp};flex:2"><input class="brk-start" type="time" value="${start}" style="${inp};flex:1"><input class="brk-end" type="time" value="${end}" style="${inp};flex:1"><button onclick="this.parentNode.remove()" style="background:none;border:none;color:var(--blue);cursor:pointer;font-size:16px;padding:0 4px">✕</button>`;
+  document.getElementById('breaks-list').appendChild(d);
+}
+function addModelRow(num='',name=''){
+  const d=document.createElement('div');d.className='model-row';
+  d.style.cssText='display:flex;gap:8px;margin-bottom:8px;align-items:center';
+  const inp='background:var(--bg-primary);border:1px solid var(--border);border-radius:var(--r);padding:9px 10px;color:var(--text-primary);font-size:12px;outline:none;font-family:var(--sans)';
+  d.innerHTML=`<input class="mdl-num" type="number" placeholder="No." value="${num}" style="${inp};width:72px;font-family:var(--sans)"><input class="mdl-name" type="text" placeholder="Model name" value="${name}" style="${inp};flex:1"><button onclick="this.parentNode.remove()" style="background:none;border:none;color:var(--blue);cursor:pointer;font-size:16px;padding:0 4px">✕</button>`;
+  document.getElementById('models-list').appendChild(d);
+}
+function lineTab(tab){
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',['basic','plc','shifts','models','operator'][i]===tab));
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('lt-'+tab).classList.add('active');
+}
+
+// ======================= POKA YOKE PAGE =======================
+async function pokaPage(){
+  document.getElementById('content').innerHTML=`<div class="page-header"><div><div class="page-title">Poka Yoke</div><div class="page-sub">Error-proofing rules and events</div></div>${USER_ROLE==='admin' ? '<button class="btn primary" onclick="openAddPoka()">+ Add Rule</button>' : ''}</div><div id="poka-content"><div class="empty"><div class="spinner"></div></div></div>`;
+  await loadPokaContent();
+}
+async function loadPokaContent(){
+  const container=document.getElementById('poka-content');if(!container)return;
+  let allEvents=[],allRules=[];
+  for(const line of LINES){try{const[evRes,ruleRes]=await Promise.all([fetch(`${API}/api/poka-yoke/events/${line.id}?limit=20&unacked_only=true`,{headers:authHdr()}),fetch(`${API}/api/poka-yoke/rules/${line.id}`,{headers:authHdr()})]);allEvents.push(...((await evRes.json()).events||[]).map(e=>({...e,line_name:line.line_name})));allRules.push(...((await ruleRes.json())||[]).map(r=>({...r,line_name:line.line_name})));}catch{}}
+  const crits=allEvents.filter(e=>e.alert_level==='CRITICAL');
+  const warns=allEvents.filter(e=>e.alert_level==='WARNING');
+  container.innerHTML=`
+    <div class="stats-row"><div class="stat red"><div class="stat-val">${crits.length}</div><div class="stat-lbl">Critical unacknowledged</div></div><div class="stat amber"><div class="stat-val">${warns.length}</div><div class="stat-lbl">Warnings</div></div><div class="stat blue"><div class="stat-val">${allRules.length}</div><div class="stat-lbl">Active rules</div></div></div>
+    ${allEvents.length?`<div class="card"><div class="card-title">Unacknowledged events <span class="cbadge">${allEvents.length}</span></div>${allEvents.map(e=>`<div class="ev ${e.alert_level==='WARNING'?'warn':''}"><div class="ev-icon">${e.alert_level==='CRITICAL'?'🚨':'⚠️'}</div><div class="ev-info"><div class="ev-title">${e.rule_name||e.rule_type}</div><div class="ev-meta">${e.line_name} · ${new Date(e.detected_at).toLocaleString('en-IN')}</div></div><span class="pill ${e.alert_level==='CRITICAL'?'red':'amber'}">${e.alert_level}</span>${USER_ROLE==='admin' ? `<button class="btn sm" style="margin-left:8px" onclick="ackEvent(${e.id})">Acknowledge</button>` : ''}</div>`).join('')}</div>`:''}
+    <div class="card"><div class="card-title">All rules <span class="cbadge">${allRules.length}</span></div><table class="tbl"><thead><tr><th>Line</th><th>Rule</th><th>Type</th><th>Level</th><th>Threshold</th><th>Status</th></tr></thead><tbody>${allRules.map(r=>`<tr><td>${r.line_name}</td><td style="font-weight:600">${r.rule_name}</td><td class="mono">${r.rule_type}</td><td><span class="pill ${r.alert_level==='CRITICAL'?'red':'amber'}">${r.alert_level}</span></td><td class="mono">${r.threshold_count}× / ${r.window_seconds}s</td><td><span class="pill ${r.is_active?'green':'mute'}">${r.is_active?'active':'inactive'}</span></td></tr>`).join('')||'<tr><td colspan="6"><div class="empty"><div>No rules</div></div></td></tr>'}</tbody></table></div>`;
+}
+async function ackEvent(eventId){
+  try{await fetch(`${API}/api/poka-yoke/events/${eventId}/acknowledge`,{method:'POST',headers:authHdr()});toast('Acknowledged','ok');loadPokaContent();checkPokaAlerts();}catch(e){toast(e.message,'err');}
+}
+function openAddPoka(){
+  document.getElementById('pk-line').innerHTML='<option value="">Select line...</option>'+LINES.map(l=>`<option value="${l.id}">${l.line_name}</option>`).join('');
+  openModal('modal-poka');
+}
+async function savePokaRule(){
+  const lineId=parseInt(document.getElementById('pk-line').value);
+  if(!lineId){toast('Select a line','err');return;}
+  const body={rule_name:document.getElementById('pk-name').value.trim(),rule_type:document.getElementById('pk-type').value,alert_level:document.getElementById('pk-level').value,plc_address:document.getElementById('pk-addr').value.trim()||null,threshold_count:parseInt(document.getElementById('pk-thresh').value),window_seconds:parseInt(document.getElementById('pk-window').value),alert_message:document.getElementById('pk-msg').value.trim()||null,is_active:true};
+  if(!body.rule_name){toast('Rule name required','err');return;}
+  try{const res=await fetch(`${API}/api/poka-yoke/rules/${lineId}`,{method:'POST',headers:authHdr(),body:JSON.stringify(body)});if(!res.ok)throw new Error((await res.json()).detail);toast('Rule added ✓','ok');closeModal('modal-poka');pokaPage();}catch(e){toast(e.message,'err');}
+}
+
+// ======================= STATUS COLORS PAGE =======================
+async function statusPage(){
+  document.getElementById('content').innerHTML=`
+    <div class="page-header"><div><div class="page-title">Status Color Schema</div><div class="page-sub">Global — uniform across ALL production lines</div></div>${USER_ROLE==='admin' ? '<button class="btn primary" onclick="openAddStatus()">+ Add Status Type</button>' : ''}</div>
+    <div class="alert info" style="margin-bottom:20px"><span>🎨</span><span>These colors apply to <b>every line in every plant</b>. Changing a color here instantly updates all dashboards.</span></div>
+    <div id="status-content"><div class="empty"><div class="spinner"></div></div></div>
+  `;
+  await loadStatusContent();
+}
+async function loadStatusContent(){
+  const c=document.getElementById('status-content');if(!c)return;
+  try{
+    const statuses=await(await fetch(`${API}/api/status-schema/`,{headers:authHdr()})).json();
+    c.innerHTML=`
+      <div class="card"><div class="card-title">Status definitions <span class="cbadge">${statuses.length} total</span></div>
+      <table class="tbl"><thead><tr><th>Code</th><th>Color</th><th>Status name</th><th>Machine state</th><th>Loss category</th><th>Status</th><th>Actions</th></tr></thead>
+      <tbody>${statuses.map(s=>`<tr><td class="mono" style="font-weight:700">${s.status_code}</td><td><div style="display:flex;align-items:center;gap:8px"><div style="width:28px;height:28px;border-radius:6px;background:${s.color_hex};border:1px solid var(--border)"></div><span class="mono" style="font-size:11px">${s.color_hex}</span><span style="font-size:11px;color:var(--text-muted)">${s.color_label}</span></div></td><td style="font-weight:600">${s.status_name}</td><td><span class="pill ${s.is_production?'green':'mute'}">${s.is_production?'Production':'Stoppage'}</span></td><td style="color:var(--text-muted);font-family:var(--mono);font-size:11px">${s.loss_type||'—'}</td><td><span class="pill ${s.is_active?'green':'mute'}">${s.is_active?'active':'inactive'}</span></td><td>${USER_ROLE==='admin' ? `<div style="display:flex;gap:6px"><button class="btn sm" onclick='editStatus(${s.status_code},"${s.status_name}","${s.color_hex}","${s.color_label}","${s.loss_type||""}",${s.is_production})'>Edit</button>${![0,1,2].includes(s.status_code)?`<button class="btn sm danger" onclick="deactivateStatus(${s.status_code})">Remove</button>`:'<span style="font-size:10px;color:var(--text-muted);padding:4px 6px">Protected</span>'}</div>` : ''}</td></tr>`).join('')}</tbody></table>
+      <div class="card" style="background:var(--bg-primary);border-style:dashed"><div class="card-title" style="font-size:12px">Live preview — how operators see this</div><div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:4px">${statuses.filter(s=>s.is_active).map(s=>`<div style="display:flex;align-items:center;gap:8px;padding:10px 16px;border-radius:8px;background:${s.color_hex}18;border:1px solid ${s.color_hex}44"><div style="width:10px;height:10px;border-radius:50%;background:${s.color_hex}"></div><span style="font-size:12px;font-weight:600;color:var(--text-primary)">${s.status_name}</span></div>`).join('')}</div></div>
+    `;
+  }catch(e){c.innerHTML=`<div class="alert critical">Failed: ${e.message}</div>`;}
+}
+let _editingStatusCode=null;
+function editStatus(code,name,hex,label,lossType,isProd){
+  _editingStatusCode=code;
+  document.getElementById('ss-code').value=code;
+  document.getElementById('ss-code').disabled=true;
+  document.getElementById('ss-name').value=name;
+  document.getElementById('ss-hex').value=hex;
+  document.getElementById('ss-label').value=label;
+  document.getElementById('ss-loss').value=lossType||'';
+  document.getElementById('ss-prod').value=isProd?'true':'false';
+  document.getElementById('ss-modal-title').textContent=`Edit status ${code} — ${name}`;
+  document.getElementById('ss-hex-preview').style.background=hex;
+  openModal('modal-status');
+}
+function openAddStatus(){
+  _editingStatusCode=null;
+  document.getElementById('ss-code').value='';
+  document.getElementById('ss-code').disabled=false;
+  document.getElementById('ss-name').value='';
+  document.getElementById('ss-hex').value='#';
+  document.getElementById('ss-label').value='';
+  document.getElementById('ss-loss').value='';
+  document.getElementById('ss-prod').value='false';
+  document.getElementById('ss-modal-title').textContent='Add New Status Type';
+  document.getElementById('ss-hex-preview').style.background='#ccc';
+  openModal('modal-status');
+}
+async function saveStatus(){
+  const code=parseInt(document.getElementById('ss-code').value);
+  const name=document.getElementById('ss-name').value.trim();
+  const hex=document.getElementById('ss-hex').value.trim();
+  const label=document.getElementById('ss-label').value.trim();
+  const lossType=document.getElementById('ss-loss').value||null;
+  const isProd=document.getElementById('ss-prod').value==='true';
+  if(!name||!hex||!label){toast('Name, color and label required','err');return;}
+  if(!hex.match(/^#[0-9a-fA-F]{3,6}$/)){toast('Invalid color — use format #rrggbb','err');return;}
+  try{
+    let res;
+    if(_editingStatusCode!==null){
+      res=await fetch(`${API}/api/status-schema/${_editingStatusCode}`,{method:'PUT',headers:authHdr(),body:JSON.stringify({status_name:name,color_hex:hex,color_label:label,loss_type:lossType,is_production:isProd})});
+    } else {
+      if(isNaN(code)){toast('Status code required','err');return;}
+      res=await fetch(`${API}/api/status-schema/`,{method:'POST',headers:authHdr(),body:JSON.stringify({status_code:code,status_name:name,color_hex:hex,color_label:label,loss_type:lossType,is_production:isProd})});
+    }
+    if(!res.ok) throw new Error((await res.json()).detail);
+    toast('Status saved ✓ — all lines updated','ok');
+    closeModal('modal-status');loadStatusContent();
+  }catch(e){toast(e.message,'err');}
+}
+async function deactivateStatus(code){
+  if(!confirm(`Deactivate status ${code}? It will no longer show on dashboards.`))return;
+  try{
+    const res=await fetch(`${API}/api/status-schema/${code}`,{method:'DELETE',headers:authHdr()});
+    if(!res.ok) throw new Error((await res.json()).detail);
+    toast('Status deactivated','ok');loadStatusContent();
+  }catch(e){toast(e.message,'err');}
+}
+
+// ======================= AUDIT PAGE =======================
+async function auditPage(){
+  try{
+    const logs=await(await fetch(`${API}/api/audit?limit=100`,{headers:authHdr()})).json();
+    document.getElementById('content').innerHTML=`
+      <div class="page-header"><div><div class="page-title">Audit Log</div><div class="page-sub">Every admin action recorded</div></div></div>
+      <div class="card"><table class="tbl"><thead><tr><th>Timestamp</th><th>Action</th><th>Entity</th><th>Details</th></tr></thead><tbody>${(logs||[]).map(l=>`<tr><td class="mono" style="white-space:nowrap">${new Date(l.created_at).toLocaleString('en-IN')}</td><td class="mono" style="color:var(--blue);font-weight:600">${l.action}</td><td>${l.entity_type||'—'} ${l.entity_id?'#'+l.entity_id:''}</td><td style="color:var(--text-muted);font-size:11px">${l.details||''}</td></tr>`).join('')||'<tr><td colspan="4"><div class="empty"><div>No logs yet</div></div></td></tr>'}</tbody></table></div>`;
+  }catch(e){document.getElementById('content').innerHTML=`<div class="alert critical">Failed: ${e.message}</div>`;}
+}
+
+// ======================= USER MANAGEMENT PAGE =======================
+async function usersPage() {
+  if (USER_ROLE !== 'admin') {
+    document.getElementById('content').innerHTML = `<div class="alert critical">Access denied: admin only</div>`;
+    return;
+  }
+  document.getElementById('content').innerHTML = `<div class="empty"><div class="spinner"></div><div>Loading users...</div></div>`;
+  try {
+    const res = await fetch(`${API}/api/users`, { headers: authHdr() });
+    if (!res.ok) throw new Error(`HTTP ${res.status}: ${await res.text()}`);
+    const users = await res.json();
+    if (!Array.isArray(users)) throw new Error('Response is not an array');
+    const allLines = await fetch(`${API}/api/lines`, { headers: authHdr() }).then(r => r.json());
+
+    let html = `
+      <div class="page-header">
+        <div><div class="page-title">User Management</div><div class="page-sub">Create, edit roles, and assign lines to operators</div></div>
+        <button class="btn primary" onclick="openAddUserModal()">+ Add User</button>
+      </div>
+      <div class="card">
+        <table class="tbl">
+          <thead><tr><th>ID</th><th>Username</th><th>Role</th><th>Last Login</th><th>Created</th><th>Actions</th><th>Assigned Lines (Operators)</th></tr></thead>
+          <tbody>
+            ${users.map(u => `
+              <tr>
+                <td class="mono">${u.id}</td>
+                <td>${u.username}</td>
+                <td>
+                  <select onchange="updateUserRole(${u.id}, this.value)" ${u.username === 'admin' ? 'disabled' : ''}>
+                    <option value="admin" ${u.role==='admin' ? 'selected' : ''}>Admin</option>
+                    <option value="department" ${u.role==='department' ? 'selected' : ''}>Department</option>
+                    <option value="operator" ${u.role==='operator' ? 'selected' : ''}>Operator</option>
+                  </select>
+                </td>
+                <td class="mono">${u.last_login ? new Date(u.last_login).toLocaleString('en-IN') : 'Never'}</td>
+                <td class="mono">${new Date(u.created_at).toLocaleString('en-IN')}</td>
+                <td>${u.username !== 'admin' ? `<button class="btn sm danger" onclick="deleteUser(${u.id})">Delete</button>` : ''}</td>
+                <td>${u.role === 'operator' ? `<button class="btn sm" onclick="openAssignLinesModal(${u.id}, '${u.username}')">Assign Lines</button>` : '—'}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+    document.getElementById('content').innerHTML = html;
+  } catch(e) {
+    document.getElementById('content').innerHTML = `<div class="alert critical">Failed to load users: ${e.message}</div>`;
+  }
+}
+
+// User management functions
+function openAddUserModal() {
+  const modal = document.createElement('div');
+  modal.className = 'modal-bg open dynamic-modal';
+  modal.id = 'add-user-modal';
+  modal.innerHTML = `
+    <div class="modal">
+      <div class="modal-hdr"><div class="modal-title">Add User</div><button class="modal-x" onclick="closeModal('add-user-modal')">✕</button></div>
+      <div class="fgrid">
+        <div class="ff"><label>Username</label><input type="text" id="new-username" placeholder="username"></div>
+        <div class="ff"><label>Password</label><input type="password" id="new-password" placeholder="password"></div>
+        <div class="ff"><label>Role</label><select id="new-role"><option value="department">Department</option><option value="operator">Operator</option></select></div>
+      </div>
+      <div class="modal-act"><button class="btn" onclick="closeModal('add-user-modal')">Cancel</button><button class="btn primary" onclick="createUser()">Create</button></div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+}
+
+async function createUser() {
+  const username = document.getElementById('new-username').value.trim();
+  const password = document.getElementById('new-password').value;
+  const role = document.getElementById('new-role').value;
+  if (!username || !password) { toast('Username and password required', 'err'); return; }
+  try {
+    const res = await fetch(`${API}/api/users`, {
+      method: 'POST',
+      headers: authHdr(),
+      body: JSON.stringify({ username, password, role })
+    });
+    if (!res.ok) throw new Error((await res.json()).detail);
+    toast('User created ✓', 'ok');
+    closeModal('add-user-modal');
+    usersPage();
+  } catch(e) { toast(e.message, 'err'); }
+}
+
+async function updateUserRole(userId, newRole) {
+  try {
+    const res = await fetch(`${API}/api/users/${userId}/role`, {
+      method: 'PUT',
+      headers: authHdr(),
+      body: JSON.stringify({ role: newRole })
+    });
+    if (!res.ok) throw new Error((await res.json()).detail);
+    toast('Role updated', 'ok');
+    usersPage();
+  } catch(e) { toast(e.message, 'err'); }
+}
+
+async function deleteUser(userId) {
+  if (!confirm('Delete this user?')) return;
+  try {
+    const res = await fetch(`${API}/api/users/${userId}`, { method: 'DELETE', headers: authHdr() });
+    if (!res.ok) throw new Error((await res.json()).detail);
+    toast('User deleted', 'ok');
+    usersPage();
+  } catch(e) { toast(e.message, 'err'); }
+}
+
+async function openAssignLinesModal(userId, username) {
+  const allLines = await fetch(`${API}/api/lines`, { headers: authHdr() }).then(r => r.json());
+  const assigned = await fetch(`${API}/api/users/${userId}/lines`, { headers: authHdr() }).then(r => r.json());
+  const assignedSet = new Set(assigned);
+  const modal = document.createElement('div');
+  modal.className = 'modal-bg open dynamic-modal';
+  modal.id = 'assign-lines-modal';
+  modal.innerHTML = `
+    <div class="modal wide">
+      <div class="modal-hdr"><div class="modal-title">Assign Lines to ${username}</div><button class="modal-x" onclick="closeModal('assign-lines-modal')">✕</button></div>
+      <div style="max-height: 400px; overflow-y: auto;">
+        <div class="fgrid" id="assign-lines-grid">
+          ${allLines.map(line => `
+            <label style="display:flex; align-items:center; gap:8px;">
+              <input type="checkbox" value="${line.id}" ${assignedSet.has(line.id) ? 'checked' : ''}> ${line.line_name} (${line.line_code})
+            </label>
+          `).join('')}
+        </div>
+      </div>
+      <div class="modal-act"><button class="btn" onclick="closeModal('assign-lines-modal')">Cancel</button><button class="btn primary" onclick="saveLineAssignments(${userId})">Save</button></div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+}
+
+async function saveLineAssignments(userId) {
+  const checkboxes = document.querySelectorAll('#assign-lines-grid input:checked');
+  const lineIds = Array.from(checkboxes).map(cb => parseInt(cb.value));
+  try {
+    const res = await fetch(`${API}/api/users/${userId}/lines`, {
+      method: 'PUT',
+      headers: authHdr(),
+      body: JSON.stringify(lineIds)
+    });
+    if (!res.ok) throw new Error((await res.json()).detail);
+    toast('Line assignments saved', 'ok');
+    closeModal('assign-lines-modal');
+    usersPage();
+  } catch(e) { toast(e.message, 'err'); }
+}
+
+// ======================= HISTORICAL DATA PAGE =======================
+async function historicalDataPage() {
+    // Force fresh fetch of lines
+    await loadLines();
+    
+    document.getElementById('content').innerHTML = `
+        <div class="page-header">
+            <div>
+                <div class="page-title">Historical Data</div>
+                <div class="page-sub">Retrieve past production data by date, shift, and hour</div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-title">Data Retrieval</div>
+            <div class="fgrid">
+                <div class="ff">
+                    <label>Line</label>
+                    <select id="hist-line">
+                        <option value="">Select line...</option>
+                        ${LINES.map(l => `<option value="${l.id}">${escapeHtml(l.line_name)} (${escapeHtml(l.line_code)})</option>`).join('')}
+                    </select>
+                </div>
+                <div class="ff">
+                    <label>Date</label>
+                    <input type="date" id="hist-date" value="${new Date().toISOString().split('T')[0]}">
+                </div>
+                <div class="ff">
+                    <label>Shift</label>
+                    <select id="hist-shift">
+                        <option value="A">A Shift (08:30 - 17:15)</option>
+                        <option value="B">B Shift (18:30 - 03:15)</option>
+                    </select>
+                </div>
+                <div class="ff">
+                    <label>Hour Slot (optional)</label>
+                    <select id="hist-slot">
+                        <option value="">All slots</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-act" style="gap: 12px;">
+                <button class="btn primary" onclick="fetchHistoricalData()">🔍 Fetch Data</button>
+                <button class="btn" onclick="testHistoricalDebug()">🐛 Debug Database</button>
+            </div>
+        </div>
+        <div id="hist-results" style="display:none;"></div>
+    `;
+    
+    // Setup line change handler to load slots
+    const lineSelect = document.getElementById('hist-line');
+    if (lineSelect) {
+        lineSelect.onchange = async function() {
+            const lineId = this.value;
+            const slotSelect = document.getElementById('hist-slot');
+            
+            if (lineId) {
+                try {
+                    const lineDetail = await fetch(`${API}/api/lines/${lineId}`, {headers: authHdr()});
+                    if (lineDetail.ok) {
+                        const lineData = await lineDetail.json();
+                        const slots = lineData.hourly_slots || [];
+                        slotSelect.innerHTML = '<option value="">All slots</option>' + 
+                            slots.map(s => `<option value="${s.slot_label}">${s.slot_label}</option>`).join('');
+                    } else {
+                        slotSelect.innerHTML = '<option value="">All slots</option>';
+                    }
+                } catch(e) {
+                    console.error("Error loading slots:", e);
+                    slotSelect.innerHTML = '<option value="">All slots</option>';
+                }
+            } else {
+                slotSelect.innerHTML = '<option value="">All slots</option>';
+            }
+        };
+    }
+}
+
+async function fetchHistoricalData() {
+    const lineId = document.getElementById('hist-line').value;
+    const date = document.getElementById('hist-date').value;
+    const shift = document.getElementById('hist-shift').value;
+    const slot = document.getElementById('hist-slot').value;
+    
+    console.log(`Fetching historical data - Line: ${lineId}, Date: ${date}, Shift: ${shift}, Slot: ${slot}`);
+    
+    if(!lineId || !date) {
+        toast('Please select line and date', 'err');
+        return;
+    }
+    
+    let url = `${API}/api/lines/historical?line_id=${lineId}&date=${date}&shift_name=${shift}`;
+    if(slot && slot !== '') {
+        url += `&hour_slot=${encodeURIComponent(slot)}`;
+    }
+    
+    console.log(`Request URL: ${url}`);
+    
+    try {
+        const res = await fetch(url, {headers: authHdr()});
+        console.log(`Response status: ${res.status}`);
+        
+        if (!res.ok) {
+            const errorText = await res.text();
+            console.error(`Error response: ${errorText}`);
+            throw new Error(`HTTP ${res.status}: ${errorText}`);
+        }
+        
+        const data = await res.json();
+        console.log(`Response data:`, data);
+        
+        const resultsDiv = document.getElementById('hist-results');
+        
+        if(data.error) {
+            console.log(`API returned error: ${data.error}`);
+            resultsDiv.innerHTML = `<div class="alert warning">${data.error}</div>`;
+        } else if(slot && slot !== '') {
+            // Single slot view
+            console.log(`Slot data - Plan: ${data.plan}, Actual: ${data.actual}, OK: ${data.ok}, NG: ${data.ng}`);
+            resultsDiv.innerHTML = `
+                <div class="card">
+                    <div class="card-title">Hour Slot: ${slot}</div>
+                    <table class="tbl">
+                        <thead>
+                            <tr>
+                                <th>Metric</th>
+                                <th>Value</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Plan</td>
+                                <td class="mono">${data.plan || 0}</td>
+                            </tr>
+                            <tr>
+                                <td>Actual</td>
+                                <td class="mono">${data.actual || 0}</td>
+                            </tr>
+                            <tr>
+                                <td>Variance</td>
+                                <td class="mono ${data.variance < 0 ? 'red' : (data.variance > 0 ? 'green' : '')}">
+                                    ${data.variance > 0 ? '+' : ''}${data.variance || 0}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>OK Count</td>
+                                <td class="mono">${data.ok || 0}</td>
+                            </tr>
+                            <tr>
+                                <td>NG Count</td>
+                                <td class="mono">${data.ng || 0}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        } else {
+            // Full shift view
+            console.log(`Shift summary - OK: ${data.ok_count}, NG: ${data.ng_count}, OEE: ${data.overall_oee}`);
+            
+            // Get line details for slot names
+            const lineDetailRes = await fetch(`${API}/api/lines/${lineId}`, {headers: authHdr()});
+            const lineDetail = await lineDetailRes.json();
+            const slots = lineDetail.hourly_slots || [];
+            console.log(`Found ${slots.length} slots for line`);
+            
+            let slotHtml = '';
+            for(let slotConfig of slots) {
+                const prefix = slotConfig.db_column_prefix;
+                const plan = data[`${prefix}_plan`] || 0;
+                const actual = data[`${prefix}_actual`] || 0;
+                const variance = data[`${prefix}_variance`] || 0;
+                const ok = data[`${prefix}_ok`] || 0;
+                const ng = data[`${prefix}_ng`] || 0;
+                
+                console.log(`Slot ${slotConfig.slot_label} - Plan: ${plan}, Actual: ${actual}, OK: ${ok}, NG: ${ng}`);
+                
+                slotHtml += `
+                    <tr>
+                        <td class="mono">${slotConfig.slot_label}</td>
+                        <td class="mono">${plan}</td>
+                        <td class="mono">${actual}</td>
+                        <td class="mono ${variance < 0 ? 'red' : (variance > 0 ? 'green' : '')}">
+                            ${variance > 0 ? '+' : ''}${variance}
+                        </td>
+                        <td class="mono">${ok}</td>
+                        <td class="mono">${ng}</td>
+                    </tr>
+                `;
+            }
+            
+            resultsDiv.innerHTML = `
+                <div class="card">
+                    <div class="card-title">Shift Summary - ${date} ${shift} Shift</div>
+                    <div class="stats-row" style="grid-template-columns:repeat(4,1fr)">
+                        <div class="stat">
+                            <div class="stat-val">${data.ok_count || 0}</div>
+                            <div class="stat-lbl">OK Count</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-val">${data.ng_count || 0}</div>
+                            <div class="stat-lbl">NG Count</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-val">${data.overall_oee || 0}%</div>
+                            <div class="stat-lbl">OEE</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-val">${data.shift_plan_completed || 0}</div>
+                            <div class="stat-lbl">Plan Completed</div>
+                        </div>
+                    </div>
+                    <div class="card-title" style="margin-top:20px">Hourly Slots</div>
+                    <div style="overflow-x: auto;">
+                        <table class="tbl">
+                            <thead>
+                                <tr>
+                                    <th>Slot</th>
+                                    <th>Plan</th>
+                                    <th>Actual</th>
+                                    <th>Variance</th>
+                                    <th>OK</th>
+                                    <th>NG</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${slotHtml || '<tr><td colspan="6"><div class="empty">No slot data available</div></td></tr>'}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        }
+        resultsDiv.style.display = 'block';
+        
+    } catch(e) {
+        console.error(`Error fetching historical data: ${e.message}`);
+        toast('Error fetching data: ' + e.message, 'err');
+        document.getElementById('hist-results').innerHTML = `<div class="alert critical">Failed to fetch data: ${e.message}</div>`;
+        document.getElementById('hist-results').style.display = 'block';
+    }
+}
+
+async function testHistoricalDebug() {
+    const lineId = document.getElementById('hist-line').value;
+    const date = document.getElementById('hist-date').value;
+    const shift = document.getElementById('hist-shift').value;
+    
+    if(!lineId || !date) {
+        toast('Please select line and date', 'err');
+        return;
+    }
+    
+    toast('Checking database...', 'info');
+    
+    try {
+        const url = `${API}/api/lines/historical/debug?line_id=${lineId}&date=${date}&shift_name=${shift}`;
+        console.log(`Debug URL: ${url}`);
+        
+        const res = await fetch(url, {headers: authHdr()});
+        const data = await res.json();
+        
+        console.log("Debug data:", data);
+        
+        // Display the debug info
+        const resultsDiv = document.getElementById('hist-results');
+        resultsDiv.innerHTML = `
+            <div class="card">
+                <div class="card-title">Debug Information</div>
+                <div style="font-family: monospace; font-size: 12px; overflow-x: auto;">
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                </div>
+            </div>
+        `;
+        resultsDiv.style.display = 'block';
+        
+        if(data.error) {
+            toast(`Error: ${data.error}`, 'err');
+        } else {
+            toast(`Found data: OK=${data.latest_record?.ok_count || 0}`, 'ok');
+        }
+        
+    } catch(e) {
+        console.error("Debug error:", e);
+        toast('Debug failed: ' + e.message, 'err');
+    }
+}
+
+// ======================= IMPORT EXCEL PAGE =======================
+async function importExcelPage() {
+  document.getElementById('content').innerHTML = `
+    <div class="page-header">
+      <div><div class="page-title">Import Excel Data</div><div class="page-sub">Upload Excel files to import production data</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Upload File</div>
+      <div class="file-upload-area" id="file-upload-area" onclick="document.getElementById('excel-file').click()">
+        📁 Click or drag & drop Excel file here
+        <input type="file" id="excel-file" accept=".xlsx,.xls" style="display:none" onchange="handleFileUpload(this.files[0])">
+      </div>
+      <div class="ff"><label>Select Line</label><select id="import-line"><option value="">Select line...</option></select></div>
+      <div class="ff"><label>Select Shift</label><select id="import-shift"><option value="A">A Shift</option><option value="B">B Shift</option></select></div>
+      <div class="ff"><label>Record Date</label><input type="date" id="import-date"></div>
+      <div class="modal-act"><button class="btn primary" onclick="importExcelData()">📤 Import Data</button></div>
+    </div>
+    <div id="import-preview" style="display:none;"></div>
+  `;
+  
+  const lineSelect = document.getElementById('import-line');
+  lineSelect.innerHTML = '<option value="">Select line...</option>' + LINES.map(l => `<option value="${l.id}">${l.line_name}</option>`).join('');
+}
+
+let importedData = null;
+
+function handleFileUpload(file) {
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const data = new Uint8Array(e.target.result);
+    const workbook = XLSX.read(data, {type: 'array'});
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    importedData = XLSX.utils.sheet_to_json(sheet);
+    
+    const previewDiv = document.getElementById('import-preview');
+    previewDiv.innerHTML = `
+      <div class="card">
+        <div class="card-title">Preview (first 5 rows)</div>
+        <div style="overflow-x:auto"><table class="tbl"><thead><tr>${Object.keys(importedData[0] || {}).map(k => `<th>${k}</th>`).join('')}</tr></thead>
+        <tbody>${importedData.slice(0,5).map(row => `<tr>${Object.values(row).map(v => `<td>${v}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
+        <div class="alert info">📊 Loaded ${importedData.length} rows</div>
+      </div>
+    `;
+    previewDiv.style.display = 'block';
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+async function importExcelData() {
+  const lineId = document.getElementById('import-line').value;
+  const shift = document.getElementById('import-shift').value;
+  const date = document.getElementById('import-date').value;
+  
+  if(!lineId || !date || !importedData) {
+    toast('Please select line, date, and upload file', 'err');
+    return;
+  }
+  
+  try {
+    const res = await fetch(`${API}/api/import/excel`, {
+      method: 'POST',
+      headers: {...authHdr(), 'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        line_id: parseInt(lineId),
+        shift_name: shift,
+        record_date: date,
+        data: importedData
+      })
+    });
+    if(!res.ok) throw new Error(await res.text());
+    toast('Data imported successfully!', 'ok');
+    importedData = null;
+    document.getElementById('import-preview').style.display = 'none';
+  } catch(e) {
+    toast('Import failed: ' + e.message, 'err');
+  }
+}
+
+// ======================= SETTINGS PAGE =======================
+function settingsPage(){
+  document.getElementById('content').innerHTML=`
+    <div class="page-header"><div><div class="page-title">Settings</div></div></div>
+    <div class="card" style="max-width:460px"><div class="card-title">Change password</div>
+    <div class="fgrid"><div class="ff"><label>Current password</label><input type="password" id="pw-cur"></div><div class="ff"><label>New password</label><input type="password" id="pw-new"></div><div class="ff"><label>Confirm new</label><input type="password" id="pw-con"></div></div>
+    <div style="margin-top:18px"><button class="btn primary" onclick="changePassword()">Update password</button></div></div>
+    <div class="card" style="max-width:460px"><div class="card-title">System info</div>
+    <div style="font-family:var(--mono);font-size:12px;color:var(--text-muted);line-height:2.2"><div>Platform  <span style="color:var(--text-primary);font-weight:600">Toyota Boshoku Device India Pvt. Ltd.</span></div><div>Location  <span style="color:var(--text-primary)">Bawal, Haryana</span></div><div>Backend   <span style="color:var(--text-primary)">${window.location.host}</span></div><div>Version   <span style="color:var(--blue);font-weight:600">v2.0</span></div></div></div>`;
+}
+async function changePassword(){
+  const cur=document.getElementById('pw-cur').value,nw=document.getElementById('pw-new').value,con=document.getElementById('pw-con').value;
+  if(nw!==con){toast('Passwords do not match','err');return;}if(nw.length<6){toast('Min 6 characters','err');return;}
+  try{const res=await fetch(`${API}/api/auth/change-password`,{method:'POST',headers:authHdr(),body:JSON.stringify({current_password:cur,new_password:nw})});if(!res.ok)throw new Error((await res.json()).detail);toast('Password changed ✓','ok');['pw-cur','pw-new','pw-con'].forEach(id=>document.getElementById(id).value='');}catch(e){toast(e.message,'err');}
+}
+
+// ======================= UTILITIES =======================
+function openModal(id){
+  const modal = document.getElementById(id);
+  if(modal) modal.classList.add('open');
+}
+function closeModal(id){
+  const modal = document.getElementById(id);
+  if(modal) {
+    modal.classList.remove('open');
+    if(modal.classList.contains('dynamic-modal')) {
+      modal.remove();
+    }
+  }
+}
+function openFullScreen(lineId) {
+    const url = `/fullscreen.html?line_id=${lineId}`;
+    window.open(url, '_blank');
+}
+function toast(msg,type='info'){
+  const wrap=document.getElementById('toast-wrap');const el=document.createElement('div');
+  el.className=`toast ${type}`;el.textContent=msg;wrap.appendChild(el);
+  setTimeout(()=>{el.style.opacity='0';el.style.transition='opacity .3s';},2800);
+  setTimeout(()=>el.remove(),3200);
+}
+
+document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.modal-bg.open').forEach(m=>m.classList.remove('open'))});
+document.querySelectorAll('.modal-bg').forEach(bg=>bg.addEventListener('click',e=>{if(e.target===bg)bg.classList.remove('open')}));
+
+window.onload = async () => {
+    document.getElementById('l-user').value = '';
+    document.getElementById('l-pass').value = '';
+    
+    // Restore last page from localStorage
+    const savedPage = localStorage.getItem('currentPage');
+    if (savedPage) currentPage = savedPage;
+    
+    if (TOKEN) {
+        try {
+            const res = await fetch(`${API}/api/auth/me`, { headers: authHdr() });
+            if (res.ok) {
+                const me = await res.json();
+                document.getElementById('tb-username').textContent = me.username;
+                USER_ROLE = me.role;
+                USER_ID = me.id;
+                localStorage.setItem('user_role', USER_ROLE);
+                localStorage.setItem('user_id', USER_ID);
+                document.getElementById('login-screen').style.display = 'none';
+                document.getElementById('app').style.display = 'flex';
+                applyRolePermissions();
+                await init();
+                // Navigate to saved page or dashboard
+                navTo(currentPage || 'dashboard');
+                return;
+            }
+        } catch { }
+        TOKEN = '';
+        localStorage.removeItem('mes_token');
+        localStorage.removeItem('user_role');
+        localStorage.removeItem('user_id');
+    }
+};
+</script>
+</body>
+</html>
