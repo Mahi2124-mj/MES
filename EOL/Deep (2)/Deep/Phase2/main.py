@@ -59,6 +59,7 @@ from routers.maintenance_kpi import router as maintenance_kpi_router
 from routers.capa            import router as capa_router
 from routers.quality         import router as quality_router
 from routers.wallboard       import router as wallboard_router
+from routers.n8n_bridge      import router as n8n_bridge_router
 
 # ── App ────────────────────────────────────────────────────────
 app = FastAPI(
@@ -122,6 +123,7 @@ app.include_router(five_s_router)
 app.include_router(pdca_router)
 app.include_router(cms_sync_router)   # NF2/CMS bidirectional sync (loopback-only)
 app.include_router(wallboard_router)  # 65" portrait wall-display feeders
+app.include_router(n8n_bridge_router) # AI Incident Intelligence (n8n + Neon.tech)
 
 
 @app.on_event("startup")
@@ -220,6 +222,9 @@ def upsert_oee_alarm(body: _OEEAlarmCfg, admin=Depends(require_admin)):
 def run_migrations():
     """Apply any pending schema changes that are safe to run on every startup."""
     migrations = [
+        # ── n8n AI bridge — stores AI root-cause + remediation per breakdown ──
+        "ALTER TABLE mes_breakdowns ADD COLUMN IF NOT EXISTS ai_analysis JSONB",
+        "ALTER TABLE mes_breakdowns ADD COLUMN IF NOT EXISTS ai_analysed_at TIMESTAMPTZ",
         "ALTER TABLE mes_lines ADD COLUMN IF NOT EXISTS current_shift_row_id INTEGER",
         "ALTER TABLE mes_lines ADD COLUMN IF NOT EXISTS ot_active_shift VARCHAR(10)",
         "ALTER TABLE mes_lines ADD COLUMN IF NOT EXISTS ot_start_a TIME",
