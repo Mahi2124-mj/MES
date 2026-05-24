@@ -114,10 +114,10 @@ def wallboard_cycles(
         if not shift:
             return []          # no shift active → empty wallboard
 
-        # mes_submachine_ct_log doesn't have is_ng (sub-machines don't
-        # report NG via their own bit; they're upstream stations).  Just
-        # build cycle dots with ct + cycle_seq; the LEFT dashboard's
-        # color coding uses "ct > ideal_ct" as the spike threshold.
+        # 2026-05-24 — mes_submachine_ct_log NOW has is_ng (we added it
+        # to write NG rows from sub-machine pollers' L109 reads).  Include
+        # it in the cycles JSON so the wallboard chart can render red
+        # ⚠ markers on NG dots.
         cur.execute("""
             SELECT p.id                  AS sub_id,
                    p.machine_name,
@@ -127,7 +127,8 @@ def wallboard_cycles(
                        jsonb_build_object(
                            'cycle_seq', l.cycle_seq,
                            'ts',        l.ts_end,
-                           'ct',        l.ct_seconds
+                           'ct',        l.ct_seconds,
+                           'is_ng',     COALESCE(l.is_ng, FALSE)
                        ) ORDER BY l.cycle_seq
                    ) FILTER (WHERE l.id IS NOT NULL), '[]'::jsonb) AS cycles
             FROM mes_plc_configs p

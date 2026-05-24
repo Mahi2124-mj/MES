@@ -438,6 +438,7 @@ def load_submachines(main_plc_id: int) -> list:
         cur.execute("""
             SELECT id, plc_ip, plc_port, line_id,
                    NULLIF(TRIM(ok_bit_address), '') AS count_bit,
+                   NULLIF(TRIM(ng_bit_address), '') AS ng_bit,
                    ideal_cycle_time                 AS ideal_ct,
                    machine_name,
                    COALESCE(sa_enabled, FALSE)      AS sa_enabled,
@@ -571,8 +572,20 @@ class PokaYokeMonitor:
         # fires.  Natural toggle resets the timer + clears the email flag.
         # No PLC writes — collector NEVER overwrites sensor bits.
         self._x_state:             dict  = {}   # {x_bit → state dict}
-        self._x_track_interval:    float = 1.0
+        # 2026-05-22 — Sweep cadence reduced 1.0 → 0.2 sec to catch
+        # short sensor pulses (typical part-pass = 50-500ms).  Earlier
+        # 1-sec sweep missed any toggle shorter than 1 sec, leading to
+        # "sensor stuck" false positives even when the bit was actually
+        # firing 200ms pulses on every cycle.  Publishing rate stays
+        # at 10s (backend doesn't need 5Hz updates — just the sweep
+        # internal state needs to track every toggle).
+        self._x_track_interval:    float = 0.2   # was 1.0
         self._x_track_last:        float = 0.0
+        # 2026-05-22 — Track toggle count per bit per minute so the
+        # operator can see "is this sensor actually firing per cycle?"
+        # at a glance.  Reset every 60s.
+        self._x_toggle_counts:     dict  = {}    # {x_bit → int}
+        self._x_toggle_window_ts:  float = 0.0
         self._publish_interval:    float = 10.0
         self._publish_last:        float = 0.0
         self._stuck_threshold_sec: int   = 900   # 15 min — email after this
@@ -808,6 +821,16 @@ class PokaYokeMonitor:
             _re.IGNORECASE,
         )
 
+        # 2026-05-23 — Track per-call read success/fail so we can raise
+        # when EVERY read in this call dies (signals connection dropped).
+        # PY-CHECK loop's reconnect block runs only when an exception
+        # bubbles up; without this signal the silent `continue` swallowed
+        # all-dead-connection cases and the thread limped forward with
+        # zero successful reads for hours.
+        _pyb_total_reads = 0
+        _pyb_failed_reads = 0
+        _pyb_last_err = ""
+
         for py in self._py_configs:
             raw = (py.get("register_addr") or "").upper()
             regs = REG_RE.findall(raw)
@@ -833,6 +856,7 @@ class PokaYokeMonitor:
             for reg in regs:
                 prefix = reg[0].upper()
                 is_bit = prefix in BIT_PREFIXES
+                _pyb_total_reads += 1
                 try:
                     if is_bit:
                         vals = plc.batchread_bitunits(headdevice=reg, readsize=1)
@@ -841,6 +865,8 @@ class PokaYokeMonitor:
                     code = int(vals[0] or 0)
                 except Exception as e:
                     print(f"[POKA-BYPASS] PLC read {reg} failed: {e}")
+                    _pyb_failed_reads += 1
+                    _pyb_last_err = f"{reg}: {str(e)[:60]}"
                     continue
 
                 key = (py["py_no"], current_model_bit, reg)
@@ -857,7 +883,19 @@ class PokaYokeMonitor:
                         continue
                     human_actual = "ON" if code == 1 else "OFF"
                 else:
-                    match = (code in expected)
+                    # 2026-05-23 — PASS auto-clear.  PLC writes code 0 to
+                    # D-register when the cycle is PASS (sensor not flagged
+                    # / inspection idle).  Operator reported: "D401 abhi
+                    # check kya uspr kuch bhi nhi hai phir failed dikha
+                    # deta hai" — the dashboard alarm was staying latched
+                    # even after the PLC went back to PASS, because code 0
+                    # ≠ expected {2}.  Treat 0 as an explicit PASS so the
+                    # alarm clears the moment the PLC moves on from the
+                    # transient bad value.
+                    if code == 0:
+                        match = True
+                    else:
+                        match = (code in expected)
                     human_actual   = self._decode_code(code, reg_cnt)
                     human_expected = " | ".join(
                         self._decode_code(c, reg_cnt) for c in sorted(expected))
@@ -916,6 +954,16 @@ class PokaYokeMonitor:
                     )
                 except Exception as e:
                     print(f"[POKA-BYPASS] Event post failed: {e}")
+
+        # 2026-05-23 — ALL-FAIL ESCALATION (mirror of track_sensors_health).
+        # If every single PLC read in this call failed, the connection is
+        # dead — raise so PY-CHECK loop's reconnect block actually runs.
+        if _pyb_total_reads > 0 and _pyb_failed_reads == _pyb_total_reads:
+            raise RuntimeError(
+                f"All {_pyb_failed_reads} bypass-check reads failed "
+                f"(connection appears dead). Last error: "
+                f"{_pyb_last_err or 'unknown'}"
+            )
 
     # ── Sensor Health — passive X-bit monitoring (READ-ONLY, no PLC writes) ─
     #
@@ -1079,15 +1127,42 @@ class PokaYokeMonitor:
                 state["stuck_emailed"]  = False
                 if state["status"] == "stuck":
                     state["status"] = "alive"
+                # 2026-05-22 — Per-minute toggle counter for diagnostics.
+                # Operator can see "is X15 firing on every cycle?"
+                # without waiting for the stuck-threshold to flip.
+                self._x_toggle_counts[bit] = self._x_toggle_counts.get(bit, 0) + 1
 
-            # Stuck > threshold → flag + 1 email.  Purely passive.
+            # 2026-05-21 / 2026-05-22 — PRODUCTION-WINDOW GATE.
+            # Sensors only toggle when parts move through the line.  When
+            # the line is IDLE / BREAKDOWN / SCHEDULED-BREAK / SHIFT-GAP,
+            # "no toggle" is the expected resting state — NOT a fault.
+            # Operator complaint after 2026-05-22 morning: tea break
+            # (10:00-10:10) flagged all 9 sensors as "stuck for 16 min"
+            # because the earlier fix only checked `is_running` — PLC
+            # often holds is_running=True during a tea break (machine
+            # READY but operators away).  The fix now also honours the
+            # SAME gate `_should_record_pulse()` uses for cycle counts:
+            # skip stuck escalation during break + gap windows AND while
+            # is_running is False.
+            # Engine pushes its production-window state onto the Poka
+            # instance just before each call (see PY-CHECK loop in
+            # CollectorEngine._tick) so this method doesn't need to call
+            # back into the engine.
+            should_track = bool(getattr(self, "sensors_should_track", True))
+            if not should_track:
+                # Slide the toggle anchor forward so elapsed stays 0
+                # while not producing.  No status transition possible.
+                state["last_toggle_ts"] = now
+                continue
+
+            # Stuck > threshold → flag + 1 email.  Only while running.
             elapsed = now - state["last_toggle_ts"]
             if state["status"] == "alive" and elapsed > self._stuck_threshold_sec:
                 state["status"] = "stuck"
                 if not state["stuck_emailed"]:
                     self._fire_health_event(
                         bit,
-                        f"{bit}:no-toggle for {int(elapsed)}s "
+                        f"{bit}:no-toggle for {int(elapsed)}s during RUNNING "
                         f"(>{self._stuck_threshold_sec}s threshold)",
                         py,
                     )
@@ -1104,6 +1179,38 @@ class PokaYokeMonitor:
                 if read_fail and last_err:
                     msg += f" lastErr={last_err}"
                 print(msg, flush=True)
+
+        # 2026-05-23 — CRITICAL ALL-FAIL ESCALATION.
+        # Operator complaint: sensors all stuck since 09:16 (1h 36m no
+        # update) despite PY-CHECK thread running.  Root cause: every
+        # PLC read here was catching its own exception with `continue`,
+        # so the function returned normally even when EVERY read failed.
+        # PY-CHECK loop's reconnect logic depends on tick_exc being set
+        # by this function — without that signal, the dead connection
+        # was never replaced and stayed dead all day.
+        # Fix: when read_fail equals the number of bits attempted AND
+        # read_ok is zero (= dead connection, not just one bad bit),
+        # raise the last exception so the PY-CHECK reconnect block
+        # actually runs.  Single-bit failures still continue silently
+        # (might just be a misconfigured X-bit address).
+        if py_by_xbit and read_ok == 0 and read_fail == len(py_by_xbit):
+            raise RuntimeError(
+                f"All {read_fail} sensor reads failed (connection appears "
+                f"dead). Last error: {last_err or 'unknown'}"
+            )
+
+        # 2026-05-22 — Per-minute toggle-rate log.  Helps operator verify
+        # each sensor is actually firing on cycles.  Resets every 60s.
+        if self._x_toggle_window_ts == 0.0:
+            self._x_toggle_window_ts = now
+        elif now - self._x_toggle_window_ts >= 60.0:
+            if self._x_toggle_counts:
+                items = sorted(self._x_toggle_counts.items())
+                summary = " ".join(f"{b}={n}" for b, n in items)
+                print(f"[POKA-TOGGLE] last 60s edges per bit: {summary}",
+                      flush=True)
+            self._x_toggle_counts.clear()
+            self._x_toggle_window_ts = now
 
     def _publish_health_snapshot(self, now: float, py_by_xbit: dict):
         from datetime import datetime as _dt
@@ -1293,6 +1400,9 @@ class CollectorEngine:
         self._last_ng_state = 0
         self._last_ok_time  = None
         self._last_ng_time  = None
+        # 2026-05-24 — Persists across NG events to compute inter-NG CT.
+        # Hydrated from DB on _connect_db so first NG after restart isn't 0.
+        self._last_ng_time_for_ct = None
         # Unconditional L108-edge observer (2026-05-16) — captures every
         # rising edge regardless of status gating.  _update_status uses
         # this as a truth-detector to override PLC's D6005 when the
@@ -1311,6 +1421,14 @@ class CollectorEngine:
         self._ng_seen_since_last_ok  = False
         self._ng_consec_count        = 0
         self._ng_stuck_alarm_fired   = False
+        # 2026-05-23 Option-C — bi-directional ladder filter state.
+        # When L109 rises and the look-back check passes (no L108 within
+        # NG_LADDER_WINDOW_SEC before it), we DEFER the NG commit by
+        # the same window and watch for an L108 follow-up.  If L108
+        # fires within the window → ladder echo, drop.  Otherwise →
+        # real operator NG, flush.  Single slot — bursts collapse to
+        # one pending event (the most recent overrides).
+        self._pending_ng             = None   # {ts, part_code} or None
         self._pulse_gap     = self.cfg["pulse_gap"]
         # Legacy NG-hold state kept for compatibility with the
         # _load_shift_from_db restore path (referenced indirectly via
@@ -1467,6 +1585,25 @@ class CollectorEngine:
             self._db.cursor().execute("SELECT 1")
             self._db_ok = True
             print(f"[DB] Connected")
+            # 2026-05-24 — Hydrate last NG timestamp so the first NG row
+            # written after a collector restart has a real inter-NG CT
+            # (not 0).  Same idea as the sub-machine hydrate.
+            try:
+                _hc = self._db.cursor()
+                _hc.execute(
+                    f"SELECT MAX(ts) FROM {self.cfg['table_name']}_ct_log "
+                    "WHERE record_date = CURRENT_DATE AND is_ng = true"
+                )
+                _r = _hc.fetchone()
+                if _r and _r[0]:
+                    self._last_ng_time_for_ct = _r[0].timestamp()
+                    print(f"[MAIN] hydrated last_ng_for_ct = {_r[0]}",
+                          flush=True)
+                _hc.close()
+            except Exception as _e:
+                print(f"[MAIN] hydrate failed: {_e}")
+                try: self._db.rollback()
+                except Exception: pass
             return True
         except Exception as e:
             self._db_ok = False
@@ -1623,16 +1760,38 @@ class CollectorEngine:
 
         def _safe_bit(addr, key, keep_last):
             nonlocal failures, first_err
-            try:
-                v = self._plc.batchread_bitunits(headdevice=addr, readsize=1)
-                if v:
-                    data[key] = int(v[0])
-                elif not keep_last:
-                    data[key] = 0
-            except Exception as e:
-                failures += 1
-                if first_err is None:
-                    first_err = (key, e)
+            # 2026-05-23 — RETRY-ONCE on transient bit-read failure.
+            # Single-packet glitches over LAN (~1-2 ms loss / TCP retransmit)
+            # were silently setting L108/L109 to 0, dropping rising edges.
+            # Operator: "merge ho hi kyu rhi hai... koii merging nhi" — root
+            # cause is read miss, not edge logic.  Two reads × ~5 ms is
+            # still well under the 30 ms poll budget and the PLC pulse is
+            # multi-hundred-ms HIGH, so a retry sees the true bit state.
+            _last_err = None
+            for _try in range(2):
+                try:
+                    v = self._plc.batchread_bitunits(headdevice=addr, readsize=1)
+                    if v:
+                        data[key] = int(v[0])
+                    elif not keep_last:
+                        data[key] = 0
+                    return
+                except Exception as e:
+                    _last_err = e
+                    if _try == 0:
+                        continue
+            # both reads failed — count + log + (silently zero unless keep_last)
+            failures += 1
+            if first_err is None:
+                first_err = (key, _last_err)
+            _now = time.time()
+            _attr = f"_safe_bit_last_log_{key}"
+            _last = getattr(self, _attr, 0)
+            if _now - _last > 5.0:
+                setattr(self, _attr, _now)
+                print(f"[PLC-HALF-FAIL] {key}={addr} read failed 2x: "
+                      f"{str(_last_err)[:80]}  (rising edge happening "
+                      f"RIGHT NOW would be lost). Throttled 5s.", flush=True)
 
         # Status: keep last on empty/error so we don't accidentally
         # publish IDLE after a transient miss.
@@ -2261,6 +2420,27 @@ class CollectorEngine:
                   f"{datetime.now().strftime('%H:%M:%S.%f')[:-3]} "
                   f"(running={self._cur_status == 1}, "
                   f"should_record={self._should_record_pulse()})", flush=True)
+            # 2026-05-23 — mes_pulse_log raw write (PARALLEL to legacy
+            # _update_counts logic).  ZERO gating: every L108 rise
+            # observed here goes into the audit table, period.  CT =
+            # delta from the last OK rise on this machine.
+            try:
+                _now_dt = datetime.now()
+                _prev_ts = getattr(self, "_pulse_main_last_ok_ts", None)
+                _ct = (_now_dt - _prev_ts).total_seconds() if _prev_ts else None
+                self._pulse_main_last_ok_ts = _now_dt
+                _pc = (self._cur_part_code or "").strip().rstrip(":") or None
+                # Per-machine L6 table (replaces mes_pulse_log).
+                self._write_machine_log(
+                    machine_id   = int(self.cfg.get("main_plc_id") or self.cfg["line_id"]),
+                    bit_type     = "OK",
+                    bit_address  = self.cfg.get("ok_bit") or "L108",
+                    ts           = _now_dt,
+                    ct_seconds   = _ct,
+                    part_code    = _pc,
+                )
+            except Exception as _e:
+                pass
         elif self._last_ok_state == 1 and ok_bit == 0:
             print(f"[OK-RAW-WATCH] L108 1->0 at "
                   f"{datetime.now().strftime('%H:%M:%S.%f')[:-3]}", flush=True)
@@ -2332,6 +2512,22 @@ class CollectorEngine:
             print(f"[NG-RAW-WATCH] L109 0->1 at "
                   f"{datetime.now().strftime('%H:%M:%S.%f')[:-3]} "
                   f"(running={self._cur_status == 1})", flush=True)
+            # 2026-05-23 — mes_pulse_log NG raw write.  Operator spec:
+            # NG row carries timestamp + ng_counter + barcode (part_code).
+            # CT for NG = NULL (NG can fire mid-cycle; meaningless).
+            try:
+                _now_dt = datetime.now()
+                _pc = (self._cur_part_code or "").strip().rstrip(":") or None
+                self._write_machine_log(
+                    machine_id   = int(self.cfg.get("main_plc_id") or self.cfg["line_id"]),
+                    bit_type     = "NG",
+                    bit_address  = self.cfg.get("ng_bit") or "L109",
+                    ts           = _now_dt,
+                    ct_seconds   = None,
+                    part_code    = _pc,
+                )
+            except Exception:
+                pass
         elif self._last_ng_state == 1 and ng_bit == 0:
             held = now - getattr(self, "_ng_raw_rise_ts", now)
             print(f"[NG-RAW-WATCH] L109 1->0 at "
@@ -2405,188 +2601,325 @@ class CollectorEngine:
         # The flag persists until the next L108 commits, so a real NG press
         # is never lost regardless of status flapping mid-cycle.
         #
-        # 2026-05-18-r4 — DWELL-DEBOUNCE for L109 chatter.
-        # Operator reported 94 NGs in a shift when actual was 2-3
-        # ("BHAI EK TOH SHIRFT MEIN 94 ng PART NON PRACTICAL HAI ZAROOR
-        # KOII GLITCH HAI ISKO SHI KRR").  Root cause: L109 wire has
-        # electrical chatter — quick 0->1->0 transitions <200ms that
-        # are NOT real operator presses.  Each chatter pulse used to
-        # set _ng_seen_since_last_ok, marking the next cycle as NG.
-        # Fix: require L109 to stay HIGH for at least NG_MIN_HOLD_POLLS
-        # consecutive polls (default 3 = 300ms at 100ms poll cadence)
-        # before treating it as a real press.  Real button presses are
-        # ALWAYS > 300ms; chatter is < 200ms.  Tunable via env
-        # MES_NG_MIN_HOLD_POLLS for plant-specific noise levels.
-        NG_MIN_HOLD_POLLS = max(2, int(_os.environ.get("MES_NG_MIN_HOLD_POLLS", "3")))
+        # 2026-05-23 — DWELL REMOVED.  Operator demand: "koii hold nhi
+        # lgana bss ye dekhna hai ki itne N kaa cause kya tha — agr tu
+        # hold lga dega toh point kya hai hme real-time mein accurate
+        # hona hai".  Pure rising-edge counting now.  Every 0→1 of L109
+        # outside a scheduled break is a candidate NG, full stop.
+        # The stuck-bit guard further down (NG_STUCK_CYCLES) is the
+        # ONLY safety net — it caps RUNAWAY ladder behavior, not noise.
+        #
+        # To diagnose phantom-NG bursts WITHOUT suppressing them, every
+        # L109 rising edge is now written to a dedicated JSONL forensic
+        # file with full context (cycle-relative timing, status, model,
+        # part code, PLC health).  When operator reports "30 NG aaye",
+        # we open _ng_forensics_{date}_{shift}.jsonl and pattern-match
+        # the cause (electrical noise vs ladder bug vs status flap vs
+        # real operator press).
+        NG_MIN_HOLD_POLLS = 1   # pure real-time, no dwell
 
-        # Update the hold-counter every poll.  Increments while L109=1,
-        # resets to 0 on falling edge.  We log a chatter-drop when the
-        # falling edge arrives BEFORE the dwell threshold so operator
-        # can audit "kya chatter aaya ya real press".
+        # Keep _ng_hold_polls counter alive for the rest of the logic
+        # below (it still uses it as a sanity check inside the L108
+        # commit branch).  No drops are logged here — the forensic
+        # logger captures everything.
         if ng_bit == 1:
             self._ng_hold_polls = getattr(self, "_ng_hold_polls", 0) + 1
         else:
             held_polls = getattr(self, "_ng_hold_polls", 0)
-            if 0 < held_polls < NG_MIN_HOLD_POLLS:
-                print(f"[NG-CHATTER-DROP] L109 high for only {held_polls} "
-                      f"poll(s) (<{NG_MIN_HOLD_POLLS} = "
-                      f"{NG_MIN_HOLD_POLLS*100}ms) at "
-                      f"{datetime.now().strftime('%H:%M:%S.%f')[:-3]} "
-                      f"— filtered as electrical chatter, NOT counted as NG.",
-                      flush=True)
+            # FALLING-EDGE FORENSICS — captures the actual L109 dwell time
+            # for the just-completed press.  Combined with the rising-edge
+            # log line, this gives a complete pulse picture per NG event.
+            if held_polls > 0:
+                try:
+                    import json as _json_ng
+                    _hold_ms = held_polls * 100
+                    _ev = {
+                        "ts": datetime.now().isoformat(timespec="milliseconds"),
+                        "kind": "L109_fall",
+                        "hold_ms": _hold_ms,
+                        "hold_polls": held_polls,
+                        "cur_status": self._cur_status,
+                        "in_break": in_break,
+                        "is_running": is_running,
+                        "model": self._cur_model_name,
+                        "part_code": self._cur_part_code,
+                        "since_last_ok_s": round(
+                            time.time() - (self._last_ok_time or 0), 3
+                        ) if self._last_ok_time else None,
+                        "ng_seen_pending": bool(self._ng_seen_since_last_ok),
+                        "plc_ok": bool(self._plc_ok),
+                    }
+                    self._ng_forensic_write(_ev)
+                except Exception:
+                    pass
             self._ng_hold_polls = 0
 
-        # Set _ng_seen_since_last_ok only on the EXACT poll that crosses
-        # the dwell threshold.  After that the flag sustains via the
-        # existing latch logic (cleared only at the next L108 commit).
-        # Keeping the threshold-edge guard avoids re-printing the
-        # NG-EDGE-PRESERVE log every subsequent poll while L109 stays HIGH.
-        if (getattr(self, "_ng_hold_polls", 0) == NG_MIN_HOLD_POLLS
-                and not in_break):
+        # 2026-05-23 — real-time NG accept: ANY L109 rising edge outside
+        # a scheduled break sets the cycle's NG flag.  No dwell wait —
+        # the operator wants every press visible the instant it happens.
+        # The forensic JSONL writer captures the rising edge with full
+        # context (so post-mortem can tell ladder pulse from real press).
+        if _ng_edge_now and not in_break:
             if not self._ng_seen_since_last_ok:
-                print(f"[NG-EDGE-PRESERVE] L109 held {NG_MIN_HOLD_POLLS} "
-                      f"polls ({NG_MIN_HOLD_POLLS*100}ms) at "
-                      f"{datetime.now().strftime('%H:%M:%S.%f')[:-3]} "
-                      f"(is_running={is_running}) — real NG press, flag "
-                      f"set so the next L108 commit lands as NG.",
-                      flush=True)
+                try:
+                    import json as _json_ng2
+                    _ev2 = {
+                        "ts": datetime.now().isoformat(timespec="milliseconds"),
+                        "kind": "L109_rise",
+                        "cur_status": self._cur_status,
+                        "is_running": is_running,
+                        "model": self._cur_model_name,
+                        "part_code": self._cur_part_code,
+                        "since_last_ok_s": round(
+                            time.time() - (self._last_ok_time or 0), 3
+                        ) if self._last_ok_time else None,
+                        "ok_bit_now": ok_bit,
+                        "plc_ok": bool(self._plc_ok),
+                    }
+                    self._ng_forensic_write(_ev2)
+                except Exception:
+                    pass
             self._ng_seen_since_last_ok = True
 
         # ────────────────────────────────────────────────────────────
-        # OK / NG COUNTING — final design (2026-05-16 v3)
+        # OK / NG — PURE RADIO BUTTON MODEL (2026-05-23, operator spec)
         # ────────────────────────────────────────────────────────────
-        # The PLC ladder for L109 is unreliable across model changes /
-        # ladder edits.  Every previous attempt (edge-trigger, 5 s hold,
-        # 2.5 s + 30 s gap) eventually broke:
-        #   • Brief 0.4-0.8 s real NG presses → missed entirely.
-        #   • L109 stuck HIGH for 15 min      → 30+ phantom NGs.
-        #   • Per-cycle ladder pulse of 1.4 s → 50x over-counting.
-        #
-        # **NEW MODEL — CYCLE-BOUND**:
-        # Each L108 rising edge represents ONE completed cycle = ONE
-        # part.  That cycle is labelled OK or NG based on whether L109
-        # was observed HIGH at ANY point between this L108 and the
-        # previous one (or HIGH at this exact instant).  L109 timing
-        # noise is irrelevant — even a single 30 ms blip flags the
-        # cycle as NG.  Stuck L109 is detected separately and clamped.
-        #
-        # Guarantees:
-        #   1. Real NG button press of any duration  →  +1 NG  ✓
-        #   2. L109 stuck high (ladder bug)          →  capped at
-        #      MES_NG_STUCK_CYCLES consecutive NGs, then forced OK
-        #      with one-shot alarm in collector log.  Resets when
-        #      L109 goes LOW for a full cycle.
-        #   3. L109 never fires                      →  all OK    ✓
-        #   4. Each cycle produces EXACTLY ONE count (OK or NG),
-        #      so actual == ok + ng always holds.
-        #
-        # Env override (optional): MES_NG_STUCK_CYCLES (default 8).
-        NG_STUCK_CYCLES = int(_os.environ.get("MES_NG_STUCK_CYCLES", "8"))
-
+        # "2 button hai 10 light hai, pehle button on hua to 6 light, dusra
+        # button on hua to 4 light — same OK and NG as radio".
+        # L108 and L109 = two independent radio buttons.  Each rise gets
+        # counted INSTANTLY as its own row.  No filter, no wait, no
+        # cross-check.  PLC is the source of truth — collector just
+        # records what the bits say.
         if is_running:
-            # ── (A) [removed] The rising-edge flag-set used to live here.
-            # As of 2026-05-18-r4 the dwell-debounce block above is the
-            # SOLE place that sets `_ng_seen_since_last_ok`.  Any edge
-            # shorter than NG_MIN_HOLD_POLLS polls is treated as chatter
-            # and discarded — the previous "any edge → NG" behaviour
-            # was producing 30-90x phantom NGs per shift.  Keep the
-            # gate-aware [NG-RAW-WATCH] observer above intact for
-            # diagnostic continuity.
-
-            # ── (B) L108 rising edge = cycle complete — count as OK or NG.
+            # L108 rising edge → +1 OK row
             if self._last_ok_state == 0 and ok_bit == 1:
-                if (self._last_ok_time is None or
-                        now - self._last_ok_time >= self._pulse_gap):
-                    pass  # accepted — fall through to count
-                else:
-                    # Edge arrived inside the de-bounce window.  At 5s+
-                    # cycle times this should never happen, so log if it
-                    # does — it's a sign of bit chatter or wrong pulse_gap.
-                    print(f"[COUNT-SKIP] L108 edge ignored — within "
-                          f"pulse_gap={self._pulse_gap}s of previous edge "
-                          f"(gap was {(now - (self._last_ok_time or 0)):.3f}s)",
-                          flush=True)
-                if (self._last_ok_time is None or
-                        now - self._last_ok_time >= self._pulse_gap):
-                    # Decide: NG only if the dwell-debounced flag was
-                    # set this cycle (any L109 high-stretch >= dwell)
-                    # OR L109 is currently HIGH and has been HIGH long
-                    # enough to clear the dwell.  The raw `ng_bit == 1`
-                    # check is no longer trusted on its own — chatter
-                    # that happened to coincide with the L108 instant
-                    # used to mark the cycle NG, producing 94 phantom
-                    # NGs in a single shift.  Now we require sustained
-                    # L109 high (>= NG_MIN_HOLD_POLLS polls) before
-                    # we accept it as a real press.
-                    ng_for_this_cycle = (
-                        self._ng_seen_since_last_ok
-                        or (ng_bit == 1
-                            and getattr(self, "_ng_hold_polls", 0)
-                                >= NG_MIN_HOLD_POLLS)
-                    )
+                try:
+                    _pc = self._read_part_code() or ""
+                    _pc_clean = _pc.strip().rstrip(":")
+                    if _pc_clean and _pc_clean.upper() != "ERROR":
+                        self._cur_part_code = _pc_clean
+                except Exception:
+                    pass
+                self.ok_total += 1
+                self.ok_shift += 1
+                new_ok = 1
+                self._last_ok_time = now
+                print(f"[OK-COUNT] +1 (total={self.ok_total} "
+                      f"shift={self.ok_shift}) pc={self._cur_part_code}",
+                      flush=True)
+                self._emit_edge_webhook("L108", now)
 
-                    # ── (B1) Stuck-bit guard.
-                    # If consecutive NG cycles exceed threshold, treat the
-                    # next ones as OK with a one-shot alarm.  This catches
-                    # the ladder-bug case where L109 is held HIGH for many
-                    # cycles unrelated to operator action.
-                    if ng_for_this_cycle:
-                        self._ng_consec_count += 1
-                    else:
-                        if self._ng_consec_count > 0 and self._ng_stuck_alarm_fired:
-                            print(f"[NG-STUCK] L109 returned to normal — "
-                                  f"resuming NG counting", flush=True)
-                        self._ng_consec_count    = 0
-                        self._ng_stuck_alarm_fired = False
-
-                    if (ng_for_this_cycle and
-                            self._ng_consec_count > NG_STUCK_CYCLES):
-                        if not self._ng_stuck_alarm_fired:
-                            print(f"[NG-STUCK] L109 high for "
-                                  f"{self._ng_consec_count} consecutive "
-                                  f"cycles — presumed STUCK (ladder bug). "
-                                  f"Counting subsequent cycles as OK until "
-                                  f"L109 goes LOW for a full cycle.", flush=True)
-                            self._ng_stuck_alarm_fired = True
-                        ng_for_this_cycle = False  # override, treat as OK
-
-                    # Always refresh part_code at the pulse (whether OK or NG)
-                    try:
-                        _pc = self._read_part_code() or ""
-                        _pc_clean = _pc.strip().rstrip(":")
-                        if _pc_clean and _pc_clean.upper() != "ERROR":
-                            self._cur_part_code = _pc_clean
-                    except Exception:
-                        pass
-
-                    if ng_for_this_cycle:
-                        self.ng_total      += 1
-                        self.ng_shift      += 1
-                        new_ng              = 1
-                        self._last_ng_time  = now
-                        print(f"[NG-COUNT] +1 (total={self.ng_total} "
-                              f"shift={self.ng_shift}) pc={self._cur_part_code} "
-                              f"consec={self._ng_consec_count}", flush=True)
-                        self._emit_edge_webhook("L109", now)
-                    else:
-                        self.ok_total += 1
-                        self.ok_shift += 1
-                        new_ok          = 1
-                        # 2026-05-18 — symmetric log w/ [NG-COUNT] so the
-                        # operator can audit "ek-ek part count hua" by
-                        # scanning the collector log.  Includes part_code
-                        # so a unit can be traced back to its scan.
-                        print(f"[OK-COUNT] +1 (total={self.ok_total} "
-                              f"shift={self.ok_shift}) pc={self._cur_part_code}",
-                              flush=True)
-                        self._emit_edge_webhook("L108", now)
-
-                    self._last_ok_time           = now
-                    self._ng_seen_since_last_ok  = False    # reset for next cycle
+            # L109 rising edge → +1 NG row
+            if self._last_ng_state == 0 and ng_bit == 1:
+                try:
+                    _pc = self._read_part_code() or ""
+                    _pc_clean = _pc.strip().rstrip(":")
+                    if _pc_clean and _pc_clean.upper() != "ERROR":
+                        self._cur_part_code = _pc_clean
+                except Exception:
+                    pass
+                self.ng_total += 1
+                self.ng_shift += 1
+                new_ng = 1
+                self._last_ng_time = now
+                print(f"[NG-COUNT] +1 (total={self.ng_total} "
+                      f"shift={self.ng_shift}) pc={self._cur_part_code}",
+                      flush=True)
+                self._emit_edge_webhook("L109", now)
 
         self._last_ok_state = ok_bit
         self._last_ng_state = ng_bit
         return new_ok, new_ng
+
+    # ──────────────────────────────────────────────────────────────
+    # Per-machine L6 tables (2026-05-24)
+    # Operator design: ek hi mes_pulse_log me sab mix tha — alag table
+    # chahiye har machine ki.  Map machine_id → table name and route
+    # writes accordingly.  Final Inspection ka row me status + model
+    # bhi (woh sirf main PLC se aate).  Sub-machines me sirf bit data.
+    # ──────────────────────────────────────────────────────────────
+
+    # machine_id → (table_name, supports_status_model)
+    _L6_TABLE_MAP = {
+        2:  ("mes_l6_final_inspection", True),
+        8:  ("mes_l6_upper_rail",       False),
+        10: ("mes_l6_lower_rail",       False),
+        12: ("mes_l6_semi_auto",        False),
+        13: ("mes_l6_ball_guide_13",    False),
+        14: ("mes_l6_ball_guide_14",    False),
+        16: ("mes_l6_lock_bar",         False),
+    }
+
+    def _write_machine_log(self, *, machine_id: int,
+                           bit_type: str, bit_address: str,
+                           ts, ct_seconds, part_code: str) -> None:
+        """Route a raw L108/L109 rise into the machine-specific L6 table.
+        Final Inspection rows automatically include current status + model.
+        Other machines get a minimal row.  Counter auto-derived per
+        (machine, bit_type, shift, date).  Best-effort — never raises
+        out of the caller."""
+        meta = self._L6_TABLE_MAP.get(machine_id)
+        if not meta:
+            return
+        table, has_status = meta
+        try:
+            shift = self._cur_shift or "UNKNOWN"
+            if shift.startswith("GAP"):
+                shift = "GAP"
+            rec_date = ts.date() if hasattr(ts, "date") else date.today()
+            if not hasattr(self, "_l6_counters"):
+                self._l6_counters = {}
+            key = (table, bit_type, shift, rec_date)
+            if key not in self._l6_counters:
+                try:
+                    _c = _db_conn()
+                    _cur = _c.cursor()
+                    _cur.execute(
+                        f"SELECT COALESCE(MAX(counter_val), 0) FROM {table} "
+                        "WHERE bit_type=%s AND shift_name=%s AND record_date=%s",
+                        (bit_type, shift, rec_date),
+                    )
+                    self._l6_counters[key] = int(_cur.fetchone()[0] or 0)
+                    _cur.close(); _c.close()
+                except Exception:
+                    self._l6_counters[key] = 0
+            self._l6_counters[key] += 1
+            counter_val = self._l6_counters[key]
+
+            conn = _db_conn()
+            cur  = conn.cursor()
+            if has_status:
+                cur.execute(f"""
+                    INSERT INTO {table}
+                      (ts, bit_type, bit_address, ct_seconds, counter_val,
+                       part_code, shift_name, record_date,
+                       status_code, status_name, model_no, model_name)
+                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                """, (
+                    ts, bit_type, bit_address,
+                    (None if ct_seconds is None else round(float(ct_seconds), 3)),
+                    counter_val, (part_code or None),
+                    shift, rec_date,
+                    int(self._cur_status) if self._cur_status is not None else None,
+                    self._cur_status_name or None,
+                    int(self._cur_model) if self._cur_model else None,
+                    self._cur_model_name or None,
+                ))
+            else:
+                cur.execute(f"""
+                    INSERT INTO {table}
+                      (ts, bit_type, bit_address, ct_seconds, counter_val,
+                       shift_name, record_date)
+                    VALUES (%s,%s,%s,%s,%s,%s,%s)
+                """, (
+                    ts, bit_type, bit_address,
+                    (None if ct_seconds is None else round(float(ct_seconds), 3)),
+                    counter_val, shift, rec_date,
+                ))
+            conn.commit()
+            cur.close(); conn.close()
+        except Exception as e:
+            _now = time.time()
+            _last = getattr(self, "_l6_err_last", 0)
+            if _now - _last > 5.0:
+                self._l6_err_last = _now
+                print(f"[L6-WRITE] {table} {bit_type} failed: "
+                      f"{str(e)[:80]}", flush=True)
+
+    # ──────────────────────────────────────────────────────────────
+    # mes_pulse_log raw-edge audit writer (2026-05-23)
+    # Operator design: every L108 rise → 1 row (bit_type='OK'), every
+    # L109 rise → 1 row (bit_type='NG').  Pure audit log — no gating,
+    # no merging, no derived state.  Runs PARALLEL to existing
+    # _update_counts logic; nothing here changes the legacy tables.
+    # ──────────────────────────────────────────────────────────────
+
+    def _write_pulse_log(self, *, machine_id: int, machine_name: str,
+                         bit_type: str, bit_address: str,
+                         ts, ct_seconds, part_code: str) -> None:
+        """Append one raw-edge row to mes_pulse_log.  counter_val auto-
+        derived from a per-(machine, bit, shift, date) running counter
+        held in self._pulse_counters.  Best-effort — DB blip throttled-
+        logs and never raises out of the caller (count path must not
+        break on audit-log failure)."""
+        try:
+            shift = self._cur_shift or "UNKNOWN"
+            if shift.startswith("GAP"):
+                shift = "GAP"
+            rec_date = ts.date() if hasattr(ts, "date") else date.today()
+            key      = (machine_id, bit_type, shift, rec_date)
+            if not hasattr(self, "_pulse_counters"):
+                self._pulse_counters = {}
+            # Hydrate from DB once per (machine, bit, shift, date) so a
+            # collector restart mid-shift continues the counter instead
+            # of resetting to 1.
+            if key not in self._pulse_counters:
+                try:
+                    _c = _db_conn()
+                    _cur = _c.cursor()
+                    _cur.execute(
+                        "SELECT COALESCE(MAX(counter_val), 0) "
+                        "FROM mes_pulse_log "
+                        "WHERE machine_id=%s AND bit_type=%s "
+                        "  AND shift_name=%s AND record_date=%s",
+                        (machine_id, bit_type, shift, rec_date),
+                    )
+                    self._pulse_counters[key] = int(_cur.fetchone()[0] or 0)
+                    _cur.close(); _c.close()
+                except Exception:
+                    self._pulse_counters[key] = 0
+            self._pulse_counters[key] += 1
+            counter_val = self._pulse_counters[key]
+
+            conn = _db_conn()
+            cur  = conn.cursor()
+            cur.execute("""
+                INSERT INTO mes_pulse_log
+                  (line_id, machine_id, machine_name, bit_type, bit_address,
+                   ts, ct_seconds, counter_val, part_code,
+                   shift_name, record_date)
+                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+            """, (
+                self.cfg["line_id"], machine_id, machine_name,
+                bit_type, bit_address, ts,
+                (None if ct_seconds is None else round(float(ct_seconds), 3)),
+                counter_val,
+                (part_code or None),
+                shift, rec_date,
+            ))
+            conn.commit()
+            cur.close(); conn.close()
+        except Exception as e:
+            _now = time.time()
+            _last = getattr(self, "_pulse_log_err_last", 0)
+            if _now - _last > 5.0:
+                self._pulse_log_err_last = _now
+                print(f"[PULSE-LOG] write failed ({bit_type} "
+                      f"machine={machine_id}): {str(e)[:80]}", flush=True)
+
+    # ──────────────────────────────────────────────────────────────
+    # NG forensic logger (one JSONL line per L109 rise / fall event)
+    # ──────────────────────────────────────────────────────────────
+
+    def _ng_forensic_write(self, event: dict) -> None:
+        """Append one JSON line to a per-day NG forensic log so post-mortem
+        on phantom-NG bursts can identify the trigger (ladder pulse vs
+        electrical chatter vs real press vs status flap).  Path:
+            Phase2/_ng_forensics_line{line_id}_{YYYY-MM-DD}.jsonl
+        Writes are best-effort — never raise out of the count path."""
+        try:
+            import json as _json_fw
+            line_id = self.cfg.get("line_id", "X")
+            date_s  = datetime.now().strftime("%Y-%m-%d")
+            base    = _os.path.dirname(_os.path.abspath(__file__))
+            path    = _os.path.join(
+                base,
+                f"_ng_forensics_line{line_id}_{date_s}.jsonl",
+            )
+            with open(path, "a", encoding="utf-8") as fh:
+                fh.write(_json_fw.dumps(event, default=str) + "\n")
+        except Exception:
+            pass
 
     # ──────────────────────────────────────────────────────────────
     # Edge webhook → Camera CMS (non-blocking, best-effort)
@@ -2642,23 +2975,44 @@ class CollectorEngine:
             "ok_total":     self.ok_total,
             "ng_total":     self.ng_total,
         }
-        # Single-shot daemon thread: fire, don't wait, swallow errors.
+        # 2026-05-21 — RETRY LOOP.  Earlier this was single-shot with
+        # 1.5 s timeout; any miss caused CMS to skip that L108 edge.
+        # When CMS missed N consecutive edges, its next received edge
+        # produced a phantom cycle of (N+1)× the real cycle time and a
+        # multi-cycle MP4 (e.g. 127 s "cycle" containing 11 real cycles).
+        # Fix: 3 retries with 250 ms → 500 ms → 1 s backoff, preserving
+        # the ORIGINAL epoch_ms timestamp on each attempt so CMS sees
+        # the true edge time even if delivery is delayed by ≤2 s total.
+        # Timeout per attempt raised 1.5 → 3 s to cover the DB-slow
+        # window when CMS's /api/plc-edge handler is mid-blocked on a
+        # cycle finalization.
         def _send():
-            try:
-                import urllib.request, json as _j
-                req = urllib.request.Request(
-                    url, method="POST",
-                    headers={"Content-Type": "application/json"},
-                    data=_j.dumps(payload).encode("utf-8"),
-                )
-                urllib.request.urlopen(req, timeout=1.5).read()
-            except Exception as exc:
-                # Print at most once every 30 s so a flapping CMS
-                # doesn't flood the collector log.
-                last = getattr(self, "_edge_webhook_last_err_ts", 0)
-                if time.time() - last > 30:
-                    print(f"[EDGE-WEBHOOK] {bit_label} -> {url} failed: {exc}")
-                    self._edge_webhook_last_err_ts = time.time()
+            import urllib.request, json as _j
+            body = _j.dumps(payload).encode("utf-8")
+            headers = {"Content-Type": "application/json"}
+            last_exc = None
+            for attempt, backoff in enumerate((0.0, 0.25, 0.5, 1.0)):
+                if backoff:
+                    time.sleep(backoff)
+                try:
+                    req = urllib.request.Request(
+                        url, method="POST", headers=headers, data=body)
+                    urllib.request.urlopen(req, timeout=3.0).read()
+                    if attempt > 0:
+                        # Recovered after retry — log once so we know the
+                        # backup attempts actually saved an edge.
+                        print(f"[EDGE-WEBHOOK] {bit_label} delivered on "
+                              f"attempt {attempt+1}", flush=True)
+                    return
+                except Exception as exc:
+                    last_exc = exc
+                    continue
+            # All 4 attempts exhausted — log once per 30 s
+            last = getattr(self, "_edge_webhook_last_err_ts", 0)
+            if time.time() - last > 30:
+                print(f"[EDGE-WEBHOOK] {bit_label} -> {url} failed after "
+                      f"4 attempts: {last_exc}", flush=True)
+                self._edge_webhook_last_err_ts = time.time()
         threading.Thread(target=_send, daemon=True,
                          name=f"edge-webhook-{bit_label}").start()
 
@@ -2934,7 +3288,15 @@ class CollectorEngine:
         # This is a safety net, NOT a workaround for normal flow —
         # the operator should still report any IDLE-during-production
         # so PLC engineer can fix the ladder.
-        L108_TRUTH_WINDOW_SEC = 30.0
+        # 2026-05-22 — Window 30 → 60 s after operator complaint
+        # "break ke baad IDLE jaa raha hai".  Post-break cycle resumption
+        # often has a 20-40s gap before the first L108 fires (operators
+        # settling back at stations, machine warm-up).  With 30s window,
+        # any first-post-break L108 over 30s after PLC's D6005=0 would
+        # leave IDLE painted.  60s covers the practical resume window.
+        # REVERT: change 60.0 back to 30.0 if this introduces false
+        # RUNNING during genuine idle periods.
+        L108_TRUTH_WINDOW_SEC = 60.0
         if (status_code == 0
                 and self._last_ok_edge_observed
                 and now - self._last_ok_edge_observed < L108_TRUTH_WINDOW_SEC):
@@ -2951,6 +3313,18 @@ class CollectorEngine:
                       f"D{self.cfg.get('status_addr','????')} ladder logic.)",
                       flush=True)
             status_code = 1
+        elif (status_code == 0
+                and self._last_ok_edge_observed
+                and now - self._last_ok_edge_observed < 120.0):
+            # 2026-05-22 — BORDERLINE-MISS DIAG.  PLC says IDLE but L108
+            # fired 60-120s ago.  Just outside our override window.
+            # Log this so if user reports "IDLE phase post-break" we can
+            # see the exact gap that's just-missing and tune the window.
+            age = now - self._last_ok_edge_observed
+            print(f"[STATUS] L108-TRUTH-BORDERLINE — PLC IDLE, last L108 "
+                  f"{age:.1f}s ago (just outside {L108_TRUTH_WINDOW_SEC:.0f}s "
+                  f"window — IDLE will commit if no edge in next "
+                  f"{(self.IDLE_DWELL_SEC):.0f}s).", flush=True)
 
         # ── IDLE-dwell suppression (2026-05-12 fluttering-fix) ─────
         # YNC-SS PLC ladder publishes raw=0 (lower nibble IDLE) for a
@@ -4081,34 +4455,80 @@ class CollectorEngine:
                   f"still active.", flush=True)
             return
 
-        # Run loop — every 2 s, do the full sweep on OUR connection
-        while not self._stop.wait(2.0):
+        # Run loop.
+        # 2026-05-22 — Reduced from 2.0 → 0.5 sec so PY bypass detection
+        # catches D-register transients that previously slipped between
+        # polls.  This thread owns its OWN TCP connection (line ~4146)
+        # so the higher rate doesn't contend with the main collector
+        # poll's PLC slot — Mitsubishi 2-client limit is respected.
+        # Sensor health sweep inside check still self-throttles to its
+        # own _x_track_interval (200ms) regardless of this loop cadence.
+        while not self._stop.wait(0.5):
+            tick_exc = None     # carry first error for the reconnect logic
             try:
                 if self._is_in_gap_period():
                     continue
                 in_break, _ = self._is_break()
-                # Production-state checks (D-reg poka, bypass detection)
-                # only run when actually producing.  Sensor sweep is
-                # break-independent so wiring faults surface during
-                # downtime too — see 2026-05-13 fix in collectors/.
-                # 2026-05-13 — Reloads are break-independent so
-                # `_py_configs` populates even when collector starts
-                # during a break window.  Earlier bug: empty configs
-                # → track_sensors_health early-return → empty sweep.
                 self.poka.reload_rules_from_db(self.cfg["line_id"])
                 self.poka.reload_py_configs(self.cfg["line_id"])
-                if not in_break:
+            except Exception as exc:
+                tick_exc = exc
+
+            # 2026-05-20 — CRITICAL BUG FIX.
+            # Earlier the three poka calls (check_d_registers,
+            # check_py_bypass, track_sensors_health) shared a single
+            # try-except.  When check_d_registers raised WinError 10054
+            # (PLC closed connection), the exception bubbled up and
+            # SKIPPED both check_py_bypass and track_sensors_health.
+            # Result: `_x_state` for the X-bit sensor sweep stopped
+            # updating completely the moment D-register reads started
+            # failing, so the Sensor Health panel froze at the last
+            # successful sweep time (03:14:31 in the observed case)
+            # and showed every sensor as "stuck for 20h" even though
+            # the X-bits were physically toggling fine.
+            #
+            # Fix: each poka call gets its own try-except so a failure
+            # in one path does NOT silently kill the others.  The
+            # WinError still triggers a single reconnect at the bottom.
+            if not in_break:
+                try:
                     self.poka.check_d_registers(my_plc, self._cur_shift or "")
+                except Exception as exc:
+                    tick_exc = tick_exc or exc
+                    print(f"[PY-CHECK] check_d_registers error: {str(exc)[:80]}", flush=True)
+                try:
                     self.poka.check_py_bypass(
                         my_plc, self._cur_shift or "", self._cur_model)
+                except Exception as exc:
+                    tick_exc = tick_exc or exc
+                    print(f"[PY-CHECK] check_py_bypass error: {str(exc)[:80]}", flush=True)
+            # 2026-05-22 — Push the engine's full production-window
+            # state onto the Poka instance so track_sensors_health can
+            # gate its stuck-flag escalation properly.  Sensor toggles
+            # are only meaningful during ACTIVE production — idle,
+            # breakdown, scheduled break, and between-shift gap windows
+            # must all be skipped or operator sees false-positive
+            # "stuck for 16 min" during a 10-min tea break.
+            try:
+                _gap = self._is_in_gap_period()
+            except Exception:
+                _gap = False
+            self.poka.sensors_should_track = (
+                bool(getattr(self, "is_running", False))
+                and not in_break
+                and not _gap
+            )
+            try:
                 self.poka.track_sensors_health(my_plc)
             except Exception as exc:
-                # Don't crash the thread on transient PLC blips — just log
-                # and try again on the next tick.
-                msg = str(exc)[:80]
-                print(f"[PY-CHECK] tick error: {msg}", flush=True)
-                # Try to re-connect on socket-level failures
-                if "timed out" in msg.lower() or "connection" in msg.lower():
+                tick_exc = tick_exc or exc
+                print(f"[PY-CHECK] track_sensors_health error: {str(exc)[:80]}", flush=True)
+
+            # If ANY of the calls failed with a socket-style error, do
+            # one reconnect attempt for next tick.
+            if tick_exc is not None:
+                msg = str(tick_exc)[:80]
+                if "timed out" in msg.lower() or "connection" in msg.lower() or "forcibly closed" in msg.lower():
                     try:
                         my_plc.close()
                     except Exception:
@@ -4117,7 +4537,7 @@ class CollectorEngine:
                         my_plc = pymcprotocol.Type4E()
                         my_plc.setaccessopt(commtype="binary")
                         my_plc.connect(self.cfg["plc_ip"], self.cfg["plc_port"])
-                        print(f"[PY-CHECK] reconnected", flush=True)
+                        print(f"[PY-CHECK] reconnected after: {msg}", flush=True)
                     except Exception as r_exc:
                         print(f"[PY-CHECK] reconnect failed: {r_exc}", flush=True)
 
@@ -4203,6 +4623,10 @@ class CollectorEngine:
         plc_port  = int(sub["plc_port"] or 5002)
         # count_bit must be configured in admin — no hardcoded fallback.
         count_bit = (sub["count_bit"] or "").strip()
+        # 2026-05-23 — Also read NG bit for mes_pulse_log audit.
+        # If ng_bit isn't configured in mes_plc_configs, just skip NG
+        # tracking for this sub (no error).
+        ng_bit_addr = (sub.get("ng_bit") or "").strip()
         if not count_bit:
             print(f"[SUB {sub_id}] SKIP — ok_bit_address not configured in "
                   f"mes_plc_configs (machine_name={sub.get('machine_name')})",
@@ -4211,6 +4635,58 @@ class CollectorEngine:
         name      = sub["machine_name"] or f"sub_{sub_id}"
         line_id   = self.cfg["line_id"]
         tag       = f"[SUB {sub_id} {name}]"
+        # Persist per-sub OK/NG edge state for mes_pulse_log writes.
+        last_sub_ok_ts = None   # last OK rise timestamp (for CT delta)
+        last_sub_ng_ts = None   # last NG rise timestamp (for NG inter-arrival)
+        last_ng_bit    = 0      # NG edge detector state
+        # 2026-05-24 — Hydrate last timestamps from DB so the FIRST row
+        # after collector restart still has a meaningful ct_seconds
+        # (delta from the previous shift's last edge, not NULL).
+        try:
+            _hc = _db_conn()
+            _hcur = _hc.cursor()
+            _hcur.execute(
+                "SELECT MAX(ts) FROM " + (self._L6_TABLE_MAP.get(sub_id, ("","",))[0]
+                                          or "mes_l6_upper_rail") +
+                " WHERE bit_type='OK' AND record_date=CURRENT_DATE"
+            )
+            _r = _hcur.fetchone()
+            if _r and _r[0]:
+                last_sub_ok_ts = _r[0] if isinstance(_r[0], datetime) else None
+            _hcur.execute(
+                "SELECT MAX(ts) FROM " + (self._L6_TABLE_MAP.get(sub_id, ("","",))[0]
+                                          or "mes_l6_upper_rail") +
+                " WHERE bit_type='NG' AND record_date=CURRENT_DATE"
+            )
+            _r = _hcur.fetchone()
+            if _r and _r[0]:
+                last_sub_ng_ts = _r[0] if isinstance(_r[0], datetime) else None
+            _hcur.close(); _hc.close()
+            if last_sub_ok_ts or last_sub_ng_ts:
+                print(f"[SUB {sub_id}] hydrated: last_ok={last_sub_ok_ts} "
+                      f"last_ng={last_sub_ng_ts}", flush=True)
+        except Exception as _e:
+            print(f"[SUB {sub_id}] hydrate failed: {_e}", flush=True)
+
+        # 2026-05-23 — CHATTER GUARD for sub-machine count_bit.
+        # Bug found: Semi-Auto (sub_plc_id=12, M5700) produced 35 phantom
+        # cycles in one shift with CT=0.4s.  The PLC ladder pulses M5700
+        # ~400ms after the real cycle completion (likely a "data ready"
+        # ack from the SA controller, not a new cycle).  Previous gate
+        # of `ct >= 0.3` let these through, inflating Semi-Auto count
+        # from 521 (real) to 557 (phantom +36).
+        # New rule: reject any cycle shorter than max(2.0s, ideal_ct*0.2).
+        # • ideal_ct=15 → 3.0s floor       (kills 0.4s chatter)
+        # • ideal_ct=30 → 6.0s floor       (Ball Guide safe)
+        # • Anything < this is impossible physical CT and almost always
+        #   electrical chatter / double-pulse from the ladder.
+        try:
+            _sub_ideal = float(sub.get("ideal_ct") or 15.0)
+        except Exception:
+            _sub_ideal = 15.0
+        _sub_min_ct = max(2.0, _sub_ideal * 0.2)
+        print(f"{tag} chatter-guard: min CT = {_sub_min_ct:.2f}s "
+              f"(ideal={_sub_ideal:.1f}s)", flush=True)
 
         # ── Semi-Auto data capture config (optional, separate trigger) ──
         sa_enabled   = bool(sub.get("sa_enabled"))
@@ -4226,6 +4702,15 @@ class CollectorEngine:
         sa_active    = (sa_enabled and sa_fetch_bit
                          and sa_data_addr and sa_data_len > 0)
         last_sa_bit  = 0
+        # 2026-05-22 — SA-as-cycle fallback.  Some sub-machines' PLC
+        # ladders don't drive L108 — the cycle-complete signal is the
+        # `sa_fetch_bit` itself (e.g. Semi-Auto on 192.168.10.152
+        # only pulses M5700, never L108).  When count_bit stays 0 all
+        # day but sa_fetch_bit fires N times, treat sa_fetch_bit
+        # rising edges AS cycle completions for ct_log purposes.
+        # `last_sa_edge_ts` is the previous sa_fetch_bit edge so we
+        # can compute CT = delta between fetches.
+        last_sa_edge_ts = None
 
         def _sa_reg_addr(base: str, offset: int) -> str:
             """Compute the i-th register address from a base.  "D5801"
@@ -4259,10 +4744,18 @@ class CollectorEngine:
                 if plc:
                     try: plc.close()
                     except: pass
-                plc = pymcprotocol.Type4E()
+                # 2026-05-24 — Type3E for sub-machines.
+                # Operator test confirmed: Lock Bar (192.168.10.181) +
+                # Lower Rail (192.168.10.182) are Q-series CPUs that
+                # silently return 0 on Type4E reads.  Type3E is the
+                # baseline MELSEC frame — supported by BOTH Q-series
+                # AND iQ-R, so universal.  Other sub-machines (Upper
+                # Rail, Semi-Auto, Ball Guide) work fine on Type3E too
+                # (no functional difference for the read calls we use).
+                plc = pymcprotocol.Type3E()
                 plc.connect(plc_ip, plc_port)
                 plc.batchread_bitunits(headdevice=count_bit, readsize=1)
-                print(f"{tag} connected", flush=True)
+                print(f"{tag} connected (Type3E)", flush=True)
                 return True
             except Exception as e:
                 plc = None
@@ -4331,6 +4824,72 @@ class CollectorEngine:
                 next_reconnect = time.time() + 3
                 continue
 
+            # 2026-05-23 — Pure radio-button NG: every L109 rise on a
+            # sub-machine = 1 raw NG row in pulse_log.  No filter, no
+            # wait.  Operator: "OK and NG dono as radio... one time on
+            # button on".
+            cur_ng_bit = 0
+            if ng_bit_addr:
+                try:
+                    _ngb = plc.batchread_bitunits(headdevice=ng_bit_addr, readsize=1)
+                    cur_ng_bit = 1 if int(_ngb[0]) else 0
+                except Exception:
+                    cur_ng_bit = 0
+            if cur_ng_bit == 1 and last_ng_bit == 0:
+                _ng_now_dt = datetime.now()
+                # NG CT = delta from previous NG event (inter-NG gap).
+                # First NG of the shift falls back to 0 instead of NULL
+                # so charts can plot it instead of breaking the line.
+                _ng_ct_delta = ((_ng_now_dt - last_sub_ng_ts).total_seconds()
+                                if last_sub_ng_ts else 0.0)
+                _ng_pc = (self._cur_part_code or "").strip().rstrip(":") or None
+                # Write to new per-machine table
+                try:
+                    self._write_machine_log(
+                        machine_id   = sub_id,
+                        bit_type     = "NG",
+                        bit_address  = ng_bit_addr,
+                        ts           = _ng_now_dt,
+                        ct_seconds   = _ng_ct_delta,
+                        part_code    = _ng_pc,
+                    )
+                except Exception:
+                    pass
+                # Also write to LEGACY mes_submachine_ct_log with is_ng=true
+                # so the existing dashboard / wallboard charts pick it up.
+                # 2026-05-24 — ts_start = ts_end - 30s so the video clip
+                # endpoint serves a viewable 30-sec window (was previously
+                # = last_sub_ng_ts which produced 20+ min windows that
+                # the camera CMS rejected with 416 Range Not Satisfiable).
+                try:
+                    _ts_start_ng = _ng_now_dt - timedelta(seconds=30)
+                    _shift_ng = self._cur_shift or "UNKNOWN"
+                    if _shift_ng.startswith("GAP"): _shift_ng = "GAP"
+                    _c2 = _db_conn()
+                    _cur2 = _c2.cursor()
+                    _cur2.execute("""
+                        INSERT INTO mes_submachine_ct_log
+                            (sub_plc_id, line_id, record_date, shift_name,
+                             cycle_seq, ts_start, ts_end, ct_seconds,
+                             model_number, model_name, part_code, is_ng)
+                        VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                    """, (
+                        sub_id, line_id, _ng_now_dt.date(), _shift_ng,
+                        cycle_seq_today + 1,
+                        _ts_start_ng, _ng_now_dt, round(_ng_ct_delta, 3),
+                        self._cur_model, self._cur_model_name,
+                        _ng_pc, True,
+                    ))
+                    _c2.commit()
+                    _cur2.close(); _c2.close()
+                    cycle_seq_today += 1
+                    print(f"{tag} NG #{cycle_seq_today} ct={_ng_ct_delta:.2f}s "
+                          f"pc={_ng_pc}", flush=True)
+                except Exception as _ne:
+                    print(f"{tag} NG legacy-insert failed: {_ne}", flush=True)
+                last_sub_ng_ts = _ng_now_dt
+            last_ng_bit = cur_ng_bit
+
             # Heartbeat every 30 s so we can see if the poller is healthy
             # even when M100 has been idle
             if time.time() - last_heartbeat >= 30:
@@ -4341,6 +4900,29 @@ class CollectorEngine:
             if cur_bit == 1 and last_bit == 0:
                 now_dt = datetime.now()
                 now_ts = now_dt.timestamp()
+
+                # 2026-05-24 — Per-machine L6 table (replaces pulse_log).
+                # Every count_bit rise on this sub-machine writes one row
+                # to the machine's own mes_l6_* table.  Zero gating.
+                # Fallback to 0.0 (not NULL) for the very first ever row
+                # so charts can plot it.  last_sub_ok_ts gets hydrated
+                # from DB at poller startup, so this NULL→0 path only
+                # fires on a brand-new shift with no prior history.
+                try:
+                    _ct_delta = ((now_dt - last_sub_ok_ts).total_seconds()
+                                 if last_sub_ok_ts else 0.0)
+                    self._write_machine_log(
+                        machine_id   = sub_id,
+                        bit_type     = "OK",
+                        bit_address  = count_bit,
+                        ts           = now_dt,
+                        ct_seconds   = _ct_delta,
+                        part_code    = (self._cur_part_code or "").strip().rstrip(":") or None,
+                    )
+                    last_sub_ok_ts = now_dt
+                except Exception:
+                    pass
+
 
                 if last_edge_ts is None:
                     last_edge_ts = now_ts
@@ -4360,7 +4942,25 @@ class CollectorEngine:
                         print(f"{tag} cycle spanned {brk_sec:.0f}s of "
                               f"break time — raw={raw_ct:.1f}s, "
                               f"net={ct:.1f}s", flush=True)
-                    if ct >= 0.3:
+                    # 2026-05-24 — chatter-guard on RAW CT, not net.
+                    # Earlier bug: if a cycle's window happened to
+                    # overlap a scheduled break entirely, net=0 and the
+                    # cycle was CHATTER-DROPPED even though it was a
+                    # real machine cycle (operator working through
+                    # break).  Symptom: Lock Bar today produced 9 OK
+                    # cycles 12:13–12:20 but mes_submachine_ct_log
+                    # showed 0 because every cycle was lunch-overlap.
+                    # New rule: chatter is judged on wall-clock raw_ct
+                    # (a true ladder double-pulse is sub-second
+                    # regardless of break alignment).  Store the
+                    # break-netted ct so the chart still doesn't
+                    # spike during real breaks.
+                    if raw_ct < _sub_min_ct:
+                        print(f"{tag} CHATTER-DROP raw_ct={raw_ct:.2f}s "
+                              f"< {_sub_min_ct:.2f}s — true ladder "
+                              f"double-pulse.", flush=True)
+                        last_edge_ts = now_ts
+                    elif raw_ct >= _sub_min_ct:
                         # Commit FIRST, then bump the counter — otherwise a
                         # failed insert leaves a gap (row #N missing but seq
                         # advanced to N+1). Keeps "cycles count" and
@@ -4493,6 +5093,61 @@ class CollectorEngine:
                               flush=True)
                     except Exception as e:
                         print(f"{tag} SA capture failed: {e}", flush=True)
+
+                    # 2026-05-22 — SA-AS-CYCLE FALLBACK.
+                    # If count_bit (L108) hasn't fired today (cycle_seq_today
+                    # still 0 — meaning L108 is genuinely dead on this PLC),
+                    # treat THIS sa_fetch_bit rising edge as the cycle
+                    # complete signal and write a ct_log row too.
+                    # Semi-Auto's PLC 192.168.10.152 only drives M5700, not
+                    # L108 — without this fallback the sub-machine page
+                    # showed "Waiting for cycle data" every morning until
+                    # an L108 edge happened to slip through (rare/never).
+                    if cycle_seq_today == 0:
+                        now_ts_sa = time.time()
+                        ct_sa = (now_ts_sa - last_sa_edge_ts) if last_sa_edge_ts else 0.0
+                        # 2026-05-23 — same chatter-guard as count_bit branch.
+                        if last_sa_edge_ts is not None and ct_sa >= _sub_min_ct:
+                            # Net out break overlaps (mirrors count_bit branch)
+                            ts_start_sa = datetime.fromtimestamp(last_sa_edge_ts)
+                            ts_end_sa   = datetime.fromtimestamp(now_ts_sa)
+                            try:
+                                brk = self._break_overlap_seconds(ts_start_sa, ts_end_sa)
+                            except Exception:
+                                brk = 0.0
+                            ct_sa_net = max(0.0, ct_sa - brk)
+                            candidate_sa_seq = cycle_seq_today + 1
+                            shift_sa = self._cur_shift or "UNKNOWN"
+                            if shift_sa.startswith("GAP"):
+                                shift_sa = "GAP"
+                            try:
+                                c_sa = _db_conn()
+                                cur_sa = c_sa.cursor()
+                                cur_sa.execute("""
+                                    INSERT INTO mes_submachine_ct_log
+                                        (sub_plc_id, line_id, record_date,
+                                         shift_name, cycle_seq,
+                                         ts_start, ts_end, ct_seconds,
+                                         model_number, model_name, part_code)
+                                    VALUES
+                                        (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,NULL)
+                                """, (
+                                    sub_id, line_id, today,
+                                    shift_sa, candidate_sa_seq,
+                                    ts_start_sa, ts_end_sa, round(ct_sa_net, 3),
+                                    self._cur_model, self._cur_model_name,
+                                ))
+                                c_sa.commit()
+                                cur_sa.close(); c_sa.close()
+                                cycle_seq_today = candidate_sa_seq
+                                print(f"{tag} SA-as-cycle #{cycle_seq_today} "
+                                      f"CT={ct_sa_net:.2f}s (fallback — L108 "
+                                      f"silent, using sa_fetch_bit as cycle)",
+                                      flush=True)
+                            except Exception as e_sa:
+                                print(f"{tag} SA-as-cycle insert failed: "
+                                      f"{e_sa}", flush=True)
+                        last_sa_edge_ts = now_ts_sa
                 last_sa_bit = sa_cur
 
             last_bit = cur_bit
@@ -4693,54 +5348,59 @@ class CollectorEngine:
                 new_ok, new_ng = self._update_counts(
                     plc["ok_bit"], plc["ng_bit"])
 
-                # Any pulse (OK or NG) is a completed cycle — counted in actual
-                # and must appear in the CT log so the graph matches actual count.
-                if new_ok > 0 or new_ng > 0:
+                # 2026-05-23 — SWITCH MODEL (Option C).
+                # Each L108 rise = 1 OK row.  Each L109 rise (passing the
+                # ladder-echo filter in _update_counts) = 1 NG row.  They
+                # are INDEPENDENT — both may fire in the same poll, in
+                # which case both rows get written.  Cycles never merge.
+                _now = datetime.now()
+
+                # OK row write
+                if new_ok > 0:
+                    # Advance CT tracker only on OK pulses — NG events do
+                    # NOT pollute the per-cycle CT distribution.
                     self.ct.on_pulse(time.time())
                     ct_s = self.ct.stats()
+                    _ct_value = ct_s["list"][-1] if ct_s["list"] else 0.0
                     if ct_s["list"]:
                         self.poka.check_cycle_fast(
                             ct_s["list"][-1], self._cur_shift or "")
-                        # Single non-blocking part-code read.  The 5-retry
-                        # loop here used to sleep up to 1.5 s per cycle
-                        # while the scanner caught up, which blocked the
-                        # main poll thread and silently DROPPED any OK
-                        # pulse that fired during that window — operator
-                        # was seeing 1 Phase2 cycle per 4 NF2 cycles.
-                        #
-                        # 2026-05-16 — VIDEO-MISSING FIX.  Audit found
-                        # 2.9 % of today's ct_log rows had part_code=''
-                        # because PLC's D5004 register is briefly empty
-                        # on some cycles (race between scanner write and
-                        # our L108-edge read).  Frontend's /api/video/
-                        # by-part?code= then 404'd and the player just
-                        # spun forever.  Two-tier fallback:
-                        #   1. Fresh read (preferred — captures the
-                        #      EXACT part that just completed).
-                        #   2. If empty / ERROR, use self._cur_part_code
-                        #      which _update_counts cached on the same
-                        #      L108 edge a few ms ago.  Same-cycle value
-                        #      99 % of the time; worst case it's stale
-                        #      by one cycle (still better than empty +
-                        #      no video at all).
-                        _pc = (self._read_part_code() or "").strip().rstrip(":")
-                        if not _pc or _pc.upper() == "ERROR":
-                            _pc = (self._cur_part_code or "").strip().rstrip(":")
-                        # Buffer for ct_log flush (written every 2s with dashboard)
-                        _now = datetime.now()
-                        # cycle_seq = count - 1 because the CT value measured
-                        # between pulse N-1 and pulse N is cycle (N-1)'s production
-                        # time. Without this, the first recorded CT appears as
-                        # cycle_seq=2 instead of cycle_seq=1.
-                        self._ct_pending_log.append((
-                            _now,
-                            _now.date(),
-                            self._cur_shift or "",
-                            ct_s["list"][-1],
-                            max(1, self.ok_shift + self.ng_shift - 1),
-                            _pc,
-                            new_ng > 0,   # is_ng flag
-                        ))
+                    _pc = (self._read_part_code() or "").strip().rstrip(":")
+                    if not _pc or _pc.upper() == "ERROR":
+                        _pc = (self._cur_part_code or "").strip().rstrip(":")
+                    self._ct_pending_log.append((
+                        _now,
+                        _now.date(),
+                        self._cur_shift or "",
+                        _ct_value,
+                        max(1, self.ok_shift + self.ng_shift),
+                        _pc,
+                        False,   # is_ng = False
+                    ))
+
+                # NG row write (independent of OK).
+                # 2026-05-24 — NG ct_value = inter-NG gap (time since the
+                # previous L109 rise on this machine).  Earlier we stored
+                # 0 here (operator: "ng ka ct 0 to nhi ho sakta na").
+                # Using delta from last NG gives a meaningful value that
+                # never explodes during L108 misses (because subsequent
+                # L109 events keep happening at ~cycle rate, not since-OK).
+                if new_ng > 0:
+                    _pc_ng = (self._read_part_code() or "").strip().rstrip(":")
+                    if not _pc_ng or _pc_ng.upper() == "ERROR":
+                        _pc_ng = (self._cur_part_code or "").strip().rstrip(":")
+                    _prev_ng = getattr(self, "_last_ng_time_for_ct", None)
+                    _ng_ct = (time.time() - _prev_ng) if _prev_ng else 0.0
+                    self._last_ng_time_for_ct = time.time()
+                    self._ct_pending_log.append((
+                        _now,
+                        _now.date(),
+                        self._cur_shift or "",
+                        round(_ng_ct, 2),
+                        max(1, self.ok_shift + self.ng_shift),
+                        _pc_ng,
+                        True,    # is_ng = True
+                    ))
 
                 if new_ok > 0:
                     self.poka.on_ok_pulse(
@@ -4834,15 +5494,18 @@ class CollectorEngine:
                     )
                     self._last_display = now
 
-                # 30 ms ≈ 33 Hz polling.  The PLC ladder we run against
-                # pulses L108 (OK) HIGH for ~50–100 ms with a comparable
-                # LOW gap between pulses; at 100 ms poll we were missing
-                # the 1→0→1 transition and counting one rising edge per
-                # 4–5 production cycles (operator saw "46 s CT" while
-                # NF2's camera-side log had 5 separate OK pulses inside
-                # that window).  33 Hz is plenty to catch the short LOW
-                # window without burdening the PLC link.
-                time.sleep(0.03)
+                # 2026-05-23 — 10 ms (100 Hz) poll.  Operator: "poll mtt
+                # krr listen krr rise ke liye" — MC4E is a request/response
+                # protocol so true event subscription isn't available, but
+                # tight polling at 100 Hz with retry-once on each read is
+                # effectively continuous listening.  Each loop reads four
+                # registers (status / ok / ng / model) totaling ~20-40 ms
+                # over LAN, so the 10 ms target sleeps to ~0 ms most of
+                # the time — the loop body itself is the throttle.  This
+                # guarantees we sample more than once during the PLC's
+                # multi-hundred-ms L108 HIGH window even under packet
+                # retransmits, so no rising edge is ever silently lost.
+                time.sleep(0.01)
 
             except KeyboardInterrupt:
                 print("\nStopped by user")

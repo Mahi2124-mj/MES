@@ -1,0 +1,78 @@
+{
+  "line_id": 2,
+  "date": "2026-05-21",
+  "shift": "A",
+  "shift_start": "2026-05-21T08:30:00",
+  "shift_end": "2026-05-21T17:15:00",
+  "episodes": [
+    {
+      "py_no": "D407",
+      "py_name": "Rr.Lwr.Protector",
+      "hit_count": 1,
+      "alert": "WARNING",
+      "start_at": "2026-05-21T17:07:06.350746",
+      "end_at": null,
+      "start_slot": "16:05-17:15",
+      "slot": "16:05-17:15"
+    },
+    {
+      "py_no": "D413",
+      "py_name": "FR.LIGHTER PROTECTOR-1",
+      "hit_count": 1,
+      "alert": "WARNING",
+      "start_at": "2026-05-21T17:07:06.596184",
+      "end_at": null,
+      "start_slot": "16:05-17:15",
+      "slot": "16:05-17:15"
+    }
+  ],
+  "by_slot": {
+    "16:05-17:15": [
+      {
+        "py_no": "D407",
+        "py_name": "Rr.Lwr.Protector",
+        "hit_count": 1,
+        "alert": "WARNING",
+        "start_at": "2026-05-21T17:07:06.350746",
+        "end_at": null,
+        "start_slot": "16:05-17:15",
+        "slot": "16:05-17:15",
+        "slot_label": "16:05-17:15",
+        "slot_segment_from": "2026-05-21T17:07:06.350746",
+        "slot_segment_to": "2026-05-21T17:07:14.742407",
+        "slot_segment_sec": 8.4,
+        "starts_here": true,
+        "ends_here": false,
+        "ongoing_now": true
+      },
+      {
+        "py_no": "D413",
+        "py_name": "FR.LIGHTER PROTECTOR-1",
+        "hit_count": 1,
+        "alert": "WARNING",
+        "start_at": "2026-05-21T17:07:06.596184",
+        "end_at": null,
+        "start_slot": "16:05-17:15",
+        "slot": "16:05-17:15",
+        "slot_label": "16:05-17:15",
+        "slot_segment_from": "2026-05-21T17:07:06.596184",
+        "slot_segment_to": "2026-05-21T17:07:14.742407",
+        "slot_segment_sec": 8.1,
+        "starts_here": true,
+        "ends_here": false,
+        "ongoing_now": true
+      }
+    ]
+  },
+  "slot_summary": {
+    "16:05-17:15": {
+      "total_bypass_sec": 16.5,
+      "longest_sec": 8.4,
+      "episode_count": 2,
+      "ongoing_count": 2,
+      "distinct_py": 2
+    }
+  },
+  "merge_gap_sec": 60.0,
+  "generated_at": "2026-05-21T17:07:14.742407"
+}

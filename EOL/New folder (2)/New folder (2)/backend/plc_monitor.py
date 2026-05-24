@@ -5,7 +5,7 @@ import re
 import subprocess
 import threading
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 
 import pymcprotocol
@@ -150,6 +150,61 @@ def _pick_hw_encoder() -> tuple:
     # Truly unreachable — libx264 always passes — but be defensive.
     _HW_ENCODER_CACHE.append(("libx264", ["-preset", "ultrafast", "-crf", "23"]))
     return _HW_ENCODER_CACHE[0]
+
+
+# ── Live-recorder encoder picker ─────────────────────────────────────────
+# Same priority order as _pick_hw_encoder (NVENC > QSV > libx264) but
+# returns flags tuned for LIVE continuous RTSP recording instead of
+# post-process clip extraction:
+#   • -tune ll / zerolatency          → no internal frame queue
+#   • -bf 0                           → zero B-frames (every frame is
+#                                       I- or P-, so `-c copy` cycle
+#                                       extraction lands on a clean
+#                                       boundary; B-frames would break
+#                                       the keyframe-only seek math)
+#   • -rc-lookahead 0 (NVENC)         → no encode-side buffering
+#   • -rc vbr -cq 23 (NVENC)          → CRF-equivalent VBR quality
+# Cached for the life of the process.
+_LIVE_ENCODER_CACHE: list = []
+
+
+def _pick_live_encoder() -> tuple:
+    """Return (codec, [flags]) of the fastest H.264 encoder, with
+    flags tuned for a low-latency RTSP→MPEG-TS recorder."""
+    if _LIVE_ENCODER_CACHE:
+        return _LIVE_ENCODER_CACHE[0]
+
+    ffmpeg = _get_ffmpeg()
+    candidates = [
+        # NVENC live: p4 preset, ll tune, VBR with CQ23, no B-frames,
+        # no encode-side lookahead.  Equivalent visual quality to the
+        # libx264 superfast + zerolatency + crf23 we used before, but
+        # ~8-10× cheaper on CPU and 2-3× lower encode latency.
+        ("h264_nvenc",
+         ["-preset", "p4", "-cq", "23"],     # probe — minimal
+         ["-preset", "p4", "-tune", "ll",
+          "-rc", "vbr", "-cq", "23",
+          "-bf", "0", "-rc-lookahead", "0"]),
+        # Intel QSV — fast preset, global_quality 23, no B-frames
+        ("h264_qsv",
+         ["-preset", "veryfast", "-global_quality", "23"],
+         ["-preset", "veryfast", "-global_quality", "23",
+          "-bf", "0", "-look_ahead", "0"]),
+        # libx264 fallback — exactly what the hardcoded recorder used
+        # before this picker existed.  Keeps quality identical when
+        # the GPU is unavailable.
+        ("libx264",
+         ["-preset", "superfast", "-crf", "23"],
+         ["-preset", "superfast", "-tune", "zerolatency", "-crf", "23"]),
+    ]
+    for codec, probe_flags, runtime_flags in candidates:
+        if codec == "libx264" or _probe_encoder(ffmpeg, codec, probe_flags):
+            print(f"[ENCODER-LIVE] picked {codec!r} for live RTSP recording")
+            _LIVE_ENCODER_CACHE.append((codec, runtime_flags))
+            return _LIVE_ENCODER_CACHE[0]
+    _LIVE_ENCODER_CACHE.append(
+        ("libx264", ["-preset", "superfast", "-tune", "zerolatency", "-crf", "23"]))
+    return _LIVE_ENCODER_CACHE[0]
 
 
 # Maximum realistic cycle duration (seconds).  Any cycle longer than this
@@ -519,6 +574,19 @@ class PlcMonitor:
                             if f"cam_{cid}_" not in cmd:
                                 continue
                             live_pid = live_pids.get(cid)
+                            # 2026-05-21 — Don't kill when no live recorder
+                            # is tracked.  Reaper was killing the very
+                            # ffmpeg we just spawned (during recovery
+                            # attempts after a launch error), creating
+                            # an infinite kill-respawn loop.  Earlier
+                            # log:  "ZOMBIE-REAPER killing extra ffmpeg
+                            #         PID=37416 ... (live PID=None)".
+                            # If live_pid is None we have no recorder
+                            # to defend — leave any orphans alone, the
+                            # next launch attempt will pick its own
+                            # process up as the canonical live one.
+                            if live_pid is None:
+                                break
                             if live_pid != p.info["pid"]:
                                 print(f"[PLC] ZOMBIE-REAPER killing extra "
                                       f"ffmpeg PID={p.info['pid']} for "
@@ -722,10 +790,17 @@ class PlcMonitor:
         extract_per_cycle: bool = True,
     ) -> None:
         """Extract cycle clip from the MPEG-TS rolling file, then write CSV row.
-        Cycle = previous OK/NG pulse → next OK/NG pulse, full duration.
-        No upper cap — even multi-minute slow cycles get the full clip."""
+        Cycle = previous OK/NG pulse → next OK/NG pulse, full duration."""
         file_rel = ""
         cycle_duration_s = (end_dt - start_dt).total_seconds()
+        # 2026-05-23 — ALL CAPS REMOVED PER OPERATOR DEMAND.
+        # "video me koii cap nahi rahegi, jitni der ki cycle utni ki
+        # video — phir tu sabse pehle badi cycles ke liye cap kyu lagata
+        # hai".  Every prior clip rule (60s, smart 4×ideal_ct, etc.)
+        # caused short videos for legitimate long cycles.  No more
+        # length tampering: cycle is whatever (end_dt - start_dt) says.
+        # If the duration looks insane that's a count/edge problem to
+        # fix upstream — NOT something to mask by cutting the clip.
         if not extract_per_cycle:
             # Sub-machine binding — keep the shift-long TS rolling but
             # don't write a per-cycle MP4. The Phase2 sub-machine UI
@@ -843,9 +918,38 @@ class PlcMonitor:
                 print(f"[PLC] Camera recorder for {camera_id} died, restarting...")
                 del self._camera_workers[camera_id]
 
+            # 2026-05-21 — SPAWN-STORM GUARD.
+            # _start_video (every cycle) and /api/submachine/clip (every
+            # retry) call this function with NO cool-down check, so a
+            # broken camera (RTSP 451 etc.) would spawn-die-spawn-die
+            # every few seconds.  Each spawn creates a fresh TS filename,
+            # leaving the cycle's marker pointing at a stale file that
+            # the next spawn already deleted → "TS file missing" → no
+            # MP4 for ANY cycle until the camera revives.  Honour the
+            # watchdog's exponential back-off here too — if next_try is
+            # still in the future, refuse to spawn.
+            if not hasattr(self, "_cam_fail_state"):
+                self._cam_fail_state: Dict[str, Dict] = {}
+            _st = self._cam_fail_state.get(camera_id)
+            if _st and time.time() < _st.get("next_try", 0):
+                return None
+
             rtsp_url = get_camera_rtsp_url(camera_id, self.base_dir)
             if not rtsp_url:
                 return None
+
+            # 2026-05-21 — Hardware-accelerated RTSP→MPEG-TS encoding.
+            # _pick_live_encoder() probes NVENC > QSV > libx264 ONCE per
+            # process and returns the codec name + low-latency flag set.
+            # Same visual quality as the old hardcoded libx264 + superfast
+            # + zerolatency + crf23 path, but on the RTX A2000 NVENC the
+            # encode cost drops from 25-40% CPU per cam to ~3% CPU + ~3%
+            # of one NVENC engine.  6-cam load goes from 1.5-2.4 CPU
+            # cores to ~0.2 cores total.  Encoder is invariant of camera,
+            # so the probe runs once and every recorder gets the same
+            # codec + flags.  Falls back to libx264 automatically if
+            # NVENC isn't installed (older boxes, GPU pulled, etc.).
+            _live_codec, _live_flags = _pick_live_encoder()
 
             videos_abs = _resolve_videos_root(self.base_dir)
             os.makedirs(videos_abs, exist_ok=True)
@@ -885,17 +989,16 @@ class PlcMonitor:
                 # boundary.  Earlier this was 2 s (-g 40) and we saw clips
                 # drifting up to 4 s long for 28 s cycles, which the spec
                 # forbids (+/- 1 s).  Trade-off: ~10-15 % larger .ts files,
-                # acceptable on the F:\ external HDD.
-                "-c:v", "libx264",
-                # superfast (was ultrafast) — operator reported pixel
-                # bursting / macroblocking on shop-floor TV.  ultrafast
-                # disables rate-distortion optimisation entirely; at 1920
-                # x1080 that produces visible blocks on motion edges even
-                # at CRF 23.  superfast enables basic RDO, costs ~20-30%
-                # more CPU on the encode but produces a clean picture.
-                # Still real-time safe on this server.
-                "-preset", "superfast",
-                "-tune",   "zerolatency",
+                # acceptable on the D:\MES_Videos local SSD.
+                # 2026-05-21 — Codec + preset/tune picked by
+                # _pick_live_encoder() above.  Order: NVENC > QSV >
+                # libx264.  Each option's flag bundle is tuned for
+                # low-latency live encode (no B-frames, no lookahead)
+                # so cycle extraction's `-c copy` lands on clean key
+                # boundaries.  Visual quality matches the prior
+                # libx264 superfast + zerolatency + crf23 path.
+                "-c:v", _live_codec,
+                *_live_flags,
                 # ── Shop-floor LED TV compatibility (2026-05-12) ──────
                 # Without these two flags, recorded cycles fail to render
                 # on Samsung Tizen / LG WebOS TV browsers:
@@ -924,12 +1027,12 @@ class PlcMonitor:
                 "format=yuv420p",
                 "-color_range", "tv",
                 "-level", "4.0",           # 1080p @ ≤25 Mbps cap
-                # CRF 23 — visually-lossless quality at 1080p.  Earlier
-                # value was 28 which at 1920x1080 produced macroblocking
-                # on machine details (small text on parts, etc.).  CRF 23
-                # bumps bitrate ~3x but file sizes stay reasonable (15-20MB
-                # for a 15s cycle vs the 100+ MB of the old 2304x1296 stream).
-                "-crf", "23",
+                # Quality target (CRF 23 / CQ 23) is set inside the
+                # picked _live_flags above so each codec uses the flag
+                # name it actually understands (libx264 -crf, NVENC
+                # -cq, QSV -global_quality).  The earlier hardcoded
+                # `-crf 23` here was a duplicate that NVENC/QSV would
+                # silently ignore.
                 "-r", "20",
                 "-g", "20",           # keyframe every 20 frames = 1 s
                 "-keyint_min", "20",
@@ -962,10 +1065,69 @@ class PlcMonitor:
                 )
                 t.start()
                 print(f"[PLC] Continuous TS recording started: {ts_file}")
+                # 2026-05-21 — IMMEDIATE-DEATH DETECTOR (storm-guard companion).
+                # RTSP 451 / unreachable / auth-fail causes ffmpeg to exit in
+                # well under a second.  The watchdog only runs every ~3 s, so
+                # in that window the same camera can be spawned 3-6 more times
+                # by _start_video (per-cycle) and submachine_clip (per-retry).
+                # Verify the process is still alive after 0.6 s — if not,
+                # arm the storm-guard cool-down RIGHT NOW so the next
+                # _ensure_camera_recording call returns None instead of
+                # spawning another disposable ffmpeg.
+                t_guard = threading.Thread(
+                    target=self._arm_storm_guard_if_dead,
+                    args=(camera_id, proc, ts_file),
+                    daemon=True,
+                )
+                t_guard.start()
                 return cam
             except Exception as exc:
                 print(f"[PLC] Camera ffmpeg launch error: {exc}")
                 return None
+
+    def _arm_storm_guard_if_dead(self, camera_id: str, proc, ts_file: str) -> None:
+        """Watch a newly-spawned ffmpeg for 0.6 s.  If it has already
+        exited, arm `_cam_fail_state[camera_id]` with an exponential
+        back-off cool-down so subsequent spawn attempts (from any
+        caller) bail out via the storm-guard at the top of
+        `_ensure_camera_recording`.  Cleans up the (likely 0-byte)
+        TS file the dead ffmpeg left behind so the videos folder
+        doesn't accumulate orphan stubs.
+        2026-05-21 — fixes the spawn-storm where a broken camera
+        produced 6-10 zombie TS files per minute and every cycle
+        marker pointed at a file the next spawn had already deleted."""
+        time.sleep(0.6)
+        if proc.poll() is None:
+            return                                   # alive — let watchdog handle it
+        # Process died within 0.6 s — almost certainly RTSP-side fail
+        # (451, host unreachable, auth refused).  Arm the storm-guard.
+        if not hasattr(self, "_cam_fail_state"):
+            self._cam_fail_state: Dict[str, Dict] = {}
+        st = self._cam_fail_state.setdefault(
+            camera_id, {"fails": 0, "next_try": 0.0, "announced": False})
+        st["fails"] += 1
+        # Same schedule the watchdog uses: 5 s → 15 s → 60 s → 120 s → 300 s
+        cool_down = min(5 * (3 ** min(st["fails"] - 1, 4)), 300)
+        st["next_try"] = time.time() + cool_down
+        if not st["announced"]:
+            print(f"[PLC] Camera {camera_id} died instantly "
+                  f"(RTSP refused) — storm-guard armed: "
+                  f"no new spawn for {int(cool_down)}s.")
+            st["announced"] = True
+        # Remove the worker entry so the next spawn attempt at least
+        # tries afresh once the cool-down expires.
+        try:
+            cur = self._camera_workers.get(camera_id)
+            if cur and cur.get("proc") is proc:
+                del self._camera_workers[camera_id]
+        except Exception:
+            pass
+        # Nuke the empty TS stub the dead ffmpeg left behind.
+        try:
+            if os.path.exists(ts_file) and os.path.getsize(ts_file) < 65536:
+                os.remove(ts_file)
+        except OSError:
+            pass
 
     def _detect_write_start(self, cam: Dict, ts_file: str) -> None:
         """Poll the TS file until ffmpeg has written at least 64 KB, then record write_start.

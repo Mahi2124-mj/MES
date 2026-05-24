@@ -883,7 +883,11 @@ function LineCard({ line, globalStatus, token, user, onRtUpdate, onNpdUpdate }) 
             that opens the dedicated sub-machine page in a new tab.
             IP / bit / ideal-CT are intentionally hidden — they're admin-only
             details and clutter the operator's view. */}
-        {submachines.length > 0 && (
+        {/* 2026-05-24 — Sub-machines section HIDDEN from main dashboard
+            per operator: "main dashbard me sirf final ka data aayega
+            or kisi ka BHI NHI OK".  Sub-machine counts available on
+            the dedicated /submachine-fullscreen/{id} page. */}
+        {false && submachines.length > 0 && (
           <div style={{
             marginTop: 14, paddingTop: 14,
             borderTop: "1px dashed #cbd5e1",

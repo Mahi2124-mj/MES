@@ -122,38 +122,53 @@ function MachineRow({ machine, idealCt, onPick, onCycleVideo, isMain = false, ch
       v > idealCT + CT_TOL ? FS_BAD
       : v < idealCT - CT_TOL ? FS_OK
       : FS_WARN;
-    // 2026-05-18-r7 — Y-AXIS HARD CAP at 40s for visual stability.
+    // 2026-05-18-r7 — Y-AXIS dynamic cap, scaled per-machine idealCT.
     // Operator complaint: "ISME DEKHEGA TO SARI DOT DOT HI DIKH RHI H
     // BECAUSE KUCH BICH BICH ME CYCLE TIME BHOT BDH JATA H".  A single
     // 300s outlier was forcing the y-axis to auto-scale to 300, which
-    // crushed every normal 14-18s cycle into a flat band at the
-    // bottom — operator couldn't read the real distribution at all.
-    // Fix:
-    //   • plotData clamps each value at Y_CAP, so the rendered line +
-    //     dots never escape the visible 40s band.
-    //   • Tooltip + dot-click handler use the REAL `cycles[i].ct` so
-    //     the operator sees the true CT value (and video URL still
-    //     uses the real cycle data — server has no clamp).
-    //   • Clamped points get a thick black border so the operator can
-    //     visually distinguish "this was actually >40s" at a glance.
-    const Y_CAP = 40;
+    // crushed every normal 14-18s cycle into a flat band at the bottom.
+    //
+    // 2026-05-20 — Earlier Y_CAP was hardcoded to 40s.  That worked for
+    // 15s-ideal lines (15+25 headroom) but broke when a row's ideal CT
+    // was 30s — the cap stayed at 40 so anything over 40s clamped and
+    // the line looked like it was hugging the ceiling.  Operator spec:
+    // "mera ct 15 tha to mnne 40 pe set kia tha, jb 30 kr dia to bhi
+    // bdhna chahiye na isse +25sec ho jaye".
+    //
+    // Formula: Y_CAP = idealCT + 25.  Gives:
+    //   ideal 15s → cap 40s  (matches old hardcoded)
+    //   ideal 30s → cap 55s
+    //   ideal 45s → cap 70s
+    //
+    // 2026-05-21 — Y_MIN must NEVER cut off real cycle data.
+    // Earlier formula `idealCT - 10` worked when actual CTs ≈ ideal,
+    // but Final Inspection has DB ideal=30s while real cycles run at
+    // 12-15s.  That set Y_MIN=20 and clipped every cycle below the
+    // chart band → graph appeared blank.  Now we ALSO consider the
+    // observed minimum cycle time and use whichever is lower.
+    const Y_CAP = Math.max(20, (idealCT || 15) + 25);
+    const _observedCTs = cycles.map(c => c.ct).filter(v => v != null && v > 0);
+    const _observedMin = _observedCTs.length ? Math.min(..._observedCTs) : (idealCT || 15);
+    const Y_MIN = Math.max(
+      0,
+      Math.min(
+        (idealCT || 15) - 10,       // proportional default
+        Math.floor(_observedMin) - 2 // never crop real data below view
+      )
+    );
     const plotData = cycles.map(c => c.ct == null ? null : Math.min(c.ct, Y_CAP));
-    const ptColors = cycles.map(cy => _ptClr(cy.ct));
-    // 2026-05-18-r16 — Slimmer default dots per operator spec.
-    // Operator: "dot dot dikh rhi h normal do ho not as thigh thigh
-    // hogi jb vo hover + click kre" — keep base dots small (2 px
-    // normal, 3 px for spikes so spikes still stand out), then
-    // BALLOON on hover / active so the operator gets a strong visual
-    // affordance that the dot is interactive.
-    const ptRadius = cycles.map(cy => cy.ct > idealCT + CT_TOL ? 3 : 2);
-    const ptHoverR = cycles.map(cy => cy.ct > idealCT + CT_TOL ? 9 : 7);
-    // Clamped-point markers: thicker white border so the operator
-    // can spot which dots are pinned to the cap.
-    // 2026-05-18-r16 — Thinner default border (was 1px) so normal
-    // dots don't look bulky.  Outliers still get a 2px white halo
-    // for visual emphasis.
-    const ptBorder    = cycles.map(cy => cy.ct > Y_CAP ? "#ffffff" : "#060912");
-    const ptBorderW   = cycles.map(cy => cy.ct > Y_CAP ? 2 : 0.5);
+    // 2026-05-24 — NG dots ALWAYS red regardless of CT, so the operator
+    // immediately spots a rejected part vs a slow-but-OK cycle.
+    const ptColors = cycles.map(cy => cy.is_ng ? FS_BAD : _ptClr(cy.ct));
+    // NG dots also bigger so they stand out + white border ring.
+    const ptRadius = cycles.map(cy => cy.is_ng ? 5
+                                    : (cy.ct > idealCT + CT_TOL ? 3 : 2));
+    const ptHoverR = cycles.map(cy => cy.is_ng ? 11
+                                    : (cy.ct > idealCT + CT_TOL ? 9 : 7));
+    const ptBorder    = cycles.map(cy => cy.is_ng ? "#ffffff"
+                                        : (cy.ct > Y_CAP ? "#ffffff" : "#060912"));
+    const ptBorderW   = cycles.map(cy => cy.is_ng ? 2
+                                        : (cy.ct > Y_CAP ? 2 : 0.5));
 
     const data = {
       labels: cycles.map(c => c.cycle_seq),
@@ -288,17 +303,27 @@ function MachineRow({ machine, idealCt, onPick, onCycleVideo, isMain = false, ch
           // both labeled with the same parsed.y from cycles[idx].ct).
           filter: (tooltipItem) => tooltipItem.datasetIndex === 0,
           callbacks: {
-            title: i => `Cycle #${i[0].label}`,
-            // 2026-05-18-r7 — Tooltip shows REAL ct (un-clamped) so
-            // operator sees the true 312s outlier, not the visual 40s
-            // clamp.  Append a " (>40s, clamped)" tag when the dot
-            // pinned to the cap so the chart legibility is preserved
-            // without hiding the truth.
+            // 2026-05-24 — Full per-cycle details on hover.  No "clamped"
+            // tag — autoscale handles outliers now.
+            title: i => {
+              const cy = cycles[i[0].dataIndex];
+              return `Cycle #${cy?.cycle_seq ?? i[0].label}`;
+            },
             label: t => {
-              const real = cycles[t.dataIndex]?.ct;
-              if (real == null) return "—";
-              const tag  = real > Y_CAP ? `  ·  >${Y_CAP}s clamped` : "";
-              return `${real.toFixed(2)}s${tag}  ·  tap for video`;
+              const cy = cycles[t.dataIndex];
+              if (!cy || cy.ct == null) return "—";
+              const status = cy.is_ng ? "NG ⚠" : "OK ✓";
+              const ts = cy.ts ? new Date(cy.ts) : null;
+              const ts_s = ts ? ts.toLocaleTimeString("en-IN", {
+                hour: "2-digit", minute: "2-digit", second: "2-digit",
+                hour12: false,
+              }) : "—";
+              return [
+                `Status:  ${status}`,
+                `CT:      ${Number(cy.ct).toFixed(2)}s`,
+                `Time:    ${ts_s}`,
+                `tap for video`,
+              ];
             },
           },
           backgroundColor: "rgba(15,23,41,.95)",
@@ -311,15 +336,18 @@ function MachineRow({ machine, idealCt, onPick, onCycleVideo, isMain = false, ch
       },
       scales: {
         x: {
+          // 2026-05-24 — bigger / bolder cycle-seq labels at the bottom
+          // so operator can read part serial numbers from a distance.
           ticks: {
-            color: textMut, font: { size: 10, family: "monospace" },
-            maxRotation: 0, autoSkipPadding: 18,
+            color: "#e2e8f0",
+            font: { size: 11, weight: "bold", family: "monospace" },
+            maxRotation: 0, autoSkipPadding: 14,
           },
           grid: { color: "rgba(255,255,255,0.04)" },
         },
         y: {
           beginAtZero: false,
-          min: Math.max(0, Math.floor(idealCT * 0.4)),
+          min: Y_MIN,
           max: Math.ceil(yMax),
           ticks: {
             color: textMut, font: { size: 10, family: "monospace" },
@@ -341,8 +369,46 @@ function MachineRow({ machine, idealCt, onPick, onCycleVideo, isMain = false, ch
       chartRef.current.options = options;
       chartRef.current.update("none");
     } else {
+      // 2026-05-24 — Per-dot CT label plugin.  Operator spec: "dot pe
+      // ct ok sirf ng ka front pe show ho with symbol and ok".
+      // Renders for EVERY visible dot:
+      //   • OK cycle → green CT number ABOVE the dot
+      //   • NG cycle → red ⚠ symbol + red CT number ABOVE the dot
+      // Hover tooltip still shows full details (cycle seq, CT, time, status).
+      const ngMarkerPlugin = {
+        id: "perDotLabel",
+        afterDatasetsDraw(chart) {
+          const meta = chart.getDatasetMeta(0);
+          if (!meta || !meta.data) return;
+          const ctx2 = chart.ctx;
+          ctx2.save();
+          ctx2.textAlign    = "center";
+          ctx2.textBaseline = "bottom";
+          meta.data.forEach((pt, i) => {
+            const cy = cycles[i];
+            if (!cy || cy.ct == null) return;
+            const x = pt.x, y = pt.y;
+            const ct = Number(cy.ct).toFixed(1) + "s";
+            if (cy.is_ng) {
+              // ⚠ glyph above, then NG CT in red just under it
+              ctx2.font      = "bold 11px 'Segoe UI Symbol', sans-serif";
+              ctx2.fillStyle = "#fbbf24";
+              ctx2.fillText("⚠", x, y - 18);
+              ctx2.font      = "bold 10px monospace";
+              ctx2.fillStyle = FS_BAD;
+              ctx2.fillText(ct, x, y - 6);
+            } else {
+              // OK CT in green above the dot
+              ctx2.font      = "bold 9px monospace";
+              ctx2.fillStyle = FS_OK;
+              ctx2.fillText(ct, x, y - 6);
+            }
+          });
+          ctx2.restore();
+        },
+      };
       chartRef.current = new window.Chart(canvasRef.current.getContext("2d"), {
-        type: "line", data, options,
+        type: "line", data, options, plugins: [ngMarkerPlugin],
       });
     }
   }, [cycles, idealCt, chartReady]);
@@ -415,9 +481,23 @@ function MachineRow({ machine, idealCt, onPick, onCycleVideo, isMain = false, ch
           </span>
         </div>
         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-          <span style={{ fontSize: 10, color: textMut, fontWeight: 600 }}>
-            #{allCycles.length} total · viewing {winStart + 1}-{winStart + cycles.length} · ideal {idealCt}s
-          </span>
+          {/* 2026-05-24 — Show OK + NG counts separately so operator
+              can see per-machine reject rate at a glance.  NG count
+              shown in red, OK in green. */}
+          {(() => {
+            const okN = allCycles.filter(c => !c.is_ng).length;
+            const ngN = allCycles.filter(c => c.is_ng).length;
+            return (
+              <span style={{ fontSize: 10, fontWeight: 700, color: textMut,
+                              fontFamily: "monospace" }}>
+                <span style={{ color: FS_OK }}>OK: {okN}</span>
+                <span style={{ margin: "0 6px", color: textMut }}>·</span>
+                <span style={{ color: FS_BAD }}>NG: {ngN}</span>
+                <span style={{ margin: "0 6px", color: textMut }}>·</span>
+                <span>ideal {idealCt}s</span>
+              </span>
+            );
+          })()}
           <span style={{ fontSize: 16, fontWeight: 900,
                           color: lastColor,
                           fontFamily: "monospace",
@@ -1069,15 +1149,40 @@ export default function WallboardLeft() {
                 retry uses a fresh cache-buster so the browser doesn't
                 serve the cached 404 / partial response.  Only after the
                 retry budget is exhausted do we show the inline error. */}
+            {/* 2026-05-21 — Video loops continuously until operator
+                explicitly closes the modal.  Custom big centered
+                play/pause overlay button on top of native controls —
+                operator on shop-floor with gloves can hit a 96 px
+                target much easier than the native <30 px controls.
+                Spec: "video chale to continue chale jb tk close na ho
+                ... play button center me bda".
+                2026-05-21-r2 — Operator added "timeline bar wapas
+                laa + replay-from-beginning button".  Re-enabled
+                `controls` for the native progress/scrubber bar at the
+                bottom; added a custom ↺ Replay button (top-left of
+                video) that resets currentTime=0 instantly without
+                waiting for the natural loop boundary. */}
+            <div style={{ position:"relative", width:"100%", lineHeight:0 }}>
             <video src={videoCycle.url}
-                   controls autoPlay
+                   autoPlay muted
+                   controls
+                   controlsList="nodownload noplaybackrate noremoteplayback"
                    data-retry="0"
+                   onClick={(e) => {
+                     // Tap on video toggles play/pause — same UX as the
+                     // big centered button.
+                     const v = e.currentTarget;
+                     if (v.paused) v.play().catch(() => {});
+                     else v.pause();
+                   }}
                    style={{
                      width: "100%",
                      maxHeight: "70vh",
                      background: "#000",
                      borderRadius: 6,
                      border: `1px solid ${border}`,
+                     cursor: "pointer",
+                     display: "block",
                    }}
                    onError={(e) => {
                      const RETRY_MAX      = 4;
@@ -1111,9 +1216,404 @@ export default function WallboardLeft() {
                      div.textContent = "No video available for this cycle";
                      parent.appendChild(div);
                    }} />
+            {/* 2026-05-22 — Center big-play overlay removed per operator
+                request.  Native controls bottom strip + ↺ replay top-left
+                cover the play/pause/seek workflow. */}
+            {/* 2026-05-21-r2 — Replay-from-start button.  Operator spec:
+                "replay from beginning ka bhi button aana chahiye".
+                Sits in the top-left corner of the video, 40 px circle.
+                Always visible (unlike big-play which hides during
+                playback) so operator can re-watch any cycle instantly
+                without waiting for the natural loop boundary or
+                dragging the native scrubber to 0. */}
+            <button
+              className="wb-replay"
+              title="Replay from start"
+              onClick={(e) => {
+                e.stopPropagation();
+                const v = e.currentTarget.parentNode?.querySelector("video");
+                if (!v) return;
+                try { v.currentTime = 0; } catch {}
+                v.play().catch(() => {});
+              }}
+              style={{
+                position:"absolute", top:12, left:12,
+                width:44, height:44, borderRadius:"50%",
+                border:"2px solid rgba(255,255,255,0.7)",
+                background:"rgba(0,0,0,0.55)",
+                color:"#fff", cursor:"pointer",
+                display:"flex", alignItems:"center", justifyContent:"center",
+                pointerEvents:"auto",
+                backdropFilter:"blur(4px)",
+                zIndex:6,
+                transition:"opacity .2s, transform .15s",
+                opacity:0.85,
+              }}
+              onMouseEnter={(e)=>{ e.currentTarget.style.opacity="1"; e.currentTarget.style.transform="scale(1.08)"; }}
+              onMouseLeave={(e)=>{ e.currentTarget.style.opacity="0.85"; e.currentTarget.style.transform="scale(1)"; }}
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+                   stroke="currentColor" strokeWidth="2.4"
+                   strokeLinecap="round" strokeLinejoin="round">
+                {/* Circular replay arrow — counter-clockwise loop ending in arrowhead */}
+                <path d="M3 12a9 9 0 1 0 3-6.7" />
+                <polyline points="3 4 3 10 9 10" />
+              </svg>
+            </button>
+            </div>
+            {/* 2026-05-21 — Per-cycle Comments panel.
+                Operator spec: "Final Inspection ka video khule to neeche
+                comments tab ho jaha cycle-specific notes likhe ja sake".
+                Renders ONLY for main-PLC cycles (isMain) — sub-machine
+                slice viewers don't need this.  Keyed by part_code so
+                opening the same cycle via part_code search later shows
+                the same comment history. */}
+            {videoCycle.isMain && videoCycle.cy.part_code && (
+              <CycleCommentsPanel
+                lineId={lineId}
+                partCode={videoCycle.cy.part_code}
+                border={border}
+                text={text}
+                textSub={textSub}
+                textMut={textMut}
+              />
+            )}
+            {/* 2026-05-24 — Per-process NG remarks panel for ANY NG
+                cycle (main OR sub).  Sub-machine cycles don't have a
+                real part_code, so we synthesise one as
+                M{machine_id}-{cycle_seq}-{YYYY-MM-DD} for keying.
+                Operator spec: "ng part me video k niche remarks ka
+                option de hr process pe". */}
+            {(() => {
+              // 2026-05-24 — Remark box for EVERY cycle (OK or NG).
+              // Only ONE input — for the specific machine whose cycle
+              // is being viewed.  NG cycles get a red box, OK cycles
+              // get a normal box.  Operator: "sabme remarks ka option
+              // de ok and ng me red kr dio bs comment box ko red and
+              // hr process pe apna apna remarks option bs only one
+              // machine jiski cycle h vo".
+              const realPC = videoCycle.cy.part_code;
+              const machineId = videoCycle.machine.id
+                              || videoCycle.machine.sub_id
+                              || 0;
+              const synthPC = realPC && String(realPC).trim()
+                ? String(realPC).trim().replace(/:$/, "")
+                : `M${machineId}-`
+                  + `C${videoCycle.cy.cycle_seq}-`
+                  + (videoCycle.cy.ts
+                       ? new Date(videoCycle.cy.ts).toISOString().slice(0, 10)
+                       : new Date().toISOString().slice(0, 10));
+              return (
+                <WbCycleRemarkPanel
+                  lineId={lineId}
+                  partCode={synthPC}
+                  machineId={machineId}
+                  machineName={videoCycle.machine.machine_name}
+                  isNg={!!videoCycle.cy.is_ng}
+                  border={border}
+                  text={text}
+                  textSub={textSub}
+                  textMut={textMut}
+                  bgDeep={bg}
+                />
+              );
+            })()}
           </div>
         </div>
       ), document.body)}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────
+// WbCycleRemarkPanel — single remark box for the specific machine
+// whose cycle is being viewed.  NG cycle = red box; OK cycle = blue.
+// Operator: "hr process pe apna apna remarks option bs only one
+// machine jiski cycle h vo".
+// ─────────────────────────────────────────────────────────────────
+function WbCycleRemarkPanel({
+  lineId, partCode, machineId, machineName, isNg,
+  border, text, textSub, textMut, bgDeep,
+}) {
+  const [existing, setExisting] = useState(null);
+  const [draft,    setDraft]    = useState("");
+  const [saving,   setSaving]   = useState(false);
+  const [savedAt,  setSavedAt]  = useState(0);
+  const [error,    setError]    = useState("");
+  const token = (typeof window !== "undefined"
+                   && sessionStorage.getItem("mes_token")) || "";
+
+  const load = useCallback(() => {
+    if (!machineId) return;
+    setError("");
+    fetch(`/api/lines/${lineId}/ng-process-remarks/${encodeURIComponent(partCode)}`)
+      .then(r => r.ok ? r.json() : Promise.reject(r.statusText))
+      .then(d => {
+        const mine = (d.remarks || []).find(r => r.machine_id === machineId);
+        setExisting(mine || null);
+        setDraft(mine ? mine.remark_text : "");
+      })
+      .catch(e => setError(String(e)));
+  }, [lineId, partCode, machineId]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const save = () => {
+    const txt = draft.trim();
+    if (!txt || !machineId) return;
+    setSaving(true);
+    fetch(`/api/lines/${lineId}/ng-process-remarks/${encodeURIComponent(partCode)}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({
+        machine_id:   machineId,
+        machine_name: machineName,
+        remark_text:  txt,
+      }),
+    })
+      .then(r => r.ok ? r.json() : Promise.reject(r.statusText))
+      .then(() => { setSavedAt(Date.now()); load(); })
+      .catch(e => setError(String(e)))
+      .finally(() => setSaving(false));
+  };
+
+  const accent      = isNg ? "#ef4444" : "#3b82f6";
+  const accentBg    = isNg ? "rgba(239,68,68,0.08)" : "rgba(59,130,246,0.06)";
+  const accentBd    = isNg ? "rgba(239,68,68,0.55)" : "rgba(59,130,246,0.35)";
+  const recentlySaved = (Date.now() - savedAt) < 2500;
+
+  return (
+    <div style={{
+      marginTop: 10, padding: 12, background: accentBg,
+      border: `1.5px solid ${accentBd}`, borderRadius: 8,
+    }}>
+      <div style={{
+        display: "flex", justifyContent: "space-between", alignItems: "center",
+        marginBottom: 8, fontSize: 11, fontWeight: 800,
+        color: accent, letterSpacing: ".08em",
+      }}>
+        <span>{isNg ? "⚠ NG" : "📝 OK"} CYCLE REMARK · {machineName}</span>
+        <span style={{ color: textMut, fontWeight: 600 }}>
+          {existing && existing.updated_at
+            ? "last: " + new Date(existing.updated_at).toLocaleString("en-IN")
+            : "no remark yet"}
+        </span>
+      </div>
+      {error && (
+        <div style={{ color: "#f87171", fontSize: 11, marginBottom: 6 }}>
+          {error}
+        </div>
+      )}
+      <div style={{ display: "flex", gap: 8, alignItems: "stretch" }}>
+        <textarea
+          value={draft}
+          onChange={e => setDraft(e.target.value)}
+          placeholder={isNg
+            ? `Why was this part NG'd at ${machineName}?  (e.g., "jig wear caused misalign", "operator missed torque")`
+            : `Any note about this OK cycle at ${machineName}?  (optional — usually leave blank)`}
+          rows={3}
+          style={{
+            flex: 1, padding: 8, borderRadius: 6,
+            border: `1px solid ${isNg ? "rgba(239,68,68,0.5)" : border}`,
+            // 2026-05-24 — force WHITE text + readable placeholder on
+            // the dark wallboard background.  Operator: "text input ka
+            // colour black h white kr taki dikh jaye".
+            background: "rgba(0,0,0,0.35)",
+            color: "#ffffff",
+            fontSize: 13, resize: "vertical", fontFamily: "inherit",
+            caretColor: "#ffffff",
+          }}
+        />
+        <button
+          onClick={save}
+          disabled={saving || !draft.trim()}
+          style={{
+            padding: "0 18px", borderRadius: 6,
+            border: "none", cursor: "pointer",
+            background: saving ? "#6b7280"
+                        : recentlySaved ? "#16a34a"
+                        : accent,
+            color: "#fff", fontSize: 12, fontWeight: 800,
+            minWidth: 80, alignSelf: "stretch",
+          }}
+        >
+          {saving ? "..." : recentlySaved ? "✓ saved" : "SAVE"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────
+// CycleCommentsPanel
+// Per-cycle notes/comments panel.  Mounts inside the video modal,
+// fetches existing comments on open, allows authenticated users to
+// post new ones.  Keyed by (lineId, partCode) so the same thread
+// appears whether the user navigated via chart-dot click or via the
+// part_code search.  Append-only — typo correction = post a new
+// comment (matches the breakdown closure-notes pattern).
+// ─────────────────────────────────────────────────────────────────
+function CycleCommentsPanel({ lineId, partCode, border, text, textSub, textMut }) {
+  const [items, setItems]     = useState([]);
+  const [draft, setDraft]     = useState("");
+  const [loading, setLoading] = useState(false);
+  const [posting, setPosting] = useState(false);
+  const [error, setError]     = useState("");
+  const token = (typeof window !== "undefined"
+                   && sessionStorage.getItem("mes_token")) || "";
+
+  // Fetch on mount + when part_code changes (different cycle clicked)
+  useEffect(() => {
+    let stopped = false;
+    setLoading(true);
+    setError("");
+    fetch(`/api/lines/${lineId}/cycles/${encodeURIComponent(partCode)}/comments`,
+          { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+      .then(r => r.ok ? r.json() : Promise.reject(`HTTP ${r.status}`))
+      .then(d => { if (!stopped) setItems(Array.isArray(d.comments) ? d.comments : []); })
+      .catch(e => { if (!stopped) setError(String(e)); })
+      .finally(() => { if (!stopped) setLoading(false); });
+    return () => { stopped = true; };
+  }, [lineId, partCode, token]);
+
+  const submit = useCallback(async () => {
+    const txt = draft.trim();
+    if (!txt) return;
+    if (!token) {
+      setError("Login required to post comments");
+      return;
+    }
+    setPosting(true); setError("");
+    try {
+      const r = await fetch(
+        `/api/lines/${lineId}/cycles/${encodeURIComponent(partCode)}/comments`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type":  "application/json",
+            "Authorization": `Bearer ${token}`,
+          },
+          body: JSON.stringify({ comment: txt }),
+        }
+      );
+      if (!r.ok) {
+        const msg = await r.text().catch(() => `HTTP ${r.status}`);
+        throw new Error(msg.slice(0, 200));
+      }
+      const row = await r.json();
+      setItems(prev => [...prev, {
+        id:         row.id,
+        comment:    row.comment,
+        author:     row.author,
+        created_at: row.created_at,
+      }]);
+      setDraft("");
+    } catch (e) {
+      setError(e.message || String(e));
+    } finally {
+      setPosting(false);
+    }
+  }, [lineId, partCode, draft, token]);
+
+  // Auto-grow textarea heightless on small content
+  return (
+    <div style={{
+      marginTop: 12, padding: 12,
+      background: "rgba(255,255,255,0.02)",
+      border: `1px solid ${border}`, borderRadius: 8,
+      fontFamily: "'Barlow',sans-serif",
+    }}>
+      <div style={{
+        fontSize: 11, fontWeight: 700, letterSpacing: ".08em",
+        color: textSub, textTransform: "uppercase", marginBottom: 8,
+        display: "flex", justifyContent: "space-between", alignItems: "center",
+      }}>
+        <span>Comments</span>
+        <span style={{ color: textMut, fontSize: 10, fontWeight: 600 }}>
+          part {partCode}
+        </span>
+      </div>
+
+      {/* Existing comments list */}
+      {loading ? (
+        <div style={{ color: textMut, fontSize: 12, padding: "6px 0" }}>
+          Loading…
+        </div>
+      ) : items.length === 0 ? (
+        <div style={{ color: textMut, fontSize: 12, fontStyle: "italic",
+                       padding: "6px 0" }}>
+          No comments yet for this cycle.
+        </div>
+      ) : (
+        <div style={{ maxHeight: 160, overflowY: "auto", marginBottom: 8 }}>
+          {items.map(c => (
+            <div key={c.id} style={{
+              padding: "6px 0",
+              borderTop: `1px dashed ${border}`,
+            }}>
+              <div style={{ fontSize: 11, color: textMut, marginBottom: 2 }}>
+                <span style={{ color: "#60a5fa", fontWeight: 700 }}>
+                  {c.author || "operator"}
+                </span>
+                <span style={{ margin: "0 6px" }}>·</span>
+                {c.created_at ? new Date(c.created_at).toLocaleString("en-GB", {
+                  day: "2-digit", month: "short",
+                  hour: "2-digit", minute: "2-digit",
+                }) : ""}
+              </div>
+              <div style={{ fontSize: 13, color: text, whiteSpace: "pre-wrap",
+                             wordBreak: "break-word" }}>
+                {c.comment}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Compose */}
+      <div style={{ display: "flex", gap: 6 }}>
+        <textarea
+          value={draft}
+          onChange={e => setDraft(e.target.value)}
+          placeholder="Add a comment about this cycle…"
+          rows={2}
+          maxLength={2000}
+          style={{
+            flex: 1, padding: "6px 8px", fontSize: 13,
+            background: "rgba(255,255,255,0.04)",
+            color: text, border: `1px solid ${border}`,
+            borderRadius: 6, resize: "vertical",
+            fontFamily: "'Barlow',sans-serif",
+          }}
+          onKeyDown={e => {
+            // Ctrl/Cmd+Enter to submit — common UX
+            if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+              e.preventDefault();
+              submit();
+            }
+          }}
+        />
+        <button
+          onClick={submit}
+          disabled={posting || !draft.trim()}
+          style={{
+            padding: "0 14px", fontSize: 12, fontWeight: 700,
+            background: (posting || !draft.trim()) ? "rgba(96,165,250,.3)" : "#2563eb",
+            color: "#fff", border: "none", borderRadius: 6,
+            cursor: (posting || !draft.trim()) ? "not-allowed" : "pointer",
+            letterSpacing: ".04em",
+          }}>
+          {posting ? "…" : "POST"}
+        </button>
+      </div>
+      {error && (
+        <div style={{ marginTop: 6, fontSize: 11, color: "#ef4444" }}>
+          {error}
+        </div>
+      )}
     </div>
   );
 }

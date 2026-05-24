@@ -6,9 +6,9 @@
     "machine_id": "machine_24"
   },
   "mes:2": {
-    "recording": true,
-    "cycle_number": 335920,
-    "start_time": "2026-05-20T11:08:06.650000",
+    "recording": false,
+    "cycle_number": null,
+    "start_time": null,
     "machine_id": "mes:2"
   }
 }

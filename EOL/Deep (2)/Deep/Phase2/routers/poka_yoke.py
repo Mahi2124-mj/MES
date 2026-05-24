@@ -17,7 +17,7 @@ from pydantic import BaseModel
 from typing import Optional, Any
 
 from database import get_conn, dict_cursor
-from auth import get_current_user, require_admin
+from auth import get_current_user, get_current_user_optional, require_admin
 
 router = APIRouter(prefix="/api/poka-yoke", tags=["poka-yoke"])
 
@@ -4220,3 +4220,700 @@ def import_plc_actuals(body: PLCImportBody, admin=Depends(require_admin)):
         """, (f"updated={updated} skipped={skipped}",))
 
     return {"ok": True, "updated": updated, "skipped": skipped}
+
+
+# ════════════════════════════════════════════════════════════════════
+# PY MAINTENANCE REQUESTS  (Phase 2 — operator remarks audit panel)
+# ════════════════════════════════════════════════════════════════════
+# Operator on Maintenance > Poka Yoke can type a remark per PY row and
+# submit it.  Lands here, stored in mes_py_requests, surfaces on the
+# admin "New Requests" panel.  Spec from operator (2026-05-21):
+#   "remarks ka option if any changes are required so mention changes
+#    are save in audit panel name as new panel new requests jisme sari
+#    details ho bs mujhe vha jha k pta chal jaye ki whats are input
+#    from users".
+# Workflow:
+#   NEW       → operator just submitted, admin hasn't seen yet
+#   REVIEWED  → admin opened it
+#   RESOLVED  → admin took action (or rejected), with resolution note
+# Status transitions one-way.
+
+class PyRequestCreate(BaseModel):
+    py_no:        str
+    py_name:      Optional[str] = None
+    py_master_id: Optional[int] = None
+    line_id:      Optional[int] = None
+    model_bit:    Optional[int] = None
+    sensing_bits: Optional[str] = None    # X-bit at time of submission
+    machine_name: Optional[str] = None
+    bit:          Optional[str] = None    # D-register
+    expected:     Optional[Any] = None    # desired value snapshot
+    remark:       str
+
+
+class PyRequestResolve(BaseModel):
+    status:           str                  # 'REVIEWED' | 'RESOLVED'
+    resolution_note:  Optional[str] = None
+
+
+def _ensure_py_requests_table(conn):
+    """Idempotent — create / migrate the audit table on first use."""
+    cur = conn.cursor()
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS mes_py_requests (
+            id              SERIAL PRIMARY KEY,
+            py_no           VARCHAR(64)  NOT NULL,
+            py_name         TEXT,
+            py_master_id    INTEGER,
+            line_id         INTEGER,
+            model_bit       INTEGER,
+            sensing_bits    TEXT,          -- e.g. 'X15'
+            machine_name    TEXT,
+            bit             VARCHAR(32),   -- D-register
+            expected        TEXT,           -- desired value snapshot
+            remark          TEXT         NOT NULL,
+            status          VARCHAR(16)  NOT NULL DEFAULT 'NEW',
+            submitted_by_user_id  INTEGER,
+            submitted_by_username TEXT,
+            submitted_at    TIMESTAMP    NOT NULL DEFAULT NOW(),
+            resolved_at     TIMESTAMP,
+            resolved_by_user_id   INTEGER,
+            resolved_by_username  TEXT,
+            resolution_note TEXT
+        )
+    """)
+    cur.execute("""
+        CREATE INDEX IF NOT EXISTS idx_mes_py_requests_status
+                ON mes_py_requests(status, submitted_at DESC)
+    """)
+    cur.execute("""
+        CREATE INDEX IF NOT EXISTS idx_mes_py_requests_line
+                ON mes_py_requests(line_id, status)
+    """)
+    conn.commit()
+
+
+@router.post("/requests")
+def submit_py_request(body: PyRequestCreate, user=Depends(get_current_user)):
+    """Operator submits a remark/change-request for a PY.  Always lands
+    as status='NEW'.  Admin sees it on the New Requests panel."""
+    remark = (body.remark or "").strip()
+    if not remark:
+        raise HTTPException(400, "remark is required")
+    with get_conn() as conn:
+        _ensure_py_requests_table(conn)
+        cur = conn.cursor()
+        cur.execute("""
+            INSERT INTO mes_py_requests
+                (py_no, py_name, py_master_id, line_id, model_bit,
+                 sensing_bits, machine_name, bit, expected, remark,
+                 status, submitted_by_user_id, submitted_by_username)
+            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,'NEW',%s,%s)
+            RETURNING id, submitted_at
+        """, (
+            body.py_no, body.py_name, body.py_master_id, body.line_id,
+            body.model_bit, body.sensing_bits, body.machine_name,
+            body.bit, (str(body.expected) if body.expected is not None else None),
+            remark,
+            user.get("id"), user.get("username"),
+        ))
+        new_id, submitted_at = cur.fetchone()
+        conn.commit()
+    return {
+        "ok": True,
+        "id": new_id,
+        "submitted_at": submitted_at.isoformat() if submitted_at else None,
+    }
+
+
+@router.get("/requests")
+def list_py_requests(
+    status:  Optional[str] = Query(None, description="NEW | REVIEWED | RESOLVED"),
+    line_id: Optional[int] = Query(None),
+    days:    int           = Query(30, ge=1, le=365),
+    limit:   int           = Query(200, ge=1, le=2000),
+    user=Depends(get_current_user),
+):
+    """List submitted PY requests.  Drives the admin "New Requests"
+    audit panel.  Filterable by status / line / lookback days."""
+    from datetime import datetime as _dt, timedelta as _td
+    cutoff = _dt.utcnow() - _td(days=days)
+    where = ["submitted_at >= %s"]
+    params: list = [cutoff]
+    if status:
+        where.append("status = %s")
+        params.append(status.upper())
+    if line_id is not None:
+        where.append("line_id = %s")
+        params.append(line_id)
+    with get_conn() as conn:
+        _ensure_py_requests_table(conn)
+        cur = dict_cursor(conn)
+        cur.execute(f"""
+            SELECT r.*, l.line_name, z.zone_name
+              FROM mes_py_requests r
+              LEFT JOIN mes_lines l ON l.id = r.line_id
+              LEFT JOIN mes_zones z ON z.id = l.zone_id
+             WHERE {' AND '.join(where)}
+             ORDER BY r.submitted_at DESC
+             LIMIT %s
+        """, params + [limit])
+        rows = [dict(r) for r in cur.fetchall()]
+        # Convenience: count breakdown by status
+        cur.execute(f"""
+            SELECT status, COUNT(*) AS n
+              FROM mes_py_requests
+             WHERE {' AND '.join(where)}
+             GROUP BY status
+        """, params)
+        by_status = {r["status"]: r["n"] for r in cur.fetchall()}
+    return {
+        "rows": rows,
+        "by_status": by_status,
+        "filters": {"status": status, "line_id": line_id, "days": days},
+    }
+
+
+@router.put("/requests/{req_id}/resolve")
+def resolve_py_request(req_id: int, body: PyRequestResolve,
+                        admin=Depends(require_admin)):
+    """Admin updates a request's status to REVIEWED or RESOLVED.
+    One-way transition: NEW -> REVIEWED -> RESOLVED.  resolution_note
+    is optional but encouraged for RESOLVED."""
+    new_status = (body.status or "").upper()
+    if new_status not in ("REVIEWED", "RESOLVED"):
+        raise HTTPException(400, "status must be REVIEWED or RESOLVED")
+    with get_conn() as conn:
+        _ensure_py_requests_table(conn)
+        cur = conn.cursor()
+        # Stamp resolved fields only when going RESOLVED.
+        if new_status == "RESOLVED":
+            cur.execute("""
+                UPDATE mes_py_requests
+                   SET status               = 'RESOLVED',
+                       resolved_at          = NOW(),
+                       resolved_by_user_id  = %s,
+                       resolved_by_username = %s,
+                       resolution_note      = COALESCE(%s, resolution_note)
+                 WHERE id = %s AND status <> 'RESOLVED'
+            """, (admin.get("id"), admin.get("username"),
+                  body.resolution_note, req_id))
+        else:
+            cur.execute("""
+                UPDATE mes_py_requests
+                   SET status = 'REVIEWED'
+                 WHERE id = %s AND status = 'NEW'
+            """, (req_id,))
+        if cur.rowcount == 0:
+            raise HTTPException(409, "Request not in a valid state for this transition")
+        conn.commit()
+    return {"ok": True, "status": new_status}
+
+
+@router.delete("/requests/{req_id}")
+def delete_py_request(req_id: int, admin=Depends(require_admin)):
+    """Admin can purge a request (e.g. spam, duplicate).  Hard delete —
+    use sparingly.  Audit trail of who deleted lives in mes_audit_log."""
+    with get_conn() as conn:
+        _ensure_py_requests_table(conn)
+        cur = conn.cursor()
+        cur.execute("DELETE FROM mes_py_requests WHERE id = %s RETURNING py_no",
+                    (req_id,))
+        row = cur.fetchone()
+        if not row:
+            raise HTTPException(404, "Request not found")
+        try:
+            cur.execute("""
+                INSERT INTO mes_audit_log (action, entity_type, entity_id, details)
+                VALUES ('DELETE_PY_REQUEST', 'py_request', %s, %s)
+            """, (req_id, f"py_no={row[0]} by={admin.get('username')}"))
+        except Exception:
+            pass        # audit log optional — never block the delete
+        conn.commit()
+    return {"ok": True, "deleted_id": req_id}
+
+
+# ════════════════════════════════════════════════════════════════════
+# PY IMAGES  (Phase 3 — visual manual / reference photos per PY)
+# ════════════════════════════════════════════════════════════════════
+# Admin uploads one or more images for each PY (LOCATE PIN, FR.LIGHTER
+# PROTECTOR-1, etc.).  Operator clicks the image button on Maintenance
+# > Poka Yoke row -> modal shows all images for that PY.
+# Spec from operator (2026-05-21):
+#   "first row p click kru to image show ho jaye or ye image set krne
+#    ka option dede maintenance panel ... image single bhi ho sakti h
+#    or multiple bhi ok as a manual".
+#
+# Storage:
+#   Files live at: Phase2/uploads/py_images/<py_id>_<timestamp>_<safe_name>
+#   DB stores: filename (random, unique), original_filename (user-facing),
+#              caption, sort_order so admin can re-order in a manual.
+import os as _os_img
+_PY_IMG_DIR = _os_img.path.join(
+    _os_img.path.dirname(_os_img.path.dirname(_os_img.path.abspath(__file__))),
+    "uploads", "py_images",
+)
+_os_img.makedirs(_PY_IMG_DIR, exist_ok=True)
+
+
+def _ensure_py_images_table(conn):
+    """Idempotent table create for PY image manual."""
+    cur = conn.cursor()
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS mes_py_images (
+            id                SERIAL PRIMARY KEY,
+            py_no             VARCHAR(64)  NOT NULL,
+            py_master_id      INTEGER,
+            line_id           INTEGER,
+            filename          TEXT         NOT NULL,
+            original_filename TEXT,
+            mime_type         VARCHAR(64),
+            file_size_bytes   BIGINT,
+            caption           TEXT,
+            sort_order        INTEGER      NOT NULL DEFAULT 0,
+            uploaded_by_user_id  INTEGER,
+            uploaded_by_username TEXT,
+            uploaded_at       TIMESTAMP    NOT NULL DEFAULT NOW()
+        )
+    """)
+    cur.execute("""
+        CREATE INDEX IF NOT EXISTS idx_mes_py_images_lookup
+                ON mes_py_images(py_no, line_id, sort_order, id)
+    """)
+    conn.commit()
+
+
+@router.post("/images")
+async def upload_py_image(
+    py_no:        str = Query(..., description="Target PY number"),
+    py_master_id: Optional[int] = Query(None),
+    line_id:      Optional[int] = Query(None),
+    caption:      Optional[str] = Query(None),
+    sort_order:   int = Query(0),
+    file:         UploadFile = File(...),
+    admin = Depends(require_admin),
+):
+    """Admin uploads ONE image for a PY.  Multi-upload = call this N
+    times from the frontend (simpler than handling list[UploadFile])."""
+    # Validate
+    if file.content_type and not file.content_type.startswith("image/"):
+        raise HTTPException(400, f"Not an image file: {file.content_type}")
+    raw = await file.read()
+    if not raw:
+        raise HTTPException(400, "Empty file")
+    if len(raw) > 10 * 1024 * 1024:  # 10 MB cap
+        raise HTTPException(413, "Image too large (10 MB max)")
+
+    # Build a safe filename — keep extension, replace risky chars in
+    # original.  Final name = <py_no>_<unix_ms>_<safe_orig>
+    import re as _re_img, time as _t_img
+    original = file.filename or "upload.png"
+    ext = _os_img.path.splitext(original)[1].lower() or ".png"
+    if ext not in (".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp"):
+        raise HTTPException(400, f"Unsupported image extension: {ext}")
+    safe_py = _re_img.sub(r"[^A-Za-z0-9._-]", "_", py_no)[:32]
+    fname = f"{safe_py}_{int(_t_img.time()*1000)}{ext}"
+    full = _os_img.path.join(_PY_IMG_DIR, fname)
+    with open(full, "wb") as f:
+        f.write(raw)
+
+    with get_conn() as conn:
+        _ensure_py_images_table(conn)
+        cur = conn.cursor()
+        cur.execute("""
+            INSERT INTO mes_py_images
+                (py_no, py_master_id, line_id, filename, original_filename,
+                 mime_type, file_size_bytes, caption, sort_order,
+                 uploaded_by_user_id, uploaded_by_username)
+            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+            RETURNING id, uploaded_at
+        """, (
+            py_no, py_master_id, line_id, fname, original,
+            file.content_type, len(raw), caption, sort_order,
+            admin.get("id"), admin.get("username"),
+        ))
+        new_id, uploaded_at = cur.fetchone()
+        conn.commit()
+    return {
+        "ok": True, "id": new_id, "filename": fname,
+        "original_filename": original,
+        "size_bytes": len(raw),
+        "uploaded_at": uploaded_at.isoformat() if uploaded_at else None,
+    }
+
+
+@router.get("/images")
+def list_py_images(
+    py_no:   Optional[str] = Query(None),
+    line_id: Optional[int] = Query(None),
+):
+    """List images for a PY (or all if no filter).  No auth so wallboard
+    kiosks can fetch too.  File bytes go via /images/{id}/file."""
+    where, params = [], []
+    if py_no:
+        where.append("py_no = %s"); params.append(py_no)
+    if line_id is not None:
+        where.append("(line_id IS NULL OR line_id = %s)")
+        params.append(line_id)
+    sql = "SELECT id, py_no, py_master_id, line_id, filename, original_filename, " \
+          "mime_type, file_size_bytes, caption, sort_order, uploaded_by_username, " \
+          "uploaded_at FROM mes_py_images"
+    if where:
+        sql += " WHERE " + " AND ".join(where)
+    sql += " ORDER BY sort_order ASC, id ASC"
+    with get_conn() as conn:
+        _ensure_py_images_table(conn)
+        cur = dict_cursor(conn)
+        cur.execute(sql, params)
+        rows = [dict(r) for r in cur.fetchall()]
+    # Attach a downloadable URL for each image
+    for r in rows:
+        r["url"] = f"/api/poka-yoke/images/{r['id']}/file"
+    return {"rows": rows, "count": len(rows)}
+
+
+@router.get("/images/{img_id}/file")
+def get_py_image_file(img_id: int):
+    """Serve the image bytes.  No auth — wallboard kiosks need this."""
+    with get_conn() as conn:
+        cur = conn.cursor()
+        cur.execute("""SELECT filename, mime_type FROM mes_py_images
+                       WHERE id = %s""", (img_id,))
+        row = cur.fetchone()
+        if not row:
+            raise HTTPException(404, "Image not found")
+        fname, mime = row
+    full = _os_img.path.join(_PY_IMG_DIR, fname)
+    if not _os_img.path.exists(full):
+        raise HTTPException(404, "Image file missing on disk")
+    with open(full, "rb") as f:
+        data = f.read()
+    return Response(content=data, media_type=mime or "image/png")
+
+
+class PyImageUpdate(BaseModel):
+    caption:    Optional[str] = None
+    sort_order: Optional[int] = None
+
+
+@router.put("/images/{img_id}")
+def update_py_image(img_id: int, body: PyImageUpdate, admin=Depends(require_admin)):
+    """Update caption / sort_order on an existing image."""
+    sets, params = [], []
+    if body.caption is not None:
+        sets.append("caption = %s"); params.append(body.caption)
+    if body.sort_order is not None:
+        sets.append("sort_order = %s"); params.append(int(body.sort_order))
+    if not sets:
+        return {"ok": True, "updated": 0}
+    params.append(img_id)
+    with get_conn() as conn:
+        cur = conn.cursor()
+        cur.execute(f"UPDATE mes_py_images SET {', '.join(sets)} "
+                    f"WHERE id = %s", params)
+        if cur.rowcount == 0:
+            raise HTTPException(404, "Image not found")
+        conn.commit()
+    return {"ok": True, "updated": 1}
+
+
+@router.delete("/images/{img_id}")
+def delete_py_image(img_id: int, admin=Depends(require_admin)):
+    """Remove image from DB + disk.  Returns the freed filename in case
+    admin wants to verify."""
+    with get_conn() as conn:
+        cur = conn.cursor()
+        cur.execute("""SELECT filename FROM mes_py_images WHERE id = %s""",
+                    (img_id,))
+        row = cur.fetchone()
+        if not row:
+            raise HTTPException(404, "Image not found")
+        fname = row[0]
+        cur.execute("DELETE FROM mes_py_images WHERE id = %s", (img_id,))
+        conn.commit()
+    # Best-effort disk cleanup
+    full = _os_img.path.join(_PY_IMG_DIR, fname)
+    try:
+        if _os_img.path.exists(full):
+            _os_img.remove(full)
+    except OSError:
+        pass
+    return {"ok": True, "deleted_id": img_id, "filename": fname}
+
+
+# ════════════════════════════════════════════════════════════════════
+# PY INSTRUCTIONS  (Phase 3b — follow-steps text manual per PY)
+# ════════════════════════════════════════════════════════════════════
+# Admin writes step-by-step instructions for each PY (plain-text /
+# multi-line).  Operator sees them in the same modal as images, on
+# top of the gallery — combined visual+text manual.
+# Spec from operator (2026-05-21): "kuch instructioon ya follow steps
+# bhi add krne ka option bhi dede or same py me visual ok".
+# One row per (py_no + line_id) pair, simple upsert.
+
+def _ensure_py_instructions_table(conn):
+    cur = conn.cursor()
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS mes_py_instructions (
+            id                SERIAL PRIMARY KEY,
+            py_no             VARCHAR(64) NOT NULL,
+            line_id           INTEGER,
+            py_master_id      INTEGER,
+            instruction_text  TEXT NOT NULL DEFAULT '',
+            updated_at        TIMESTAMP NOT NULL DEFAULT NOW(),
+            updated_by_user_id   INTEGER,
+            updated_by_username  TEXT,
+            UNIQUE (py_no, line_id)
+        )
+    """)
+    cur.execute("""
+        CREATE INDEX IF NOT EXISTS idx_mes_py_instructions_lookup
+                ON mes_py_instructions(py_no, line_id)
+    """)
+    conn.commit()
+
+
+class PyInstructionsUpsert(BaseModel):
+    py_no:            str
+    line_id:          Optional[int] = None
+    py_master_id:     Optional[int] = None
+    instruction_text: str
+
+
+@router.get("/instructions")
+def get_py_instructions(
+    py_no:   Optional[str] = Query(None),
+    line_id: Optional[int] = Query(None),
+):
+    """List instructions.  Filter by py_no + optional line_id.
+    No auth — wallboard kiosks read this too."""
+    where, params = [], []
+    if py_no:
+        where.append("py_no = %s"); params.append(py_no)
+    if line_id is not None:
+        where.append("(line_id IS NULL OR line_id = %s)")
+        params.append(line_id)
+    sql = ("SELECT id, py_no, line_id, py_master_id, instruction_text, "
+           "updated_at, updated_by_username FROM mes_py_instructions")
+    if where:
+        sql += " WHERE " + " AND ".join(where)
+    sql += " ORDER BY id ASC"
+    with get_conn() as conn:
+        _ensure_py_instructions_table(conn)
+        cur = dict_cursor(conn)
+        cur.execute(sql, params)
+        rows = [dict(r) for r in cur.fetchall()]
+    return {"rows": rows, "count": len(rows)}
+
+
+@router.put("/instructions")
+def upsert_py_instructions(body: PyInstructionsUpsert,
+                            admin=Depends(require_admin)):
+    """Admin upserts instruction text for a PY.  One row per
+    (py_no, line_id).  Pass empty string to clear."""
+    with get_conn() as conn:
+        _ensure_py_instructions_table(conn)
+        cur = conn.cursor()
+        # UPSERT on the unique (py_no, line_id) constraint
+        cur.execute("""
+            INSERT INTO mes_py_instructions
+                (py_no, line_id, py_master_id, instruction_text,
+                 updated_by_user_id, updated_by_username)
+            VALUES (%s,%s,%s,%s,%s,%s)
+            ON CONFLICT (py_no, line_id) DO UPDATE SET
+                instruction_text     = EXCLUDED.instruction_text,
+                py_master_id         = COALESCE(EXCLUDED.py_master_id,
+                                                mes_py_instructions.py_master_id),
+                updated_at           = NOW(),
+                updated_by_user_id   = EXCLUDED.updated_by_user_id,
+                updated_by_username  = EXCLUDED.updated_by_username
+            RETURNING id, updated_at
+        """, (
+            body.py_no, body.line_id, body.py_master_id,
+            body.instruction_text,
+            admin.get("id"), admin.get("username"),
+        ))
+        new_id, updated_at = cur.fetchone()
+        conn.commit()
+    return {
+        "ok": True, "id": new_id,
+        "updated_at": updated_at.isoformat() if updated_at else None,
+    }
+
+
+@router.delete("/instructions/{ins_id}")
+def delete_py_instructions(ins_id: int, admin=Depends(require_admin)):
+    """Hard delete an instructions row (admin only)."""
+    with get_conn() as conn:
+        cur = conn.cursor()
+        cur.execute("DELETE FROM mes_py_instructions WHERE id = %s", (ins_id,))
+        if cur.rowcount == 0:
+            raise HTTPException(404, "Instructions not found")
+        conn.commit()
+    return {"ok": True, "deleted_id": ins_id}
+
+
+# ============================================================
+# BYPASS HISTORY  (per-date PY bypass episodes with duration)
+# ============================================================
+# 2026-05-22 — Operator spec: "production and quality dono ke
+# historical data me aana chahiye ki konsa PY kis zone ki kis line
+# prr kitni der ke liye bypassed tha".  This walks the
+# `mes_poka_yoke_events` table (SENSOR_BYPASS rule) for a date range
+# and emits one row per BYPASS EPISODE — a contiguous run of
+# unacknowledged events with the same py_no + register on the same
+# line.  Each episode shows: zone, line, machine, py_no, py_desc,
+# started_at, ended_at (or "ongoing"), duration_seconds.
+#
+# The episode boundary is implicit: collector posts a new event each
+# time it sees a fresh bypass code, and posts auto-ack when sensor
+# returns to desired.  We treat events grouped within 60 s and same
+# (py_no, register, line_id) as one episode.
+
+@router.get("/bypass-history")
+def get_bypass_history(
+    date_from: str = Query(..., description="start date YYYY-MM-DD"),
+    date_to:   str = Query(..., description="end date YYYY-MM-DD inclusive"),
+    line_id:   Optional[int] = Query(None, description="filter by line, omit = all lines"),
+    zone_id:   Optional[int] = Query(None, description="filter by zone, omit = all zones"),
+    user=Depends(get_current_user_optional),
+):
+    """Historical PY bypass episode browser for Production + Quality
+    dashboards.  Returns one row per bypass episode with duration.
+
+    Episode grouping rule:
+      Same (line_id, py_no, register) + gap between events ≤ 60 s
+      → SAME episode.  First event = started_at, last event before
+      an acknowledged transition = ended_at.  Episode is "ongoing"
+      if no later acknowledged event exists for that (line, py, reg).
+
+    Sorted by started_at DESC so newest is first."""
+    where = ["e.rule_type = 'SENSOR_BYPASS'",
+             "e.detected_at::date BETWEEN %s AND %s"]
+    params: list = [date_from, date_to]
+    if line_id is not None:
+        where.append("e.line_id = %s")
+        params.append(line_id)
+
+    sql = f"""
+        WITH ordered AS (
+            SELECT
+                e.id,
+                e.line_id,
+                ln.line_name,
+                ln.zone_id,
+                z.zone_name AS zone_name,
+                COALESCE(e.context_json::jsonb->>'py_no',        '?') AS py_no,
+                COALESCE(e.context_json::jsonb->>'description',
+                         e.context_json::jsonb->>'py_name',      '')  AS py_description,
+                COALESCE(e.context_json::jsonb->>'register',     '')  AS register,
+                COALESCE(e.context_json::jsonb->>'machine_name', '')  AS machine_name,
+                e.detected_at,
+                e.acknowledged,
+                e.acknowledged_at,
+                e.shift_name,
+                LAG(e.detected_at) OVER (
+                    PARTITION BY e.line_id,
+                                 e.context_json::jsonb->>'py_no',
+                                 e.context_json::jsonb->>'register'
+                    ORDER BY e.detected_at
+                ) AS prev_detected
+            FROM mes_poka_yoke_events e
+            LEFT JOIN mes_lines ln ON ln.id = e.line_id
+            LEFT JOIN mes_zones z  ON z.id  = ln.zone_id
+            WHERE {' AND '.join(where)}
+        ),
+        episodes AS (
+            SELECT *,
+                SUM(CASE
+                      WHEN prev_detected IS NULL THEN 1
+                      WHEN detected_at - prev_detected > INTERVAL '60 seconds' THEN 1
+                      ELSE 0
+                    END) OVER (
+                      PARTITION BY line_id, py_no, register
+                      ORDER BY detected_at
+                ) AS episode_group
+            FROM ordered
+        )
+        SELECT
+            line_id,
+            line_name,
+            zone_id,
+            zone_name,
+            py_no,
+            py_description,
+            register,
+            machine_name,
+            shift_name,
+            MIN(detected_at)       AS started_at,
+            MAX(detected_at)       AS last_seen_at,
+            MAX(acknowledged_at)   AS resolved_at,
+            BOOL_AND(acknowledged) AS is_resolved,
+            COUNT(*)               AS hit_count
+        FROM episodes
+        GROUP BY line_id, line_name, zone_id, zone_name,
+                 py_no, py_description, register, machine_name,
+                 shift_name, episode_group
+        ORDER BY started_at DESC
+    """
+    with get_conn() as conn:
+        cur = dict_cursor(conn)
+        cur.execute(sql, params)
+        rows = cur.fetchall() or []
+
+    # Optional zone filter applied in Python (avoids complicating the
+    # CTE with another LEFT JOIN since some legacy rows have NULL zone)
+    if zone_id is not None:
+        rows = [r for r in rows if r.get("zone_id") == zone_id]
+
+    # Compute duration; ended_at = resolved_at if resolved else NULL
+    result = []
+    for r in rows:
+        started = r["started_at"]
+        last_seen = r["last_seen_at"]
+        resolved = r["resolved_at"] if r.get("is_resolved") else None
+        # Duration end = resolved_at (if resolved) or last_seen + small buffer
+        # for ongoing episodes where 'now' is the implied end.
+        from datetime import datetime as _dt
+        if resolved:
+            end_for_dur = resolved
+        elif r.get("is_resolved"):
+            end_for_dur = last_seen
+        else:
+            end_for_dur = _dt.now()
+        try:
+            dur = (end_for_dur - started).total_seconds()
+        except Exception:
+            dur = 0
+        result.append({
+            "line_id":          r["line_id"],
+            "line_name":        r.get("line_name"),
+            "zone_id":          r.get("zone_id"),
+            "zone_name":        r.get("zone_name"),
+            "py_no":            r.get("py_no"),
+            "py_description":   r.get("py_description") or "",
+            "register":         r.get("register"),
+            "machine_name":     r.get("machine_name"),
+            "shift_name":       r.get("shift_name"),
+            "started_at":       started.isoformat() if started else None,
+            "ended_at":         resolved.isoformat() if resolved else None,
+            "duration_seconds": int(round(dur)),
+            "is_ongoing":       not r.get("is_resolved"),
+            "hit_count":        r.get("hit_count") or 1,
+        })
+
+    # Summary stats for header
+    total_episodes = len(result)
+    total_duration = sum(r["duration_seconds"] for r in result)
+    ongoing_count  = sum(1 for r in result if r["is_ongoing"])
+
+    return {
+        "date_from":      date_from,
+        "date_to":        date_to,
+        "line_id":        line_id,
+        "zone_id":        zone_id,
+        "total_episodes": total_episodes,
+        "total_seconds":  total_duration,
+        "ongoing_count":  ongoing_count,
+        "rows":           result,
+    }

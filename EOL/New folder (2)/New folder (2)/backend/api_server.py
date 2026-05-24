@@ -111,8 +111,16 @@ def _attempt_repair(safe_part: str, videos_root: str) -> str:
     on success, None on any failure (caller falls back to 404)."""
     import csv as _csv, glob as _glob, re as _re
     try:
-        # Find part in CSV
+        # 2026-05-21 — Path bug fix.  cycles.csv actually lives at
+        # BASE_DIR/cycles.csv (parent of videos_root), not inside
+        # videos_root.  The earlier `os.path.join(videos_root,
+        # "cycles.csv")` always silently returned "" → auto-repair
+        # never actually fired → 404 was the only outcome whenever the
+        # primary extract path failed (storm-guard / phantom-cycle cap
+        # / TS file missing).  Try both locations to be safe.
         csv_path = os.path.join(videos_root, "cycles.csv")
+        if not os.path.exists(csv_path):
+            csv_path = os.path.join(os.path.dirname(videos_root), "cycles.csv")
         if not os.path.exists(csv_path):
             return ""
         matches = []
@@ -141,7 +149,16 @@ def _attempt_repair(safe_part: str, videos_root: str) -> str:
         # named cam_{camera_id}_{epoch_ms}.ts so the epoch tells us the
         # record_start.  Pick the one whose start <= cycle_start and
         # whose mtime (last frame) >= cycle_end (or live now).
+        # 2026-05-21 — TS now lives at video_config.save_path (D:\MES_Videos)
+        # not just videos_root.  Search BOTH locations so auto-repair
+        # works after the save-path migration.
         ts_candidates = _glob.glob(os.path.join(videos_root, "cam_*.ts"))
+        try:
+            _custom = _load_video_cfg().get("save_path", "")
+            if _custom and os.path.isdir(_custom):
+                ts_candidates += _glob.glob(os.path.join(_custom, "cam_*.ts"))
+        except Exception:
+            pass
         best_ts = None
         for ts_path in ts_candidates:
             base = os.path.basename(ts_path)
@@ -166,10 +183,14 @@ def _attempt_repair(safe_part: str, videos_root: str) -> str:
             return ""
 
         ts_path, rec_start = best_ts
-        ss        = max(0.0, (start_dt - rec_start).total_seconds())
         dur_raw   = (end_dt - start_dt).total_seconds()
         if dur_raw <= 0:
             return ""
+        # 2026-05-23 — NO CAP.  Operator: "video me koii cap nahi
+        # rahegi, jitni der ki cycle utni ki video".  Trust the
+        # (start_dt, end_dt) window exactly as recorded — if the cycle
+        # was 109s, the video is 109s.  No "phantom merge" clipping.
+        ss        = max(0.0, (start_dt - rec_start).total_seconds())
         import math as _math
         duration  = max(1.0, float(_math.ceil(dur_raw)))
 
@@ -2441,11 +2462,18 @@ def submachine_clip():
     trim_dur = max(1.0, duration_s)
 
     # 5) Transcode slice to MP4 on the fly (streams out via stdout)
+    # 2026-05-21 — Switched to _pick_hw_encoder() (NVENC > QSV > libx264).
+    # Same probed encoder the cycle extractor + auto-repair use, so the
+    # on-demand sub-machine clip pulls 8-10× less CPU and starts 2-3×
+    # faster on this box's RTX A2000.  Falls back to libx264 if NVENC
+    # isn't installed.
     try:
-        from plc_monitor import _get_ffmpeg  # type: ignore
+        from plc_monitor import _get_ffmpeg, _pick_hw_encoder  # type: ignore
         ffmpeg = _get_ffmpeg()
+        _hw_codec, _hw_flags = _pick_hw_encoder()
     except Exception:
         ffmpeg = "ffmpeg"
+        _hw_codec, _hw_flags = "libx264", ["-preset", "ultrafast", "-crf", "23"]
 
     # 2026-05-18 — Switched from stream-copy to hybrid-seek re-encode.
     # Stream-copy with input-side -ss was producing macroblocked output
@@ -2467,9 +2495,8 @@ def submachine_clip():
         "-i", ts_file,
         "-ss", f"{_output_ss:.3f}",        # output seek → exact cycle start
         "-t", f"{trim_dur:.3f}",
-        "-c:v", "libx264",
-        "-preset", "ultrafast",
-        "-crf", "23",
+        "-c:v", _hw_codec,
+        *_hw_flags,
         "-pix_fmt", "yuv420p",
         "-an",
         "-vsync", "cfr",

@@ -687,6 +687,14 @@ export default function QualityDashboard() {
               ))}
             </div>
           )}
+
+          {/* 2026-05-24 — Per-process NG remarks summary.
+              Pulls mes_ng_process_remarks rows for the past N days and
+              groups by date + shift + part_code so QC can review the
+              full operator-recorded reason chain. */}
+          {Object.values(linesByZone).flat().slice(0, 1).map(line => (
+            <NgRemarksSummary key={line.id} lineId={line.id} theme={theme} />
+          ))}
         </div>
       </div>
 
@@ -703,5 +711,157 @@ export default function QualityDashboard() {
         ))}
       </div>
     </>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────
+// NgRemarksSummary — table of operator-recorded NG process remarks
+// for the past 7 days, grouped by date+shift+part_code.  Filterable
+// by date range and shift.  Pulls mes_ng_process_remarks via:
+//   GET /api/lines/{line_id}/ng-process-remarks-summary
+// ─────────────────────────────────────────────────────────────────
+function NgRemarksSummary({ lineId, theme }) {
+  const [rows,    setRows]    = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error,   setError]   = useState("");
+  const [dateFrom, setDateFrom] = useState(() => {
+    const d = new Date(); d.setDate(d.getDate() - 7);
+    return d.toISOString().slice(0, 10);
+  });
+  const [dateTo, setDateTo] = useState(() => new Date().toISOString().slice(0, 10));
+  const [shiftFilter, setShiftFilter] = useState("");
+
+  const load = () => {
+    setLoading(true); setError("");
+    const p = new URLSearchParams({ date_from: dateFrom, date_to: dateTo });
+    if (shiftFilter) p.append("shift_name", shiftFilter);
+    fetch(`/api/lines/${lineId}/ng-process-remarks-summary?${p}`)
+      .then(r => r.ok ? r.json() : Promise.reject(r.statusText))
+      .then(d => setRows(d.rows || []))
+      .catch(e => setError(String(e)))
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [lineId, dateFrom, dateTo, shiftFilter]);
+
+  // Group by (date, shift, part_code)
+  const grouped = {};
+  for (const r of rows) {
+    const k = `${r.record_date}|${r.shift_name}|${r.part_code}`;
+    if (!grouped[k]) grouped[k] = { ...r, machines: [] };
+    grouped[k].machines.push({
+      machine_name: r.machine_name,
+      remark_text:  r.remark_text,
+      updated_at:   r.updated_at,
+      created_by:   r.created_by,
+    });
+  }
+  const groups = Object.values(grouped);
+
+  return (
+    <div style={{
+      marginTop: 24, background: "#fff", border: "1px solid #e2e8f0",
+      borderRadius: 12, padding: 18,
+    }}>
+      <div style={{
+        display: "flex", justifyContent: "space-between",
+        alignItems: "center", marginBottom: 14, flexWrap: "wrap", gap: 12,
+      }}>
+        <div style={{
+          fontSize: 16, fontWeight: 800, color: "#0f172a",
+          fontFamily: "'Barlow Condensed', sans-serif", letterSpacing: ".02em",
+        }}>
+          NG PROCESS REMARKS · Summary
+        </div>
+        <div style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 12 }}>
+          <label>From: <input type="date" value={dateFrom}
+                  onChange={e => setDateFrom(e.target.value)}
+                  style={{ padding: 4, border: "1px solid #cbd5e1", borderRadius: 4 }}/></label>
+          <label>To: <input type="date" value={dateTo}
+                  onChange={e => setDateTo(e.target.value)}
+                  style={{ padding: 4, border: "1px solid #cbd5e1", borderRadius: 4 }}/></label>
+          <label>Shift:
+            <select value={shiftFilter}
+                    onChange={e => setShiftFilter(e.target.value)}
+                    style={{ padding: 4, border: "1px solid #cbd5e1", borderRadius: 4, marginLeft: 4 }}>
+              <option value="">All</option>
+              <option value="A">A</option>
+              <option value="B">B</option>
+            </select>
+          </label>
+          <button onClick={load} disabled={loading}
+                  style={{
+                    padding: "5px 12px", border: "none", borderRadius: 4,
+                    background: theme?.accent || "#3b82f6", color: "#fff",
+                    cursor: "pointer", fontWeight: 700,
+                  }}>{loading ? "..." : "Refresh"}</button>
+        </div>
+      </div>
+
+      {error && <div style={{ color: "#dc2626", fontSize: 12 }}>{error}</div>}
+      {!loading && groups.length === 0 && (
+        <div style={{
+          padding: 24, textAlign: "center",
+          color: "#94a3b8", fontStyle: "italic", fontSize: 13,
+        }}>
+          No NG process remarks recorded in this window.
+        </div>
+      )}
+
+      {groups.length > 0 && (
+        <div style={{ overflowX: "auto" }}>
+          <table style={{
+            width: "100%", borderCollapse: "collapse", fontSize: 12,
+          }}>
+            <thead>
+              <tr style={{ background: "#f1f5f9",
+                            textAlign: "left", color: "#475569" }}>
+                <th style={{ padding: 8 }}>Date</th>
+                <th style={{ padding: 8 }}>Shift</th>
+                <th style={{ padding: 8 }}>Part Code</th>
+                <th style={{ padding: 8 }}>Process Remarks (per machine)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {groups.map((g, i) => (
+                <tr key={i} style={{
+                  borderTop: "1px solid #e2e8f0",
+                  background: i % 2 ? "#fafbfc" : "#fff",
+                }}>
+                  <td style={{ padding: 8, fontFamily: "monospace" }}>{g.record_date}</td>
+                  <td style={{ padding: 8 }}>{g.shift_name}</td>
+                  <td style={{ padding: 8, fontFamily: "monospace", color: "#3b82f6" }}>
+                    {g.part_code}
+                  </td>
+                  <td style={{ padding: 8 }}>
+                    {g.machines.map((m, j) => (
+                      <div key={j} style={{
+                        padding: "4px 0",
+                        borderBottom: j < g.machines.length - 1 ? "1px dashed #e2e8f0" : "none",
+                      }}>
+                        <span style={{ fontWeight: 700, color: "#0f172a" }}>
+                          {m.machine_name}:
+                        </span>
+                        {" "}{m.remark_text}
+                        {m.created_by && (
+                          <span style={{ marginLeft: 6, color: "#94a3b8", fontSize: 10 }}>
+                            — {m.created_by}
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <div style={{
+            marginTop: 8, fontSize: 11, color: "#94a3b8",
+          }}>
+            {groups.length} NG parts · {rows.length} total remarks
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

@@ -699,6 +699,13 @@ export default function Fullscreen() {
   const [cmsData,      setCmsData]      = useState([]);
   const [cmsLoading,   setCmsLoading]   = useState(false);
   const [videoModal,   setVideoModal]   = useState(null);
+  // 2026-05-21 — Slot NG list modal.  Holds {slot, date} when the user
+  // clicks the NG count cell in the slot table.  Null = closed.
+  const [ngListModal,  setNgListModal]  = useState(null);
+  // 2026-05-22 — Loss-remark modal.  Holds {date, shift_name, slot_label,
+  // loss_type, loss_label, loss_color, loss_secs} when production clicks
+  // a loss cell in the Hourly Loss Breakup modal.  Null = closed.
+  const [lossRemarkModal, setLossRemarkModal] = useState(null);
   // Timeline hover tooltip — rendered at root level to avoid overflow:hidden clipping
   const [tlTip, setTlTip] = useState(null); // {x, y, status, times, dur, color}
   // When the user puts the current cycle video into the browser's Picture-in-Picture
@@ -3276,12 +3283,20 @@ export default function Fullscreen() {
                           </select>
                         )}
 
-                        {/* NG navigator */}
-                        <span style={{color:"#ef4444",fontWeight:800,fontSize:9}}>NG:{ngIndices.length}</span>
+                        {/* NG navigator — scroll-only, with inline
+                            current-NG label so operator knows which
+                            dot they're pointing at without opening a modal. */}
+                        <span style={{color:"#ef4444",fontWeight:800,fontSize:9}}
+                              title={ngTotal !== ngIndices.length
+                                       ? `Shift counter: ${ngTotal} · chart dots: ${ngIndices.length}`
+                                       : `${ngTotal} NG cycles this shift`}>
+                          NG:{ngTotal}
+                        </span>
                         <button disabled={!ngIndices.length} onClick={() => {
                           if (!ngIndices.length) return;
                           const p = (ngNavIdx - 1 + ngIndices.length) % ngIndices.length;
-                          setNgNavIdx(p); setCmsViewStart(Math.max(0, ngIndices[p] - 15));
+                          setNgNavIdx(p);
+                          setCmsViewStart(Math.max(0, ngIndices[p] - 15));
                         }} style={{padding:"0 4px",borderRadius:3,fontSize:9,fontWeight:900,
                                    cursor:ngIndices.length?"pointer":"not-allowed",
                                    border:`1px solid ${border}`,background:bgDeep,color:textSub,lineHeight:1}}>▲</button>
@@ -3291,10 +3306,30 @@ export default function Fullscreen() {
                         <button disabled={!ngIndices.length} onClick={() => {
                           if (!ngIndices.length) return;
                           const n = (ngNavIdx + 1) % ngIndices.length;
-                          setNgNavIdx(n); setCmsViewStart(Math.max(0, ngIndices[n] - 15));
+                          setNgNavIdx(n);
+                          setCmsViewStart(Math.max(0, ngIndices[n] - 15));
                         }} style={{padding:"0 4px",borderRadius:3,fontSize:9,fontWeight:900,
                                    cursor:ngIndices.length?"pointer":"not-allowed",
                                    border:`1px solid ${border}`,background:bgDeep,color:textSub,lineHeight:1}}>▼</button>
+                        {ngIndices.length > 0 && filteredCms[ngIndices[ngNavIdx]] && (
+                          <button
+                            onClick={() => {
+                              const cy = filteredCms[ngIndices[ngNavIdx]];
+                              if (cy) openCycleVideo(cy);
+                            }}
+                            title="Click to open NG details + video"
+                            style={{fontSize:9,marginLeft:4,padding:"1px 6px",
+                                      background:"rgba(239,68,68,0.15)",
+                                      border:"1px solid rgba(239,68,68,0.5)",
+                                      borderRadius:3,color:"#ef4444",fontWeight:700,
+                                      fontFamily:"monospace",cursor:"pointer"}}>
+                            #{filteredCms[ngIndices[ngNavIdx]].cycle_seq}
+                            {filteredCms[ngIndices[ngNavIdx]].ct_value != null
+                              ? ` · ${Number(filteredCms[ngIndices[ngNavIdx]].ct_value).toFixed(1)}s`
+                              : ""}
+                            <span style={{marginLeft:4,fontSize:10}}>▶</span>
+                          </button>
+                        )}
 
                         <span style={{color:textMut,fontSize:9,fontWeight:700,marginLeft:4}}>
                           ideal {ideal}s
@@ -3512,19 +3547,45 @@ export default function Fullscreen() {
                       </select>
                     )}
 
-                    {/* NG navigator — compact */}
-                    <span style={{color:"#ef4444",fontWeight:800}}>NG:{ngIndices.length}</span>
+                    {/* NG navigator — compact, scroll-only with current-NG label */}
+                    <span style={{color:"#ef4444",fontWeight:800}}
+                          title={ngTotal !== ngIndices.length
+                                   ? `Shift counter: ${ngTotal} · chart dots: ${ngIndices.length}`
+                                   : `${ngTotal} NG cycles this shift`}>
+                      NG:{ngTotal}
+                    </span>
                     <button disabled={!ngIndices.length} onClick={() => {
                       if (!ngIndices.length) return;
                       const p = (ngNavIdx - 1 + ngIndices.length) % ngIndices.length;
-                      setNgNavIdx(p); setCmsViewStart(Math.max(0, ngIndices[p] - 15));
+                      setNgNavIdx(p);
+                      setCmsViewStart(Math.max(0, ngIndices[p] - 15));
                     }} style={{padding:"0 4px",borderRadius:3,fontSize:9,fontWeight:900,cursor:ngIndices.length?"pointer":"not-allowed",border:`1px solid ${border}`,background:bgDeep,color:textSub,lineHeight:1}}>▲</button>
                     <span style={{fontWeight:700,color:textSub,minWidth:12,textAlign:"center"}}>{ngIndices.length > 0 ? ngNavIdx+1 : "—"}</span>
                     <button disabled={!ngIndices.length} onClick={() => {
                       if (!ngIndices.length) return;
                       const n = (ngNavIdx + 1) % ngIndices.length;
-                      setNgNavIdx(n); setCmsViewStart(Math.max(0, ngIndices[n] - 15));
+                      setNgNavIdx(n);
+                      setCmsViewStart(Math.max(0, ngIndices[n] - 15));
                     }} style={{padding:"0 4px",borderRadius:3,fontSize:9,fontWeight:900,cursor:ngIndices.length?"pointer":"not-allowed",border:`1px solid ${border}`,background:bgDeep,color:textSub,lineHeight:1}}>▼</button>
+                    {ngIndices.length > 0 && filteredCms[ngIndices[ngNavIdx]] && (
+                      <button
+                        onClick={() => {
+                          const cy = filteredCms[ngIndices[ngNavIdx]];
+                          if (cy) openCycleVideo(cy);
+                        }}
+                        title="Click to open NG details + video"
+                        style={{fontSize:9,marginLeft:4,padding:"1px 6px",
+                                  background:"rgba(239,68,68,0.15)",
+                                  border:"1px solid rgba(239,68,68,0.5)",
+                                  borderRadius:3,color:"#ef4444",fontWeight:700,
+                                  fontFamily:"monospace",cursor:"pointer"}}>
+                        #{filteredCms[ngIndices[ngNavIdx]].cycle_seq}
+                        {filteredCms[ngIndices[ngNavIdx]].ct_value != null
+                          ? ` · ${Number(filteredCms[ngIndices[ngNavIdx]].ct_value).toFixed(1)}s`
+                          : ""}
+                        <span style={{marginLeft:4,fontSize:10}}>▶</span>
+                      </button>
+                    )}
 
                     <span style={{width:1,height:12,background:border,flexShrink:0}}/>
                   </>
@@ -4127,7 +4188,23 @@ export default function Fullscreen() {
                       <div style={{fontFamily:"monospace",fontSize:13,fontWeight:800,lineHeight:1.1}}>
                         <span style={{color:s.isFuture?"rgba(100,100,100,0.3)":s.okDB>0?STATUS_CLR["RUNNING"]:textMut}}>{s.okDB}</span>
                         <span style={{color:textMut,margin:"0 2px"}}>/</span>
-                        <span style={{color:s.isFuture?"rgba(100,100,100,0.3)":s.ngDB>0?STATUS_CLR["BREAKDOWN"]:textMut}}>{s.ngDB}</span>
+                        {/* 2026-05-21 — NG cell clickable: opens modal
+                            with table of all NG parts in this slot. */}
+                        <span
+                          onClick={(s.ngDB > 0 && !s.isFuture)
+                                    ? () => setNgListModal({ slot: s.label, date: rtRef.current?.record_date || new Date().toISOString().slice(0,10) })
+                                    : undefined}
+                          style={{
+                            color: s.isFuture ? "rgba(100,100,100,0.3)"
+                                              : s.ngDB > 0 ? STATUS_CLR["BREAKDOWN"] : textMut,
+                            cursor: (s.ngDB > 0 && !s.isFuture) ? "pointer" : "default",
+                            textDecoration: (s.ngDB > 0 && !s.isFuture) ? "underline dotted" : "none",
+                            textUnderlineOffset: 2,
+                          }}
+                          title={(s.ngDB > 0 && !s.isFuture) ? "Click to see NG parts" : ""}
+                        >
+                          {s.ngDB}
+                        </span>
                       </div>
                     </td>
                   ))}
@@ -4232,21 +4309,37 @@ export default function Fullscreen() {
             onClick={e => e.stopPropagation()}
             style={videoExpanded
               ? {
-                  background: D ? "#0a0f1a" : "#ffffff",
-                  borderRadius:0, padding:12,
+                  // 2026-05-23 — YouTube-style true fullscreen.
+                  // Black background, zero padding, no border — video
+                  // owns 100vw × 100vh and the header chrome is hidden
+                  // (see header div below: `display:none` when expanded).
+                  // Floating expand/× buttons overlay the top-right corner.
+                  background: "#000",
+                  borderRadius:0, padding:0,
                   width:"100vw", height:"100vh", maxWidth:"none",
                   border:"none",
                   display:"flex", flexDirection:"column",
+                  position:"relative",
                 }
               : {
                   background: D ? "#0a0f1a" : "#ffffff",
-                  borderRadius:12,padding:16,
+                  borderRadius:12,padding:12,
                   maxWidth:820,width:"90vw",
+                  maxHeight:"92vh",
+                  display:"flex", flexDirection:"column",
                   boxShadow:"0 24px 72px rgba(0,0,0,0.6)",
                   border:`1px solid ${border}`,
                 }}
           >
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10,flexShrink:0}}>
+            {/* 2026-05-23 — Header chrome hidden in fullscreen mode so
+                only the video is visible (operator complaint: "video ko
+                fullscreen krne prr comments hata jaye jaise youtube ka
+                fullscreen").  Buttons re-rendered as a floating overlay
+                inside the expanded mode below. */}
+            <div style={{
+              display: videoExpanded ? "none" : "flex",
+              justifyContent:"space-between",alignItems:"center",marginBottom:10,flexShrink:0,
+            }}>
               <span style={{fontSize:12,fontWeight:800,color:text,letterSpacing:".04em"}}>
                 Part #{videoModal.cycle_seq}
                 {videoModal.part_code && (
@@ -4316,6 +4409,65 @@ export default function Fullscreen() {
                 >×</button>
               </div>
             </div>
+            {/* 2026-05-23 — Floating control overlay in fullscreen mode.
+                Operator wanted YouTube-style true fullscreen: header
+                chrome hidden, only the video visible, with collapse +
+                close buttons floating over the top-right corner. */}
+            {videoExpanded && (
+              <div style={{
+                position:"absolute", top:14, right:14, zIndex:10,
+                display:"flex", gap:8, alignItems:"center",
+                background:"rgba(0,0,0,0.55)",
+                borderRadius:8, padding:"4px 8px",
+                backdropFilter:"blur(4px)",
+              }}>
+                <button
+                  onClick={() => setVideoExpanded(false)}
+                  title="Minimise video (Esc)"
+                  style={{
+                    background:"transparent",border:"1px solid rgba(255,255,255,0.4)",
+                    cursor:"pointer", borderRadius:6, padding:"3px 8px",
+                    color:"#fff",
+                    display:"inline-flex", alignItems:"center", justifyContent:"center",
+                  }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M9 3v4a2 2 0 0 1-2 2H3"/>
+                    <path d="M15 3v4a2 2 0 0 0 2 2h4"/>
+                    <path d="M9 21v-4a2 2 0 0 0-2-2H3"/>
+                    <path d="M15 21v-4a2 2 0 0 1 2-2h4"/>
+                  </svg>
+                </button>
+                <button
+                  onClick={() => {
+                    if (pipActive) {
+                      setShowModalUI(false);
+                    } else {
+                      setVideoModal(null);
+                      setShowModalUI(false);
+                    }
+                    setVideoExpanded(false);
+                  }}
+                  title="Close video"
+                  style={{
+                    background:"transparent",border:"none",cursor:"pointer",
+                    fontSize:22, lineHeight:1, color:"#fff", padding:"0 6px",
+                  }}
+                >×</button>
+              </div>
+            )}
+            {/* 2026-05-22 — Scrollable body so video + NG details + comments
+                all fit in one 92vh modal even on smaller screens.
+                2026-05-23 — In fullscreen mode the body bypasses scroll
+                and the panels below the video are hidden (only video
+                renders) so the experience matches a YouTube fullscreen. */}
+            <div style={{
+              flex: 1, minHeight: 0,
+              overflowY: videoExpanded ? "hidden" : "auto",
+              paddingRight: videoExpanded ? 0 : 4,
+              display:"flex", flexDirection:"column",
+            }}>
             {videoModal.loading ? (
               <div style={{
                 padding:"32px 16px",textAlign:"center",
@@ -4325,11 +4477,14 @@ export default function Fullscreen() {
                 Loading video…
               </div>
             ) : videoModal.video_url ? (
+              <>
+              <div style={{ position:"relative", width:"100%", lineHeight:0,
+                             ...(videoExpanded ? { flex:1, minHeight:0, display:"flex" } : {}) }}>
               <video
                 ref={videoElRef}
-                controls
                 autoPlay
                 muted
+                controls
                 onLoadedMetadata={e => {
                   // Stash the video's actual duration so the header can
                   // surface a CT/DB mismatch (see "Part #N | ... s" block
@@ -4400,10 +4555,100 @@ export default function Fullscreen() {
                   });
                 }}
                 style={videoExpanded
-                  ? { width:"100%", flex:1, minHeight:0, borderRadius:6, background:"#000", display:"block", objectFit:"contain" }
-                  : { width:"100%", borderRadius:8, maxHeight:"68vh", background:"#000", display:"block", objectFit:"contain" }}
+                  ? { width:"100%", height:"100%", flex:1, minHeight:0, borderRadius:0, background:"#000", display:"block", objectFit:"contain" }
+                  : { width:"100%", borderRadius:8, maxHeight:"42vh", background:"#000", display:"block", objectFit:"contain" }}
                 src={videoModal.video_url}
               />
+              {/* 2026-05-21 — Big centered play/pause overlay.
+                  Video loops automatically (loop attr); operator can
+                  tap anywhere on video OR this 96 px target to toggle
+                  play/pause.  Modal close = X button or backdrop click. */}
+              {/* 2026-05-22 — Center big-play overlay removed per
+                  operator request "video pe hover karne pe center me jo
+                  aata hai isko hata".  Native controls strip at the
+                  bottom + ↺ replay button at top-left cover the
+                  play/pause/seek workflow cleanly. */}
+              {/* 2026-05-21-r2 — Replay-from-start button.  Operator
+                  spec: "replay from beginning ka bhi button aana
+                  chahiye".  Top-left corner of the video, always
+                  visible so operator can re-watch any cycle instantly
+                  without waiting for the natural loop boundary or
+                  dragging the native scrubber to 0. */}
+              <button
+                className="fs-replay"
+                title="Replay from start"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const v = videoElRef.current;
+                  if (!v) return;
+                  try { v.currentTime = 0; } catch {}
+                  v.play().catch(() => {});
+                }}
+                style={{
+                  position:"absolute", top:12, left:12,
+                  width:44, height:44, borderRadius:"50%",
+                  border:"2px solid rgba(255,255,255,0.7)",
+                  background:"rgba(0,0,0,0.55)",
+                  color:"#fff", cursor:"pointer",
+                  display:"flex", alignItems:"center", justifyContent:"center",
+                  pointerEvents:"auto",
+                  backdropFilter:"blur(4px)",
+                  zIndex:6,
+                  transition:"opacity .2s, transform .15s",
+                  opacity:0.85,
+                }}
+                onMouseEnter={(e)=>{ e.currentTarget.style.opacity="1"; e.currentTarget.style.transform="scale(1.08)"; }}
+                onMouseLeave={(e)=>{ e.currentTarget.style.opacity="0.85"; e.currentTarget.style.transform="scale(1)"; }}
+              >
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" strokeWidth="2.4"
+                     strokeLinecap="round" strokeLinejoin="round">
+                  {/* Circular replay arrow */}
+                  <path d="M3 12a9 9 0 1 0 3-6.7" />
+                  <polyline points="3 4 3 10 9 10" />
+                </svg>
+              </button>
+              </div>
+              {/* 2026-05-21 — NG details panel.  Only renders when the
+                  current cycle is NG (videoModal.is_ng).  Shows the
+                  machine-derived reason (auto from cycle CT + sub-machine
+                  logs) AND lets the line leader save their exact remark
+                  after physical inspection.  Sits between video and the
+                  general comments thread.
+                  2026-05-23 — Hidden in fullscreen mode (YouTube style). */}
+              {!videoExpanded && videoModal.is_ng && videoModal.part_code && (
+                <FsNgDetailsPanel
+                  lineId={lineId}
+                  partCode={String(videoModal.part_code).replace(/:$/, "")}
+                  border={border}
+                  text={text}
+                  textSub={textSub}
+                  textMut={textMut}
+                  bgDeep={bgDeep}
+                />
+              )}
+              {/* 2026-05-24 — Process-wise NG remarks panel REMOVED from
+                  Fullscreen.  Operator: "main fullscreen me sirf final
+                  ki details rkhni h, process wise remarks ka wallboard
+                  wale page me dalne ko bola tha".  Panel still lives in
+                  WallboardLeft.jsx for sub-machine NG video modal. */}
+              {/* 2026-05-21 — Per-cycle Comments panel (same as
+                  WallboardLeft).  Fullscreen modal always shows main-PLC
+                  (Final Inspection) cycles, so no isMain gate needed —
+                  every video here gets a comments thread.  Keyed by
+                  part_code so part-code search surfaces the same notes.
+                  2026-05-23 — Hidden in fullscreen mode (YouTube style). */}
+              {!videoExpanded && videoModal.part_code && (
+                <FsCycleCommentsPanel
+                  lineId={lineId}
+                  partCode={String(videoModal.part_code).replace(/:$/, "")}
+                  border={border}
+                  text={text}
+                  textSub={textSub}
+                  textMut={textMut}
+                />
+              )}
+              </>
             ) : (
               <div style={{
                 padding:"32px 16px",textAlign:"center",
@@ -4424,6 +4669,7 @@ export default function Fullscreen() {
                 )}
               </div>
             )}
+            </div>{/* end scrollable body */}
           </div>
         </div>
       ), document.body)}
@@ -4433,6 +4679,47 @@ export default function Fullscreen() {
           grid: rows = hourly slots, columns = loss buckets, cells =
           minutes spent in that loss type during that slot.  Plus a
           totals row matching the panel's shift-wide values. */}
+      {/* 2026-05-21 — NG LIST MODAL.  Triggered by clicking the NG
+          count cell in the slot table.  Renders a table of all NG
+          parts in that slot with per-row editable leader remark. */}
+      {/* 2026-05-22 — Loss-Remark editor.  Pops up over the Hourly
+          Loss Breakup modal when production clicks a loss-time cell. */}
+      {lossRemarkModal && (
+        <LossRemarkModal
+          lineId={lineId}
+          payload={lossRemarkModal}
+          onClose={() => setLossRemarkModal(null)}
+          border={border}
+          bgDeep={bgDeep}
+          text={text}
+          textSub={textSub}
+          textMut={textMut}
+          overlayPosStyle={overlayPosStyle}
+        />
+      )}
+
+      {ngListModal && (
+        <NgListModal
+          lineId={lineId}
+          date={ngListModal.date}
+          slotLabel={ngListModal.slot}
+          onClose={() => setNgListModal(null)}
+          onPlayVideo={(row) => openCycleVideo({
+            cycle_seq: row.cycle_seq,
+            part_code: row.part_code,
+            ct_value:  row.ct_value,
+            ts:        row.ts,
+            is_ng:     true,
+          })}
+          border={border}
+          bgDeep={bgDeep}
+          text={text}
+          textSub={textSub}
+          textMut={textMut}
+          overlayPosStyle={overlayPosStyle}
+        />
+      )}
+
       {lossModalOpen && (
         <div
           onClick={() => setLossModalOpen(false)}
@@ -4505,20 +4792,38 @@ export default function Fullscreen() {
                   <tbody>
                     {lossBreakup.slots.map((s, i) => (
                       <tr key={i} style={{borderBottom:`1px solid ${border}`}}>
+                        {/* 2026-05-22 — Removed duplicate small "HH:MM – HH:MM"
+                            line below slot_label.  slot_label already encodes
+                            the range (e.g. "08:30-09:30") so the second line
+                            was visual noise. */}
                         <td style={{padding:"8px 12px",fontWeight:700,color:text,whiteSpace:"nowrap",
                                     position:"sticky",left:0,background:bgCard}}>
-                          <div>{s.slot_label}</div>
-                          <div style={{fontSize:9,color:textMut,fontFamily:"monospace"}}>
-                            {s.start} – {s.end}
-                          </div>
+                          {s.slot_label}
                         </td>
                         {LOSSES.map(c => {
                           const sec = s[`loss_${c.key}`] || 0;
+                          const clickable = sec > 0;
                           return (
-                            <td key={c.key} style={{padding:"8px 10px",textAlign:"right",
-                                                     fontFamily:"monospace",
-                                                     color:sec>0?c.color:textMut,
-                                                     fontWeight:sec>0?700:400}}>
+                            <td key={c.key}
+                                onClick={clickable
+                                          ? () => setLossRemarkModal({
+                                              date:       lossBreakup.date || new Date().toISOString().slice(0,10),
+                                              shift_name: lossBreakup.shift_name || "",
+                                              slot_label: s.slot_label,
+                                              loss_type:  c.key,
+                                              loss_label: c.label,
+                                              loss_color: c.color,
+                                              loss_secs:  sec,
+                                            })
+                                          : undefined}
+                                title={clickable ? "Click to add/edit remark for this loss" : ""}
+                                style={{padding:"8px 10px",textAlign:"right",
+                                         fontFamily:"monospace",
+                                         color:sec>0?c.color:textMut,
+                                         fontWeight:sec>0?700:400,
+                                         cursor: clickable ? "pointer" : "default",
+                                         textDecoration: clickable ? "underline dotted" : "none",
+                                         textUnderlineOffset: 2}}>
                               {sec>0 ? fmtSec(sec) : "—"}
                             </td>
                           );
@@ -5208,5 +5513,1079 @@ export default function Fullscreen() {
         );
       })()}
     </>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────
+// FsCycleCommentsPanel
+// Per-cycle comments panel mounted inside Fullscreen.jsx video modal.
+// Mirrors CycleCommentsPanel in WallboardLeft.jsx (same backend, same
+// keying by part_code) so notes are consistent across both views.
+// ─────────────────────────────────────────────────────────────────
+function FsCycleCommentsPanel({ lineId, partCode, border, text, textSub, textMut }) {
+  const [items, setItems]     = useState([]);
+  const [draft, setDraft]     = useState("");
+  const [loading, setLoading] = useState(false);
+  const [posting, setPosting] = useState(false);
+  const [error, setError]     = useState("");
+  const token = (typeof window !== "undefined"
+                   && sessionStorage.getItem("mes_token")) || "";
+
+  useEffect(() => {
+    let stopped = false;
+    setLoading(true); setError("");
+    fetch(`/api/lines/${lineId}/cycles/${encodeURIComponent(partCode)}/comments`,
+          { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+      .then(r => r.ok ? r.json() : Promise.reject(`HTTP ${r.status}`))
+      .then(d => { if (!stopped) setItems(Array.isArray(d.comments) ? d.comments : []); })
+      .catch(e => { if (!stopped) setError(String(e)); })
+      .finally(() => { if (!stopped) setLoading(false); });
+    return () => { stopped = true; };
+  }, [lineId, partCode, token]);
+
+  const submit = useCallback(async () => {
+    const txt = draft.trim();
+    if (!txt) return;
+    if (!token) { setError("Login required to post comments"); return; }
+    setPosting(true); setError("");
+    try {
+      const r = await fetch(
+        `/api/lines/${lineId}/cycles/${encodeURIComponent(partCode)}/comments`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type":  "application/json",
+            "Authorization": `Bearer ${token}`,
+          },
+          body: JSON.stringify({ comment: txt }),
+        }
+      );
+      if (!r.ok) {
+        const msg = await r.text().catch(() => `HTTP ${r.status}`);
+        throw new Error(msg.slice(0, 200));
+      }
+      const row = await r.json();
+      setItems(prev => [...prev, {
+        id:         row.id,
+        comment:    row.comment,
+        author:     row.author,
+        created_at: row.created_at,
+      }]);
+      setDraft("");
+    } catch (e) {
+      setError(e.message || String(e));
+    } finally {
+      setPosting(false);
+    }
+  }, [lineId, partCode, draft, token]);
+
+  return (
+    <div style={{
+      marginTop: 8, padding: 10,
+      background: "rgba(255,255,255,0.02)",
+      border: `1px solid ${border}`, borderRadius: 8,
+      fontFamily: "'Barlow',sans-serif",
+    }}>
+      <div style={{
+        fontSize: 11, fontWeight: 700, letterSpacing: ".08em",
+        color: textSub, textTransform: "uppercase", marginBottom: 8,
+        display: "flex", justifyContent: "space-between", alignItems: "center",
+      }}>
+        <span>Comments</span>
+        <span style={{ color: textMut, fontSize: 10, fontWeight: 600 }}>
+          part {partCode}
+        </span>
+      </div>
+
+      {loading ? (
+        <div style={{ color: textMut, fontSize: 12, padding: "6px 0" }}>
+          Loading…
+        </div>
+      ) : items.length === 0 ? (
+        <div style={{ color: textMut, fontSize: 12, fontStyle: "italic",
+                       padding: "6px 0" }}>
+          No comments yet for this cycle.
+        </div>
+      ) : (
+        <div style={{ maxHeight: 160, overflowY: "auto", marginBottom: 8 }}>
+          {items.map(c => (
+            <div key={c.id} style={{
+              padding: "6px 0",
+              borderTop: `1px dashed ${border}`,
+            }}>
+              <div style={{ fontSize: 11, color: textMut, marginBottom: 2 }}>
+                <span style={{ color: "#60a5fa", fontWeight: 700 }}>
+                  {c.author || "operator"}
+                </span>
+                <span style={{ margin: "0 6px" }}>·</span>
+                {c.created_at ? new Date(c.created_at).toLocaleString("en-GB", {
+                  day: "2-digit", month: "short",
+                  hour: "2-digit", minute: "2-digit",
+                }) : ""}
+              </div>
+              <div style={{ fontSize: 13, color: text, whiteSpace: "pre-wrap",
+                             wordBreak: "break-word" }}>
+                {c.comment}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div style={{ display: "flex", gap: 6 }}>
+        <textarea
+          value={draft}
+          onChange={e => setDraft(e.target.value)}
+          placeholder="Add a comment about this cycle…"
+          rows={2}
+          maxLength={2000}
+          style={{
+            flex: 1, padding: "6px 8px", fontSize: 13,
+            background: "rgba(255,255,255,0.04)",
+            color: text, border: `1px solid ${border}`,
+            borderRadius: 6, resize: "vertical",
+            fontFamily: "'Barlow',sans-serif",
+          }}
+          onKeyDown={e => {
+            if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+              e.preventDefault();
+              submit();
+            }
+          }}
+        />
+        <button
+          onClick={submit}
+          disabled={posting || !draft.trim()}
+          style={{
+            padding: "0 14px", fontSize: 12, fontWeight: 700,
+            background: (posting || !draft.trim()) ? "rgba(96,165,250,.3)" : "#2563eb",
+            color: "#fff", border: "none", borderRadius: 6,
+            cursor: (posting || !draft.trim()) ? "not-allowed" : "pointer",
+            letterSpacing: ".04em",
+          }}>
+          {posting ? "…" : "POST"}
+        </button>
+      </div>
+      {error && (
+        <div style={{ marginTop: 6, fontSize: 11, color: "#ef4444" }}>
+          {error}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────
+// FsNgDetailsPanel
+// Two-section NG panel inside the video modal:
+//   (A) Machine reason — auto-derived from cycle CT vs ideal + any
+//       sub-machine bit traces.  Read-only.
+//   (B) Leader remark — line leader writes the exact physical reason
+//       after inspection.  Editable, UPSERT-style (one remark per
+//       part_code, old remarks preserved in audit_trail).
+// Keyed by (lineId, partCode) so the same NG entry is reachable
+// whether the user navigates by chart click, NG arrow, or part-code
+// search later.
+// ─────────────────────────────────────────────────────────────────
+function FsNgDetailsPanel({ lineId, partCode, border, text, textSub, textMut, bgDeep }) {
+  const [data, setData]       = useState(null);
+  const [draft, setDraft]     = useState("");
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving]   = useState(false);
+  const [error, setError]     = useState("");
+  const [savedAt, setSavedAt] = useState(null);
+  const token = (typeof window !== "undefined"
+                   && sessionStorage.getItem("mes_token")) || "";
+
+  const reload = useCallback(() => {
+    setLoading(true); setError("");
+    fetch(`/api/lines/${lineId}/ng-details/${encodeURIComponent(partCode)}`,
+          { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+      .then(r => r.ok ? r.json() : Promise.reject(`HTTP ${r.status}`))
+      .then(d => {
+        setData(d);
+        setDraft(d?.leader?.leader_remark || "");
+      })
+      .catch(e => setError(String(e)))
+      .finally(() => setLoading(false));
+  }, [lineId, partCode, token]);
+
+  useEffect(() => { reload(); }, [reload]);
+
+  const save = useCallback(async () => {
+    const txt = draft.trim();
+    if (!txt) return;
+    if (!token) { setError("Login required to save remark"); return; }
+    setSaving(true); setError("");
+    try {
+      const r = await fetch(
+        `/api/lines/${lineId}/ng-details/${encodeURIComponent(partCode)}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type":  "application/json",
+            "Authorization": `Bearer ${token}`,
+          },
+          body: JSON.stringify({ leader_remark: txt }),
+        }
+      );
+      if (!r.ok) {
+        const msg = await r.text().catch(() => `HTTP ${r.status}`);
+        throw new Error(msg.slice(0, 200));
+      }
+      const row = await r.json();
+      setData(prev => ({
+        ...(prev || {}),
+        leader: {
+          leader_remark: row.leader_remark,
+          entered_by:    row.entered_by,
+          audit_trail:   row.audit_trail || [],
+          created_at:    row.created_at,
+          updated_at:    row.updated_at,
+        },
+      }));
+      setSavedAt(new Date().toLocaleTimeString("en-GB"));
+    } catch (e) {
+      setError(e.message || String(e));
+    } finally {
+      setSaving(false);
+    }
+  }, [lineId, partCode, draft, token]);
+
+  const mr  = data?.machine_reason || {};
+  const ldr = data?.leader || {};
+  const trail = Array.isArray(ldr.audit_trail) ? ldr.audit_trail : [];
+
+  return (
+    <div style={{
+      marginTop: 8, padding: 10,
+      background: "linear-gradient(180deg, rgba(239,68,68,0.08), rgba(239,68,68,0.02))",
+      border: "1px solid rgba(239,68,68,0.4)", borderRadius: 8,
+      fontFamily: "'Barlow',sans-serif",
+    }}>
+      <div style={{
+        fontSize: 11, fontWeight: 800, letterSpacing: ".08em",
+        color: "#ef4444", textTransform: "uppercase", marginBottom: 10,
+        display: "flex", justifyContent: "space-between", alignItems: "center",
+      }}>
+        <span>⚠ NG Part — Details</span>
+        <span style={{ color: textMut, fontSize: 10, fontWeight: 600 }}>
+          part {partCode}
+        </span>
+      </div>
+
+      {loading ? (
+        <div style={{ color: textMut, fontSize: 12, padding: "6px 0" }}>Loading NG details…</div>
+      ) : (
+        <>
+          {/* 2026-05-24 — "Machine-detected reason" section removed.
+              Operator: "ye tujhe kisne btya ki ye part itne ct se upr
+              gya to ng h, khud se kuch bhi bna rha h kya tu".  Auto-
+              guess based on CT vs ideal is meaningless — slow cycle
+              isn't always NG.  Only L109 + operator remarks define NG. */}
+
+          {/* ───── Line leader remark (manual, editable) ───── */}
+          <div>
+            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: ".06em",
+                           color: textSub, marginBottom: 4, textTransform: "uppercase",
+                           display: "flex", justifyContent: "space-between" }}>
+              <span>② Line leader's exact reason</span>
+              {ldr.updated_at && (
+                <span style={{ color: textMut, fontSize: 10, fontWeight: 600 }}>
+                  by <span style={{ color: "#60a5fa" }}>{ldr.entered_by || "—"}</span>
+                  · {new Date(ldr.updated_at).toLocaleString("en-GB", {
+                      day: "2-digit", month: "short",
+                      hour: "2-digit", minute: "2-digit",
+                  })}
+                </span>
+              )}
+            </div>
+            <div style={{ display: "flex", gap: 6 }}>
+              <textarea
+                value={draft}
+                onChange={e => setDraft(e.target.value)}
+                placeholder="Write the exact physical reason (e.g., 'lock bar misalignment caused by jig wear', 'operator missed bolt torque', etc.)"
+                rows={3}
+                maxLength={2000}
+                style={{
+                  flex: 1, padding: "6px 8px", fontSize: 13,
+                  background: "rgba(255,255,255,0.04)",
+                  color: text, border: `1px solid ${border}`,
+                  borderRadius: 6, resize: "vertical",
+                  fontFamily: "'Barlow',sans-serif",
+                }}
+                onKeyDown={e => {
+                  if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+                    e.preventDefault();
+                    save();
+                  }
+                }}
+              />
+              <button
+                onClick={save}
+                disabled={saving || !draft.trim() || draft === (ldr.leader_remark || "")}
+                style={{
+                  padding: "0 14px", fontSize: 12, fontWeight: 700,
+                  background: (saving || !draft.trim() || draft === (ldr.leader_remark || ""))
+                                ? "rgba(239,68,68,.3)" : "#ef4444",
+                  color: "#fff", border: "none", borderRadius: 6,
+                  cursor: (saving || !draft.trim() || draft === (ldr.leader_remark || ""))
+                              ? "not-allowed" : "pointer",
+                  letterSpacing: ".04em",
+                }}>
+                {saving ? "…" : "SAVE"}
+              </button>
+            </div>
+            {savedAt && (
+              <div style={{ marginTop: 4, fontSize: 10, color: "#22c55e" }}>
+                Saved at {savedAt}
+              </div>
+            )}
+            {/* Edit history */}
+            {trail.length > 0 && (
+              <details style={{ marginTop: 8 }}>
+                <summary style={{
+                  cursor: "pointer", fontSize: 10, color: textMut,
+                  fontWeight: 700, letterSpacing: ".04em",
+                }}>
+                  Previous remarks ({trail.length})
+                </summary>
+                <div style={{ marginTop: 6, maxHeight: 120, overflowY: "auto" }}>
+                  {trail.map((t, i) => (
+                    <div key={i} style={{
+                      fontSize: 11, padding: "4px 0",
+                      borderTop: `1px dashed ${border}`, color: textSub,
+                    }}>
+                      <div style={{ fontSize: 10, color: textMut }}>
+                        {t.entered_by || "—"} · replaced {t.replaced_at
+                          ? new Date(t.replaced_at).toLocaleString("en-GB", {
+                              day: "2-digit", month: "short",
+                              hour: "2-digit", minute: "2-digit"})
+                          : ""}
+                      </div>
+                      <div style={{ whiteSpace: "pre-wrap", color: text }}>{t.remark}</div>
+                    </div>
+                  ))}
+                </div>
+              </details>
+            )}
+          </div>
+        </>
+      )}
+
+      {error && (
+        <div style={{ marginTop: 8, fontSize: 11, color: "#ef4444" }}>
+          {error}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────
+// FsNgProcessRemarksPanel (2026-05-24)
+// One remark input per process/machine on this line for the current
+// NG part.  Each remark saves to mes_ng_process_remarks (UPSERT by
+// (part_code, machine_id)).  Quality dashboard pulls the summary.
+// ─────────────────────────────────────────────────────────────────
+function FsNgProcessRemarksPanel({ lineId, partCode, border, text, textSub, textMut, bgDeep }) {
+  const [data,    setData]    = useState(null);  // { machines:[], remarks:[] }
+  const [drafts,  setDrafts]  = useState({});    // machine_id -> text
+  const [saving,  setSaving]  = useState({});    // machine_id -> bool
+  const [savedAt, setSavedAt] = useState({});    // machine_id -> ts
+  const [error,   setError]   = useState("");
+  const token = (typeof window !== "undefined"
+                   && sessionStorage.getItem("mes_token")) || "";
+
+  const load = useCallback(() => {
+    setError("");
+    fetch(`/api/lines/${lineId}/ng-process-remarks/${encodeURIComponent(partCode)}`)
+      .then(r => r.ok ? r.json() : Promise.reject(r.statusText))
+      .then(d => {
+        setData(d);
+        // pre-populate drafts from existing remarks
+        const dr = {};
+        (d.remarks || []).forEach(r => { dr[r.machine_id] = r.remark_text; });
+        setDrafts(dr);
+      })
+      .catch(e => setError(String(e)));
+  }, [lineId, partCode]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const save = (m) => {
+    const txt = (drafts[m.id] || "").trim();
+    if (!txt) return;
+    setSaving(s => ({ ...s, [m.id]: true }));
+    fetch(`/api/lines/${lineId}/ng-process-remarks/${encodeURIComponent(partCode)}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({
+        machine_id:   m.id,
+        machine_name: m.machine_name,
+        remark_text:  txt,
+      }),
+    })
+      .then(r => r.ok ? r.json() : Promise.reject(r.statusText))
+      .then(() => { setSavedAt(s => ({ ...s, [m.id]: Date.now() })); load(); })
+      .catch(e => setError(String(e)))
+      .finally(() => setSaving(s => ({ ...s, [m.id]: false })));
+  };
+
+  if (!data) {
+    return (
+      <div style={{
+        marginTop: 10, padding: 10, background: bgDeep,
+        border: `1px solid ${border}`, borderRadius: 8,
+        color: textMut, fontSize: 11,
+      }}>Loading process remarks…</div>
+    );
+  }
+
+  const machines = data.machines || [];
+  const existingByMid = Object.fromEntries(
+    (data.remarks || []).map(r => [r.machine_id, r]));
+
+  return (
+    <div style={{
+      marginTop: 10, padding: 12, background: bgDeep,
+      border: `1px solid ${border}`, borderRadius: 8,
+    }}>
+      <div style={{
+        display: "flex", justifyContent: "space-between", alignItems: "center",
+        marginBottom: 8, fontSize: 11, fontWeight: 800,
+        color: "#f87171", letterSpacing: ".08em",
+      }}>
+        <span>🛠 PROCESS-WISE NG REMARKS</span>
+        <span style={{ color: textMut, fontWeight: 600 }}>
+          PART {partCode}
+        </span>
+      </div>
+      {error && (
+        <div style={{ color: "#f87171", fontSize: 11, marginBottom: 6 }}>
+          {error}
+        </div>
+      )}
+      <div style={{ display: "grid", gap: 6 }}>
+        {machines.map(m => {
+          const ex = existingByMid[m.id];
+          const saved = savedAt[m.id];
+          return (
+            <div key={m.id} style={{
+              display: "grid",
+              gridTemplateColumns: "160px 1fr auto",
+              gap: 8, alignItems: "start",
+              padding: "6px 0", borderTop: `1px dashed ${border}`,
+            }}>
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 800, color: text }}>
+                  {m.is_main ? "★ " : ""}{m.machine_name}
+                </div>
+                {ex && (
+                  <div style={{ fontSize: 9, color: textMut, marginTop: 2 }}>
+                    last: {ex.updated_at
+                      ? new Date(ex.updated_at).toLocaleString("en-IN")
+                      : "—"}
+                  </div>
+                )}
+              </div>
+              <textarea
+                value={drafts[m.id] || ""}
+                onChange={e => setDrafts(d => ({ ...d, [m.id]: e.target.value }))}
+                placeholder={`Remark for ${m.machine_name}…`}
+                rows={2}
+                style={{
+                  width: "100%", boxSizing: "border-box",
+                  padding: 6, borderRadius: 6,
+                  border: `1px solid ${border}`,
+                  background: "transparent", color: text,
+                  fontSize: 12, resize: "vertical",
+                  fontFamily: "inherit",
+                }}
+              />
+              <button
+                onClick={() => save(m)}
+                disabled={!!saving[m.id] || !(drafts[m.id] || "").trim()}
+                style={{
+                  padding: "6px 12px", borderRadius: 6,
+                  border: "none", cursor: "pointer",
+                  background: saving[m.id] ? "#6b7280"
+                              : saved && (Date.now() - saved < 2500) ? "#16a34a"
+                              : "#b91c1c",
+                  color: "#fff", fontSize: 11, fontWeight: 800,
+                  minWidth: 64,
+                }}
+              >
+                {saving[m.id] ? "..." :
+                 saved && (Date.now() - saved < 2500) ? "✓ saved" : "SAVE"}
+              </button>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────
+// NgListModal
+// Opens when operator clicks the NG count cell in the slot table.
+// Renders a table of every NG part in that slot with 4 columns:
+//   Part Code | Time | Machine alarm | Leader remark (editable)
+// Inline save on each row — no submit-and-reload flow needed.
+// ─────────────────────────────────────────────────────────────────
+function NgListModal({ lineId, date, slotLabel, onClose, onPlayVideo, border, bgDeep, text, textSub, textMut, overlayPosStyle }) {
+  const [rows,    setRows]    = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error,   setError]   = useState("");
+  const [drafts,  setDrafts]  = useState({});     // part_code -> textarea value
+  const [saving,  setSaving]  = useState({});     // part_code -> bool
+  const token = (typeof window !== "undefined"
+                   && sessionStorage.getItem("mes_token")) || "";
+
+  useEffect(() => {
+    let stopped = false;
+    setLoading(true); setError("");
+    const url = `/api/lines/${lineId}/ng-list?date=${encodeURIComponent(date)}&slot_label=${encodeURIComponent(slotLabel)}`;
+    fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+      .then(r => r.ok ? r.json() : Promise.reject(`HTTP ${r.status}`))
+      .then(d => {
+        if (stopped) return;
+        const rs = Array.isArray(d.rows) ? d.rows : [];
+        setRows(rs);
+        const initialDrafts = {};
+        rs.forEach(r => { initialDrafts[r.part_code] = r.leader_remark || ""; });
+        setDrafts(initialDrafts);
+      })
+      .catch(e => { if (!stopped) setError(String(e)); })
+      .finally(() => { if (!stopped) setLoading(false); });
+    return () => { stopped = true; };
+  }, [lineId, date, slotLabel, token]);
+
+  const saveRemark = async (partCode) => {
+    const txt = (drafts[partCode] || "").trim();
+    if (!txt) return;
+    if (!token) { setError("Login required"); return; }
+    setSaving(prev => ({ ...prev, [partCode]: true }));
+    try {
+      const r = await fetch(
+        `/api/lines/${lineId}/ng-details/${encodeURIComponent(partCode)}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type":  "application/json",
+            "Authorization": `Bearer ${token}`,
+          },
+          body: JSON.stringify({ leader_remark: txt }),
+        }
+      );
+      if (!r.ok) {
+        const msg = await r.text().catch(() => `HTTP ${r.status}`);
+        throw new Error(msg.slice(0, 200));
+      }
+      const row = await r.json();
+      setRows(prev => prev.map(rr =>
+        rr.part_code === partCode
+          ? { ...rr,
+              leader_remark:  row.leader_remark,
+              entered_by:     row.entered_by,
+              remark_updated: row.updated_at }
+          : rr));
+    } catch (e) {
+      setError(`${partCode}: ${e.message || e}`);
+    } finally {
+      setSaving(prev => ({ ...prev, [partCode]: false }));
+    }
+  };
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        ...overlayPosStyle, zIndex: 9999,
+        background: "rgba(0,0,0,.65)", backdropFilter: "blur(3px)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        padding: 20, animation: "fadeIn .15s ease",
+      }}
+    >
+      <div onClick={e => e.stopPropagation()}
+           style={{
+             background: bgDeep, color: text,
+             border: `1px solid ${border}`, borderRadius: 10,
+             padding: 16, width: "90vw", maxWidth: 1100,
+             maxHeight: "85vh", display: "flex", flexDirection: "column",
+             fontFamily: "'Barlow',sans-serif",
+             boxShadow: "0 20px 60px rgba(0,0,0,.6)",
+           }}>
+        {/* Header */}
+        <div style={{ display: "flex", justifyContent: "space-between",
+                       alignItems: "center", marginBottom: 12 }}>
+          <div>
+            <div style={{ fontSize: 11, color: textMut, fontWeight: 700,
+                           letterSpacing: ".08em", textTransform: "uppercase" }}>
+              NG Parts · {date}
+            </div>
+            <div style={{ fontSize: 16, fontWeight: 800, color: "#ef4444" }}>
+              ⚠ Slot {slotLabel} · {rows.length} NG part{rows.length === 1 ? "" : "s"}
+            </div>
+          </div>
+          <button onClick={onClose} style={{
+            background: "transparent", border: `1px solid ${border}`,
+            color: textSub, padding: "4px 14px", borderRadius: 6,
+            fontSize: 16, fontWeight: 700, cursor: "pointer", lineHeight: 1,
+          }}>×</button>
+        </div>
+
+        {/* Body */}
+        <div style={{ flex: 1, overflowY: "auto", minHeight: 0 }}>
+          {loading ? (
+            <div style={{ padding: 24, textAlign: "center", color: textMut }}>
+              Loading NG parts…
+            </div>
+          ) : rows.length === 0 ? (
+            <div style={{ padding: 24, textAlign: "center", color: textMut,
+                           fontStyle: "italic" }}>
+              No NG parts recorded in this slot.
+            </div>
+          ) : (
+            <table style={{ width: "100%", borderCollapse: "collapse",
+                             fontSize: 12 }}>
+              <thead>
+                <tr style={{ background: "rgba(239,68,68,0.08)",
+                              borderBottom: `2px solid ${border}` }}>
+                  <th style={{ padding: "8px 6px", textAlign: "left",
+                                fontWeight: 800, fontSize: 10,
+                                letterSpacing: ".06em", color: textSub,
+                                textTransform: "uppercase" }}>Part Code</th>
+                  <th style={{ padding: "8px 6px", textAlign: "left",
+                                fontWeight: 800, fontSize: 10, color: textSub,
+                                textTransform: "uppercase" }}>Time</th>
+                  <th style={{ padding: "8px 6px", textAlign: "center",
+                                fontWeight: 800, fontSize: 10, color: textSub,
+                                textTransform: "uppercase",
+                                width: 60 }}>Video</th>
+                  <th style={{ padding: "8px 6px", textAlign: "left",
+                                fontWeight: 800, fontSize: 10, color: textSub,
+                                textTransform: "uppercase" }}>Machine Alarm</th>
+                  <th style={{ padding: "8px 6px", textAlign: "left",
+                                fontWeight: 800, fontSize: 10, color: textSub,
+                                textTransform: "uppercase" }}>Line Leader Remark</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((r) => {
+                  const dirty = (drafts[r.part_code] || "") !== (r.leader_remark || "");
+                  const sv = !!saving[r.part_code];
+                  return (
+                    <tr key={r.part_code} style={{
+                      borderBottom: `1px solid ${border}`,
+                      verticalAlign: "top",
+                    }}>
+                      <td style={{ padding: "8px 6px", fontFamily: "monospace",
+                                    fontSize: 11, color: "#60a5fa" }}>
+                        {r.part_code}
+                        {r.cycle_seq != null && (
+                          <div style={{ fontSize: 10, color: textMut, marginTop: 2 }}>
+                            #{r.cycle_seq} · {r.ct_value != null ? `${r.ct_value.toFixed(2)}s` : "—"}
+                          </div>
+                        )}
+                      </td>
+                      <td style={{ padding: "8px 6px", fontFamily: "monospace",
+                                    fontSize: 11, color: textSub, whiteSpace: "nowrap" }}>
+                        {r.ts ? new Date(r.ts).toLocaleTimeString("en-GB") : "—"}
+                      </td>
+                      <td style={{ padding: "8px 6px", textAlign: "center" }}>
+                        <button
+                          onClick={() => onPlayVideo && onPlayVideo(r)}
+                          title="Open video for this NG part"
+                          style={{
+                            padding: "4px 8px", fontSize: 14, fontWeight: 700,
+                            background: "rgba(96,165,250,0.15)",
+                            border: "1px solid rgba(96,165,250,0.5)",
+                            color: "#60a5fa", borderRadius: 4,
+                            cursor: "pointer", lineHeight: 1,
+                          }}>
+                          ▶
+                        </button>
+                      </td>
+                      <td style={{ padding: "8px 6px", fontSize: 11,
+                                    color: text, lineHeight: 1.4 }}>
+                        {r.machine_alarm || "—"}
+                      </td>
+                      <td style={{ padding: "8px 6px", minWidth: 280 }}>
+                        <div style={{ display: "flex", gap: 4 }}>
+                          <textarea
+                            value={drafts[r.part_code] || ""}
+                            onChange={e => setDrafts(prev => ({
+                              ...prev, [r.part_code]: e.target.value,
+                            }))}
+                            rows={2}
+                            maxLength={2000}
+                            placeholder="Type exact reason here…"
+                            style={{
+                              flex: 1, padding: "4px 6px", fontSize: 12,
+                              background: "rgba(255,255,255,0.04)",
+                              color: text, border: `1px solid ${border}`,
+                              borderRadius: 4, resize: "vertical",
+                              fontFamily: "'Barlow',sans-serif",
+                            }}
+                            onKeyDown={e => {
+                              if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+                                e.preventDefault();
+                                saveRemark(r.part_code);
+                              }
+                            }}
+                          />
+                          <button
+                            onClick={() => saveRemark(r.part_code)}
+                            disabled={!dirty || sv || !(drafts[r.part_code] || "").trim()}
+                            style={{
+                              padding: "0 10px", fontSize: 10, fontWeight: 800,
+                              background: (!dirty || sv || !(drafts[r.part_code] || "").trim())
+                                            ? "rgba(239,68,68,.3)" : "#ef4444",
+                              color: "#fff", border: "none", borderRadius: 4,
+                              cursor: (!dirty || sv || !(drafts[r.part_code] || "").trim())
+                                          ? "not-allowed" : "pointer",
+                              letterSpacing: ".04em", whiteSpace: "nowrap",
+                            }}>
+                            {sv ? "…" : "SAVE"}
+                          </button>
+                        </div>
+                        {r.entered_by && (
+                          <div style={{ fontSize: 9, color: textMut, marginTop: 2 }}>
+                            by <span style={{ color: "#60a5fa" }}>{r.entered_by}</span>
+                            {r.remark_updated && (
+                              <> · {new Date(r.remark_updated).toLocaleString("en-GB", {
+                                day: "2-digit", month: "short",
+                                hour: "2-digit", minute: "2-digit",
+                              })}</>
+                            )}
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
+          {error && (
+            <div style={{ marginTop: 10, padding: 8, fontSize: 11,
+                           color: "#ef4444",
+                           background: "rgba(239,68,68,0.1)",
+                           border: "1px solid rgba(239,68,68,0.3)",
+                           borderRadius: 4 }}>
+              {error}
+            </div>
+          )}
+        </div>
+
+        {/* (Loss-remark modal appended at file end after this component) */}
+        {/* Footer — Send to Quality button + hint */}
+        <div style={{ marginTop: 12, display:"flex",
+                       justifyContent:"space-between", alignItems:"center" }}>
+          <button
+            onClick={async () => {
+              if (rows.length === 0) return;
+              const proceed = window.confirm(
+                `Email ${rows.length} NG part${rows.length === 1 ? "" : "s"} `
+                + `to Quality team?\n\n`
+                + `Top 3 worst-CT videos will be attached.\n`
+                + `Slot: ${slotLabel} · Date: ${date}`
+              );
+              if (!proceed) return;
+              try {
+                const r = await fetch(
+                  `/api/lines/${lineId}/send-ng-mail`,
+                  {
+                    method: "POST",
+                    headers: {
+                      "Content-Type":  "application/json",
+                      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                    },
+                    body: JSON.stringify({
+                      date,
+                      slot_label:    slotLabel,
+                      attach_videos: true,
+                    }),
+                  }
+                );
+                if (!r.ok) {
+                  const msg = await r.text().catch(() => `HTTP ${r.status}`);
+                  throw new Error(msg.slice(0, 300));
+                }
+                const data = await r.json();
+                alert(
+                  `Mail sent ✓\n\n`
+                  + `To: ${(data.to || []).join(", ")}\n`
+                  + `NG parts reported: ${data.ng_count}\n`
+                  + `Videos attached: ${(data.videos_attached || []).length}\n`
+                  + (data.videos_skipped && data.videos_skipped.length
+                      ? `Skipped (missing file or size cap): ${data.videos_skipped.length}` : "")
+                );
+              } catch (e) {
+                alert("Mail failed:\n\n" + (e.message || e));
+              }
+            }}
+            disabled={rows.length === 0 || loading}
+            style={{
+              padding: "6px 14px", fontSize: 12, fontWeight: 800,
+              background: rows.length === 0 || loading
+                            ? "rgba(34,197,94,.3)" : "#16a34a",
+              color: "#fff", border: "none", borderRadius: 6,
+              cursor: rows.length === 0 || loading ? "not-allowed" : "pointer",
+              letterSpacing: ".04em",
+            }}>
+            📧 SEND TO QUALITY
+          </button>
+          <div style={{ fontSize: 10, color: textMut,
+                         textAlign: "right", fontStyle: "italic" }}>
+            Ctrl/Cmd + Enter to save remark · click outside to close
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────
+// LossRemarkModal
+// Per-cell remark editor for Hourly Loss Breakup.  Production clicks
+// a non-zero loss time cell (e.g. "00:06:46" under BREAKDOWN at
+// slot 08:30-09:30) → this modal opens with a textarea pre-filled
+// with the existing remark.  Type → SAVE → posts to
+// /api/lines/{id}/loss-remarks.  UPSERT — one remark per
+// (line, date, shift, slot, loss_type); previous remarks preserved
+// in audit_trail JSONB.
+// ─────────────────────────────────────────────────────────────────
+function LossRemarkModal({ lineId, payload, onClose, border, bgDeep, text, textSub, textMut, overlayPosStyle }) {
+  const { date, shift_name, slot_label, loss_type, loss_label,
+          loss_color, loss_secs } = payload || {};
+  const [data,   setData]    = useState(null);
+  const [draft,  setDraft]   = useState("");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving]  = useState(false);
+  const [error,  setError]   = useState("");
+  const [savedAt, setSavedAt] = useState(null);
+  const token = (typeof window !== "undefined"
+                   && sessionStorage.getItem("mes_token")) || "";
+
+  // Format seconds → HH:MM:SS for display
+  const fmt = (sec) => {
+    const s = Math.max(0, Math.round(sec || 0));
+    const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), ss = s % 60;
+    return `${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}:${String(ss).padStart(2,"0")}`;
+  };
+
+  useEffect(() => {
+    let stopped = false;
+    setLoading(true); setError("");
+    const qs = new URLSearchParams({
+      date, shift_name: shift_name || "",
+      slot_label, loss_type,
+    }).toString();
+    fetch(`/api/lines/${lineId}/loss-remarks?${qs}`,
+          { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+      .then(r => r.ok ? r.json() : Promise.reject(`HTTP ${r.status}`))
+      .then(d => {
+        if (stopped) return;
+        setData(d);
+        setDraft(d?.remark || "");
+      })
+      .catch(e => { if (!stopped) setError(String(e)); })
+      .finally(() => { if (!stopped) setLoading(false); });
+    return () => { stopped = true; };
+  }, [lineId, date, shift_name, slot_label, loss_type, token]);
+
+  const save = useCallback(async () => {
+    const txt = draft.trim();
+    if (!txt) return;
+    if (!token) { setError("Login required to save remark"); return; }
+    setSaving(true); setError("");
+    try {
+      const r = await fetch(
+        `/api/lines/${lineId}/loss-remarks`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type":  "application/json",
+            "Authorization": `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            date, shift_name, slot_label, loss_type,
+            remark: txt,
+          }),
+        }
+      );
+      if (!r.ok) {
+        const msg = await r.text().catch(() => `HTTP ${r.status}`);
+        throw new Error(msg.slice(0, 200));
+      }
+      const row = await r.json();
+      setData(row);
+      setSavedAt(new Date().toLocaleTimeString("en-GB"));
+    } catch (e) {
+      setError(e.message || String(e));
+    } finally {
+      setSaving(false);
+    }
+  }, [lineId, date, shift_name, slot_label, loss_type, draft, token]);
+
+  const trail = Array.isArray(data?.audit_trail) ? data.audit_trail : [];
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        ...overlayPosStyle, zIndex: 10000,
+        background: "rgba(0,0,0,.7)", backdropFilter: "blur(4px)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        padding: 20, animation: "fadeIn .15s ease",
+      }}
+    >
+      <div onClick={e => e.stopPropagation()}
+           style={{
+             background: bgDeep, color: text,
+             border: `1px solid ${border}`, borderRadius: 10,
+             padding: 16, width: "min(560px, 92vw)",
+             maxHeight: "85vh", display: "flex", flexDirection: "column",
+             fontFamily: "'Barlow',sans-serif",
+             boxShadow: "0 20px 60px rgba(0,0,0,.6)",
+           }}>
+        <div style={{ display: "flex", justifyContent: "space-between",
+                       alignItems: "flex-start", marginBottom: 12 }}>
+          <div>
+            <div style={{ fontSize: 10, color: textMut, fontWeight: 700,
+                           letterSpacing: ".08em", textTransform: "uppercase" }}>
+              Loss Remark · {date}
+            </div>
+            <div style={{ fontSize: 16, fontWeight: 800,
+                           color: loss_color || "#ef4444", marginTop: 2 }}>
+              {loss_label || loss_type} · {fmt(loss_secs)}
+            </div>
+            <div style={{ fontSize: 11, color: textSub, marginTop: 3 }}>
+              {shift_name ? `${shift_name} shift · ` : ""}slot {slot_label}
+            </div>
+          </div>
+          <button onClick={onClose} style={{
+            background: "transparent", border: `1px solid ${border}`,
+            color: textSub, padding: "4px 12px", borderRadius: 6,
+            fontSize: 16, fontWeight: 700, cursor: "pointer", lineHeight: 1,
+          }}>×</button>
+        </div>
+
+        {loading ? (
+          <div style={{ padding: 24, textAlign: "center", color: textMut }}>
+            Loading…
+          </div>
+        ) : (
+          <>
+            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: ".06em",
+                           color: textSub, marginBottom: 4, textTransform: "uppercase" }}>
+              Production team remark
+            </div>
+            <textarea
+              value={draft}
+              onChange={e => setDraft(e.target.value)}
+              placeholder={`Explain why ${(loss_label || loss_type).toLowerCase()} occurred in this slot…`}
+              rows={5}
+              maxLength={2000}
+              style={{
+                width: "100%", padding: "8px 10px", fontSize: 13,
+                background: "rgba(255,255,255,0.04)",
+                color: text, border: `1px solid ${border}`,
+                borderRadius: 6, resize: "vertical",
+                fontFamily: "'Barlow',sans-serif",
+                boxSizing: "border-box",
+              }}
+              onKeyDown={e => {
+                if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+                  e.preventDefault();
+                  save();
+                }
+              }}
+            />
+            <div style={{ marginTop: 8, display: "flex",
+                           justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ fontSize: 10, color: textMut }}>
+                {data?.entered_by && (
+                  <>by <span style={{ color: "#60a5fa", fontWeight: 700 }}>
+                    {data.entered_by}
+                  </span>
+                  {data.updated_at && (
+                    <> · {new Date(data.updated_at).toLocaleString("en-GB", {
+                      day: "2-digit", month: "short",
+                      hour: "2-digit", minute: "2-digit",
+                    })}</>
+                  )}</>
+                )}
+                {savedAt && (
+                  <span style={{ marginLeft: 8, color: "#22c55e" }}>
+                    ✓ saved at {savedAt}
+                  </span>
+                )}
+              </div>
+              <button
+                onClick={save}
+                disabled={saving || !draft.trim() || draft === (data?.remark || "")}
+                style={{
+                  padding: "6px 16px", fontSize: 12, fontWeight: 800,
+                  background: (saving || !draft.trim() || draft === (data?.remark || ""))
+                                ? "rgba(34,197,94,.3)" : "#16a34a",
+                  color: "#fff", border: "none", borderRadius: 6,
+                  cursor: (saving || !draft.trim() || draft === (data?.remark || ""))
+                              ? "not-allowed" : "pointer",
+                  letterSpacing: ".04em",
+                }}>
+                {saving ? "…" : "SAVE"}
+              </button>
+            </div>
+            {trail.length > 0 && (
+              <details style={{ marginTop: 10 }}>
+                <summary style={{
+                  cursor: "pointer", fontSize: 10, color: textMut,
+                  fontWeight: 700, letterSpacing: ".04em",
+                }}>
+                  Previous remarks ({trail.length})
+                </summary>
+                <div style={{ marginTop: 6, maxHeight: 140, overflowY: "auto" }}>
+                  {trail.map((t, i) => (
+                    <div key={i} style={{
+                      fontSize: 11, padding: "5px 0",
+                      borderTop: `1px dashed ${border}`, color: textSub,
+                    }}>
+                      <div style={{ fontSize: 10, color: textMut }}>
+                        {t.entered_by || "—"} · replaced {t.replaced_at
+                          ? new Date(t.replaced_at).toLocaleString("en-GB", {
+                              day: "2-digit", month: "short",
+                              hour: "2-digit", minute: "2-digit"})
+                          : ""}
+                      </div>
+                      <div style={{ whiteSpace: "pre-wrap", color: text }}>{t.remark}</div>
+                    </div>
+                  ))}
+                </div>
+              </details>
+            )}
+          </>
+        )}
+        {error && (
+          <div style={{ marginTop: 8, padding: 6, fontSize: 11,
+                         color: "#ef4444",
+                         background: "rgba(239,68,68,0.1)",
+                         border: "1px solid rgba(239,68,68,0.3)",
+                         borderRadius: 4 }}>
+            {error}
+          </div>
+        )}
+        <div style={{ marginTop: 10, fontSize: 10, color: textMut,
+                       fontStyle: "italic", textAlign: "right" }}>
+          Ctrl/Cmd + Enter to save · click outside to close
+        </div>
+      </div>
+    </div>
   );
 }

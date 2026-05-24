@@ -730,11 +730,62 @@ def import_excel_data(
     """
     Import historical data from Excel.
     Body: { line_id, shift_name, record_date, data }
+
+    2026-05-21 — COLLECTOR-WRITE PROTECTION.
+    Single-writer guarantee for ync_dashboard_complete: only the
+    collector engine may write counts (ok/ng/actual) for live or
+    in-progress shifts.  With up to 25 frontends potentially on the
+    LAN, an accidental Excel import on today's date would race the
+    collector and silently overwrite live counts (operator on shop
+    floor sees their plan/actual numbers reset to whatever the Excel
+    file said).  Three-layer defense:
+       1. Reject record_date >= CURRENT_DATE  (today/future = collector)
+       2. Reject if the target row has is_shift_completed = FALSE
+          (shift still rolling, collector still writing)
+       3. Audit every accepted/blocked attempt with admin id
+    Operator-only / non-admin frontends already can't reach this
+    endpoint (require_admin Depends), so the practical risk is two
+    admins importing different files at the same time — the date guard
+    blocks that 100 %.
     """
+    from datetime import date as _date, datetime as _dt
     line_id = body.get("line_id")
     shift_name = body.get("shift_name")
     record_date = body.get("record_date")
     data = body.get("data", [])
+
+    # ── Layer 1: Date guard ───────────────────────────────────────
+    try:
+        rd = _date.fromisoformat(str(record_date)) if record_date else None
+    except (TypeError, ValueError):
+        raise HTTPException(400, f"Invalid record_date: {record_date!r}")
+    if not rd:
+        raise HTTPException(400, "record_date is required")
+    today = _date.today()
+    if rd >= today:
+        # Audit the blocked attempt so we can see who tried what.
+        try:
+            with get_conn() as _aconn:
+                _ac = _aconn.cursor()
+                _ac.execute(
+                    "INSERT INTO mes_audit_log (action, entity_type, entity_id, "
+                    "details, user_id, username, ip_address) "
+                    "VALUES ('IMPORT_BLOCKED', 'dashboard_table', %s, %s, %s, %s, %s)",
+                    (line_id,
+                     f"Excel import blocked for date {rd} (today={today}); "
+                     f"shift={shift_name}; rows={len(data)}",
+                     getattr(admin, "id", None),
+                     getattr(admin, "username", None) or getattr(admin, "name", None),
+                     None),
+                )
+                _aconn.commit()
+        except Exception:
+            pass    # audit is best-effort, don't break the rejection path
+        raise HTTPException(
+            409,
+            f"Cannot import {rd}: collector owns today's & future data. "
+            f"Excel import is for historical backfill only (date < {today}).",
+        )
 
     with get_conn() as conn:
         cur = dict_cursor(conn)
@@ -746,10 +797,36 @@ def import_excel_data(
         table = row["db_table_name"]
 
         cur.execute(f"""
-            SELECT id FROM {table}
+            SELECT id, is_shift_completed FROM {table}
             WHERE record_date = %s AND shift_name = %s
         """, (record_date, shift_name))
         existing = cur.fetchone()
+
+        # ── Layer 2: Shift-in-progress guard ──────────────────────
+        if existing and not existing.get("is_shift_completed", True):
+            try:
+                ac = conn.cursor()
+                ac.execute(
+                    "INSERT INTO mes_audit_log (action, entity_type, entity_id, "
+                    "details, user_id, username, ip_address) "
+                    "VALUES ('IMPORT_BLOCKED', 'dashboard_table', %s, %s, %s, %s, %s)",
+                    (line_id,
+                     f"Excel import blocked: shift row id={existing['id']} "
+                     f"(date={rd} shift={shift_name}) is_shift_completed=false "
+                     f"— collector still writing.",
+                     getattr(admin, "id", None),
+                     getattr(admin, "username", None) or getattr(admin, "name", None),
+                     None),
+                )
+                conn.commit()
+            except Exception:
+                pass
+            raise HTTPException(
+                409,
+                f"Shift {shift_name} on {rd} is still in progress "
+                f"(is_shift_completed=false) — collector is currently writing. "
+                f"Import only after the shift is closed.",
+            )
 
         if existing:
             shift_id = existing["id"]
@@ -816,6 +893,23 @@ def import_excel_data(
                         WHERE id = %s
                     """, (plan, actual, ok, ng, actual, plan, shift_id))
 
+        # ── Audit the successful import ────────────────────────────
+        try:
+            ac = conn.cursor()
+            ac.execute(
+                "INSERT INTO mes_audit_log (action, entity_type, entity_id, "
+                "details, user_id, username, ip_address) "
+                "VALUES ('IMPORT_OK', 'dashboard_table', %s, %s, %s, %s, %s)",
+                (line_id,
+                 f"Excel import accepted: date={rd} shift={shift_name} "
+                 f"rows={len(data)} ok_count={ok_count} ng_count={ng_count} "
+                 f"shift_row_id={shift_id}",
+                 getattr(admin, "id", None),
+                 getattr(admin, "username", None) or getattr(admin, "name", None),
+                 None),
+            )
+        except Exception:
+            pass    # don't fail the import just because audit table is missing
         conn.commit()
         return {"ok": True, "message": f"Imported {len(data)} rows"}
 
@@ -2462,3 +2556,1064 @@ def delete_monitor_config(line_id: int, plc_id: int, admin=Depends(require_admin
         )
         conn.commit()
     return {"ok": True}
+
+
+# ============================================================
+# CYCLE COMMENTS  (per-cycle operator/admin notes, keyed by part_code)
+# ============================================================
+# 2026-05-21 — Operator spec: jab Final Inspection (main PLC) ka
+# cycle video floating box khule, uske neeche ek "Comments" panel ho
+# jaha us specific cycle ke baare me notes likhe ja sake (reason for
+# slow CT, NG cause, operator observation, supervisor remark, etc.).
+# Lookup is by part_code (the unique barcode per cycle) so the same
+# comments surface whether the user navigates via cycle_seq from the
+# chart OR by typing the part_code into the search box.
+#
+# Table auto-creates on first hit so no manual migration step.
+# All three endpoints scoped to a line_id; comments survive across
+# shifts forever.
+
+def _ensure_cycle_comments_table(conn):
+    cur = conn.cursor()
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS mes_cycle_comments (
+            id          SERIAL PRIMARY KEY,
+            line_id     INTEGER NOT NULL,
+            part_code   TEXT    NOT NULL,
+            comment     TEXT    NOT NULL,
+            author      TEXT,
+            created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        );
+    """)
+    # Compound index on the lookup key — every read filters by both
+    cur.execute("""
+        CREATE INDEX IF NOT EXISTS idx_cycle_comments_line_part
+            ON mes_cycle_comments (line_id, part_code, created_at DESC);
+    """)
+    conn.commit()
+
+
+@router.get("/{line_id}/cycles/{part_code}/comments")
+def list_cycle_comments(
+    line_id: int,
+    part_code: str,
+    user=Depends(get_current_user_optional),
+):
+    """List all comments for a cycle (newest last, chronological for
+    natural read order).  Public-ish — same auth posture as
+    /cycle-video so wallboard / TV displays without a logged-in
+    operator can still surface notes alongside the clip."""
+    safe_pc = (part_code or "").strip()
+    if not safe_pc:
+        raise HTTPException(400, "part_code is required")
+    with get_conn() as conn:
+        _ensure_cycle_comments_table(conn)
+        cur = dict_cursor(conn)
+        cur.execute(
+            "SELECT id, comment, author, created_at "
+            "FROM mes_cycle_comments "
+            "WHERE line_id = %s AND part_code = %s "
+            "ORDER BY created_at ASC, id ASC",
+            (line_id, safe_pc),
+        )
+        rows = cur.fetchall() or []
+    # Serialise timestamp for JSON
+    return {
+        "line_id":   line_id,
+        "part_code": safe_pc,
+        "count":     len(rows),
+        "comments": [
+            {
+                "id":         r["id"],
+                "comment":    r["comment"],
+                "author":     r["author"] or "anonymous",
+                "created_at": r["created_at"].isoformat() if r["created_at"] else None,
+            }
+            for r in rows
+        ],
+    }
+
+
+@router.post("/{line_id}/cycles/{part_code}/comments")
+def add_cycle_comment(
+    line_id: int,
+    part_code: str,
+    body: dict,
+    user=Depends(get_current_user),
+):
+    """Append a new comment to a cycle.  Login required so we can
+    stamp the author.  No edit/delete by design — append-only audit
+    trail; if a typo needs fixing, post a follow-up correction
+    comment (same pattern as breakdown closure notes)."""
+    safe_pc = (part_code or "").strip()
+    if not safe_pc:
+        raise HTTPException(400, "part_code is required")
+    text = str(body.get("comment") or "").strip()
+    if not text:
+        raise HTTPException(400, "comment text is required")
+    if len(text) > 2000:
+        raise HTTPException(400, "comment too long (max 2000 chars)")
+    # Author resolution — try a few common fields the auth layer might
+    # expose; fall back to "operator" if none match.
+    author = (
+        getattr(user, "username", None)
+        or getattr(user, "name",     None)
+        or getattr(user, "email",    None)
+        or "operator"
+    )
+    with get_conn() as conn:
+        _ensure_cycle_comments_table(conn)
+        cur = dict_cursor(conn)
+        cur.execute(
+            "INSERT INTO mes_cycle_comments (line_id, part_code, comment, author) "
+            "VALUES (%s, %s, %s, %s) "
+            "RETURNING id, created_at",
+            (line_id, safe_pc, text, author),
+        )
+        row = cur.fetchone()
+        conn.commit()
+    return {
+        "ok":         True,
+        "id":         row["id"],
+        "line_id":    line_id,
+        "part_code":  safe_pc,
+        "comment":    text,
+        "author":     author,
+        "created_at": row["created_at"].isoformat() if row["created_at"] else None,
+    }
+
+
+# ============================================================
+# NG DETAILS  (per-NG-part reason — both auto + line-leader manual)
+# ============================================================
+# 2026-05-21 — Operator spec: NG cycle pe click karo, modal khule with
+# 2 sections:
+#   (A) "Machine ne kya NG kya" — auto, derived from the cycle's own
+#       metadata + sub-machine logs around the same timestamp.
+#   (B) "Line leader's exact remark" — manual entry; supervisor types
+#       the actual reason after physical inspection.
+#
+# Table is UPSERT-style (one row per part_code) — leader can EDIT
+# their remark unlike cycle_comments which is append-only.  We keep
+# the previous remark + author in a JSONB audit_trail column so the
+# edit history is preserved.
+
+def _ensure_ng_remarks_table(conn):
+    cur = conn.cursor()
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS mes_ng_remarks (
+            id              SERIAL PRIMARY KEY,
+            line_id         INTEGER NOT NULL,
+            part_code       TEXT    NOT NULL,
+            leader_remark   TEXT,
+            entered_by      TEXT,
+            audit_trail     JSONB   NOT NULL DEFAULT '[]'::jsonb,
+            created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            UNIQUE (line_id, part_code)
+        );
+    """)
+    cur.execute("""
+        CREATE INDEX IF NOT EXISTS idx_ng_remarks_line_part
+            ON mes_ng_remarks (line_id, part_code);
+    """)
+    conn.commit()
+
+
+def _build_machine_ng_reason(conn, line_id: int, part_code: str) -> dict:
+    """Auto-derive WHY the machine flagged this part as NG.
+    Looks at:
+      1. The cycle's own row in the line table (CT vs ideal, status)
+      2. Sub-machine logs (mes_submachine_data_log) for the same
+         part_code — surfaces which station threw it.
+    Returns a dict the frontend can render straight."""
+    cur = dict_cursor(conn)
+    reason = {
+        "cycle":         None,
+        "ct_deviation":  None,
+        "sub_machines":  [],
+        "notes":         [],
+    }
+    # 1) Cycle row from the line's main table
+    try:
+        cur.execute("SELECT db_table_name FROM mes_lines WHERE id = %s", (line_id,))
+        lr = cur.fetchone()
+        if lr and lr.get("db_table_name"):
+            tbl = lr["db_table_name"]
+            cur.execute(
+                f"SELECT cycle_seq, ct_value, is_ng, ts, record_date "
+                f"FROM {tbl}_ct_log WHERE part_code = %s "
+                f"ORDER BY ts DESC LIMIT 1",
+                (part_code,),
+            )
+            cyc = cur.fetchone()
+            if cyc:
+                reason["cycle"] = {
+                    "cycle_seq": cyc["cycle_seq"],
+                    "ct_value":  float(cyc["ct_value"]) if cyc["ct_value"] is not None else None,
+                    "is_ng":     bool(cyc["is_ng"]),
+                    "ts":        cyc["ts"].isoformat() if cyc["ts"] else None,
+                }
+                # Compare CT against ideal_cycle_time
+                cur.execute("SELECT ideal_cycle_time FROM mes_lines WHERE id = %s", (line_id,))
+                lr2 = cur.fetchone()
+                ideal = float(lr2["ideal_cycle_time"]) if lr2 and lr2.get("ideal_cycle_time") else None
+                ct = reason["cycle"]["ct_value"]
+                if ideal and ct:
+                    reason["ct_deviation"] = {
+                        "actual": ct, "ideal": ideal,
+                        "diff":  round(ct - ideal, 2),
+                        "pct":   round((ct - ideal) / ideal * 100, 1),
+                    }
+                    if ct > ideal * 1.5:
+                        reason["notes"].append(
+                            f"Cycle time {ct:.1f}s exceeded ideal {ideal:.1f}s "
+                            f"by {((ct/ideal - 1) * 100):.0f}% — possible jam / "
+                            f"slow operator / breakdown overlap."
+                        )
+    except Exception as exc:
+        reason["notes"].append(f"Cycle lookup failed: {str(exc)[:80]}")
+
+    # 2) Sub-machine activity around this part_code.
+    # mes_submachine_data_log schema: sub_plc_id, line_id, cycle_seq,
+    # ts_plc, ts_server, part_code, model_number, model_name, data_values
+    # (JSONB).  Sub-machine name comes from mes_plc_configs lookup.
+    try:
+        cur.execute(
+            "SELECT sdl.sub_plc_id, sdl.ts_plc, sdl.ts_server, "
+            "       sdl.data_values, sdl.model_name, "
+            "       pc.machine_name "
+            "FROM mes_submachine_data_log sdl "
+            "LEFT JOIN mes_plc_configs pc "
+            "       ON pc.id = sdl.sub_plc_id "
+            "WHERE sdl.line_id = %s AND sdl.part_code = %s "
+            "ORDER BY sdl.ts_plc ASC NULLS LAST, sdl.ts_server ASC",
+            (line_id, part_code),
+        )
+        for row in (cur.fetchall() or []):
+            # data_values is JSONB — may carry status / NG flag / sensor
+            # snapshot.  Surface anything that looks NG-relevant.
+            dv = row.get("data_values") or {}
+            status = None
+            if isinstance(dv, dict):
+                # Common keys: "status", "is_ng", "result", "fail_code"
+                status = (dv.get("status") or dv.get("result")
+                          or ("NG" if dv.get("is_ng") else None)
+                          or dv.get("fail_code"))
+            reason["sub_machines"].append({
+                "plc_id":       row.get("sub_plc_id"),
+                "machine_name": row.get("machine_name") or f"PLC-{row.get('sub_plc_id')}",
+                "status":       status or "DATA",
+                "model":        row.get("model_name"),
+                "ts":          (row["ts_plc"] or row["ts_server"]).isoformat()
+                                if (row.get("ts_plc") or row.get("ts_server")) else None,
+            })
+    except Exception as exc:
+        reason["notes"].append(f"Sub-machine lookup partial: {str(exc)[:80]}")
+
+    if not reason["sub_machines"] and not reason["notes"]:
+        reason["notes"].append(
+            "Main PLC's L109 (NG bit) fired during this cycle but no "
+            "sub-machine recorded a fail — operator may have manually "
+            "rejected, or quality station triggered without a sensor "
+            "trail.  Line leader should investigate physically."
+        )
+    return reason
+
+
+@router.get("/{line_id}/ng-details/{part_code}")
+def get_ng_details(
+    line_id: int,
+    part_code: str,
+    user=Depends(get_current_user_optional),
+):
+    """Return BOTH the auto-derived machine reason AND any existing
+    line-leader remark for this NG part.  Public-ish (same posture
+    as /cycle-video) so wallboard / TV displays surface it without
+    a login."""
+    safe_pc = (part_code or "").strip()
+    if not safe_pc:
+        raise HTTPException(400, "part_code is required")
+    with get_conn() as conn:
+        _ensure_ng_remarks_table(conn)
+        # 2026-05-24 — Operator: "ye tujhe kisne btya ki ye part itne
+        # ct se upr gya to ng h, khud se kuch bhi bna rha h kya tu".
+        # Auto-derived "machine reason" (from CT vs ideal heuristic) is
+        # MEANINGLESS guesswork — a slow cycle isn't necessarily NG.
+        # Removed.  NG truth comes from the L109 bit + operator-entered
+        # remarks only.  Empty machine_reason kept for API back-compat.
+        machine_reason = {}
+
+        cur = dict_cursor(conn)
+        cur.execute(
+            "SELECT leader_remark, entered_by, audit_trail, created_at, updated_at "
+            "FROM mes_ng_remarks "
+            "WHERE line_id = %s AND part_code = %s",
+            (line_id, safe_pc),
+        )
+        rr = cur.fetchone()
+        leader_section = {
+            "leader_remark": rr["leader_remark"] if rr else "",
+            "entered_by":    rr["entered_by"]    if rr else None,
+            "audit_trail":   rr["audit_trail"]   if rr else [],
+            "created_at":    rr["created_at"].isoformat() if rr and rr.get("created_at") else None,
+            "updated_at":    rr["updated_at"].isoformat() if rr and rr.get("updated_at") else None,
+        }
+    return {
+        "line_id":        line_id,
+        "part_code":      safe_pc,
+        "machine_reason": machine_reason,
+        "leader":         leader_section,
+    }
+
+
+@router.post("/{line_id}/ng-details/{part_code}")
+def save_ng_leader_remark(
+    line_id: int,
+    part_code: str,
+    body: dict,
+    user=Depends(get_current_user),
+):
+    """Line leader writes the exact NG reason after physical inspection.
+    UPSERT — overwriting the previous remark keeps the row count low.
+    Previous remark + author is preserved in audit_trail JSONB so the
+    edit history is never lost."""
+    safe_pc = (part_code or "").strip()
+    if not safe_pc:
+        raise HTTPException(400, "part_code is required")
+    text = str(body.get("leader_remark") or "").strip()
+    if not text:
+        raise HTTPException(400, "leader_remark text is required")
+    if len(text) > 2000:
+        raise HTTPException(400, "remark too long (max 2000 chars)")
+    author = (
+        getattr(user, "username", None)
+        or getattr(user, "name",     None)
+        or getattr(user, "email",    None)
+        or "supervisor"
+    )
+    with get_conn() as conn:
+        _ensure_ng_remarks_table(conn)
+        cur = dict_cursor(conn)
+        # Read current state for audit trail
+        cur.execute(
+            "SELECT leader_remark, entered_by, audit_trail FROM mes_ng_remarks "
+            "WHERE line_id = %s AND part_code = %s",
+            (line_id, safe_pc),
+        )
+        existing = cur.fetchone()
+        new_trail = list(existing["audit_trail"]) if (existing and existing.get("audit_trail")) else []
+        if existing and existing.get("leader_remark"):
+            # Push the previous remark onto the audit trail
+            new_trail.append({
+                "remark":      existing["leader_remark"],
+                "entered_by":  existing.get("entered_by"),
+                "replaced_at": datetime.utcnow().isoformat() + "Z",
+            })
+
+        cur.execute(
+            "INSERT INTO mes_ng_remarks (line_id, part_code, leader_remark, "
+            "                            entered_by, audit_trail, updated_at) "
+            "VALUES (%s, %s, %s, %s, %s, NOW()) "
+            "ON CONFLICT (line_id, part_code) DO UPDATE SET "
+            "  leader_remark = EXCLUDED.leader_remark, "
+            "  entered_by    = EXCLUDED.entered_by, "
+            "  audit_trail   = EXCLUDED.audit_trail, "
+            "  updated_at    = NOW() "
+            "RETURNING id, created_at, updated_at",
+            (line_id, safe_pc, text, author, Json(new_trail)),
+        )
+        row = cur.fetchone()
+        conn.commit()
+    return {
+        "ok":            True,
+        "id":            row["id"],
+        "line_id":       line_id,
+        "part_code":     safe_pc,
+        "leader_remark": text,
+        "entered_by":    author,
+        "audit_trail":   new_trail,
+        "created_at":    row["created_at"].isoformat() if row["created_at"] else None,
+        "updated_at":    row["updated_at"].isoformat() if row["updated_at"] else None,
+    }
+
+
+# ──────────────────────────────────────────────────────────────────
+# Per-process NG remarks (2026-05-24)
+# Operator: video k niche remarks ka option de hr process pe.
+# Each machine/station gets its own remark per NG part_code.
+# Quality dashboard pulls a summary by shift + date.
+# ──────────────────────────────────────────────────────────────────
+
+@router.get("/{line_id}/ng-process-remarks/{part_code}")
+def get_ng_process_remarks(
+    line_id:   int,
+    part_code: str,
+    user=Depends(get_current_user_optional),
+):
+    """Return list of per-machine remarks already saved for this NG part.
+    Also returns the list of machines on this line so frontend can render
+    a remark input for each machine that doesn't have one yet."""
+    safe_pc = (part_code or "").strip().rstrip(":")
+    if not safe_pc:
+        raise HTTPException(400, "part_code required")
+    with get_conn() as conn:
+        cur = dict_cursor(conn)
+        cur.execute(
+            "SELECT id, machine_id, machine_name, remark_text, "
+            "       created_at, updated_at, created_by "
+            "FROM mes_ng_process_remarks "
+            "WHERE part_code=%s ORDER BY machine_id",
+            (safe_pc,),
+        )
+        existing = [
+            {
+                "id":           r["id"],
+                "machine_id":   r["machine_id"],
+                "machine_name": r["machine_name"],
+                "remark_text":  r["remark_text"],
+                "created_at":   r["created_at"].isoformat() if r["created_at"] else None,
+                "updated_at":   r["updated_at"].isoformat() if r["updated_at"] else None,
+                "created_by":   r["created_by"],
+            }
+            for r in cur.fetchall()
+        ]
+        # All machines on this line (parent PLC + sub-machines), sorted by seq
+        cur.execute(
+            "SELECT id, machine_name, machine_seq, parent_plc_id "
+            "FROM mes_plc_configs "
+            "WHERE line_id=%s "
+            "ORDER BY (parent_plc_id IS NOT NULL), "
+            "         COALESCE(machine_seq, 9999), id",
+            (line_id,),
+        )
+        machines = [
+            {"id": r["id"], "machine_name": r["machine_name"],
+             "machine_seq": r["machine_seq"],
+             "is_main": r["parent_plc_id"] is None}
+            for r in cur.fetchall()
+        ]
+    return {
+        "part_code": safe_pc,
+        "line_id":   line_id,
+        "machines":  machines,
+        "remarks":   existing,
+    }
+
+
+@router.post("/{line_id}/ng-process-remarks/{part_code}")
+def save_ng_process_remark(
+    line_id:   int,
+    part_code: str,
+    body:      dict,
+    user=Depends(get_current_user),
+):
+    """UPSERT a per-machine remark for an NG part.  Body:
+       { machine_id: int, machine_name: str, remark_text: str }"""
+    safe_pc = (part_code or "").strip().rstrip(":")
+    try:
+        machine_id   = int(body.get("machine_id") or 0)
+    except Exception:
+        machine_id = 0
+    machine_name = (body.get("machine_name") or "").strip()
+    remark_text  = (body.get("remark_text")  or "").strip()
+    if not safe_pc or not machine_id or not remark_text:
+        raise HTTPException(400, "part_code, machine_id, remark_text required")
+
+    author = (user.get("user_id") if isinstance(user, dict) else
+              getattr(user, "user_id", "unknown"))
+
+    with get_conn() as conn:
+        cur = conn.cursor()
+        # Look up shift/date from the most recent ct_log row for this part_code
+        cur.execute(
+            "SELECT shift_name, record_date FROM ync_dashboard_complete_ct_log "
+            "WHERE part_code = %s ORDER BY ts DESC LIMIT 1",
+            (safe_pc,),
+        )
+        sh = cur.fetchone()
+        shift_name  = sh[0] if sh else "UNKNOWN"
+        record_date = sh[1] if sh else None
+        if not record_date:
+            from datetime import date as _date
+            record_date = _date.today()
+
+        cur.execute(
+            "INSERT INTO mes_ng_process_remarks "
+            "  (part_code, line_id, machine_id, machine_name, "
+            "   remark_text, shift_name, record_date, created_by, updated_at) "
+            "VALUES (%s,%s,%s,%s,%s,%s,%s,%s, NOW()) "
+            "ON CONFLICT (part_code, machine_id) DO UPDATE SET "
+            "  remark_text  = EXCLUDED.remark_text, "
+            "  machine_name = EXCLUDED.machine_name, "
+            "  updated_at   = NOW() "
+            "RETURNING id, created_at, updated_at",
+            (safe_pc, line_id, machine_id, machine_name,
+             remark_text, shift_name, record_date, author),
+        )
+        row = cur.fetchone()
+        conn.commit()
+    return {
+        "ok":            True,
+        "id":            row[0],
+        "part_code":     safe_pc,
+        "machine_id":    machine_id,
+        "machine_name":  machine_name,
+        "remark_text":   remark_text,
+        "shift_name":    shift_name,
+        "record_date":   str(record_date),
+        "created_at":    row[1].isoformat() if row[1] else None,
+        "updated_at":    row[2].isoformat() if row[2] else None,
+    }
+
+
+@router.get("/{line_id}/ng-process-remarks-summary")
+def ng_process_remarks_summary(
+    line_id:    int,
+    date_from:  str = None,
+    date_to:    str = None,
+    shift_name: str = None,
+    user=Depends(get_current_user_optional),
+):
+    """Quality dashboard summary — all NG part remarks across machines
+    grouped by shift + date.  Filterable by date range and shift."""
+    from datetime import date as _date, timedelta as _td
+    if not date_from:
+        date_from = str(_date.today() - _td(days=7))
+    if not date_to:
+        date_to = str(_date.today())
+    where = "line_id = %s AND record_date BETWEEN %s AND %s"
+    params = [line_id, date_from, date_to]
+    if shift_name:
+        where += " AND shift_name = %s"
+        params.append(shift_name)
+    with get_conn() as conn:
+        cur = dict_cursor(conn)
+        cur.execute(
+            f"SELECT record_date, shift_name, part_code, machine_id, "
+            f"       machine_name, remark_text, created_at, updated_at, "
+            f"       created_by "
+            f"FROM mes_ng_process_remarks "
+            f"WHERE {where} "
+            f"ORDER BY record_date DESC, shift_name, part_code, machine_id",
+            params,
+        )
+        rows = [
+            {
+                "record_date":  str(r["record_date"]),
+                "shift_name":   r["shift_name"],
+                "part_code":    r["part_code"],
+                "machine_id":   r["machine_id"],
+                "machine_name": r["machine_name"],
+                "remark_text":  r["remark_text"],
+                "created_at":   r["created_at"].isoformat() if r["created_at"] else None,
+                "updated_at":   r["updated_at"].isoformat() if r["updated_at"] else None,
+                "created_by":   r["created_by"],
+            }
+            for r in cur.fetchall()
+        ]
+    return {
+        "line_id":   line_id,
+        "date_from": date_from,
+        "date_to":   date_to,
+        "shift":     shift_name,
+        "rows":      rows,
+        "total":     len(rows),
+    }
+
+
+@router.get("/{line_id}/ng-list")
+def list_ng_parts_for_slot(
+    line_id:    int,
+    date:       str = Query(..., description="record_date, YYYY-MM-DD"),
+    slot_label: str = Query(..., description='slot label like "08:30-09:30"'),
+    user=Depends(get_current_user_optional),
+):
+    """All NG parts within a single hourly slot — feeds the popup that
+    opens when the operator clicks the NG count cell in the slot table.
+    Returns a table-friendly shape with one row per NG part.  Each
+    row joins:
+      • cycle metadata (ct_log)            → cycle_seq, ct_value, ts
+      • machine reason summary (computed)  → CT deviation badge
+      • leader remark (mes_ng_remarks)     → existing line-leader note
+    """
+    # Parse "HH:MM-HH:MM"
+    try:
+        start_s, end_s = slot_label.split("-", 1)
+        sh, sm = int(start_s[:2]), int(start_s[3:5])
+        eh, em = int(end_s[:2]),   int(end_s[3:5])
+    except Exception:
+        raise HTTPException(400, f"Bad slot_label: {slot_label!r} (expect HH:MM-HH:MM)")
+    with get_conn() as conn:
+        _ensure_ng_remarks_table(conn)
+        cur = dict_cursor(conn)
+        # Find this line's ct_log table
+        cur.execute("SELECT db_table_name, ideal_cycle_time "
+                    "FROM mes_lines WHERE id = %s", (line_id,))
+        lr = cur.fetchone()
+        if not lr or not lr.get("db_table_name"):
+            raise HTTPException(404, f"Line {line_id} not found / no ct_log table")
+        tbl   = lr["db_table_name"]
+        ideal = float(lr["ideal_cycle_time"]) if lr.get("ideal_cycle_time") else None
+        # Cross-midnight slot? if end < start, end belongs to next day.
+        # For simplicity treat as "ts BETWEEN ... and ..." on same record_date —
+        # cycles.csv keys each row by start_date so this matches the
+        # collector's slot-rollup convention.
+        cur.execute(
+            f"""SELECT ct.cycle_seq, ct.part_code, ct.ct_value, ct.ts,
+                       nr.leader_remark, nr.entered_by, nr.updated_at AS remark_updated
+                FROM {tbl}_ct_log ct
+                LEFT JOIN mes_ng_remarks nr
+                       ON nr.line_id = %s AND nr.part_code = ct.part_code
+                WHERE ct.record_date = %s
+                  AND ct.is_ng = TRUE
+                  AND EXTRACT(HOUR FROM ct.ts) * 60 + EXTRACT(MINUTE FROM ct.ts)
+                      BETWEEN %s AND %s
+                ORDER BY ct.ts ASC""",
+            (line_id, date, sh * 60 + sm, eh * 60 + em - 1),
+        )
+        rows = cur.fetchall() or []
+
+    result = []
+    for r in rows:
+        ct = float(r["ct_value"]) if r.get("ct_value") is not None else None
+        # Compute terse machine-alarm summary (no sub-machine deep dive
+        # in list view — user can click row for full FsNgDetailsPanel)
+        if ct is not None and ideal:
+            diff = round(ct - ideal, 2)
+            pct  = round((ct - ideal) / ideal * 100, 1)
+            if diff > 0:
+                summary = f"CT {ct:.1f}s vs ideal {ideal:.0f}s (+{diff}s, +{pct}%)"
+            elif diff < 0:
+                summary = f"CT {ct:.1f}s vs ideal {ideal:.0f}s ({diff}s, {pct}%)"
+            else:
+                summary = f"CT {ct:.1f}s = ideal"
+        else:
+            summary = "no CT data"
+        result.append({
+            "cycle_seq":      r.get("cycle_seq"),
+            "part_code":      r.get("part_code") or "",
+            "ct_value":       ct,
+            "ts":             r["ts"].isoformat() if r.get("ts") else None,
+            "machine_alarm":  summary,
+            "leader_remark":  r.get("leader_remark") or "",
+            "entered_by":     r.get("entered_by"),
+            "remark_updated": r["remark_updated"].isoformat()
+                                  if r.get("remark_updated") else None,
+        })
+    return {
+        "line_id":    line_id,
+        "date":       date,
+        "slot_label": slot_label,
+        "count":      len(result),
+        "rows":       result,
+    }
+
+
+# ============================================================
+# SHIFT-END NG MAIL → Quality team
+# ============================================================
+# 2026-05-21 — Operator spec: manual "Send to Quality" button that
+# gathers all NG parts in the slot (or whole shift), builds an HTML
+# report with machine alarms + line leader remarks, attaches the
+# top 3 worst-CT NG cycle videos, and emails it to the Quality team.
+# Recipient list comes from .env (QUALITY_NG_TO, comma-separated).
+# Top-3 cap keeps the message under 25 MB (most SMTP relay limits);
+# remaining NGs get clickable links to the CMS by-part endpoint.
+
+@router.post("/{line_id}/send-ng-mail")
+def send_ng_mail_to_quality(
+    line_id:    int,
+    body:       dict,
+    user=Depends(get_current_user),
+):
+    """Body: { date: 'YYYY-MM-DD', slot_label?: '08:30-09:30',
+               shift_name?: 'A', attach_videos?: true }
+    If slot_label is given, mails only that slot's NGs.  Otherwise
+    mails the whole shift's NGs."""
+    import os as _os
+    import smtplib as _smtplib
+    from email.mime.multipart import MIMEMultipart as _MM
+    from email.mime.text      import MIMEText      as _MT
+    from email.mime.base      import MIMEBase      as _MB
+    from email                import encoders      as _enc
+
+    date_s     = (body.get("date")       or "").strip()
+    slot_lbl   = (body.get("slot_label") or "").strip()
+    shift_nm   = (body.get("shift_name") or "").strip()
+    attach_vid = body.get("attach_videos", True)
+    if not date_s:
+        raise HTTPException(400, "date is required (YYYY-MM-DD)")
+
+    smtp_user = _os.getenv("SMTP_USER", "")
+    smtp_pass = _os.getenv("SMTP_PASS", "")
+    smtp_host = _os.getenv("SMTP_HOST", "smtp.gmail.com")
+    smtp_port = int(_os.getenv("SMTP_PORT", "587") or 587)
+    if not (smtp_user and smtp_pass):
+        raise HTTPException(500,
+            "SMTP_USER / SMTP_PASS not configured in .env — "
+            "cannot send Quality mail")
+
+    to_csv  = _os.getenv("QUALITY_NG_TO", "").strip()
+    cc_csv  = _os.getenv("QUALITY_NG_CC", "").strip()
+    to_list = [x.strip() for x in to_csv.split(",") if x.strip()]
+    cc_list = [x.strip() for x in cc_csv.split(",") if x.strip()]
+    if not to_list:
+        raise HTTPException(500,
+            "QUALITY_NG_TO not configured in .env — add at least one "
+            "recipient email (comma-separated) to enable this mail")
+
+    # Gather rows
+    with get_conn() as conn:
+        _ensure_ng_remarks_table(conn)
+        cur = dict_cursor(conn)
+        cur.execute(
+            "SELECT line_name, db_table_name, ideal_cycle_time "
+            "FROM mes_lines WHERE id = %s", (line_id,))
+        lr = cur.fetchone()
+        if not lr or not lr.get("db_table_name"):
+            raise HTTPException(404, f"Line {line_id} not found")
+        line_name = lr.get("line_name") or f"Line {line_id}"
+        tbl       = lr["db_table_name"]
+        ideal     = float(lr["ideal_cycle_time"]) if lr.get("ideal_cycle_time") else None
+
+        # Build WHERE clause — optional slot/shift filter
+        where = ["ct.record_date = %s", "ct.is_ng = TRUE"]
+        params: list = [date_s]
+        if slot_lbl:
+            try:
+                start_s, end_s = slot_lbl.split("-", 1)
+                sh, sm = int(start_s[:2]), int(start_s[3:5])
+                eh, em = int(end_s[:2]),   int(end_s[3:5])
+                where.append(
+                    "EXTRACT(HOUR FROM ct.ts) * 60 + EXTRACT(MINUTE FROM ct.ts) "
+                    "BETWEEN %s AND %s"
+                )
+                params.extend([sh*60+sm, eh*60+em-1])
+            except Exception:
+                raise HTTPException(400, f"Bad slot_label: {slot_lbl!r}")
+        if shift_nm:
+            where.append("ct.shift_name = %s")
+            params.append(shift_nm)
+        sql = (
+            f"SELECT ct.cycle_seq, ct.part_code, ct.ct_value, ct.ts, "
+            f"       ct.shift_name, "
+            f"       nr.leader_remark, nr.entered_by "
+            f"FROM {tbl}_ct_log ct "
+            f"LEFT JOIN mes_ng_remarks nr "
+            f"       ON nr.line_id = %s AND nr.part_code = ct.part_code "
+            f"WHERE {' AND '.join(where)} "
+            f"ORDER BY ct.ts ASC"
+        )
+        cur.execute(sql, [line_id] + params)
+        rows = cur.fetchall() or []
+
+    if not rows:
+        raise HTTPException(404,
+            "No NG parts found for the given date/slot/shift")
+
+    # ── Build HTML body ───────────────────────────────────────────
+    title_scope = (
+        f"slot {slot_lbl}" if slot_lbl
+        else f"shift {shift_nm}" if shift_nm
+        else "full day"
+    )
+    subject = f"[MES Quality Alert] {line_name} · {date_s} · {title_scope} · {len(rows)} NG part(s)"
+
+    def _fmt_ng(r):
+        ct  = float(r["ct_value"]) if r.get("ct_value") is not None else None
+        if ct is not None and ideal:
+            diff = round(ct - ideal, 2)
+            pct  = round((ct - ideal) / ideal * 100, 1)
+            alarm = (f"CT {ct:.1f}s vs ideal {ideal:.0f}s "
+                     f"({'+' if diff > 0 else ''}{diff}s, {pct}%)")
+        else:
+            alarm = "—"
+        return {
+            "cycle_seq":     r.get("cycle_seq"),
+            "part_code":     r.get("part_code") or "",
+            "ts":            r["ts"].strftime("%H:%M:%S") if r.get("ts") else "—",
+            "alarm":         alarm,
+            "leader_remark": r.get("leader_remark") or "(no remark entered)",
+            "entered_by":    r.get("entered_by") or "—",
+            "ct":            ct,
+        }
+    nice = [_fmt_ng(r) for r in rows]
+
+    rows_html = "\n".join([
+        f"<tr style='border-bottom:1px solid #ddd;{'' if i % 2 == 0 else 'background:#fafafa;'}'>"
+        f"<td style='padding:6px 10px;font-family:monospace;font-size:12px;color:#1d4ed8;'>{r['part_code']}</td>"
+        f"<td style='padding:6px 10px;font-size:12px;color:#555;'>{r['ts']}</td>"
+        f"<td style='padding:6px 10px;font-size:12px;color:#dc2626;'>{r['alarm']}</td>"
+        f"<td style='padding:6px 10px;font-size:12px;'>{r['leader_remark']}<br>"
+        f"<span style='color:#888;font-size:10px;'>by {r['entered_by']}</span></td>"
+        f"</tr>"
+        for i, r in enumerate(nice)
+    ])
+    html = f"""<!DOCTYPE html>
+<html><head><meta charset="utf-8"><style>
+  body {{ font-family: Arial, sans-serif; color:#111; }}
+  h2   {{ color:#dc2626; margin:0 0 6px 0; }}
+  .meta{{ font-size:13px; color:#555; margin-bottom:14px; }}
+  table{{ border-collapse:collapse; width:100%; }}
+  th   {{ background:#dc2626; color:#fff; padding:8px 10px; text-align:left;
+          font-size:11px; letter-spacing:.04em; text-transform:uppercase; }}
+</style></head>
+<body>
+  <h2>⚠ NG Quality Report — {line_name}</h2>
+  <div class="meta">
+    Date: <b>{date_s}</b> · Scope: <b>{title_scope}</b>
+    · Total NG parts: <b style="color:#dc2626;">{len(rows)}</b>
+    · Generated by: {(getattr(user, 'username', None) or getattr(user, 'name', None) or '—')}
+  </div>
+  <table>
+    <thead>
+      <tr><th>Part Code</th><th>Time</th><th>Machine Alarm</th><th>Line Leader Remark</th></tr>
+    </thead>
+    <tbody>
+      {rows_html}
+    </tbody>
+  </table>
+  <p style="margin-top:18px;font-size:11px;color:#888;">
+    Top 3 NG videos attached (worst CT first).  Full video library on the MES wallboard
+    — open any Final Inspection cycle to see machine reason + leader remarks.
+  </p>
+</body></html>"""
+
+    # ── Build the message + attach top-3 videos ──────────────────
+    msg = _MM("mixed")
+    msg["Subject"] = subject
+    msg["From"]    = smtp_user
+    msg["To"]      = ", ".join(to_list)
+    if cc_list:
+        msg["Cc"] = ", ".join(cc_list)
+    alt = _MM("alternative")
+    alt.attach(_MT(html, "html"))
+    msg.attach(alt)
+
+    attached_paths: list = []
+    skipped_paths:  list = []
+    if attach_vid:
+        # Sort by worst (largest deviation from ideal) — usually largest CT.
+        nice_sorted = sorted(
+            nice,
+            key=lambda r: (r["ct"] if r["ct"] is not None else 0),
+            reverse=True,
+        )
+        # Look up video files in BOTH old + new locations.
+        VIDEO_PATHS = [
+            r"D:\MES_Videos\YNC-SS",
+            r"D:\EOL\EOL\New folder (2)\New folder (2)\backend\videos\YNC-SS",
+        ]
+        MAX_BYTES = 24 * 1024 * 1024     # 24 MB total attachments
+        total_bytes = 0
+        for r in nice_sorted[:3]:
+            pc = r["part_code"]
+            if not pc:
+                continue
+            found = None
+            for base in VIDEO_PATHS:
+                cand = os.path.join(base, f"{pc}.mp4")
+                if os.path.isfile(cand):
+                    found = cand
+                    break
+            if not found:
+                skipped_paths.append(pc)
+                continue
+            try:
+                sz = os.path.getsize(found)
+            except OSError:
+                continue
+            if total_bytes + sz > MAX_BYTES:
+                skipped_paths.append(pc)
+                continue
+            with open(found, "rb") as fh:
+                payload = fh.read()
+            part = _MB("video", "mp4")
+            part.set_payload(payload)
+            _enc.encode_base64(part)
+            part.add_header("Content-Disposition",
+                            f'attachment; filename="NG_{pc}.mp4"')
+            msg.attach(part)
+            attached_paths.append(pc)
+            total_bytes += sz
+
+    # ── Send ───────────────────────────────────────────────────────
+    try:
+        with _smtplib.SMTP(smtp_host, smtp_port, timeout=20) as s:
+            s.ehlo(); s.starttls(); s.login(smtp_user, smtp_pass)
+            s.sendmail(smtp_user, to_list + cc_list, msg.as_string())
+    except Exception as exc:
+        raise HTTPException(502, f"SMTP send failed: {exc}")
+
+    return {
+        "ok":              True,
+        "to":              to_list,
+        "cc":              cc_list,
+        "ng_count":        len(rows),
+        "videos_attached": attached_paths,
+        "videos_skipped":  skipped_paths,
+        "subject":         subject,
+    }
+
+
+# ============================================================
+# LOSS REMARKS  (per-slot per-loss-type production team note)
+# ============================================================
+# 2026-05-22 — Operator spec: Hourly Loss Breakup modal me kisi bhi
+# slot ke kisi bhi loss bucket (Breakdown / Quality / Material / Setup /
+# Change Over / Speed Loss / Others) ke non-zero cell pe click karne pe
+# Production team apna remark fill kar sake.  E.g. "08:30-09:30 me
+# Breakdown 6:46 — Conveyor jam at station 3, cleared by maint at 09:08".
+# UPSERT-style: one row per (line, date, shift, slot, loss_type);
+# previous remark + author preserved in audit_trail JSONB.
+
+def _ensure_loss_remarks_table(conn):
+    cur = conn.cursor()
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS mes_loss_remarks (
+            id              SERIAL PRIMARY KEY,
+            line_id         INTEGER NOT NULL,
+            record_date     DATE    NOT NULL,
+            shift_name      TEXT,
+            slot_label      TEXT    NOT NULL,
+            loss_type       TEXT    NOT NULL,
+            remark          TEXT,
+            entered_by      TEXT,
+            audit_trail     JSONB   NOT NULL DEFAULT '[]'::jsonb,
+            created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            UNIQUE (line_id, record_date, shift_name, slot_label, loss_type)
+        );
+    """)
+    cur.execute("""
+        CREATE INDEX IF NOT EXISTS idx_loss_remarks_line_date
+            ON mes_loss_remarks (line_id, record_date, shift_name);
+    """)
+    conn.commit()
+
+
+@router.get("/{line_id}/loss-remarks")
+def get_loss_remark(
+    line_id:    int,
+    date:       str = Query(..., description="record_date YYYY-MM-DD"),
+    shift_name: str = Query("",  description="shift name (e.g. 'A' or 'B')"),
+    slot_label: str = Query(..., description="slot label e.g. '08:30-09:30'"),
+    loss_type:  str = Query(..., description="loss bucket key e.g. 'breakdown'"),
+    user=Depends(get_current_user_optional),
+):
+    """Return the existing remark for one (slot, loss_type) cell.
+    Returns empty remark if none has been entered yet."""
+    with get_conn() as conn:
+        _ensure_loss_remarks_table(conn)
+        cur = dict_cursor(conn)
+        cur.execute(
+            "SELECT id, remark, entered_by, audit_trail, "
+            "       created_at, updated_at "
+            "FROM mes_loss_remarks "
+            "WHERE line_id = %s AND record_date = %s "
+            "  AND COALESCE(shift_name,'') = %s "
+            "  AND slot_label = %s AND loss_type = %s",
+            (line_id, date, shift_name or "", slot_label, loss_type),
+        )
+        row = cur.fetchone()
+    if not row:
+        return {
+            "line_id":     line_id,
+            "date":        date,
+            "shift_name":  shift_name,
+            "slot_label":  slot_label,
+            "loss_type":   loss_type,
+            "remark":      "",
+            "entered_by":  None,
+            "audit_trail": [],
+            "created_at":  None,
+            "updated_at":  None,
+        }
+    return {
+        "line_id":     line_id,
+        "date":        date,
+        "shift_name":  shift_name,
+        "slot_label":  slot_label,
+        "loss_type":   loss_type,
+        "remark":      row["remark"] or "",
+        "entered_by":  row["entered_by"],
+        "audit_trail": row["audit_trail"] or [],
+        "created_at":  row["created_at"].isoformat() if row.get("created_at") else None,
+        "updated_at":  row["updated_at"].isoformat() if row.get("updated_at") else None,
+    }
+
+
+@router.post("/{line_id}/loss-remarks")
+def save_loss_remark(
+    line_id: int,
+    body:    dict,
+    user=Depends(get_current_user),
+):
+    """UPSERT a loss remark.  Previous remark + author archived to
+    audit_trail before overwrite.  Body must include date, shift_name,
+    slot_label, loss_type, remark."""
+    date_s     = str(body.get("date")       or "").strip()
+    shift_nm   = str(body.get("shift_name") or "").strip()
+    slot_lbl   = str(body.get("slot_label") or "").strip()
+    loss_type  = str(body.get("loss_type")  or "").strip()
+    text       = str(body.get("remark")     or "").strip()
+    if not (date_s and slot_lbl and loss_type):
+        raise HTTPException(400, "date, slot_label, loss_type are required")
+    if not text:
+        raise HTTPException(400, "remark text is required")
+    if len(text) > 2000:
+        raise HTTPException(400, "remark too long (max 2000 chars)")
+    author = (
+        getattr(user, "username", None)
+        or getattr(user, "name",     None)
+        or getattr(user, "email",    None)
+        or "production"
+    )
+    with get_conn() as conn:
+        _ensure_loss_remarks_table(conn)
+        cur = dict_cursor(conn)
+        cur.execute(
+            "SELECT remark, entered_by, audit_trail FROM mes_loss_remarks "
+            "WHERE line_id = %s AND record_date = %s "
+            "  AND COALESCE(shift_name,'') = %s "
+            "  AND slot_label = %s AND loss_type = %s",
+            (line_id, date_s, shift_nm, slot_lbl, loss_type),
+        )
+        existing = cur.fetchone()
+        trail = list(existing["audit_trail"]) if (existing and existing.get("audit_trail")) else []
+        if existing and existing.get("remark"):
+            trail.append({
+                "remark":      existing["remark"],
+                "entered_by":  existing.get("entered_by"),
+                "replaced_at": datetime.utcnow().isoformat() + "Z",
+            })
+        cur.execute(
+            "INSERT INTO mes_loss_remarks "
+            "  (line_id, record_date, shift_name, slot_label, loss_type, "
+            "   remark, entered_by, audit_trail, updated_at) "
+            "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW()) "
+            "ON CONFLICT (line_id, record_date, shift_name, slot_label, loss_type) "
+            "DO UPDATE SET "
+            "  remark      = EXCLUDED.remark, "
+            "  entered_by  = EXCLUDED.entered_by, "
+            "  audit_trail = EXCLUDED.audit_trail, "
+            "  updated_at  = NOW() "
+            "RETURNING id, created_at, updated_at",
+            (line_id, date_s, shift_nm, slot_lbl, loss_type,
+             text, author, Json(trail)),
+        )
+        row = cur.fetchone()
+        conn.commit()
+    return {
+        "line_id":     line_id,
+        "date":        date_s,
+        "shift_name":  shift_nm,
+        "slot_label":  slot_lbl,
+        "loss_type":   loss_type,
+        "remark":      text,
+        "entered_by":  author,
+        "audit_trail": trail,
+        "created_at":  row["created_at"].isoformat() if row.get("created_at") else None,
+        "updated_at":  row["updated_at"].isoformat() if row.get("updated_at") else None,
+    }

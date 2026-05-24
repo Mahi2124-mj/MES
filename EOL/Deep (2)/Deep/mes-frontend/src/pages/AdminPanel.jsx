@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo, Fragment } from "react";
 import { useAuth } from "../context/AuthContext";
 import { api } from "../api/client";
 import AIAssistant from "../components/AIAssistant";
@@ -7109,6 +7109,837 @@ export function CapaSettingsPage({ toast, readOnly = false }) {
 // breakdown lifecycle endpoints will read this to decide whether to
 // move a resolved breakdown straight to CLOSED (tier='MINOR') or to
 // RESOLVED with a mandatory slip (tier='MAJOR').
+
+// ════════════════════════════════════════════════════════════════════
+// NewRequestsPanel — admin's audit panel for PY remarks submitted
+// from the Maintenance > Poka Yoke page.
+// 2026-05-21 — Operator spec: "remarks ka option if any changes are
+// required so mention changes are save in audit panel name as new
+// panel new requests jisme sari details ho bs mujhe vha jha k pta
+// chal jaye ki whats are input from users".
+//
+// Endpoints used:
+//   GET    /api/poka-yoke/requests?status=NEW|REVIEWED|RESOLVED&days=N
+//   PUT    /api/poka-yoke/requests/{id}/resolve  body={status, note}
+//   DELETE /api/poka-yoke/requests/{id}
+// ════════════════════════════════════════════════════════════════════
+export function NewRequestsPanel({ toast, readOnly = false }) {
+  const { token } = useAuth();
+  const [rows,    setRows]    = useState([]);
+  const [counts,  setCounts]  = useState({});
+  const [loading, setLoading] = useState(true);
+  const [filter,  setFilter]  = useState("NEW");   // NEW | REVIEWED | RESOLVED | ALL
+  const [days,    setDays]    = useState(30);
+  const [expanded,setExpanded]= useState({});      // {id: bool}
+  const [resolveModal, setResolveModal] = useState(null);  // {req, status}
+  const [noteText, setNoteText] = useState("");
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const qs = `days=${days}` + (filter !== "ALL" ? `&status=${filter}` : "");
+      const r = await api.get(`/api/poka-yoke/requests?${qs}`, token);
+      setRows(r?.rows || []);
+      setCounts(r?.by_status || {});
+    } catch (e) {
+      if (toast) toast(`Failed to load: ${String(e).slice(0, 60)}`, "err");
+      setRows([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [filter, days, token, toast]);
+
+  useEffect(() => { load(); }, [load]);
+
+  // Auto-refresh every 30 s
+  useEffect(() => {
+    const t = setInterval(load, 30000);
+    return () => clearInterval(t);
+  }, [load]);
+
+  const onResolveSubmit = async () => {
+    if (!resolveModal) return;
+    const { req, status } = resolveModal;
+    try {
+      await api.put(`/api/poka-yoke/requests/${req.id}/resolve`, token, {
+        status, resolution_note: noteText.trim() || null,
+      });
+      if (toast) toast(`Request #${req.id} → ${status}`, "ok");
+      setResolveModal(null);
+      setNoteText("");
+      load();
+    } catch (e) {
+      if (toast) toast(`Update failed: ${String(e).slice(0, 60)}`, "err");
+    }
+  };
+
+  const onDelete = async (req) => {
+    if (!confirm(`Delete request #${req.id} (PY ${req.py_no})?  Cannot be undone.`)) return;
+    try {
+      await api.delete(`/api/poka-yoke/requests/${req.id}`, token);
+      if (toast) toast(`Deleted #${req.id}`, "ok");
+      load();
+    } catch (e) {
+      if (toast) toast(`Delete failed: ${String(e).slice(0, 60)}`, "err");
+    }
+  };
+
+  const fmt = (ts) => {
+    if (!ts) return "—";
+    try {
+      const d = new Date(ts);
+      return d.toLocaleString("en-GB", { day:"2-digit", month:"short",
+                                          year:"2-digit", hour:"2-digit",
+                                          minute:"2-digit" });
+    } catch { return ts; }
+  };
+
+  const statusPill = (s) => {
+    const colors = {
+      NEW:      { bg:"#fef3c7", fg:"#92400e" },
+      REVIEWED: { bg:"#dbeafe", fg:"#1e40af" },
+      RESOLVED: { bg:"#d1fae5", fg:"#065f46" },
+    };
+    const c = colors[s] || colors.NEW;
+    return (
+      <span style={{
+        fontSize:10, fontWeight:800, padding:"3px 9px",
+        borderRadius:99, background:c.bg, color:c.fg,
+        letterSpacing:".05em",
+      }}>{s}</span>
+    );
+  };
+
+  return (
+    <div style={{ padding:"16px 40px" }}>
+      <div style={{
+        display:"flex", alignItems:"center", justifyContent:"space-between",
+        marginBottom:14,
+      }}>
+        <div>
+          <h2 style={{ fontSize:22, fontWeight:800, color:"#0f172a", margin:0 }}>
+            📝 New Requests — Maintenance Audit
+          </h2>
+          <p style={{ fontSize:12, color:"#64748b", margin:"4px 0 0 0" }}>
+            Operator-submitted PY remarks &amp; change requests.  Auto-refresh every 30 s.
+          </p>
+        </div>
+        <button onClick={load}
+                style={{
+                  fontSize:12, padding:"6px 14px",
+                  background:"#0369a1", color:"#fff",
+                  border:"none", borderRadius:6, cursor:"pointer",
+                  fontWeight:700,
+                }}>
+          ↻ Refresh
+        </button>
+      </div>
+
+      {/* Filter chips */}
+      <div style={{ display:"flex", gap:8, marginBottom:14, alignItems:"center",
+                     flexWrap:"wrap" }}>
+        {["NEW", "REVIEWED", "RESOLVED", "ALL"].map(s => {
+          const active = filter === s;
+          const n = s === "ALL"
+            ? Object.values(counts).reduce((a,b) => a + (b || 0), 0)
+            : (counts[s] || 0);
+          return (
+            <button key={s} onClick={() => setFilter(s)}
+              style={{
+                fontSize:11, fontWeight:700, padding:"6px 14px",
+                background: active ? "#0f172a" : "#f1f5f9",
+                color:    active ? "#fff"    : "#475569",
+                border:   "none", borderRadius:99, cursor:"pointer",
+                letterSpacing:".05em",
+              }}>
+              {s} <span style={{ opacity:.7, marginLeft:6 }}>({n})</span>
+            </button>
+          );
+        })}
+        <span style={{ marginLeft:"auto", fontSize:11, color:"#64748b" }}>
+          Lookback:
+          <select value={days} onChange={e => setDays(+e.target.value)}
+            style={{ fontSize:11, padding:"3px 8px", marginLeft:6,
+                     border:"1px solid #cbd5e1", borderRadius:4 }}>
+            <option value={7}>7 days</option>
+            <option value={30}>30 days</option>
+            <option value={90}>90 days</option>
+            <option value={365}>1 year</option>
+          </select>
+        </span>
+      </div>
+
+      {/* Table */}
+      {loading ? (
+        <div style={{ padding:40, textAlign:"center", color:"#94a3b8" }}>
+          Loading…
+        </div>
+      ) : !rows.length ? (
+        <div style={{ padding:40, textAlign:"center", color:"#94a3b8",
+                       fontStyle:"italic" }}>
+          No requests found for this filter.
+        </div>
+      ) : (
+        <div style={{ background:"#fff", border:"1px solid #e2e8f0",
+                       borderRadius:10, overflow:"hidden" }}>
+          <table style={{ width:"100%", borderCollapse:"collapse", fontSize:12 }}>
+            <thead>
+              <tr style={{ background:"#f8fafc",
+                            borderBottom:"2px solid #e2e8f0" }}>
+                {["#", "PY", "Sensor", "Bit", "Line/Zone",
+                  "Remark", "Submitted", "By", "Status", "Actions"].map(h =>
+                  <th key={h} style={{
+                    padding:"10px 12px", fontSize:9, fontWeight:800,
+                    letterSpacing:".08em", color:"#64748b",
+                    textAlign:"left", whiteSpace:"nowrap",
+                  }}>{h}</th>
+                )}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r) => (
+                <Fragment key={r.id}>
+                  <tr style={{ borderBottom:"1px solid #f1f5f9" }}>
+                    <td style={{ padding:"10px 12px",
+                                  fontFamily:"monospace", color:"#64748b" }}>
+                      #{r.id}
+                    </td>
+                    <td style={{ padding:"10px 12px",
+                                  fontFamily:"monospace", fontWeight:700 }}>
+                      {r.py_no}
+                      {r.py_name && (
+                        <div style={{ fontSize:9, color:"#94a3b8",
+                                       fontWeight:400, marginTop:1 }}>
+                          {r.py_name}
+                        </div>
+                      )}
+                    </td>
+                    <td style={{ padding:"10px 12px",
+                                  fontFamily:"monospace", color:"#0369a1",
+                                  fontWeight:700 }}>
+                      {r.sensing_bits || "—"}
+                    </td>
+                    <td style={{ padding:"10px 12px",
+                                  fontFamily:"monospace", color:"#475569" }}>
+                      {r.bit || "—"}
+                    </td>
+                    <td style={{ padding:"10px 12px", color:"#475569" }}>
+                      {r.line_name || `Line ${r.line_id || "?"}`}
+                      {r.zone_name && (
+                        <div style={{ fontSize:9, color:"#94a3b8" }}>
+                          {r.zone_name}
+                        </div>
+                      )}
+                    </td>
+                    <td style={{ padding:"10px 12px", maxWidth:280 }}>
+                      <div style={{
+                        whiteSpace: expanded[r.id] ? "normal" : "nowrap",
+                        overflow:"hidden", textOverflow:"ellipsis",
+                        cursor:"pointer",
+                      }}
+                      onClick={() => setExpanded(e => ({...e, [r.id]: !e[r.id]}))}
+                      title={r.remark}>
+                        {r.remark}
+                      </div>
+                    </td>
+                    <td style={{ padding:"10px 12px",
+                                  fontFamily:"monospace", fontSize:10,
+                                  color:"#64748b" }}>
+                      {fmt(r.submitted_at)}
+                    </td>
+                    <td style={{ padding:"10px 12px", color:"#475569" }}>
+                      {r.submitted_by_username || "—"}
+                    </td>
+                    <td style={{ padding:"10px 12px" }}>
+                      {statusPill(r.status)}
+                      {r.status === "RESOLVED" && r.resolution_note && (
+                        <div style={{ fontSize:9, color:"#94a3b8",
+                                       marginTop:4, fontStyle:"italic" }}
+                             title={r.resolution_note}>
+                          ↪ {r.resolution_note.slice(0, 40)}
+                          {r.resolution_note.length > 40 ? "…" : ""}
+                        </div>
+                      )}
+                    </td>
+                    <td style={{ padding:"10px 12px" }}>
+                      {!readOnly && (
+                        <div style={{ display:"flex", gap:4 }}>
+                          {r.status === "NEW" && (
+                            <button onClick={() => {
+                                      setResolveModal({ req:r, status:"REVIEWED" });
+                                      setNoteText("");
+                                    }}
+                                    style={{
+                                      fontSize:10, padding:"3px 8px",
+                                      background:"#dbeafe", color:"#1e40af",
+                                      border:"none", borderRadius:4,
+                                      fontWeight:700, cursor:"pointer",
+                                    }}>
+                              Mark Reviewed
+                            </button>
+                          )}
+                          {r.status !== "RESOLVED" && (
+                            <button onClick={() => {
+                                      setResolveModal({ req:r, status:"RESOLVED" });
+                                      setNoteText(r.resolution_note || "");
+                                    }}
+                                    style={{
+                                      fontSize:10, padding:"3px 8px",
+                                      background:"#d1fae5", color:"#065f46",
+                                      border:"none", borderRadius:4,
+                                      fontWeight:700, cursor:"pointer",
+                                    }}>
+                              Resolve
+                            </button>
+                          )}
+                          <button onClick={() => onDelete(r)}
+                                  style={{
+                                    fontSize:10, padding:"3px 8px",
+                                    background:"#fee2e2", color:"#b91c1c",
+                                    border:"none", borderRadius:4,
+                                    fontWeight:700, cursor:"pointer",
+                                  }}
+                                  title="Delete request">
+                            ✕
+                          </button>
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                  {expanded[r.id] && (
+                    <tr style={{ background:"#f8fafc" }}>
+                      <td colSpan={10} style={{ padding:"10px 16px",
+                                                  fontSize:11, color:"#475569" }}>
+                        <strong>Full remark:</strong> {r.remark}
+                        {r.machine_name && (
+                          <span style={{ marginLeft:16 }}>
+                            <strong>Machine:</strong> {r.machine_name}
+                          </span>
+                        )}
+                        {r.expected && (
+                          <span style={{ marginLeft:16 }}>
+                            <strong>Expected:</strong> {r.expected}
+                          </span>
+                        )}
+                        {r.resolved_by_username && (
+                          <span style={{ marginLeft:16 }}>
+                            <strong>Resolved by:</strong> {r.resolved_by_username}
+                            {" @ "}{fmt(r.resolved_at)}
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Resolve modal */}
+      {resolveModal && (
+        <div style={{
+          position:"fixed", inset:0, background:"rgba(0,0,0,.5)",
+          display:"flex", alignItems:"center", justifyContent:"center",
+          zIndex:1000,
+        }}
+        onClick={() => setResolveModal(null)}>
+          <div onClick={e => e.stopPropagation()}
+               style={{
+                 background:"#fff", padding:24, borderRadius:10,
+                 maxWidth:520, width:"90%", boxShadow:"0 20px 60px rgba(0,0,0,.3)",
+               }}>
+            <h3 style={{ margin:"0 0 6px 0", fontSize:18, fontWeight:800 }}>
+              {resolveModal.status === "RESOLVED" ? "Resolve" : "Mark Reviewed"}: Request #{resolveModal.req.id}
+            </h3>
+            <p style={{ fontSize:12, color:"#64748b", margin:"0 0 14px 0" }}>
+              PY {resolveModal.req.py_no} · {resolveModal.req.sensing_bits || resolveModal.req.bit}
+            </p>
+            <div style={{ fontSize:12, color:"#475569", marginBottom:14,
+                           padding:10, background:"#f8fafc", borderRadius:6,
+                           borderLeft:"3px solid #cbd5e1" }}>
+              <strong>Operator remark:</strong> {resolveModal.req.remark}
+            </div>
+            <label style={{ fontSize:11, fontWeight:700, color:"#475569",
+                             display:"block", marginBottom:6 }}>
+              Resolution note {resolveModal.status === "RESOLVED" ? "(recommended)" : "(optional)"}:
+            </label>
+            <textarea value={noteText}
+                      onChange={e => setNoteText(e.target.value)}
+                      rows={3}
+                      placeholder="e.g. PLC ladder updated, sensor X15 now wired to LOCATE PIN"
+                      style={{
+                        width:"100%", fontSize:12, padding:"8px 10px",
+                        border:"1px solid #cbd5e1", borderRadius:6,
+                        resize:"vertical", fontFamily:"inherit",
+                      }}/>
+            <div style={{ display:"flex", gap:10, justifyContent:"flex-end",
+                           marginTop:16 }}>
+              <button onClick={() => setResolveModal(null)}
+                      style={{ fontSize:12, padding:"8px 16px",
+                               background:"#f1f5f9", color:"#475569",
+                               border:"none", borderRadius:6,
+                               fontWeight:700, cursor:"pointer" }}>
+                Cancel
+              </button>
+              <button onClick={onResolveSubmit}
+                      style={{ fontSize:12, padding:"8px 16px",
+                               background:"#0369a1", color:"#fff",
+                               border:"none", borderRadius:6,
+                               fontWeight:700, cursor:"pointer" }}>
+                {resolveModal.status === "RESOLVED" ? "Save Resolution" : "Mark Reviewed"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+// ════════════════════════════════════════════════════════════════════
+// PyManualsPage — admin UI to manage per-PY visual manual:
+//   • Instructions / follow-steps text
+//   • Reference images (upload, delete, caption)
+// Operator sees these read-only on Maintenance > Poka Yoke > 📷 icon.
+// 2026-05-21 — Spec: "image set krne ka option ... maintenance panel
+// jha maintenance setting hoti h ... kuch instruction ya follow steps
+// bhi add krne ka option bhi dede or same py me visual".
+// ════════════════════════════════════════════════════════════════════
+export function PyManualsPage({ toast, readOnly = false }) {
+  const { token } = useAuth();
+  const [lines,    setLines]    = useState([]);
+  const [lineId,   setLineId]   = useState(null);
+  const [pys,      setPys]      = useState([]);
+  const [loading,  setLoading]  = useState(false);
+  const [editor,   setEditor]   = useState(null);   // {py} when open
+
+  // Load lines once
+  useEffect(() => {
+    (async () => {
+      try {
+        const ls = await api.get("/api/lines/", token);
+        setLines(Array.isArray(ls) ? ls : []);
+        if (ls?.[0]?.id) setLineId(ls[0].id);
+      } catch (e) {
+        if (toast) toast(`Failed to load lines: ${String(e).slice(0, 60)}`, "err");
+      }
+    })();
+  }, [token, toast]);
+
+  // Load PYs whenever line changes
+  const loadPys = useCallback(async () => {
+    if (!lineId) return;
+    setLoading(true);
+    try {
+      const rt = await api.get(`/api/lines/${lineId}/realtime`, token).catch(() => ({}));
+      const modelBit = rt?.current_model_number;
+      const qs = modelBit != null && modelBit !== 0
+        ? `?model_bit=${modelBit}`
+        : "";
+      const data = await api.get(`/api/poka-yoke/live/${lineId}${qs}`, token);
+      // /live returns {pys: [...]} OR a flat array depending on version
+      const list = Array.isArray(data) ? data
+                 : (data?.pys || data?.checks || []);
+      setPys(list);
+    } catch (e) {
+      if (toast) toast(`Failed to load PYs: ${String(e).slice(0, 60)}`, "err");
+      setPys([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [lineId, token, toast]);
+
+  useEffect(() => { loadPys(); }, [loadPys]);
+
+  return (
+    <div style={{ padding:"16px 40px" }}>
+      <div style={{ display:"flex", justifyContent:"space-between",
+                     alignItems:"center", marginBottom:14 }}>
+        <div>
+          <h2 style={{ fontSize:22, fontWeight:800, color:"#0f172a", margin:0 }}>
+            📷 PY Visual Manuals
+          </h2>
+          <p style={{ fontSize:12, color:"#64748b", margin:"4px 0 0 0" }}>
+            Upload reference images and write follow-step instructions for each PY.
+            Operators see these read-only on Maintenance &gt; Poka Yoke.
+          </p>
+        </div>
+        <div>
+          <label style={{ fontSize:11, color:"#64748b", marginRight:8 }}>
+            Line:
+          </label>
+          <select value={lineId || ""} onChange={e => setLineId(+e.target.value)}
+            style={{ fontSize:12, padding:"5px 10px",
+                     border:"1px solid #cbd5e1", borderRadius:6 }}>
+            {lines.map(l => (
+              <option key={l.id} value={l.id}>
+                {l.line_name || `Line ${l.id}`}
+              </option>
+            ))}
+          </select>
+          <button onClick={loadPys}
+            style={{ fontSize:12, padding:"5px 12px", marginLeft:8,
+                     background:"#0369a1", color:"#fff",
+                     border:"none", borderRadius:6, cursor:"pointer",
+                     fontWeight:700 }}>
+            ↻
+          </button>
+        </div>
+      </div>
+
+      {loading ? (
+        <div style={{ padding:40, textAlign:"center", color:"#94a3b8" }}>Loading…</div>
+      ) : !pys?.length ? (
+        <div style={{ padding:40, textAlign:"center", color:"#94a3b8",
+                       fontStyle:"italic" }}>
+          No PYs for the current model on this line.
+        </div>
+      ) : (
+        <div style={{ background:"#fff", border:"1px solid #e2e8f0",
+                       borderRadius:10, overflow:"hidden" }}>
+          <table style={{ width:"100%", borderCollapse:"collapse", fontSize:12 }}>
+            <thead>
+              <tr style={{ background:"#f8fafc",
+                            borderBottom:"2px solid #e2e8f0" }}>
+                {["PY No.", "Name", "Sensor", "Bit", "Side", "Manual"].map(h =>
+                  <th key={h} style={{
+                    padding:"10px 12px", fontSize:9, fontWeight:800,
+                    letterSpacing:".08em", color:"#64748b",
+                    textAlign:"left", whiteSpace:"nowrap",
+                  }}>{h}</th>
+                )}
+              </tr>
+            </thead>
+            <tbody>
+              {pys.map((p, i) => (
+                <tr key={i} style={{ borderBottom:"1px solid #f1f5f9" }}>
+                  <td style={{ padding:"10px 12px", fontFamily:"monospace",
+                                fontWeight:700 }}>
+                    {p.poka_yoke_no}
+                  </td>
+                  <td style={{ padding:"10px 12px" }}>
+                    {p.poka_yoke_name || "—"}
+                  </td>
+                  <td style={{ padding:"10px 12px", fontFamily:"monospace",
+                                color:"#0369a1", fontWeight:700 }}>
+                    {p.sensing_bits || "—"}
+                  </td>
+                  <td style={{ padding:"10px 12px", fontFamily:"monospace",
+                                color:"#475569" }}>
+                    {p.bit || "—"}
+                  </td>
+                  <td style={{ padding:"10px 12px", color:"#64748b" }}>
+                    {p.side || "ALL"}
+                  </td>
+                  <td style={{ padding:"10px 12px" }}>
+                    <button onClick={() => setEditor({ py: p })}
+                      disabled={readOnly}
+                      style={{
+                        fontSize:11, padding:"5px 12px",
+                        background:"#0369a1", color:"#fff",
+                        border:"none", borderRadius:5, cursor:"pointer",
+                        fontWeight:700,
+                      }}>
+                      📷 Manage
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {editor && (
+        <PyManualEditorModal
+          py={editor.py}
+          lineId={lineId}
+          token={token}
+          toast={toast}
+          onClose={() => setEditor(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+
+// ── Editor modal (admin-only image upload + instructions edit) ──────
+function PyManualEditorModal({ py, lineId, token, toast, onClose }) {
+  const [images,   setImages]   = useState([]);
+  const [instText, setInstText] = useState("");
+  const [instId,   setInstId]   = useState(null);
+  const [loading,  setLoading]  = useState(true);
+  const [busy,     setBusy]     = useState(false);
+  const [savedTs,  setSavedTs]  = useState(null);
+
+  const refresh = useCallback(async () => {
+    setLoading(true);
+    try {
+      const qs = new URLSearchParams();
+      qs.set("py_no", py.poka_yoke_no);
+      if (lineId != null) qs.set("line_id", String(lineId));
+      const [imgR, insR] = await Promise.all([
+        fetch(`/api/poka-yoke/images?${qs}`,
+              { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`/api/poka-yoke/instructions?${qs}`,
+              { headers: { Authorization: `Bearer ${token}` } }),
+      ]);
+      if (imgR.ok) {
+        const d = await imgR.json();
+        setImages(d.rows || []);
+      }
+      if (insR.ok) {
+        const d = await insR.json();
+        const row = (d.rows || [])[0];
+        setInstText(row?.instruction_text || "");
+        setInstId(row?.id || null);
+      }
+    } catch (e) {
+      if (toast) toast(`Load failed: ${String(e).slice(0, 60)}`, "err");
+    } finally {
+      setLoading(false);
+    }
+  }, [py.poka_yoke_no, lineId, token, toast]);
+
+  useEffect(() => { refresh(); }, [refresh]);
+
+  const onUpload = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    setBusy(true);
+    let ok = 0, fail = 0;
+    for (const f of files) {
+      const fd = new FormData();
+      fd.append("file", f);
+      const qs = new URLSearchParams();
+      qs.set("py_no", py.poka_yoke_no);
+      if (lineId != null) qs.set("line_id", String(lineId));
+      if (py.py_master_id) qs.set("py_master_id", String(py.py_master_id));
+      try {
+        const r = await fetch(`/api/poka-yoke/images?${qs}`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+          body: fd,
+        });
+        if (r.ok) ok++; else fail++;
+      } catch { fail++; }
+    }
+    setBusy(false);
+    e.target.value = "";
+    if (toast) toast(`Uploaded ${ok}/${files.length}` +
+                     (fail ? ` (${fail} failed)` : ""),
+                     fail ? "err" : "ok");
+    refresh();
+  };
+
+  const onDeleteImg = async (img) => {
+    if (!confirm(`Delete "${img.original_filename}"?`)) return;
+    try {
+      const r = await fetch(`/api/poka-yoke/images/${img.id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (r.ok) {
+        if (toast) toast("Image deleted", "ok");
+        refresh();
+      } else {
+        if (toast) toast(`Delete failed: HTTP ${r.status}`, "err");
+      }
+    } catch (e) {
+      if (toast) toast(`Delete error: ${String(e).slice(0, 60)}`, "err");
+    }
+  };
+
+  const onSaveInstructions = async () => {
+    setBusy(true);
+    try {
+      const r = await fetch("/api/poka-yoke/instructions", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          py_no:        py.poka_yoke_no,
+          line_id:      lineId,
+          py_master_id: py.py_master_id || null,
+          instruction_text: instText,
+        }),
+      });
+      if (r.ok) {
+        const d = await r.json();
+        setInstId(d.id);
+        setSavedTs(new Date().toLocaleTimeString("en-GB"));
+        if (toast) toast("Instructions saved", "ok");
+      } else {
+        if (toast) toast(`Save failed: HTTP ${r.status}`, "err");
+      }
+    } catch (e) {
+      if (toast) toast(`Save error: ${String(e).slice(0, 60)}`, "err");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div style={{
+      position:"fixed", inset:0, background:"rgba(0,0,0,.65)",
+      display:"flex", alignItems:"center", justifyContent:"center",
+      zIndex:1000,
+    }}
+    onClick={onClose}>
+      <div onClick={e => e.stopPropagation()}
+           style={{
+             background:"#fff", padding:24, borderRadius:10,
+             maxWidth:880, width:"92%", maxHeight:"88vh",
+             overflowY:"auto",
+             boxShadow:"0 20px 60px rgba(0,0,0,.4)",
+           }}>
+        <div style={{ display:"flex", justifyContent:"space-between",
+                       alignItems:"flex-start", marginBottom:14 }}>
+          <div>
+            <h3 style={{ margin:0, fontSize:18, fontWeight:800, color:"#0f172a" }}>
+              📷 Manage Manual: {py.poka_yoke_no}
+            </h3>
+            <div style={{ fontSize:11, color:"#64748b", marginTop:4 }}>
+              {py.poka_yoke_name || "—"}
+              {py.sensing_bits && <span> · Sensor <strong style={{ color:"#0369a1" }}>{py.sensing_bits}</strong></span>}
+              {py.bit && <span> · Bit <strong>{py.bit}</strong></span>}
+            </div>
+          </div>
+          <button onClick={onClose}
+                  style={{ fontSize:18, padding:"4px 10px",
+                           background:"transparent", color:"#64748b",
+                           border:"none", cursor:"pointer", fontWeight:700 }}>
+            ✕
+          </button>
+        </div>
+
+        {/* Instructions edit */}
+        <div style={{ marginBottom:18 }}>
+          <label style={{ fontSize:11, fontWeight:800, color:"#475569",
+                           letterSpacing:".06em", display:"block", marginBottom:6 }}>
+            📋 INSTRUCTIONS / FOLLOW STEPS
+          </label>
+          <textarea
+            value={instText}
+            onChange={e => setInstText(e.target.value)}
+            disabled={busy}
+            rows={6}
+            placeholder={`Example:\n1. Place part on jig\n2. Ensure sensor X15 reads HIGH before pressing OK\n3. If sensor not triggering, check cable B-12 and reset PLC bit M101\n4. Call maintenance if persists > 2 cycles`}
+            style={{
+              width:"100%", fontSize:12, padding:"10px 12px",
+              border:"1px solid #cbd5e1", borderRadius:6,
+              resize:"vertical", fontFamily:"inherit",
+              minHeight:120, lineHeight:1.5,
+            }}/>
+          <div style={{ display:"flex", justifyContent:"space-between",
+                         alignItems:"center", marginTop:6 }}>
+            <span style={{ fontSize:10, color:"#94a3b8" }}>
+              Plain text. Line breaks preserved. Operator sees this exactly.
+              {savedTs && <span style={{ color:"#16a34a", marginLeft:10 }}>✓ Saved at {savedTs}</span>}
+            </span>
+            <button onClick={onSaveInstructions} disabled={busy}
+              style={{ fontSize:12, padding:"6px 16px",
+                       background:"#0369a1", color:"#fff",
+                       border:"none", borderRadius:6, cursor:"pointer",
+                       fontWeight:700 }}>
+              {busy ? "Saving…" : "Save Instructions"}
+            </button>
+          </div>
+        </div>
+
+        <div style={{ borderTop:"1px solid #e2e8f0", margin:"18px 0" }}/>
+
+        {/* Image upload */}
+        <div>
+          <label style={{ fontSize:11, fontWeight:800, color:"#475569",
+                           letterSpacing:".06em", display:"block", marginBottom:6 }}>
+            🖼  REFERENCE IMAGES
+          </label>
+          <div style={{
+            padding:12, marginBottom:14,
+            border:"2px dashed #cbd5e1", borderRadius:8,
+            background:"#f8fafc", textAlign:"center",
+          }}>
+            <label style={{
+              display:"inline-block", padding:"8px 18px",
+              background:"#0369a1", color:"#fff", borderRadius:6,
+              fontSize:12, fontWeight:700, cursor:"pointer",
+              letterSpacing:".05em",
+            }}>
+              + Upload Image(s)
+              <input type="file" multiple accept="image/*"
+                     onChange={onUpload}
+                     disabled={busy}
+                     style={{ display:"none" }}/>
+            </label>
+            <div style={{ fontSize:10, color:"#94a3b8", marginTop:6 }}>
+              PNG, JPG, GIF, WEBP, BMP · max 10 MB each · select multiple at once
+            </div>
+          </div>
+          {loading ? (
+            <div style={{ padding:20, textAlign:"center", color:"#94a3b8" }}>Loading…</div>
+          ) : !images?.length ? (
+            <div style={{ padding:20, textAlign:"center", color:"#94a3b8",
+                           fontStyle:"italic", fontSize:11 }}>
+              No images uploaded yet.
+            </div>
+          ) : (
+            <div style={{
+              display:"grid",
+              gridTemplateColumns:"repeat(auto-fill, minmax(180px, 1fr))",
+              gap:10,
+            }}>
+              {images.map(img => (
+                <div key={img.id} style={{
+                  border:"1px solid #e2e8f0", borderRadius:6,
+                  overflow:"hidden", background:"#fff",
+                }}>
+                  <a href={img.url} target="_blank" rel="noreferrer">
+                    <img src={img.url}
+                         alt={img.original_filename}
+                         style={{ width:"100%", height:140, objectFit:"cover",
+                                   display:"block", background:"#f8fafc",
+                                   cursor:"zoom-in" }}/>
+                  </a>
+                  <div style={{ padding:"6px 8px", fontSize:10 }}>
+                    <div style={{ fontWeight:600, color:"#475569",
+                                   overflow:"hidden", textOverflow:"ellipsis",
+                                   whiteSpace:"nowrap" }}
+                         title={img.original_filename}>
+                      {img.original_filename}
+                    </div>
+                    <div style={{ display:"flex",
+                                   justifyContent:"space-between",
+                                   marginTop:4 }}>
+                      <span style={{ fontSize:9, color:"#94a3b8" }}>
+                        {img.uploaded_by_username || "—"}
+                      </span>
+                      <button onClick={() => onDeleteImg(img)}
+                              style={{ fontSize:9, padding:"1px 6px",
+                                       background:"#fee2e2", color:"#b91c1c",
+                                       border:"none", borderRadius:3,
+                                       cursor:"pointer", fontWeight:700 }}>
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
 export function BreakdownSlipThresholdPage({ toast, readOnly = false }) {
   const { token } = useAuth();
   const [threshold, setThreshold] = useState(10);
@@ -7641,12 +8472,14 @@ export const ADMIN_SECTIONS = [
       // by Mail Settings (its config) and the actual events stream is
       // visible inside Poka Yoke → Matrix; a separate empty-data tab
       // was just noise.
-      { key: "pokayoke",  label: "Poka Yoke",         icon: "⚑" },
-      { key: "pymail",    label: "Mail Settings",     icon: "📧" },
-      { key: "bdmail",    label: "Breakdown Mails",   icon: "🚨" },
-      { key: "kpitarget", label: "KPI Targets",       icon: "🎯" },
-      { key: "capacfg",   label: "CAPA Settings",     icon: "📊" },
-      { key: "slipth",    label: "Slip Threshold",    icon: "⏱" },
+      { key: "pokayoke",   label: "Poka Yoke",        icon: "⚑" },
+      { key: "pymanuals",  label: "PY Manuals",       icon: "📷" },
+      { key: "newrequests",label: "New Requests",     icon: "📝" },
+      { key: "pymail",     label: "Mail Settings",    icon: "📧" },
+      { key: "bdmail",     label: "Breakdown Mails",  icon: "🚨" },
+      { key: "kpitarget",  label: "KPI Targets",      icon: "🎯" },
+      { key: "capacfg",    label: "CAPA Settings",    icon: "📊" },
+      { key: "slipth",     label: "Slip Threshold",   icon: "⏱" },
     ],
   },
   {
@@ -8683,6 +9516,8 @@ export function renderAdminTab(sectionKey, tabKey, props) {
     // Maintenance — Sensor Health is reachable via Poka Yoke → Sensor
     // Health sub-tab, intentionally NOT a top-level entry here.
     case "maintenance/pokayoke":     return <PokaYokePage   {...t} />;
+    case "maintenance/pymanuals":    return <PyManualsPage  {...t} />;
+    case "maintenance/newrequests":  return <NewRequestsPanel {...t} />;
     case "maintenance/pymail":       return <MailConfigPage {...t} kindFilter={["bypass","health"]} />;
     case "maintenance/bdmail":       return <BreakdownMailsPage {...t} />;
     case "maintenance/kpitarget":    return <KpiTargetsPage  {...t} />;
