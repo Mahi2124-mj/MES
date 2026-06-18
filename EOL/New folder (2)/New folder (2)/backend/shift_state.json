@@ -1,12 +1,12 @@
 {
-  "last_fired_shift_label": "2026-05-24_0830",
-  "last_fired_at": "2026-05-24T08:30:00",
+  "last_fired_shift_label": "2026-05-27_1720",
+  "last_fired_at": "2026-05-27T17:20:00",
   "wiped_cameras": [
-    "cam_panasonic_default",
     "cam_upper_rail_greasing_1778650524",
     "cam_semi_auto_1779041507",
     "cam_lock_bar_1779043510",
     "cam_lock_bar_insert_1779041857",
-    "cam_ball_guide_1779079466"
+    "cam_ball_guide_1779079466",
+    "cam_panasonic_default"
   ]
 }

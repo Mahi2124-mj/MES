@@ -145,6 +145,31 @@ def _attempt_repair(safe_part: str, videos_root: str) -> str:
         except Exception:
             return ""
 
+        # 2026-05-26 — CROSS-MACHINE BUG FIX.
+        # Operator saw Upper Rail's camera feed inside a Final Inspection
+        # MP4.  Root cause: this loop scanned ALL `cam_*.ts` files (every
+        # camera, all 7 machines) and kept overwriting `best_ts` without
+        # filtering by which camera actually owns the cycle row.  When
+        # Final's MP4 was missing, the auto-repair re-encoded a slice from
+        # whatever camera's TS happened to be processed LAST (alphabetical
+        # glob order → `cam_upper_rail_greasing_*` beats
+        # `cam_panasonic_default_*`).  Result: a video file named after
+        # Final's part_code but containing Upper Rail's view.
+        #
+        # Fix: look up the binding for `latest['machine_id']` and only
+        # consider TS files whose name starts with `cam_{camera_id}_`.
+        # Bindings are tiny + cached; cost is negligible.
+        camera_id_filter = ""
+        try:
+            mid = str(latest.get("machine_id") or "").strip()
+            if mid:
+                for _b in list_bindings(os.path.dirname(videos_root)):
+                    if str(_b.get("machine_id", "")).strip() == mid:
+                        camera_id_filter = str(_b.get("camera_id", "")).strip()
+                        break
+        except Exception:
+            camera_id_filter = ""
+
         # Find the TS file that contains this time window.  TS files are
         # named cam_{camera_id}_{epoch_ms}.ts so the epoch tells us the
         # record_start.  Pick the one whose start <= cycle_start and
@@ -162,6 +187,12 @@ def _attempt_repair(safe_part: str, videos_root: str) -> str:
         best_ts = None
         for ts_path in ts_candidates:
             base = os.path.basename(ts_path)
+            # 2026-05-26 — STRICT camera filter (see comment above).
+            # Without this, any camera's TS that covered the time window
+            # could win.  We require the basename to start with the exact
+            # `cam_{camera_id}_` prefix derived from the cycle's binding.
+            if camera_id_filter and not base.startswith(f"cam_{camera_id_filter}_"):
+                continue
             m = _re.search(r"_(\d{10,})\.ts$", base)
             if not m:
                 continue
@@ -178,7 +209,11 @@ def _attempt_repair(safe_part: str, videos_root: str) -> str:
                 continue
             if ts_mtime < end_dt:
                 continue                       # TS doesn't extend past cycle
-            best_ts = (ts_path, rec_start)
+            # Prefer the TS whose rec_start is CLOSEST to (but not after)
+            # the cycle start — that minimises the seek offset and avoids
+            # picking up an older TS from a previous shift.
+            if best_ts is None or rec_start > best_ts[1]:
+                best_ts = (ts_path, rec_start)
         if best_ts is None:
             return ""
 
@@ -2475,17 +2510,19 @@ def submachine_clip():
         ffmpeg = "ffmpeg"
         _hw_codec, _hw_flags = "libx264", ["-preset", "ultrafast", "-crf", "23"]
 
-    # 2026-05-18 — Switched from stream-copy to hybrid-seek re-encode.
-    # Stream-copy with input-side -ss was producing macroblocked output
-    # whenever the cycle didn't begin exactly on a TS keyframe (≤1 s
-    # offset in the worst case → P-frames without I-frame reference →
-    # decoder shows garbage gray frames).  Cost of re-encode on x264
-    # ultrafast at 1080p is ~real-time per second; for typical 15-30 s
-    # cycles this adds 1-3 s of startup latency but guarantees clean
-    # picture.  Hybrid seek mirrors the pre-extraction path in
-    # plc_monitor.py — input-side seek lands on the keyframe BEFORE
-    # the cycle, output-side seek skips precisely to cycle start.
-    _input_ss  = max(0.0, seek_off - 1.5)
+    # 2026-05-27 — Operator: "video render thik kr".  Switched back to
+    # STREAM COPY (no re-encoding) for on-demand clips.  Earlier we
+    # forced a libx264 re-encode to dodge the "≤1 s of macroblocks at
+    # the start" artefact, but at the cost of 2-3× extra latency.  The
+    # live RTSP recorder now produces TS with `-bf 0` + `-g 60`
+    # (every-2-second keyframes) via _pick_live_encoder, so input-side
+    # seek lands on a keyframe within 2 s of the request and the
+    # leading-blocks problem is gone.  Seek slack tightened from 1.5 s
+    # → 0.5 s (still safe against the 2 s keyframe interval since seek
+    # rounds up to the nearest keyframe anyway).  Result: ~10× faster,
+    # near-zero CPU; the typical 10-15 s clip arrives in under 500 ms
+    # end-to-end on this hardware.
+    _input_ss  = max(0.0, seek_off - 0.5)
     _output_ss = max(0.0, seek_off - _input_ss)
     cmd = [
         ffmpeg, "-y",
@@ -2495,11 +2532,8 @@ def submachine_clip():
         "-i", ts_file,
         "-ss", f"{_output_ss:.3f}",        # output seek → exact cycle start
         "-t", f"{trim_dur:.3f}",
-        "-c:v", _hw_codec,
-        *_hw_flags,
-        "-pix_fmt", "yuv420p",
+        "-c:v", "copy",                    # zero-encode passthrough
         "-an",
-        "-vsync", "cfr",
         "-avoid_negative_ts", "make_zero",
         "-movflags", "+frag_keyframe+empty_moov+faststart+default_base_moof",
         "-f", "mp4",

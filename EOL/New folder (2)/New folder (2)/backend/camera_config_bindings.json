@@ -1,22 +1,6 @@
 {
   "bindings": [
     {
-      "id": "bind_mes_2",
-      "machine_id": "mes:2",
-      "camera_id": "cam_panasonic_default",
-      "plc_id": "mes_plc_2",
-      "plc_ip": "192.168.10.150",
-      "trigger_type": "MAIN",
-      "ok_bit": "L108",
-      "ng_bit": "L109",
-      "m_bit_address": "",
-      "target_time": 15,
-      "extract_per_cycle": true,
-      "machine_name": "Final Inspection",
-      "zone_name": "SEAT SLIDER",
-      "line_name": "YNC-SS"
-    },
-    {
       "id": "bind_mes_8",
       "machine_id": "mes:8",
       "camera_id": "cam_upper_rail_greasing_1778650524",
@@ -109,6 +93,22 @@
       "target_time": 15,
       "extract_per_cycle": false,
       "machine_name": "Ball Guide Insert Machine",
+      "zone_name": "SEAT SLIDER",
+      "line_name": "YNC-SS"
+    },
+    {
+      "id": "bind_mes_2",
+      "machine_id": "mes:2",
+      "camera_id": "cam_panasonic_default",
+      "plc_id": "mes_plc_2",
+      "plc_ip": "192.168.10.150",
+      "trigger_type": "MAIN",
+      "ok_bit": "L108",
+      "ng_bit": "L109",
+      "m_bit_address": "",
+      "target_time": 15,
+      "extract_per_cycle": true,
+      "machine_name": "Final Inspection",
       "zone_name": "SEAT SLIDER",
       "line_name": "YNC-SS"
     }

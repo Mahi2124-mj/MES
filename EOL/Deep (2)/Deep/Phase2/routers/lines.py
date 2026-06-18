@@ -1237,9 +1237,15 @@ def get_cycle_video(
             shift_clause = "AND shift_name = %s"
             params.insert(1, shift)
 
-        # Pick the newest row matching cycle_seq for that day/shift
+        # 2026-05-27 — TIME-WINDOW FIRST (operator: "ek video sab pe
+        # chal rhi h").  When 30 consecutive cycles share one part_code
+        # (scanner stuck / test pattern), the by-part MP4 returns the
+        # SAME file for every click.  Switched to time-window-based
+        # extraction as the PRIMARY path: each cycle's `ts` produces
+        # a unique slice from the rolling TS file.  By-part is kept
+        # as last-resort fallback (only used if ts lookup fails).
         cur.execute(
-            f"SELECT part_code FROM {tbl_log} "
+            f"SELECT ts, ct_value, part_code FROM {tbl_log} "
             f"WHERE record_date = %s {shift_clause} AND cycle_seq = %s "
             f"ORDER BY ts DESC LIMIT 1",
             params,
@@ -1247,37 +1253,59 @@ def get_cycle_video(
         hit = cur.fetchone()
         part_code = ((hit.get("part_code") if hit else "") or "").strip()
 
-        # 2026-05-16 — NEAREST-CYCLE FALLBACK for empty part_code.
-        # ~3 % of cycles have part_code='' (PLC D5004 race condition
-        # caught between scanner write + L108-edge read).  Rather than
-        # 404 the operator's click and leave them staring at a spinner,
-        # we look at the ±3 nearest cycles in the same shift — almost
-        # always at least one has a valid scan, and consecutive cycles
-        # in the same part window typically share scan codes anyway.
-        if not part_code:
-            search_params = [record_date]
-            search_clause = ""
-            if shift:
-                search_clause = "AND shift_name = %s"
-                search_params.append(shift)
-            search_params.extend([cycle_seq, cycle_seq])
-            cur.execute(
-                f"SELECT cycle_seq, part_code FROM {tbl_log} "
-                f"WHERE record_date = %s {search_clause} "
-                f"  AND cycle_seq BETWEEN %s - 3 AND %s + 3 "
-                f"  AND TRIM(COALESCE(part_code, '')) != '' "
-                f"ORDER BY ABS(cycle_seq - {cycle_seq}) ASC LIMIT 1",
-                search_params,
-            )
-            near = cur.fetchone()
-            if near:
-                part_code = near["part_code"].strip()
-                print(f"[CYCLE-VIDEO] line={line_id} cycle_seq={cycle_seq} had "
-                      f"empty part_code; falling back to nearby cycle_seq="
-                      f"{near['cycle_seq']} pc={part_code!r}", flush=True)
+        # Always try time-window first when ts is available.
+        tr = hit  # alias
+        if tr and tr.get("ts"):
+            # Cycle CT + 1 s buffer; capped 3-30 s for sanity.
+            from datetime import timedelta as _td
+            _ts_end       = tr["ts"]
+            _cycle_dur_s  = float(tr.get("ct_value") or 0) or 10.0
+            _clip_dur     = min(30.0, max(3.0, _cycle_dur_s + 1.0))
+            _ts_start     = _ts_end - _td(seconds=_clip_dur)
+            # Main line's camera (matches camera_config_bindings.json)
+            _cam_id = "cam_panasonic_default"
+            _qs = (f"camera_id={_cam_id}"
+                   f"&ts_start={_ts_start.isoformat()}"
+                   f"&ts_end={_ts_end.isoformat()}")
+            upstream = f"{CYCLE_VIDEO_BASE_URL}/api/submachine/clip?{_qs}"
+            fwd = {}
+            try:
+                rng = request.headers.get("range") if request else None
+                if rng:
+                    fwd["Range"] = rng
+            except Exception:
+                pass
+            try:
+                r = requests.get(upstream, headers=fwd, stream=True, timeout=15)
+            except Exception as exc:
+                # Network blip — fall through to by-part if part_code exists.
+                r = None
+                _last_exc = exc
+            if r is not None and r.status_code < 400:
+                resp_headers = {}
+                for h in ("Content-Type", "Content-Length",
+                          "Content-Range", "Accept-Ranges"):
+                    if h in r.headers:
+                        resp_headers[h] = r.headers[h]
+                resp_headers.setdefault("Accept-Ranges", "bytes")
+                print(f"[CYCLE-VIDEO] line={line_id} cycle_seq={cycle_seq} "
+                      f"time-window clip "
+                      f"{_ts_start.isoformat()} -> {_ts_end.isoformat()}",
+                      flush=True)
+                return StreamingResponse(
+                    r.iter_content(chunk_size=64 * 1024),
+                    status_code=r.status_code,
+                    media_type=resp_headers.get("Content-Type", "video/mp4"),
+                    headers=resp_headers,
+                )
+            # Time-window failed (TS file missing, range not satisfied,
+            # camera dead) — fall through to by-part MP4 as last resort.
+            print(f"[CYCLE-VIDEO] line={line_id} cycle_seq={cycle_seq} "
+                  f"time-window failed (status={getattr(r,'status_code','EXC')}) "
+                  f"— falling back to by-part MP4", flush=True)
 
         if not part_code:
-            raise HTTPException(404, "No part_code recorded for that cycle or any nearby cycle")
+            raise HTTPException(404, "No ts recorded AND no part_code — cannot resolve video")
 
     # Sanitize to match the filename convention on the camera side
     safe = re.sub(r"[^A-Za-z0-9._-]", "_", part_code).strip("_")
@@ -3177,25 +3205,17 @@ def list_ng_parts_for_slot(
     result = []
     for r in rows:
         ct = float(r["ct_value"]) if r.get("ct_value") is not None else None
-        # Compute terse machine-alarm summary (no sub-machine deep dive
-        # in list view — user can click row for full FsNgDetailsPanel)
-        if ct is not None and ideal:
-            diff = round(ct - ideal, 2)
-            pct  = round((ct - ideal) / ideal * 100, 1)
-            if diff > 0:
-                summary = f"CT {ct:.1f}s vs ideal {ideal:.0f}s (+{diff}s, +{pct}%)"
-            elif diff < 0:
-                summary = f"CT {ct:.1f}s vs ideal {ideal:.0f}s ({diff}s, {pct}%)"
-            else:
-                summary = f"CT {ct:.1f}s = ideal"
-        else:
-            summary = "no CT data"
+        # 2026-05-26 — machine_alarm intentionally left empty.
+        # Operator clarified CT has NO relation to NG (slow cycle ≠ NG).
+        # Future PY-style alarm-name config will populate this from
+        # actual PLC alarm bits.  For now: empty placeholder so the
+        # column in NgListModal renders "—".
         result.append({
             "cycle_seq":      r.get("cycle_seq"),
             "part_code":      r.get("part_code") or "",
             "ct_value":       ct,
             "ts":             r["ts"].isoformat() if r.get("ts") else None,
-            "machine_alarm":  summary,
+            "machine_alarm":  "",
             "leader_remark":  r.get("leader_remark") or "",
             "entered_by":     r.get("entered_by"),
             "remark_updated": r["remark_updated"].isoformat()

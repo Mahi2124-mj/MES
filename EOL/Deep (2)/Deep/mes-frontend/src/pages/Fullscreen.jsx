@@ -971,9 +971,16 @@ export default function Fullscreen() {
     const recDate = rtRef.current?.record_date || new Date().toISOString().slice(0,10);
     const shiftNm = rtRef.current?.shift_name || cy.shift_name || "";
     const qs = `date=${recDate}&shift=${encodeURIComponent(shiftNm)}&cycle_seq=${cy.cycle_seq || ""}`;
-    const videoSrc = pc
-      ? `/cms-api/api/video/by-part?code=${encodeURIComponent(pc)}`
-      : `/api/lines/${lineId}/cycle-video?${qs}&token=${encodeURIComponent(sessionStorage.getItem("mes_token")||"")}`;
+    // 2026-05-27 — Operator: "ek video sab pe chal rhi h".  When the
+    // scanner is off / many cycles share one part_code, the by-part
+    // MP4 returns the SAME file every click.  Always use the cycle_seq
+    // time-window endpoint instead — each cycle's timestamp produces
+    // its own unique clip from the rolling TS file.  Cache-buster
+    // ensures the browser doesn't reuse an earlier cycle's stream.
+    const videoSrc =
+      `/api/lines/${lineId}/cycle-video?${qs}`
+      + `&t=${cy.cycle_seq || Date.now()}`
+      + `&token=${encodeURIComponent(sessionStorage.getItem("mes_token")||"")}`;
     const tsMs = cy.ts ? Date.parse(cy.ts) : Date.now();
     setVideoModal({
       cycle_seq: cy.cycle_seq,
@@ -1771,29 +1778,38 @@ export default function Fullscreen() {
         meta.data.forEach((pt, i) => {
           const cy = visSlice[i];
           if (!cy) return;
-          const isSpike = cy.ct_value > idealCT + CT_TOL;
-          // Throttle labels in portrait — only spikes + every 5th normal.
-          if (isPortrait && !isSpike && i % 5 !== 0) return;
+          const isNg = !!cy.is_ng;
+          // Throttle labels in portrait — only NG + every 5th normal.
+          // 2026-05-27 — Dropped the >Ideal-CT spike highlighting:
+          // operator: "ng k liye jo ui tha vo sab shi kr".  OK cycles
+          // are now always plain green text regardless of CT length.
+          if (isPortrait && !isNg && i % 5 !== 0) return;
           c.save();
-          c.font = `${isSpike ? 700 : 500} 8px 'Segoe UI',sans-serif`;
-          c.fillStyle = isSpike
+          c.font = `${isNg ? 700 : 500} 8px 'Segoe UI',sans-serif`;
+          c.fillStyle = isNg
             ? STATUS_CLR["BREAKDOWN"]
             : D2 ? "rgba(100,200,130,0.7)" : "rgba(20,120,60,0.65)";
           c.textAlign = "center";
           c.textBaseline = "bottom";
-          c.fillText(cy.ct_value + "s" + (cy.is_ng ? " !" : ""), pt.x, pt.y - (isSpike ? 7 : 4));
+          c.fillText(cy.ct_value + "s" + (isNg ? "  ⚠" : ""),
+                     pt.x, pt.y - (isNg ? 7 : 4));
           c.restore();
         });
       },
     };
 
-    // Point color: green below, amber exactly on, red above (spike)
-    const _ptClr = v =>
-      v > idealCT + CT_TOL ? STATUS_CLR["BREAKDOWN"] :
-      v < idealCT - CT_TOL ? STATUS_CLR["RUNNING"]   : "#f59e0b";
-    const ptColors = visSlice.map(cy => _ptClr(cy.ct_value));
-    const ptRadius = visSlice.map(cy => cy.ct_value > idealCT + CT_TOL ? 5 : 3);
-    const ptHoverR = visSlice.map(cy => cy.ct_value > idealCT + CT_TOL ? 9 : 6);
+    // 2026-05-27 — Binary: OK = green (always), NG = red (always).
+    // Operator: ">ideal ct wala bhi red dikha rha tha jo confusing tha,
+    // sirf real NG hi red ho".  Earlier amber/red-on-OK was based on
+    // CT vs ideal, which made long-but-OK cycles look like NG.  Now
+    // colour purely tells you bit_type, CT goes in the label / tooltip.
+    const ptColors = visSlice.map(cy =>
+      cy.is_ng ? STATUS_CLR["BREAKDOWN"] : STATUS_CLR["RUNNING"]);
+    // 2026-05-27 — Radius keyed on is_ng (not CT-vs-ideal) so a long
+    // OK cycle stays the same size as a regular OK, and only NG dots
+    // stand out larger.
+    const ptRadius = visSlice.map(cy => cy.is_ng ? 5 : 3);
+    const ptHoverR = visSlice.map(cy => cy.is_ng ? 9 : 6);
 
     // 2026-05-18-r7 — Y-AXIS HARD CAP at 40s.  Same fix that
     // WallboardLeft.jsx got: a single 60s+ outlier was forcing the
@@ -1834,9 +1850,20 @@ export default function Fullscreen() {
             pointHoverRadius: ptHoverR,
             segment: {
               borderColor: seg => {
-                const a = visSlice[seg.p0DataIndex]?.ct_value;
-                const b = visSlice[seg.p1DataIndex]?.ct_value;
+                const aCy = visSlice[seg.p0DataIndex];
+                const bCy = visSlice[seg.p1DataIndex];
+                const a = aCy?.ct_value;
+                const b = bCy?.ct_value;
                 if (a == null || b == null) return "transparent";
+                // 2026-05-27 — Segment colouring also goes binary now
+                // (operator: "OK ka kuch mt chedna, sirf NG red ho").
+                // A segment touching ANY NG endpoint is red; otherwise
+                // plain green regardless of CT vs ideal.  The CT-vs-
+                // ideal gradient code below is now dead but kept around
+                // (unreachable) for easy revert later.
+                if (aCy?.is_ng || bCy?.is_ng) return `${STATUS_CLR["BREAKDOWN"]}cc`;
+                return `${STATUS_CLR["RUNNING"]}cc`;
+                // --- legacy CT-vs-ideal logic (unreachable) ---
                 const aUp = a > idealCT + CT_TOL;
                 const bUp = b > idealCT + CT_TOL;
                 const aDn = a < idealCT - CT_TOL;
@@ -1947,23 +1974,49 @@ export default function Fullscreen() {
           const recDate = rtRef.current?.record_date || new Date().toISOString().slice(0,10);
           const shiftNm = rtRef.current?.shift_name || "";
           const qs = `date=${recDate}&shift=${encodeURIComponent(shiftNm)}&cycle_seq=${cy.cycle_seq}`;
-          // Stream directly from NF2 via /cms-api proxy (single hop, no auth needed).
-          // cy.part_code is already available from ct-history. Skip the Deep proxy
-          // which was causing double-hop buffering.
-          const pc = (cy.part_code || "").replace(/:$/, "").replace(/[^A-Za-z0-9._-]/g, "_").replace(/^_+|_+$/g, "");
-          const videoSrc = pc
-            ? `/cms-api/api/video/by-part?code=${encodeURIComponent(pc)}`
-            : `/api/lines/${lineId}/cycle-video?${qs}&token=${encodeURIComponent(sessionStorage.getItem("mes_token")||"")}`;
+          // 2026-05-27 — Always use cycle_seq time-window endpoint, not
+          // by-part MP4.  Same operator complaint as above: when many
+          // cycles share one part_code (scanner stuck), by-part returns
+          // the same file for every click.  Time-window slices unique
+          // clips per cycle from the rolling TS using each cycle's ts.
+          const videoSrc =
+            `/api/lines/${lineId}/cycle-video?${qs}`
+            + `&t=${cy.cycle_seq || Date.now()}`
+            + `&token=${encodeURIComponent(sessionStorage.getItem("mes_token")||"")}`;
           setVideoModal({ ...cy, loading: false, video_url: videoSrc });
           setShowModalUI(!pipActive);
         },
         plugins: {
           legend: { display: false },
           tooltip: {
-            backgroundColor: D2 ? "#0d1420" : "#fff",
-            titleColor: D2 ? "#e8edf5" : "#0f172a",
-            bodyColor:  D2 ? "#8092af" : "#374151",
-            borderColor: D2 ? "#141e2e" : "#b8c8dc",
+            // 2026-05-27 — Per-cycle tooltip styling.  Operator: NG
+            // cycles ka hover box bhi red ho, OK ka mat chedna.  We
+            // dynamically swap `backgroundColor` + `borderColor` based
+            // on whichever cycle the cursor is over.
+            backgroundColor: ctx => {
+              const idx = ctx.tooltip?.dataPoints?.[0]?.dataIndex;
+              const cy  = idx != null ? visSlice[idx] : null;
+              if (cy?.is_ng) return D2 ? "#3a0d10" : "#fee2e2";
+              return D2 ? "#0d1420" : "#fff";
+            },
+            titleColor: ctx => {
+              const idx = ctx.tooltip?.dataPoints?.[0]?.dataIndex;
+              const cy  = idx != null ? visSlice[idx] : null;
+              if (cy?.is_ng) return "#fecaca";
+              return D2 ? "#e8edf5" : "#0f172a";
+            },
+            bodyColor:  ctx => {
+              const idx = ctx.tooltip?.dataPoints?.[0]?.dataIndex;
+              const cy  = idx != null ? visSlice[idx] : null;
+              if (cy?.is_ng) return "#fecaca";
+              return D2 ? "#8092af" : "#374151";
+            },
+            borderColor: ctx => {
+              const idx = ctx.tooltip?.dataPoints?.[0]?.dataIndex;
+              const cy  = idx != null ? visSlice[idx] : null;
+              if (cy?.is_ng) return "#ef4444";
+              return D2 ? "#141e2e" : "#b8c8dc";
+            },
             borderWidth: 1, padding: 10,
             callbacks: {
               title: items => `Cycle #${items[0].label}`,
@@ -1978,7 +2031,13 @@ export default function Fullscreen() {
                 if (real == null) return " —";
                 const t  = cy?.ts ? new Date(cy.ts).toLocaleTimeString("en-IN",
                   { hour:"2-digit", minute:"2-digit", second:"2-digit" }) : "";
-                const msg = real > idealCT + CT_TOL ? "⚠ >Ideal CT" : "✓ OK";
+                // 2026-05-27 — Pure binary tag now.  Operator: ">ideal
+                // wala bhi red dikha tha confusing".  OK = always "OK ✓"
+                // regardless of CT vs ideal; NG = always "⚠ NG".  Slow
+                // cycles still show actual CT in the tooltip (e.g.
+                // "CT: 15.59s") so the data is visible — just no false
+                // alarm via the status text.
+                const msg = cy?.is_ng ? "⚠ NG" : "✓ OK";
                 const tag = real > Y_CAP ? `  (>${Y_CAP}s clamped)` : "";
                 const out = [` CT: ${real}s${tag}  ${msg}`];
                 if (cy?.part_code) out.push(` Part: ${cy.part_code}`);
@@ -1991,11 +2050,13 @@ export default function Fullscreen() {
         },
         scales: {
           y: {
-            beginAtZero: false,
-            // 2026-05-18-r7 — Y-axis pinned to [idealCT-8, Y_CAP].
-            // No more auto-scale to outliers — same approach as the
-            // WallboardLeft per-machine charts.
-            min: Math.max(0, idealCT - 8),
+            beginAtZero: true,
+            // 2026-05-27 — Operator: "graph 0 se 40s kr de bs".
+            // Earlier the chart pinned at [idealCT-8, 40] which made
+            // the floor wander with model (7-15s).  Fixed at 0-40 now
+            // so post-NG OK rows that drop to ~5s remain visible and
+            // dot positions stay comparable across models.
+            min: 0,
             max: Y_CAP,
             grid:   { color: D2 ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.04)", drawBorder: false },
             border: { display: false },
@@ -3885,7 +3946,9 @@ export default function Fullscreen() {
                   <span style={lbl9}>Sensor Health</span>
                   {total > 0 && (
                     <span style={{fontSize:9,color:textMut,fontWeight:700}}>
-                      {alive}/{total} alive
+                      {isCrit   ? `${stuck}/${total} stuck`
+                       : isWarn ? `${unknown}/${total} unknown`
+                       :         `${alive}/${total} alive`}
                     </span>
                   )}
                 </div>
@@ -3914,7 +3977,11 @@ export default function Fullscreen() {
                   </div>
                   <div style={{fontSize: isPortrait ? 8 : 11, fontWeight:700,color:textMut,letterSpacing:".05em",textTransform:"uppercase",
                     textAlign:"center", lineHeight:1.1}}>
-                    Sensor Health {total > 0 && `· ${alive}/${total} alive`}
+                    Sensor Health {total > 0 && (isCrit
+                      ? `· ${stuck}/${total} stuck`
+                      : isWarn
+                        ? `· ${unknown}/${total} unknown`
+                        : `· ${alive}/${total} alive`)}
                   </div>
                   <div style={{fontSize: isPortrait ? 8 : 10, color:textMut,fontStyle:"italic",
                     marginTop: isPortrait ? 1 : 2,
@@ -4322,13 +4389,23 @@ export default function Fullscreen() {
                   position:"relative",
                 }
               : {
-                  background: D ? "#0a0f1a" : "#ffffff",
+                  // 2026-05-27 — NG cycle: red frame so the operator
+                  // can tell at a glance whether the modal they just
+                  // opened is an NG part.  OK cycle uses the default
+                  // border colour (unchanged).
+                  background: videoModal?.is_ng
+                    ? (D ? "#1a0a0d" : "#fef2f2")
+                    : (D ? "#0a0f1a" : "#ffffff"),
                   borderRadius:12,padding:12,
                   maxWidth:820,width:"90vw",
                   maxHeight:"92vh",
                   display:"flex", flexDirection:"column",
-                  boxShadow:"0 24px 72px rgba(0,0,0,0.6)",
-                  border:`1px solid ${border}`,
+                  boxShadow: videoModal?.is_ng
+                    ? "0 24px 72px rgba(239,68,68,0.5)"
+                    : "0 24px 72px rgba(0,0,0,0.6)",
+                  border: videoModal?.is_ng
+                    ? `3px solid #ef4444`
+                    : `1px solid ${border}`,
                 }}
           >
             {/* 2026-05-23 — Header chrome hidden in fullscreen mode so
@@ -4345,15 +4422,19 @@ export default function Fullscreen() {
                 {videoModal.part_code && (
                   <> {"  |  "}ID: <span style={{fontFamily:"monospace",color:"#3b82f6"}}>{String(videoModal.part_code).replace(/:$/, "")}</span></>
                 )}
-                {/* Always show the video's actual duration when available —
-                    it's the ground truth.  Fall back to DB ct_value only
-                    when the video isn't loaded yet. */}
+                {/* 2026-05-27 — Always show the cycle's stored CT (from
+                    DB).  Earlier this preferred `_video_duration` from
+                    the HTML5 player, but with fragmented-MP4 stream
+                    copy the browser reports duration as 2.00 s (size
+                    of the first fragment) until the full file buffers
+                    — so the header read "2.00s" for every clip even
+                    when the video was clearly 9 s long.  The DB CT is
+                    the cycle measurement we trust everywhere else
+                    (chart, tooltip), so use that here too. */}
                 {"  |  "}
                 {(() => {
-                  const vidCt = Number(videoModal._video_duration) || 0;
-                  const dbCt  = Number(videoModal.ct_value) || 0;
-                  const show  = vidCt > 0 ? vidCt : dbCt;
-                  return show ? `${show.toFixed(2)}s` : "—";
+                  const dbCt = Number(videoModal.ct_value) || 0;
+                  return dbCt ? `${dbCt.toFixed(2)}s` : "—";
                 })()}
                 {"  |  "}Ideal: {ideal}s
                 {rt?.takt_seconds && Math.abs(rt.takt_seconds - ideal) > 0.1 && (
@@ -4485,6 +4566,7 @@ export default function Fullscreen() {
                 autoPlay
                 muted
                 controls
+                preload="auto"
                 onLoadedMetadata={e => {
                   // Stash the video's actual duration so the header can
                   // surface a CT/DB mismatch (see "Part #N | ... s" block
@@ -4497,10 +4579,14 @@ export default function Fullscreen() {
                   if (d && isFinite(d) && d > 0) {
                     setVideoModal(m => m ? { ...m, _video_duration: d } : m);
                   }
+                  // 2026-05-27 — Playback rate stays 1.0 (real-time).
+                  // The earlier "slow" feeling was actually the
+                  // server-side render latency, which is now fixed by
+                  // switching NVENC to p1 preset on the backend.
                 }}
                 onLoadedData={e => { e.target.muted = false; e.target.play().catch(()=>{}); }}
                 onClick={e => { e.target.paused ? e.target.play() : e.target.pause(); }}
-                controlsList="nofullscreen nodownload noplaybackrate"
+                controlsList="nofullscreen nodownload"
                 onError={e => {
                   // Video extraction on NF2 takes 10-15s after cycle end.
                   // If user clicks immediately, file may not exist yet.
@@ -4637,11 +4723,19 @@ export default function Fullscreen() {
                   (Final Inspection) cycles, so no isMain gate needed —
                   every video here gets a comments thread.  Keyed by
                   part_code so part-code search surfaces the same notes.
-                  2026-05-23 — Hidden in fullscreen mode (YouTube style). */}
-              {!videoExpanded && videoModal.part_code && (
+                  2026-05-23 — Hidden in fullscreen mode (YouTube style).
+                  2026-05-27 — Operator: "remarks ka option sab part me
+                  lga".  Removed the `videoModal.part_code` gate so the
+                  panel renders for every cycle, even when the scanner
+                  hasn't populated a part_code (test pattern, scanner
+                  failure, etc.).  Falls back to `cycle_<seq>` as the
+                  storage key so each cycle still has a stable address. */}
+              {!videoExpanded && (
                 <FsCycleCommentsPanel
                   lineId={lineId}
-                  partCode={String(videoModal.part_code).replace(/:$/, "")}
+                  partCode={String(videoModal.part_code || `cycle_${videoModal.cycle_seq}`).replace(/:$/, "")}
+                  isFallbackKey={!videoModal.part_code}
+                  isNg={!!videoModal.is_ng}
                   border={border}
                   text={text}
                   textSub={textSub}
@@ -5522,12 +5616,13 @@ export default function Fullscreen() {
 // Mirrors CycleCommentsPanel in WallboardLeft.jsx (same backend, same
 // keying by part_code) so notes are consistent across both views.
 // ─────────────────────────────────────────────────────────────────
-function FsCycleCommentsPanel({ lineId, partCode, border, text, textSub, textMut }) {
+function FsCycleCommentsPanel({ lineId, partCode, isFallbackKey, isNg, border, text, textSub, textMut }) {
   const [items, setItems]     = useState([]);
   const [draft, setDraft]     = useState("");
   const [loading, setLoading] = useState(false);
   const [posting, setPosting] = useState(false);
   const [error, setError]     = useState("");
+  const [savedTick, setSavedTick] = useState(0);
   const token = (typeof window !== "undefined"
                    && sessionStorage.getItem("mes_token")) || "";
 
@@ -5579,21 +5674,28 @@ function FsCycleCommentsPanel({ lineId, partCode, border, text, textSub, textMut
     }
   }, [lineId, partCode, draft, token]);
 
+  // 2026-05-27 — NG-aware styling so the panel matches the modal frame
+  // colour the operator just opened.  OK cycles keep the default look.
+  const panelBg     = isNg ? "rgba(239,68,68,0.06)" : "rgba(255,255,255,0.02)";
+  const panelBorder = isNg ? "#ef4444"              : border;
+  const titleColor  = isNg ? "#fecaca"              : textSub;
   return (
     <div style={{
       marginTop: 8, padding: 10,
-      background: "rgba(255,255,255,0.02)",
-      border: `1px solid ${border}`, borderRadius: 8,
+      background: panelBg,
+      border: `1px solid ${panelBorder}`, borderRadius: 8,
       fontFamily: "'Barlow',sans-serif",
     }}>
       <div style={{
         fontSize: 11, fontWeight: 700, letterSpacing: ".08em",
-        color: textSub, textTransform: "uppercase", marginBottom: 8,
+        color: titleColor, textTransform: "uppercase", marginBottom: 8,
         display: "flex", justifyContent: "space-between", alignItems: "center",
       }}>
-        <span>Comments</span>
+        <span>{isNg ? "⚠ Remarks (NG cycle)" : "Remarks"}</span>
         <span style={{ color: textMut, fontSize: 10, fontWeight: 600 }}>
-          part {partCode}
+          {isFallbackKey
+            ? `cycle #${String(partCode).replace(/^cycle_/, "")}`
+            : `part ${partCode}`}
         </span>
       </div>
 
@@ -5604,7 +5706,7 @@ function FsCycleCommentsPanel({ lineId, partCode, border, text, textSub, textMut
       ) : items.length === 0 ? (
         <div style={{ color: textMut, fontSize: 12, fontStyle: "italic",
                        padding: "6px 0" }}>
-          No comments yet for this cycle.
+          No remarks yet for this cycle.
         </div>
       ) : (
         <div style={{ maxHeight: 160, overflowY: "auto", marginBottom: 8 }}>
@@ -5636,36 +5738,48 @@ function FsCycleCommentsPanel({ lineId, partCode, border, text, textSub, textMut
         <textarea
           value={draft}
           onChange={e => setDraft(e.target.value)}
-          placeholder="Add a comment about this cycle…"
+          placeholder={isNg ? "Why was this part marked NG? Describe the defect, root cause, action taken…" : "Add a remark about this cycle…"}
           rows={2}
           maxLength={2000}
           style={{
             flex: 1, padding: "6px 8px", fontSize: 13,
-            background: "rgba(255,255,255,0.04)",
-            color: text, border: `1px solid ${border}`,
+            // 2026-05-27 — White textarea + dark text so operator typed
+            // content is high-contrast against panel background (matches
+            // wallboard side).  Save button below explicitly says SAVE.
+            background: "#ffffff",
+            color: "#0f172a",
+            border: `1px solid ${isNg ? "#ef4444" : border}`,
             borderRadius: 6, resize: "vertical",
             fontFamily: "'Barlow',sans-serif",
           }}
           onKeyDown={e => {
             if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
               e.preventDefault();
-              submit();
+              submit().then(() => setSavedTick(t => t + 1));
             }
           }}
         />
         <button
-          onClick={submit}
+          onClick={() => submit().then(() => setSavedTick(t => t + 1))}
           disabled={posting || !draft.trim()}
           style={{
-            padding: "0 14px", fontSize: 12, fontWeight: 700,
-            background: (posting || !draft.trim()) ? "rgba(96,165,250,.3)" : "#2563eb",
+            padding: "0 18px", fontSize: 12, fontWeight: 800,
+            background: (posting || !draft.trim())
+              ? "rgba(96,165,250,.3)"
+              : (isNg ? "#ef4444" : "#16a34a"),
             color: "#fff", border: "none", borderRadius: 6,
             cursor: (posting || !draft.trim()) ? "not-allowed" : "pointer",
-            letterSpacing: ".04em",
+            letterSpacing: ".08em",
+            minWidth: 78,
           }}>
-          {posting ? "…" : "POST"}
+          {posting ? "Saving…" : "SAVE"}
         </button>
       </div>
+      {savedTick > 0 && !posting && !error && (
+        <div style={{ marginTop: 6, fontSize: 11, color: "#16a34a", fontWeight: 700 }}>
+          ✓ Saved
+        </div>
+      )}
       {error && (
         <div style={{ marginTop: 6, fontSize: 11, color: "#ef4444" }}>
           {error}
@@ -6167,6 +6281,11 @@ function NgListModal({ lineId, date, slotLabel, onClose, onPlayVideo, border, bg
                                 fontWeight: 800, fontSize: 10, color: textSub,
                                 textTransform: "uppercase",
                                 width: 60 }}>Video</th>
+                  {/* 2026-05-26 — "Machine Alarm" column kept as a
+                      placeholder.  Operator will populate it from a
+                      future PY-style alarm-name config; auto "CT vs
+                      ideal" guess removed because CT has NO relation
+                      to NG (a slow cycle is not necessarily NG). */}
                   <th style={{ padding: "8px 6px", textAlign: "left",
                                 fontWeight: 800, fontSize: 10, color: textSub,
                                 textTransform: "uppercase" }}>Machine Alarm</th>
@@ -6211,9 +6330,14 @@ function NgListModal({ lineId, date, slotLabel, onClose, onPlayVideo, border, bg
                           ▶
                         </button>
                       </td>
+                      {/* 2026-05-26 — Machine Alarm cell: empty
+                          placeholder until PY-style alarm-name config
+                          is wired in.  CT has NO relation to NG so we
+                          never auto-fill this from cycle data. */}
                       <td style={{ padding: "8px 6px", fontSize: 11,
-                                    color: text, lineHeight: 1.4 }}>
-                        {r.machine_alarm || "—"}
+                                    color: textMut, lineHeight: 1.4,
+                                    fontStyle: "italic" }}>
+                        —
                       </td>
                       <td style={{ padding: "8px 6px", minWidth: 280 }}>
                         <div style={{ display: "flex", gap: 4 }}>

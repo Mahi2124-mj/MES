@@ -41,21 +41,12 @@ GET    /api/breakdowns/stats                 zone + line MTBF/MTTR/LTTR/LTBF
 from datetime import datetime, timedelta
 from typing import Optional, Any, Dict
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from psycopg2.extras import Json
 
 from database import get_conn, dict_cursor
 from auth import get_current_user, require_admin
-
-# Lazy import so the bridge is optional — if env vars aren't set it
-# just logs a warning and skips, never breaking the core breakdown flow.
-def _maybe_fire_n8n(br_id: int) -> None:
-    try:
-        from routers.n8n_bridge import _fire_n8n
-        _fire_n8n(br_id)
-    except Exception as exc:
-        print(f"[n8n-bridge] skipped for breakdown {br_id}: {exc}")
 
 router = APIRouter(prefix="/api/breakdowns", tags=["breakdowns"])
 
@@ -245,11 +236,9 @@ def open_breakdown(body: BreakdownCreate, user=Depends(get_current_user)):
 
 @router.post("/{br_id}/resolve")
 def resolve_breakdown(br_id: int, body: BreakdownResolve,
-                      bg: BackgroundTasks,
                       user=Depends(get_current_user)):
     """Mark a breakdown as RESOLVED (line is back running).  Moves the row
-    from ANDON to History.  The closure form is filled separately.
-    Also fires the n8n AI Incident Intelligence webhook in the background."""
+    from ANDON to History.  The closure form is filled separately."""
     ended = body.ended_at or datetime.utcnow()
     with get_conn() as conn:
         cur = conn.cursor()
@@ -261,9 +250,7 @@ def resolve_breakdown(br_id: int, body: BreakdownResolve,
         if cur.rowcount == 0:
             raise HTTPException(409, "Breakdown not OPEN (already resolved or missing)")
         conn.commit()
-    # Fire AI analysis in background — non-blocking, never fails the response
-    bg.add_task(_maybe_fire_n8n, br_id)
-    return {"ok": True, "ended_at": ended.isoformat()}
+        return {"ok": True, "ended_at": ended.isoformat()}
 
 
 @router.post("/{br_id}/production-fill")
@@ -313,7 +300,6 @@ def production_fill(br_id: int, body: BreakdownProductionFill,
 
 @router.post("/{br_id}/close")
 def close_breakdown(br_id: int, body: BreakdownClose,
-                    bg: BackgroundTasks,
                     user=Depends(get_current_user)):
     """Maintenance saves their half of the BREAK DOWN SLIP and moves the
     ticket from RESOLVED → CLOSED.
@@ -351,8 +337,6 @@ def close_breakdown(br_id: int, body: BreakdownClose,
              WHERE id = %s
         """, (br_id,))
         conn.commit()
-    # Fire AI analysis for closed breakdowns that weren't triggered on resolve
-    bg.add_task(_maybe_fire_n8n, br_id)
     return {"ok": True}
 
 

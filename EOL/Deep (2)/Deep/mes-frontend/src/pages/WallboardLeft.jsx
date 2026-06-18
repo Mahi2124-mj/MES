@@ -326,8 +326,29 @@ function MachineRow({ machine, idealCt, onPick, onCycleVideo, isMain = false, ch
               ];
             },
           },
-          backgroundColor: "rgba(15,23,41,.95)",
-          borderColor: "rgba(59,130,246,.5)",
+          // 2026-05-27 — NG cycles get a red tooltip box (matches the
+          // Final-Inspection styling).  Pulls is_ng off the cycle row
+          // being hovered.  OK styling unchanged.
+          backgroundColor: ctx => {
+            const idx = ctx.tooltip?.dataPoints?.[0]?.dataIndex;
+            const cy  = idx != null ? cycles[idx] : null;
+            return cy?.is_ng ? "rgba(58,13,16,.97)" : "rgba(15,23,41,.95)";
+          },
+          borderColor: ctx => {
+            const idx = ctx.tooltip?.dataPoints?.[0]?.dataIndex;
+            const cy  = idx != null ? cycles[idx] : null;
+            return cy?.is_ng ? "#ef4444" : "rgba(59,130,246,.5)";
+          },
+          titleColor: ctx => {
+            const idx = ctx.tooltip?.dataPoints?.[0]?.dataIndex;
+            const cy  = idx != null ? cycles[idx] : null;
+            return cy?.is_ng ? "#fecaca" : "#e2e8f0";
+          },
+          bodyColor: ctx => {
+            const idx = ctx.tooltip?.dataPoints?.[0]?.dataIndex;
+            const cy  = idx != null ? cycles[idx] : null;
+            return cy?.is_ng ? "#fecaca" : "#e2e8f0";
+          },
           borderWidth: 1,
           padding: 8,
           titleFont: { weight: 800, size: 12 },
@@ -365,8 +386,14 @@ function MachineRow({ machine, idealCt, onPick, onCycleVideo, isMain = false, ch
       // run with (closure capture), the latest data lands.  The
       // double-update (`reset` keeps animation off) makes the new
       // handler functions take effect even if Chart.js cached the old.
-      chartRef.current.data    = data;
-      chartRef.current.options = options;
+      // 2026-05-27 — Stash latest cycles on the chart instance so the
+      // ngMarkerPlugin (registered ONCE at chart creation) can read
+      // the freshest data instead of its stale closure capture.
+      // Earlier symptom: ⚠ markers persisted on cycles that weren't
+      // NG anymore — operator saw bogus NG flags on the wallboard.
+      chartRef.current._cyclesRef = cycles;
+      chartRef.current.data       = data;
+      chartRef.current.options    = options;
       chartRef.current.update("none");
     } else {
       // 2026-05-24 — Per-dot CT label plugin.  Operator spec: "dot pe
@@ -380,12 +407,18 @@ function MachineRow({ machine, idealCt, onPick, onCycleVideo, isMain = false, ch
         afterDatasetsDraw(chart) {
           const meta = chart.getDatasetMeta(0);
           if (!meta || !meta.data) return;
+          // 2026-05-27 — Read cycles from the chart instance (set on
+          // every update at line ~390 above) instead of the stale
+          // closure capture from chart-creation time.  Falls back to
+          // the captured `cycles` only on the very first render before
+          // _cyclesRef has been attached.
+          const liveCycles = chart._cyclesRef || cycles;
           const ctx2 = chart.ctx;
           ctx2.save();
           ctx2.textAlign    = "center";
           ctx2.textBaseline = "bottom";
           meta.data.forEach((pt, i) => {
-            const cy = cycles[i];
+            const cy = liveCycles[i];
             if (!cy || cy.ct == null) return;
             const x = pt.x, y = pt.y;
             const ct = Number(cy.ct).toFixed(1) + "s";
@@ -410,6 +443,9 @@ function MachineRow({ machine, idealCt, onPick, onCycleVideo, isMain = false, ch
       chartRef.current = new window.Chart(canvasRef.current.getContext("2d"), {
         type: "line", data, options, plugins: [ngMarkerPlugin],
       });
+      // 2026-05-27 — Seed _cyclesRef on first creation too so the
+      // plugin's very first draw also sees fresh data, not closure.
+      chartRef.current._cyclesRef = cycles;
     }
   }, [cycles, idealCt, chartReady]);
 
@@ -1084,12 +1120,21 @@ export default function WallboardLeft() {
         >
           <div onClick={e => e.stopPropagation()}
                style={{
-                 background: "#0a0f1a", color: text,
-                 border: `1px solid ${border}`, borderRadius: 12,
+                 // 2026-05-27 — Red frame for NG cycles (matches the
+                 // Fullscreen modal styling).  Operator: "ng pe sab
+                 // jagah red dikhna chahiye".  OK styling unchanged.
+                 background: videoCycle.cy?.is_ng ? "#1a0a0d" : "#0a0f1a",
+                 color: text,
+                 border: videoCycle.cy?.is_ng
+                   ? `3px solid #ef4444`
+                   : `1px solid ${border}`,
+                 borderRadius: 12,
                  padding: 14, maxWidth: 900, width: "90%",
                  maxHeight: "88vh",
                  display: "flex", flexDirection: "column",
-                 boxShadow: "0 24px 72px rgba(0,0,0,0.6)",
+                 boxShadow: videoCycle.cy?.is_ng
+                   ? "0 24px 72px rgba(239,68,68,0.5)"
+                   : "0 24px 72px rgba(0,0,0,0.6)",
                }}>
             {/* Header strip */}
             <div style={{ display:"flex", justifyContent:"space-between",
@@ -1166,8 +1211,14 @@ export default function WallboardLeft() {
             <video src={videoCycle.url}
                    autoPlay muted
                    controls
-                   controlsList="nodownload noplaybackrate noremoteplayback"
+                   controlsList="nodownload noremoteplayback"
                    data-retry="0"
+                   onLoadedMetadata={(e) => {
+                     // 2026-05-27 — Playback rate stays 1.0 (real-time).
+                     // Server-side encoder is now NVENC p1 (fastest)
+                     // so the clip arrives 2-3× sooner; the perceived
+                     // "slow" was render latency, not playback speed.
+                   }}
                    onClick={(e) => {
                      // Tap on video toggles play/pause — same UX as the
                      // big centered button.
