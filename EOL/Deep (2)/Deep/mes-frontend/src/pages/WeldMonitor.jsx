@@ -118,6 +118,86 @@ function WeldChart({ title, paramKey, unit, readings, spec, color, xMode }) {
   );
 }
 
+/* 2026-09-21 — gas sensor on the PPI analog card at 192.168.32.52, channel 6
+ * (Phase2/gas_poller.py reads it every 2 s into mes_gas_log).  It is its own
+ * feed — not tied to a weld, station or the filters above — so the x-axis is
+ * time and it shows the last 30 minutes. */
+function GasChart({ token }) {
+  const [g, setG] = useState(null);
+  const [err, setErr] = useState("");
+  useEffect(() => {
+    let alive = true;
+    const pull = () => api.get("/api/weld/gas?minutes=30", token)
+      .then(r => { if (alive) { setG(r); setErr(""); } })
+      .catch(e => { if (alive) setErr(String((e && e.message) || e)); });
+    pull();
+    const t = setInterval(pull, 3000);
+    return () => { alive = false; clearInterval(t); };
+  }, [token]);
+
+  const unit = (g && g.unit) || "";
+  const data = ((g && g.readings) || []).map(r => ({
+    x: r.ts ? new Date(r.ts).toLocaleTimeString("en-GB", { hour12: false }) : "",
+    v: r.v,
+  }));
+  const latest = g ? g.latest : null;
+  const live = g && g.age_s != null && g.age_s <= 30;
+  const badge = latest == null ? "NO DATA" : live ? "LIVE" : "NO NEW DATA";
+
+  return (
+    <div style={{
+      background: "#fff", border: "1px solid #e2e8f0", borderRadius: 14,
+      padding: "18px 20px", boxShadow: "0 1px 3px rgba(0,0,0,.05)", marginBottom: 20,
+    }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end",
+                     marginBottom: 12, flexWrap: "wrap", gap: 10 }}>
+        <div>
+          <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: ".06em",
+                         textTransform: "uppercase", color: "#64748b" }}>Gas Sensor · CH{(g && g.channel) || 6}</div>
+          <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 2 }}>
+            Card {(g && g.card) || "192.168.32.52"} · every {(g && g.every_s) || 2}s · last 30 min
+            {" · x-axis: "}<b style={{ color: "#64748b" }}>Time</b>
+            {latest != null && !live && g.age_s != null &&
+              <span style={{ color: "#b45309", fontWeight: 700 }}> · last reading {Math.round(g.age_s / 60)} min ago</span>}
+          </div>
+        </div>
+        <div style={{ textAlign: "right" }}>
+          <span style={{ fontSize: 34, fontWeight: 800, fontFamily: "monospace",
+                          color: latest == null ? "#94a3b8" : "#0f766e", lineHeight: 1 }}>
+            {num(latest, 2)}<span style={{ fontSize: 15, marginLeft: 3 }}>{unit}</span>
+          </span>
+          <div style={{ marginTop: 4 }}>
+            <span style={{
+              fontSize: 10, fontWeight: 800, padding: "2px 10px", borderRadius: 999,
+              background: live ? "rgba(15,118,110,.12)" : "#f1f5f9",
+              color: live ? "#0f766e" : "#64748b",
+            }}>{badge}</span>
+          </div>
+        </div>
+      </div>
+      {data.length === 0 ? (
+        <div style={{ height: 240, display: "flex", alignItems: "center", justifyContent: "center",
+                       color: "#94a3b8", fontSize: 13, textAlign: "center" }}>
+          {/404/.test(err)
+            ? "The gas feed starts after the next MES-API restart."
+            : err ? `Gas feed not reachable (${err}).` : "Waiting for gas readings…"}
+        </div>
+      ) : (
+        <ResponsiveContainer width="100%" height={240}>
+          <LineChart data={data} margin={{ top: 6, right: 12, left: 0, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#eef2f7" />
+            <XAxis dataKey="x" tick={{ fontSize: 10, fill: "#94a3b8" }} minTickGap={24} />
+            <YAxis domain={["auto", "auto"]} tick={{ fontSize: 10, fill: "#94a3b8" }} width={44} />
+            <Tooltip formatter={(v) => [`${num(v, 2)} ${unit}`.trim(), "Gas sensor"]} />
+            <Line type="monotone" dataKey="v" stroke="#0f766e" strokeWidth={2}
+                  dot={false} isAnimationActive={false} connectNulls />
+          </LineChart>
+        </ResponsiveContainer>
+      )}
+    </div>
+  );
+}
+
 const LBL = {
   fontSize: 10, fontWeight: 700, letterSpacing: ".1em",
   textTransform: "uppercase", color: "#64748b",
@@ -284,6 +364,7 @@ export default function WeldMonitor() {
                            xMode={xMode} />
               </>
             )}
+            <GasChart token={token} />
           </>
         )}
 

@@ -776,6 +776,85 @@ def _fair_merge(per_source, limit):
     return out
 
 
+# ── Clip priority (Admin → Production → Clip Priority) — 2026-09-21 ─────────
+# The GPU cuts ~110k clips/day against ~217k cycles, so sub-machine clips go in
+# the admin's order: NG on every zone first (P1), then every cycle of the top
+# `p2_zones` zones by zone rank → machine-type rank → newest (P2).  The other
+# zones' OK cycles are left for on-click cutting from the 48 h footage (P3).
+# Inert until the admin SAVES the page: with nothing saved, or if the config
+# cannot be read, everything behaves exactly as before (newest first, all).
+import re as _re_prio
+_PRIO = {"t": 0.0, "cfg": None, "zone_of_line": {}}
+_PRIO_LOCK = threading.Lock()
+_MT_RULES = [
+    ("Final Inspection", r"final\s*insp"),
+    ("Welding (MAG / PJW / projection)", r"weld|pjw|projection|\bmag\b"),
+    ("Checking (bolt strength, inspection)", r"check|strength|inspect|test"),
+    ("Insert / press (ball guide, lock bar, hinge pin)",
+     r"insert|press|ball\s*guide|lock\s*bar|hinge|\bpin\b|stak|caulk|rivet|assy|assembl"),
+    ("Greasing / bending / supply", r"greas|bend|supply|karakuri|squeez|slit|cut"),
+]
+
+
+def _machine_type(name) -> str:
+    n = str(name or "").lower()
+    for label, rx in _MT_RULES:
+        if _re_prio.search(rx, n):
+            return label
+    return "Other"
+
+
+def _prio():
+    """The saved clip-priority config + line→zone map, refreshed every 60 s.
+    None = nothing saved / unreadable → old behaviour."""
+    with _PRIO_LOCK:
+        if time.time() - _PRIO["t"] < 60:
+            return _PRIO if _PRIO["cfg"] else None
+    cfg, zmap = None, {}
+    try:
+        from routers.clip_priority import _merged
+        with get_conn() as conn:
+            cur = dict_cursor(conn)
+            cur.execute("SELECT to_regclass('mes_clip_priority') AS t")
+            if (cur.fetchone() or {}).get("t"):
+                cur.execute("SELECT config FROM mes_clip_priority WHERE id = 1")
+                row = cur.fetchone()
+                if row and row["config"]:
+                    cur.execute("SELECT zone_name FROM mes_zones WHERE COALESCE(is_active, TRUE) "
+                                "AND COALESCE(zone_name,'') <> '' ORDER BY zone_name")
+                    cfg = _merged(row["config"], [r["zone_name"] for r in cur.fetchall()])
+                    cur.execute("SELECT l.id, z.zone_name FROM mes_lines l "
+                                "LEFT JOIN mes_zones z ON z.id = l.zone_id")
+                    zmap = {r["id"]: r["zone_name"] for r in cur.fetchall()}
+    except Exception as exc:
+        print(f"[CLIP-ARCHIVE] clip priority not read ({exc}) — archiving as before")
+        cfg = None
+    with _PRIO_LOCK:
+        _PRIO.update(t=time.time(), cfg=cfg, zone_of_line=zmap)
+        return _PRIO if cfg else None
+
+
+def _sub_rank(line_id, machine_name, is_ng):
+    """Sort key for a sub-machine cycle, or None when it is P3 (on click only).
+    With no saved priority every cycle ranks equal (old newest-first order)."""
+    p = _prio()
+    if not p:
+        return (0, 0, 0)
+    cfg = p["cfg"]
+    zones = cfg.get("zone_order") or []
+    z = p["zone_of_line"].get(line_id)
+    zr = zones.index(z) if z in zones else len(zones)
+    mo = cfg.get("machine_order") or []
+    mt = _machine_type(machine_name)
+    mr = mo.index(mt) if mt in mo else len(mo)
+    if is_ng and (cfg.get("p1") or {}).get("ng_cycles", True):
+        return (0, zr, mr)
+    if zr < int(cfg.get("p2_zones") or 0):
+        return (1, zr, mr)
+    _stats["priority_p3_skip"] = _stats.get("priority_p3_skip", 0) + 1
+    return None
+
+
 def _pending(limit: int):
     """Newest over-target / Alarm cycles that are not archived yet.
 
@@ -945,6 +1024,7 @@ def _pending(limit: int):
             SELECT l.sub_plc_id, l.cycle_seq, l.record_date,
                    COALESCE(l.is_ng, FALSE) AS is_ng,
                    l.ts_start, l.ts_end, l.shift_name, p.line_id, p.nf2_camera_id,
+                   p.machine_name,
                    CASE WHEN COALESCE(l.is_ng, FALSE) THEN 0
                         WHEN p.ideal_cycle_time IS NOT NULL
                              AND l.ct_seconds > p.ideal_cycle_time THEN 1
@@ -956,9 +1036,16 @@ def _pending(limit: int):
               {interesting_only}
             {order_by}
             LIMIT %s
-        """, (limit * 6,))
+        """, (limit * (10 if _prio() else 6),))
         _fidx_sub = _footage_index()
+        _subs = []
         for r in cur.fetchall():
+            rk = _sub_rank(r.get("line_id"), r.get("machine_name"), r["is_ng"])
+            if rk is not None:
+                _subs.append((rk, r))
+        # stable sort: rank first, the SQL's newest-first order within a rank
+        _subs.sort(key=lambda x: x[0])
+        for _rk, r in _subs:
             if _archived_path("sub", r["sub_plc_id"], r["record_date"],
                               r["cycle_seq"], r["is_ng"],
                               r.get("shift_name"), r.get("line_id")):
@@ -1109,7 +1196,8 @@ def _pending_newest(limit: int):
                 SELECT DISTINCT ON (l.sub_plc_id)
                        l.sub_plc_id, l.cycle_seq, l.record_date,
                        COALESCE(l.is_ng, FALSE) AS is_ng,
-                       l.ts_start, l.ts_end, l.shift_name, p.line_id, p.nf2_camera_id
+                       l.ts_start, l.ts_end, l.shift_name, p.line_id, p.nf2_camera_id,
+                       p.machine_name
                 FROM mes_submachine_ct_log l
                 JOIN mes_plc_configs p ON p.id = l.sub_plc_id
                 WHERE l.ts_end > now() - interval '6 minutes'
@@ -1125,6 +1213,13 @@ def _pending_newest(limit: int):
     # meaningless between machines and let the ones whose counters never reset
     # (29,000-43,000 on the SA-4WAY / Semi-Auto machines) take every slot.
     rows.sort(key=lambda r: r["ts_end"], reverse=True)
+    ranked = []
+    for r in rows:
+        rk = _sub_rank(r.get("line_id"), r.get("machine_name"), r["is_ng"])
+        if rk is not None:
+            ranked.append((rk, r))
+    ranked.sort(key=lambda x: x[0])        # stable: newest first within a rank
+    rows = [r for _rk, r in ranked]
     _fidx_sub = _footage_index()
     for r in rows:
         if len(out) >= limit:

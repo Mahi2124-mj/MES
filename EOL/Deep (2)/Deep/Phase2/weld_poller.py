@@ -51,56 +51,84 @@ _STOP = threading.Event()
 
 # ── Modbus TCP (only what this card needs: read N input registers) ─────────
 class _Card:
-    """Persistent Modbus-TCP reader for one float channel.
+    """Persistent Modbus-TCP connection to ONE analog card, shared by every
+    channel configured on that card.
 
     The socket stays OPEN between reads: re-connecting per sample caps the
     rate near 5 Hz, a held connection sustains hundreds of Hz.  Any error
     closes it and the caller reconnects with backoff — this card is on the
     plant network, so a blip must never take the feed down.
+
+    2026-09-21 — these PPI cards accept a SINGLE Modbus session.  Two rows on
+    one card (RC-01 weld current on ch8 + the gas sensor on ch6) used to open
+    two connections and lock each other out.  Now there is one socket per card
+    (see _card_for) and each read is one request/response under the card's
+    lock, so any number of channels share it.
     """
 
-    def __init__(self, ip: str, port: int, unit: int, reg: int):
-        self.ip, self.port, self.unit, self.reg = ip, port, unit, reg
+    def __init__(self, ip: str, port: int, unit: int):
+        self.ip, self.port, self.unit = ip, port, unit
         self._s: Optional[socket.socket] = None
         self._tid = 0
+        self.lock = threading.RLock()
 
     def close(self) -> None:
-        if self._s is not None:
+        with self.lock:
+            if self._s is not None:
+                try:
+                    self._s.close()
+                except Exception:
+                    pass
+                self._s = None
+
+    def read_float(self, reg: int) -> float:
+        """FC4, two input registers from `reg`, as one big-endian float."""
+        with self.lock:
             try:
-                self._s.close()
+                if self._s is None:
+                    s = socket.socket()
+                    s.settimeout(2.0)
+                    s.connect((self.ip, self.port))
+                    s.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+                    self._s = s
+                s = self._s
+                self._tid = (self._tid + 1) % 65535
+                pdu = struct.pack(">BHH", 4, reg, 2)          # FC4, 2 registers
+                s.sendall(struct.pack(">HHHB", self._tid, 0, len(pdu) + 1, self.unit) + pdu)
+
+                def _rd(n: int) -> bytes:
+                    buf = b""
+                    while len(buf) < n:
+                        chunk = s.recv(n - len(buf))
+                        if not chunk:
+                            raise IOError("connection closed by card")
+                        buf += chunk
+                    return buf
+
+                _rd(7)                                        # MBAP header
+                fc = _rd(1)[0]
+                if fc & 0x80:
+                    raise IOError(f"modbus exception {_rd(1)[0]}")
+                data = _rd(_rd(1)[0])
+                hi, lo = struct.unpack(">HH", data[:4])
+                return struct.unpack(">f", struct.pack(">HH", hi, lo))[0]
             except Exception:
-                pass
-            self._s = None
+                self.close()
+                raise
 
-    def read_mv(self) -> float:
-        if self._s is None:
-            s = socket.socket()
-            s.settimeout(2.0)
-            s.connect((self.ip, self.port))
-            s.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-            self._s = s
-        s = self._s
-        assert s is not None
-        self._tid = (self._tid + 1) % 65535
-        pdu = struct.pack(">BHH", 4, self.reg, 2)        # FC4, 2 registers
-        s.sendall(struct.pack(">HHHB", self._tid, 0, len(pdu) + 1, self.unit) + pdu)
 
-        def _rd(n: int) -> bytes:
-            buf = b""
-            while len(buf) < n:
-                chunk = s.recv(n - len(buf))
-                if not chunk:
-                    raise IOError("connection closed by card")
-                buf += chunk
-            return buf
+_CARDS: dict = {}
+_CARDS_LOCK = threading.Lock()
 
-        _rd(7)                                            # MBAP header
-        fc = _rd(1)[0]
-        if fc & 0x80:
-            raise IOError(f"modbus exception {_rd(1)[0]}")
-        data = _rd(_rd(1)[0])
-        hi, lo = struct.unpack(">HH", data[:4])
-        return struct.unpack(">f", struct.pack(">HH", hi, lo))[0]
+
+def _card_for(ip: str, port: int, unit: int) -> _Card:
+    """The one shared connection object for this card."""
+    key = (str(ip), int(port or 502), int(unit or 1))
+    with _CARDS_LOCK:
+        c = _CARDS.get(key)
+        if c is None:
+            c = _CARDS[key] = _Card(*key)
+        return c
 
 
 # ── helpers ───────────────────────────────────────────────────────────────
@@ -195,14 +223,16 @@ def _load_stations() -> list[dict]:
                 SELECT id, station, weld_type, zone, line_id, machine_name,
                        card_ip, card_port, unit_id, channel, base_register, mv_to_a,
                        current_min, current_max, on_threshold_a, gap_s,
-                       min_weld_s, sample_hz
+                       min_weld_s, sample_hz,
+                       COALESCE(signal, 'current') AS signal, unit, scale,
+                       offset_val, sample_s
                 FROM mes_weld_master WHERE is_active ORDER BY station
             """)
             cols = [d[0] for d in cur.description]
             return [dict(zip(cols, row)) for row in (cur.fetchall() or [])]
     except Exception as exc:
         print(f"[WELD-LIVE] master read failed: {exc}", flush=True)
-        return []
+        return None          # unknown ≠ "no stations": keep what is running
 
 
 def _next_seq(station: str) -> int:
@@ -252,7 +282,7 @@ def _store(cfg: dict, samples: list[float], dur: float, seq: int,
 
 
 # ── one worker per station ────────────────────────────────────────────────
-def _station_worker(cfg: dict) -> None:
+def _station_worker(cfg: dict, stop: Optional[threading.Event] = None) -> None:
     station = cfg["station"]
     ch      = int(cfg.get("channel") or 8)
     base    = int(cfg.get("base_register") or 2001)
@@ -267,8 +297,9 @@ def _station_worker(cfg: dict) -> None:
     line_table = _line_table(cfg.get("line_id"))
     sub_plc  = _sub_plc_id(cfg.get("line_id"), cfg.get("machine_name"))
     seq      = _next_seq(station)
-    card = _Card(str(cfg["card_ip"]), int(cfg.get("card_port") or 502),
-                 int(cfg.get("unit_id") or 1), reg)
+    card = _card_for(str(cfg["card_ip"]), int(cfg.get("card_port") or 502),
+                     int(cfg.get("unit_id") or 1))
+    stop = stop or threading.Event()
 
     print(f"[WELD-LIVE] {station}: {cfg['card_ip']}:{cfg.get('card_port', 502)} "
           f"ch{ch} (FC4 reg {reg}) @{hz:.0f}Hz · {mv_to_a:g} A/mV · seq from {seq} · "
@@ -281,9 +312,9 @@ def _station_worker(cfg: dict) -> None:
     welds = 0
     last_report = time.time()
 
-    while not _STOP.is_set():
+    while not _STOP.is_set() and not stop.is_set():
         try:
-            amps = card.read_mv() * mv_to_a
+            amps = card.read_float(reg) * mv_to_a
             backoff = 1.0
             now = time.time()
             if amps >= on_a:
@@ -312,26 +343,117 @@ def _station_worker(cfg: dict) -> None:
                 samples = []
             card.close()
             print(f"[WELD-LIVE] {station}: {exc} — retry in {backoff:.0f}s", flush=True)
-            _STOP.wait(backoff)
+            stop.wait(backoff)
             backoff = min(backoff * 2, 30.0)
-    card.close()
+    # The card connection is shared with the card's other channels: leave it open.
+
+
+# ── one worker per SENSOR channel (gas, …) — 2026-09-21 ───────────────────
+_SENSOR_TABLE_OK = False
+
+
+def _ensure_sensor_table() -> None:
+    global _SENSOR_TABLE_OK
+    if _SENSOR_TABLE_OK:
+        return
+    with get_conn() as conn:
+        cur = conn.cursor()
+        cur.execute("""CREATE TABLE IF NOT EXISTS mes_gas_log (
+                         id       BIGSERIAL PRIMARY KEY,
+                         ts       TIMESTAMP NOT NULL DEFAULT now(),
+                         card_ip  TEXT NOT NULL,
+                         channel  INTEGER NOT NULL,
+                         raw      REAL,
+                         value    REAL)""")
+        cur.execute("ALTER TABLE mes_gas_log ADD COLUMN IF NOT EXISTS station TEXT")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_gas_log_ts ON mes_gas_log (ts)")
+        conn.commit()
+    _SENSOR_TABLE_OK = True
+
+
+def _sensor_worker(cfg: dict, stop: Optional[threading.Event] = None) -> None:
+    """A continuous analog signal on a card channel (the gas sensor): one
+    reading every `sample_s` into mes_gas_log, value = raw x scale + offset.
+    Reads through the card's shared connection, so it never competes with the
+    weld-current channel on the same card."""
+    stop = stop or threading.Event()
+    station = cfg["station"]
+    ch    = int(cfg.get("channel") or 1)
+    base  = int(cfg.get("base_register") or 2001)
+    reg   = base + (ch - 1) * 2
+    scale = float(cfg["scale"]) if cfg.get("scale") is not None else 1.0
+    off   = float(cfg.get("offset_val") or 0.0)
+    every = max(1.0, float(cfg.get("sample_s") or 2.0))
+    card = _card_for(str(cfg["card_ip"]), int(cfg.get("card_port") or 502),
+                     int(cfg.get("unit_id") or 1))
+    try:
+        _ensure_sensor_table()
+    except Exception as exc:
+        print(f"[WELD-LIVE] {station}: sensor table not ready: {exc}", flush=True)
+        return
+    print(f"[WELD-LIVE] {station} (sensor): {cfg['card_ip']}:{cfg.get('card_port', 502)} "
+          f"ch{ch} (FC4 reg {reg}) every {every:g}s · value = raw x {scale:g} + {off:g} "
+          f"{cfg.get('unit') or ''}".rstrip(), flush=True)
+    fails = 0
+    while not _STOP.is_set() and not stop.is_set():
+        t0 = time.monotonic()
+        try:
+            raw = card.read_float(reg)
+            val = raw * scale + off
+            with get_conn() as conn:
+                cur = conn.cursor()
+                cur.execute("INSERT INTO mes_gas_log (station, card_ip, channel, raw, value) "
+                            "VALUES (%s,%s,%s,%s,%s)",
+                            (station, str(cfg["card_ip"]), ch, round(raw, 4), round(val, 4)))
+                conn.commit()
+            fails = 0
+            wait = every - (time.monotonic() - t0)
+        except Exception as exc:
+            fails += 1
+            if fails in (1, 10) or fails % 300 == 0:
+                print(f"[WELD-LIVE] {station} (sensor): read failed x{fails}: {exc}", flush=True)
+            wait = min(30.0, every * (2 ** min(fails, 4)))
+        stop.wait(max(0.2, wait))
 
 
 # ── supervisor: keeps threads in sync with the master table ───────────────
 def weld_poller_worker() -> None:
+    """One thread per active master row; weld-current rows run _station_worker,
+    gas/sensor rows run _sensor_worker.  2026-09-21 — a row whose settings
+    change (channel, card, scale, …) is restarted within _RESCAN_S; before, an
+    edit only took effect after the next API restart."""
     if os.environ.get("WELD_POLLER", "1") == "0":
         print("[WELD-LIVE] poller disabled (WELD_POLLER=0)", flush=True)
         return
-    running: dict[str, threading.Thread] = {}
+    running: dict = {}          # station -> (thread, stop event, config signature)
     while not _STOP.is_set():
-        for cfg in _load_stations():
-            st = cfg["station"]
-            t = running.get(st)
-            if t is None or not t.is_alive():
-                th = threading.Thread(target=_station_worker, args=(cfg,),
+        rows = _load_stations()
+        if rows is not None:
+            seen = set()
+            for cfg in rows:
+                st = cfg["station"]
+                seen.add(st)
+                sig = tuple(sorted((k, str(v)) for k, v in cfg.items()))
+                cur = running.get(st)
+                if cur and cur[0].is_alive() and cur[2] == sig:
+                    continue
+                if cur:
+                    cur[1].set()                    # changed or died: stop the old one
+                    print(f"[WELD-LIVE] {st}: settings changed — restarting its worker",
+                          flush=True)
+                stop = threading.Event()
+                kind = str(cfg.get("signal") or "current").lower()
+                target = _sensor_worker if kind in ("gas", "sensor") else _station_worker
+                th = threading.Thread(target=target, args=(cfg, stop),
                                       daemon=True, name=f"weld-{st}")
                 th.start()
-                running[st] = th
+                running[st] = (th, stop, sig)
+            for st in list(running):
+                if st not in seen:                  # deleted or deactivated
+                    running[st][1].set()
+                    running.pop(st, None)
+                    print(f"[WELD-LIVE] {st}: removed from the master — worker stopped",
+                          flush=True)
         _STOP.wait(_RESCAN_S)
 
 

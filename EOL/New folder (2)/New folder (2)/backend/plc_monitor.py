@@ -147,12 +147,25 @@ def _line_for_camera(camera_id: str, base_dir: str, bindings=None) -> str:
 # Fail-OPEN everywhere: if the MES is unreachable, the answer is empty, or the
 # camera's line is unknown, the camera keeps recording.  A problem with this
 # feature must never be able to silence the cameras.
+# 2026-09-21 — 48 h FOOTAGE HOLD.  Raw camera TS files are kept this long so
+# clips can still be cut later (catch-up / on click).  Was 1 h, and every
+# shift boundary deleted the files outright.
+TS_KEEP_HOURS = float(os.environ.get("TS_KEEP_HOURS", "48"))
+TS_KEEP_SEC = int(TS_KEEP_HOURS * 3600)
+# Shift rotation: one camera at a time, respawn held so the camera can free
+# its single RTSP session before the new recorder connects.
+ROTATE_STAGGER_S = float(os.environ.get("TS_ROTATE_STAGGER_S", "10"))
+ROTATE_QUIET_S = float(os.environ.get("TS_ROTATE_QUIET_S", "20"))
 _PRODUCING: set = set()
 _PRODUCING_AT: float = 0.0
 _PRODUCING_OK: bool = False          # have we ever got a usable answer?
 _PRODUCING_LOCK = threading.Lock()
 _PRODUCING_TTL = 60.0
-_PRODUCING_WINDOW_MIN = int(os.environ.get("VIDEO_ACTIVE_MINUTES", "45"))
+# 2026-09-21 — 45 -> 1440 min.  With 45 min every break / shift gap stopped a
+# line's cameras and restarted them later; the single-session cameras kept
+# the old session and hung (67 hung on 21-Sep).  A line that produced in the
+# last 24 h now keeps recording straight through.
+_PRODUCING_WINDOW_MIN = int(os.environ.get("VIDEO_ACTIVE_MINUTES", "1440"))
 
 
 def _refresh_producing(base_dir: str = "") -> None:
@@ -380,7 +393,9 @@ _HW_ENCODER_CACHE: list = []   # [(codec, [flags...])]
 # So: keep the fallback, but only for a camera that is severely starved (see
 # _STARVE_RATIO), and re-probe TCP with an exponential backoff.
 # Set VIDEO_ALLOW_UDP=0 to disable the fallback entirely.
-_ALLOW_UDP_FALLBACK = os.environ.get("VIDEO_ALLOW_UDP", "1") == "1"
+# 2026-09-21 — default OFF: a UDP session that is not torn down cleanly keeps
+# a single-session camera busy (the proven recovery recipe runs with 0).
+_ALLOW_UDP_FALLBACK = os.environ.get("VIDEO_ALLOW_UDP", "0") == "1"
 
 # Fraction of realtime below which a TCP session is considered hopeless.  Was
 # 0.6, which demoted cameras measured at 0.54-0.58x — those were capturing CLEAN
@@ -811,7 +826,7 @@ class PlcMonitor:
         # rotated files within the retention window are preserved.
         # Empty/zero-byte ffmpeg-launch-fail stubs are still removed.
         import time as _time
-        TS_KEEP_GRACE_SEC = 3600
+        TS_KEEP_GRACE_SEC = TS_KEEP_SEC      # 48 h footage hold (was 3600)
         videos_abs = _resolve_videos_root(self.base_dir)
         _now_clean = _time.time()
         for old_ts in _glob.glob(os.path.join(videos_abs, "cam_*.ts")):
@@ -2039,32 +2054,56 @@ class PlcMonitor:
         self._save_shift_state(state)
 
     def _wipe_sub_camera_state(self, camera_ids: List[str]) -> None:
-        """Stop ffmpeg + delete .ts for the given SUB cameras.  The
-        watchdog tick (every 3 s) will respawn fresh recorders on its
-        next pass — no need to call _ensure_camera_recording from here."""
-        for cid in camera_ids:
-            cam = self._camera_workers.pop(cid, None)
-            ts_file = cam.get("ts_file") if cam else None
-            if cam:
-                try:
-                    self._kill_cam(cam)
-                except Exception as exc:
-                    print(f"[PLC] shift-wipe kill failed for {cid}: {exc}")
-            if ts_file:
-                try:
-                    os.remove(ts_file)
-                    print(f"[PLC] shift-wipe deleted {ts_file}")
-                except OSError as exc:
-                    print(f"[PLC] shift-wipe delete failed for {ts_file}: {exc}")
-            # Drop any in-flight cycle markers for machines bound to this
-            # camera — they reference a TS file that no longer exists, so
-            # the next clip extraction would point at thin air.
-            stale_markers = [
-                mid for mid, vw in self._video_workers.items()
-                if vw.get("camera_id") == cid
-            ]
-            for mid in stale_markers:
-                self._video_workers.pop(mid, None)
+        """Rotate the recorders of the given cameras at a shift boundary.
+
+        2026-09-21 — 48 h footage hold + gentle rotation.  This used to stop
+        EVERY recorder at the same instant, DELETE its TS and let the 3 s
+        watchdog respawn them all together.  Deleting threw away footage the
+        clip archiver had not cut yet, and the mass stop/start left the
+        single-session cameras hung: they keep the old session and ignore the
+        new connection (67 cameras on 21-Sep).  Now the TS file is KEPT (the
+        retention pass deletes it after TS_KEEP_HOURS) and cameras rotate one
+        at a time in the background: stop, hold the respawn ROTATE_QUIET_S so
+        the camera can release its session, next camera ROTATE_STAGGER_S later.
+        Each file still covers about one shift, so clip seeks stay short."""
+        ids = [c for c in camera_ids if c]
+        if not ids:
+            return
+        if not hasattr(self, "_cam_fail_state"):
+            self._cam_fail_state = {}
+
+        def _rotate() -> None:
+            done = 0
+            for cid in ids:
+                cam = self._camera_workers.pop(cid, None)
+                st = self._cam_fail_state.setdefault(
+                    cid, {"fails": 0, "next_try": 0.0, "announced": False})
+                # Hold before the stop too, so nothing respawns mid-kill.
+                st["next_try"] = max(st.get("next_try", 0.0),
+                                     time.time() + ROTATE_QUIET_S + 10)
+                if cam:
+                    try:
+                        self._kill_cam(cam)
+                    except Exception as exc:
+                        print(f"[PLC] shift-rotate kill failed for {cid}: {exc}")
+                    st["next_try"] = max(st.get("next_try", 0.0),
+                                         time.time() + ROTATE_QUIET_S)
+                    done += 1
+                # In-flight cycle markers started on the old recorder session.
+                stale_markers = [
+                    mid for mid, vw in list(self._video_workers.items())
+                    if vw.get("camera_id") == cid
+                ]
+                for mid in stale_markers:
+                    self._video_workers.pop(mid, None)
+                time.sleep(ROTATE_STAGGER_S)
+            print(f"[PLC] shift rotation done: {done} recorder(s) rotated one at a "
+                  f"time, old TS files kept for {TS_KEEP_HOURS:g} h", flush=True)
+
+        print(f"[PLC] shift rotation: {len(ids)} camera(s), one every "
+              f"{ROTATE_STAGGER_S:g}s, respawn held {ROTATE_QUIET_S:g}s, "
+              f"TS kept {TS_KEEP_HOURS:g} h", flush=True)
+        threading.Thread(target=_rotate, name="shift-rotate", daemon=True).start()
 
     def _wipe_past_shift_mp4s(self) -> None:
         """Apply video RETENTION at the shift boundary: delete cycle .mp4 clips
@@ -2796,7 +2835,7 @@ class PlcMonitor:
         already rotated out).  At ~10 MB per 30-s TS file = ~1.2 GB/hr
         retention.  Acceptable for a workstation; covers a full shift
         of historical clip retrieval."""
-        TS_KEEP_GRACE_SEC = 3600
+        TS_KEEP_GRACE_SEC = TS_KEEP_SEC      # 48 h footage hold (was 3600)
         if not ts_file or not ts_file.endswith(".ts"):
             return
         for cam in self._camera_workers.values():

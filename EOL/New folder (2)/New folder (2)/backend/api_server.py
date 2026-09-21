@@ -2658,6 +2658,8 @@ def _run_video_cleanup(reason: str = "manual") -> dict:
     kept_mp4    = 0
     deleted_ts  = 0
     freed       = 0
+    ts_cutoff = time.time() - float(os.environ.get("TS_KEEP_HOURS", "48")) * 3600
+    kept_ts: list = []
     for root, _dirs, files in os.walk(videos_root):
         for f in files:
             low = f.lower()
@@ -2673,13 +2675,42 @@ def _run_video_cleanup(reason: str = "manual") -> dict:
                     deleted_mp4 += 1
                     freed       += sz
                 elif low.endswith(".ts") and ap not in live_ts:
-                    # Orphan TS from a previous RTSP/recorder restart.
+                    # Finished TS from an earlier recorder session.
+                    # 2026-09-21 — 48 h FOOTAGE HOLD: kept until it is older
+                    # than TS_KEEP_HOURS so clips can still be cut later (was:
+                    # deleted on sight, every hour and at every shift start).
+                    if os.path.getmtime(p) >= ts_cutoff:
+                        kept_ts.append((os.path.getmtime(p), p))
+                        continue
                     sz = os.path.getsize(p)
                     os.remove(p)
                     deleted_ts  += 1
                     freed       += sz
             except OSError:
                 pass
+    # DISK GUARD: if free space drops below TS_MIN_FREE_GB, delete the oldest
+    # kept TS files first until it is back above.  Recording never stops for
+    # lack of disk because of the hold.
+    try:
+        import shutil as _sh
+        need = float(os.environ.get("TS_MIN_FREE_GB", "2000")) * 1e9
+        guard_n = 0
+        for _mt, _p in sorted(kept_ts):
+            if _sh.disk_usage(videos_root).free >= need:
+                break
+            try:
+                _sz = os.path.getsize(_p)
+                os.remove(_p)
+                deleted_ts += 1
+                freed += _sz
+                guard_n += 1
+            except OSError:
+                pass
+        if guard_n:
+            print(f"[VIDEO-CLEAN] disk guard: free space below "
+                  f"{need / 1e9:.0f} GB — removed {guard_n} oldest TS file(s)")
+    except Exception as _exc:
+        print(f"[VIDEO-CLEAN] disk guard skipped: {_exc}")
     # Prune empty sub-directories so the folder tree stays tidy.
     for root, dirs, files in os.walk(videos_root, topdown=False):
         if root == videos_root:
@@ -2691,7 +2722,8 @@ def _run_video_cleanup(reason: str = "manual") -> dict:
             pass
     mb = round(freed / 1024 / 1024, 1)
     print(f"[VIDEO-CLEAN] {reason}: removed {deleted_mp4} mp4 + "
-          f"{deleted_ts} orphan ts ({mb} MB)")
+          f"{deleted_ts} old ts ({mb} MB) · kept {len(kept_ts)} ts within the "
+          f"48 h hold")
     return {"deleted": deleted_mp4 + deleted_ts,
             "deleted_mp4": deleted_mp4,
             "deleted_ts":  deleted_ts,

@@ -954,12 +954,18 @@
       </table>
 
       <style>
+         /* 2026-09-21 — the SVG already draws the TIME row's grid.  This rule is
+            an #id selector, so it out-ranked the later [id="shiftTimingTable"]
+            border:none rule and every slot kept its own 1 px box on top of the
+            grid (double lines, and 83 px cells that drifted 4.7 px off the
+            82.56 px columns by the last slot).  Cell sizes are pinned to the
+            grid in the "OVERLAY GEOMETRY" block near the end of the file. */
          #shiftTimingTable td {
-            height: 20.7px !important;
-            /* line-height: 20px !important; */
+            height: 23.84px !important;
+            padding: 0 !important;
             text-align: center !important;
             vertical-align: middle !important;
-            border: 0.1px solid rgb(11, 10, 10) !important;
+            border: none !important;
             font-weight: bold;
             background-color: none;
          }
@@ -1974,6 +1980,20 @@
                </tr>
             </table>
 
+            <!-- 2026-09-21 — NEW PROD. PREP. JOB (NPP) items 91-97 + TOTAL, "Man Hour"
+                 column.  The form had no input boxes here; geometry is pinned to the
+                 grid in the OVERLAY GEOMETRY block, values in fillWorkHours(). -->
+            <table id="nppjob" style="position:absolute;top:921.05px;left:1513.52px;border:none;border-collapse:collapse;">
+               <tr><td class="nppjob01"><input type="text" value="" class="nppjob02" style="border: none;"></td></tr>
+               <tr><td class="nppjob01"><input type="text" value="" class="nppjob02" style="border: none;"></td></tr>
+               <tr><td class="nppjob01"><input type="text" value="" class="nppjob02" style="border: none;"></td></tr>
+               <tr><td class="nppjob01"><input type="text" value="" class="nppjob02" style="border: none;"></td></tr>
+               <tr><td class="nppjob01"><input type="text" value="" class="nppjob02" style="border: none;"></td></tr>
+               <tr><td class="nppjob01"><input type="text" value="" class="nppjob02" style="border: none;"></td></tr>
+               <tr><td class="nppjob01"><input type="text" value="" class="nppjob02" style="border: none;"></td></tr>
+               <tr><td class="nppjob01"><input type="text" value="" class="nppjob02" style="border: none;"></td></tr>
+            </table>
+
 
             <table id="onrole"
                style="position:absolute;top:132px;left:748px;border:0.1px solid rgb(1, 1, 1);border-collapse:collapse;">
@@ -2135,18 +2155,18 @@
 
             <!-- PASTE THIS BUTTON IN YOUR BODY WHERE YOU WANT THE DOWNLOAD BUTTON -->
             <button id="savePdfBtn"
-               style="position:fixed;top:1px;right:40px;padding:5px 18px;background:linear-gradient(135deg, #4CAF50, #2E7D32);color:white;font-weight:400;border:none;border-radius:8px;box-shadow:0 3px 8px rgba(0,0,0,0.25);cursor:pointer;z-index:99999999;transition:all 0.1s ease;font-size:14px;display:flex;align-items:center;gap:8px;">
+               style="position:absolute;top:-4px;right:40px;padding:5px 18px;background:linear-gradient(135deg, #4CAF50, #2E7D32);color:white;font-weight:400;border:none;border-radius:8px;box-shadow:0 3px 8px rgba(0,0,0,0.25);cursor:pointer;z-index:99999999;transition:all 0.1s ease;font-size:14px;display:flex;align-items:center;gap:8px;">
                <span style="font-size:16px;">📄</span> DOWNLOAD PDF
             </button>
             <!-- 2026-09-14 — "Load MES Data" button removed: the sheet now
                  auto-loads on Zone/Line/Shift/Date selection (see peffAutoLoad
                  wiring near the end of the file), like the Shift Compile page. -->
             <button id="wcCfgBtn" onclick="window.open('/peff-wc-config.html','_blank')"
-               style="position:fixed;top:1px;right:355px;padding:5px 16px;background:linear-gradient(135deg,#475569,#334155);color:white;font-weight:400;border:none;border-radius:8px;box-shadow:0 3px 8px rgba(0,0,0,0.25);cursor:pointer;z-index:99999999;font-size:14px;display:flex;align-items:center;gap:8px;">
+               style="position:absolute;top:-4px;right:355px;padding:5px 16px;background:linear-gradient(135deg,#475569,#334155);color:white;font-weight:400;border:none;border-radius:8px;box-shadow:0 3px 8px rgba(0,0,0,0.25);cursor:pointer;z-index:99999999;font-size:14px;display:flex;align-items:center;gap:8px;">
                <span style="font-size:16px;">⚙</span> Work Center
             </button>
             <button id="peffFitBtn" title="Fit the whole sheet to this window"
-               style="position:fixed;top:1px;left:10px;padding:5px 14px;background:linear-gradient(135deg,#475569,#334155);color:white;font-weight:400;border:none;border-radius:8px;box-shadow:0 3px 8px rgba(0,0,0,0.25);cursor:pointer;z-index:99999999;font-size:13px;">Fit</button>
+               style="position:absolute;top:-4px;left:10px;padding:5px 14px;background:linear-gradient(135deg,#475569,#334155);color:white;font-weight:400;border:none;border-radius:8px;box-shadow:0 3px 8px rgba(0,0,0,0.25);cursor:pointer;z-index:99999999;font-size:13px;">Fit</button>
             <script>
                // Lets anyone force the sheet back to 1:1 (and zoom with the browser
                // themselves) if they would rather scroll than read it smaller.
@@ -2160,7 +2180,7 @@
                });
             </script>
             <span id="peffMsg"
-               style="position:fixed;top:6px;right:500px;z-index:99999999;font-size:12px;color:#b30000;font-weight:600;max-width:340px;text-align:right;"></span>
+               style="position:absolute;top:6px;left:110px;right:500px;z-index:99999999;font-size:12px;color:#b30000;font-weight:600;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></span>
 
 
             <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -2179,7 +2199,7 @@
                (function () {
                   const MARGIN_MM = 6;                       // keep clear of the printer's dead border
                   // Fixed-position chrome would otherwise be printed onto the sheet.
-                  const HIDE = ["savePdfBtn", "wcCfgBtn", "peffMsg", "overlay", "zonePopup", "wcPopup"];
+                  const HIDE = ["savePdfBtn", "wcCfgBtn", "peffFitBtn", "peffMsg", "overlay", "zonePopup", "wcPopup"];
 
                   function pdfName() {
                      const g = id => (document.getElementById(id) || {}).value || "";
@@ -3367,13 +3387,13 @@
                            transform="matrix(1.3333333,0,0,1.3333333,584.86667,133.92)" clip-path="url(#clipPath22)">
                            <tspan id="tspan21"
                               style="font-variant:normal;font-weight:normal;font-size:7.92px;font-family:Calibri;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
-                              x="0" y="0">Manpower </tspan>
+                              x="0" y="1.67">Manpower </tspan>
                         </text>
                         <text id="text22" xml:space="preserve"
                            transform="matrix(1.3333333,0,0,1.3333333,584.86667,147.68)" clip-path="url(#clipPath23)">
                            <tspan id="tspan22"
                               style="font-variant:normal;font-weight:normal;font-size:7.92px;font-family:Calibri;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
-                              x="0" y="0">on Role </tspan>
+                              x="0" y="1.67">on Role </tspan>
                         </text>
                      </g>
                      <g id="g23">
@@ -3405,8 +3425,7 @@
                            clip-path="url(#clipPath27)">
                            <tspan id="tspan26"
                               style="font-variant:normal;font-weight:700;font-size:7.92px;font-family:Calibri;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
-                              x="0" y="0">
-                              LEADER NAME:</tspan>
+                              x="0" y="0">LEADER NAME:</tspan>
                         </text>
                      </g>
                      <g id="g27">
@@ -3422,8 +3441,7 @@
                            transform="matrix(1.3333333,0,0,1.3333333,263.70667,171.68)" clip-path="url(#clipPath29)">
                            <tspan id="tspan28"
                               style="font-variant:normal;font-weight:normal;font-size:7.92px;font-family:Calibri;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
-                              x="0" y="0">PRODUCT
-                              NO.</tspan>
+                              x="0" y="0">PRODUCT NO.</tspan>
                         </text>
                      </g>
                      <g id="g29">
@@ -3506,8 +3524,7 @@
                            transform="matrix(1.3333333,0,0,1.3333333,1515.52,171.68)" clip-path="url(#clipPath40)">
                            <tspan id="tspan39"
                               style="font-variant:normal;font-weight:700;font-size:7.92px;font-family:Calibri;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
-                              x="0" y="0">Man
-                              Hour</tspan>
+                              x="0" y="0">Man Hour</tspan>
                         </text>
                      </g>
                      <g id="g40">
@@ -3687,16 +3704,16 @@
                         <text id="text61" xml:space="preserve"
                            transform="matrix(1.3333333,0,0,1.3333333,115.712,612.09333)" clip-path="url(#clipPath62)">
                            <tspan id="tspan61"
-                              style="font-variant:normal;font-weight:normal;font-size:9.24px;font-family:Calibri;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+                              style="font-variant:normal;font-weight:normal;font-size:8.64px;font-family:Calibri;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
                               x="0"
-                              y="0">Supply (Intermidiate </tspan>
+                              y="0.08">Supply (Intermidiate </tspan>
                         </text>
                         <text id="text62" xml:space="preserve"
                            transform="matrix(1.3333333,0,0,1.3333333,115.712,627.93333)" clip-path="url(#clipPath63)">
                            <tspan id="tspan62"
-                              style="font-variant:normal;font-weight:normal;font-size:9.24px;font-family:Calibri;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+                              style="font-variant:normal;font-weight:normal;font-size:8.64px;font-family:Calibri;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
                               x="0"
-                              y="0">Process only)</tspan>
+                              y="-0.69">Process only)</tspan>
                         </text>
                      </g>
                      <g id="g63">
@@ -3728,16 +3745,16 @@
                         <text id="text66" xml:space="preserve"
                            transform="matrix(1.3333333,0,0,1.3333333,115.712,639.77333)" clip-path="url(#clipPath67)">
                            <tspan id="tspan66"
-                              style="font-variant:normal;font-weight:normal;font-size:9.24px;font-family:Calibri;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+                              style="font-variant:normal;font-weight:normal;font-size:8.64px;font-family:Calibri;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
                               x="0"
-                              y="0">External Set Up / Change </tspan>
+                              y="1.22">External Set Up / Change </tspan>
                         </text>
                         <text id="text67" xml:space="preserve"
                            transform="matrix(1.3333333,0,0,1.3333333,115.712,655.61333)" clip-path="url(#clipPath68)">
                            <tspan id="tspan67"
-                              style="font-variant:normal;font-weight:normal;font-size:9.24px;font-family:Calibri;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+                              style="font-variant:normal;font-weight:normal;font-size:8.64px;font-family:Calibri;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
                               x="0"
-                              y="0">over ,No Line stop</tspan>
+                              y="0.45">over ,No Line stop</tspan>
                         </text>
                      </g>
                      <g id="g68">
@@ -3803,16 +3820,15 @@
                         <text id="text75" xml:space="preserve"
                            transform="matrix(1.3333333,0,0,1.3333333,115.712,694.65333)" clip-path="url(#clipPath76)">
                            <tspan id="tspan75"
-                              style="font-variant:normal;font-weight:normal;font-size:9.24px;font-family:Calibri;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+                              style="font-variant:normal;font-weight:normal;font-size:8.64px;font-family:Calibri;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
                               x="0"
-                              y="0">Waitung due to Mat. </tspan>
+                              y="1.22">Waitung due to Mat. </tspan>
                         </text>
                         <text id="text76" xml:space="preserve"
                            transform="matrix(1.3333333,0,0,1.3333333,115.712,710.49333)" clip-path="url(#clipPath77)">
                            <tspan id="tspan76"
-                              style="font-variant:normal;font-weight:normal;font-size:9.24px;font-family:Calibri;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
-                              x="0" y="0">
-                              Shortages </tspan>
+                              style="font-variant:normal;font-weight:normal;font-size:8.64px;font-family:Calibri;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+                              x="0" y="0.45">Shortages </tspan>
                         </text>
                      </g>
                      <g id="g77">
@@ -3827,16 +3843,15 @@
                         <text id="text78" xml:space="preserve"
                            transform="matrix(1.3333333,0,0,1.3333333,115.712,724.57333)" clip-path="url(#clipPath79)">
                            <tspan id="tspan78"
-                              style="font-variant:normal;font-weight:normal;font-size:9.24px;font-family:Calibri;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+                              style="font-variant:normal;font-weight:normal;font-size:8.64px;font-family:Calibri;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
                               x="0"
-                              y="0">Waiting due to Machine </tspan>
+                              y="1.93">Waiting due to Machine </tspan>
                         </text>
                         <text id="text79" xml:space="preserve"
                            transform="matrix(1.3333333,0,0,1.3333333,115.712,740.41333)" clip-path="url(#clipPath80)">
                            <tspan id="tspan79"
-                              style="font-variant:normal;font-weight:normal;font-size:9.24px;font-family:Calibri;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
-                              x="0" y="0">
-                              Break down</tspan>
+                              style="font-variant:normal;font-weight:normal;font-size:8.64px;font-family:Calibri;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+                              x="0" y="1.16">Break down</tspan>
                         </text>
                      </g>
                      <g id="g80">
@@ -3844,8 +3859,7 @@
                            transform="matrix(1.3333333,0,0,1.3333333,1515.52,733.85333)" clip-path="url(#clipPath81)">
                            <tspan id="tspan80"
                               style="font-variant:normal;font-weight:700;font-size:7.92px;font-family:Calibri;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
-                              x="0" y="0">Man
-                              Hour</tspan>
+                              x="0" y="0">Man Hour</tspan>
                         </text>
                      </g>
                      <g id="g81">
@@ -3860,16 +3874,16 @@
                         <text id="text82" xml:space="preserve"
                            transform="matrix(1.3333333,0,0,1.3333333,115.712,756.73333)" clip-path="url(#clipPath83)">
                            <tspan id="tspan82"
-                              style="font-variant:normal;font-weight:normal;font-size:9.24px;font-family:Calibri;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+                              style="font-variant:normal;font-weight:normal;font-size:8.64px;font-family:Calibri;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
                               x="0"
-                              y="0">Kaizen work ( General </tspan>
+                              y="0.09">Kaizen work ( General </tspan>
                         </text>
                         <text id="text83" xml:space="preserve"
                            transform="matrix(1.3333333,0,0,1.3333333,115.712,772.57333)" clip-path="url(#clipPath84)">
                            <tspan id="tspan83"
-                              style="font-variant:normal;font-weight:normal;font-size:9.24px;font-family:Calibri;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+                              style="font-variant:normal;font-weight:normal;font-size:8.64px;font-family:Calibri;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
                               x="0"
-                              y="0">P/Q/C/D/S/M)</tspan>
+                              y="-0.68">P/Q/C/D/S/M)</tspan>
                         </text>
                      </g>
                      <g id="g84">
@@ -3892,15 +3906,15 @@
                         <text id="text86" xml:space="preserve"
                            transform="matrix(1.3333333,0,0,1.3333333,115.712,786.65333)" clip-path="url(#clipPath87)">
                            <tspan id="tspan86"
-                              style="font-variant:normal;font-weight:normal;font-size:9.24px;font-family:Calibri;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+                              style="font-variant:normal;font-weight:normal;font-size:8.64px;font-family:Calibri;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
                               x="0"
-                              y="0">Kaizen work ( Prod Volume </tspan>
+                              y="0.09">Kaizen work ( Prod Volume </tspan>
                         </text>
                         <text id="text87" xml:space="preserve"
                            transform="matrix(1.3333333,0,0,1.3333333,115.712,802.53333)" clip-path="url(#clipPath88)">
                            <tspan id="tspan87"
-                              style="font-variant:normal;font-weight:normal;font-size:9.24px;font-family:Calibri;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
-                              x="0" y="0">change)
+                              style="font-variant:normal;font-weight:normal;font-size:8.64px;font-family:Calibri;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+                              x="0" y="-0.68">change)
                            </tspan>
                         </text>
                      </g>
@@ -3924,16 +3938,16 @@
                         <text id="text90" xml:space="preserve"
                            transform="matrix(1.3333333,0,0,1.3333333,115.712,816.61333)" clip-path="url(#clipPath91)">
                            <tspan id="tspan90"
-                              style="font-variant:normal;font-weight:normal;font-size:9.24px;font-family:Calibri;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+                              style="font-variant:normal;font-weight:normal;font-size:8.64px;font-family:Calibri;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
                               x="0"
-                              y="0">Kaizen Special ( To ensure </tspan>
+                              y="0.09">Kaizen Special ( To ensure </tspan>
                         </text>
                         <text id="text91" xml:space="preserve"
                            transform="matrix(1.3333333,0,0,1.3333333,115.712,832.45333)" clip-path="url(#clipPath92)">
                            <tspan id="tspan91"
-                              style="font-variant:normal;font-weight:normal;font-size:9.24px;font-family:Calibri;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+                              style="font-variant:normal;font-weight:normal;font-size:8.64px;font-family:Calibri;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
                               x="0"
-                              y="0">Quality -Quantity In SOP)</tspan>
+                              y="-0.68">Quality -Quantity In SOP)</tspan>
                         </text>
                      </g>
                      <g id="g92">
@@ -3966,8 +3980,7 @@
                            transform="matrix(1.3333333,0,0,1.3333333,1515.52,911.65333)" clip-path="url(#clipPath96)">
                            <tspan id="tspan95"
                               style="font-variant:normal;font-weight:700;font-size:7.92px;font-family:Calibri;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
-                              x="0" y="0">Man
-                              Hour</tspan>
+                              x="0" y="0">Man Hour</tspan>
                         </text>
                      </g>
                      <g id="g96">
@@ -4042,8 +4055,7 @@
                            clip-path="url(#clipPath105)">
                            <tspan id="tspan104"
                               style="font-variant:normal;font-weight:normal;font-size:7.2px;font-family:Calibri;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
-                              x="0" y="0">
-                              Equip.(E)</tspan>
+                              x="0" y="0">Equip.(E)</tspan>
                         </text>
                      </g>
                      <g id="g105">
@@ -4114,8 +4126,7 @@
                            transform="matrix(1.3333333,0,0,1.3333333,1240.2933,1012.32)" clip-path="url(#clipPath113)">
                            <tspan id="tspan112"
                               style="font-variant:normal;font-weight:normal;font-size:7.2px;font-family:Calibri;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
-                              x="0" y="0">
-                              Others(O)</tspan>
+                              x="0" y="0">Others(O)</tspan>
                         </text>
                      </g>
                      <g id="g113">
@@ -4465,8 +4476,7 @@
                            transform="matrix(1.3333333,0,0,1.3333333,1519.2,388.02667)">
                            <tspan id="tspan154"
                               style="font-variant:normal;font-weight:700;font-size:7.92px;font-family:Calibri;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
-                              x="0" y="0">Man
-                              Hour</tspan>
+                              x="0" y="0">Man Hour</tspan>
                         </text>
                      </g>
                      <g id="g154">
@@ -4642,8 +4652,7 @@
                            transform="matrix(1.3333333,0,0,1.3333333,1240.2933,216.82667)">
                            <tspan id="tspan175"
                               style="font-variant:normal;font-weight:normal;font-size:7.2px;font-family:Calibri;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
-                              x="0" y="0">Overtime
-                              (b)</tspan>
+                              x="0" y="0">Overtime (b)</tspan>
                         </text>
                      </g>
                      <g id="g175">
@@ -5411,10 +5420,320 @@
                }
             </style>
 
+            <!-- ═══════════ OVERLAY GEOMETRY (2026-09-21) ═══════════
+     With the tables' own borders gone, the SVG is the only thing that draws the
+     grid, so anything painted over it erases it.  Measured on the live sheet:
+       • every overlay <input>/<select> had the browser's opaque white
+         background.  Where a box touched a grid line it wiped it: the product
+         rows and the whole core-job hour grid lost every horizontal line and
+         their column lines were chopped into stubs — the "broken table".
+       • Sno-Table (product rows) sized its rows from the input's inline line box,
+         which depends on the machine's fonts: ~23 px rows on a 20.3 px grid, so
+         each row slid further down (+7.6 px by row 7) and the TOTAL row ran
+         into the TIME row.
+       • 2NDTable (core-job hours) had 76.4 px cells + 10 px padding = 87.4 px
+         columns on an 82.56 px grid: 43 px off by the right-hand columns, and
+         the 12th column landed in SUB TOTAL.
+     Transparent fields let the grid show through, and every overlay table now
+     takes its position and row/column sizes straight from the SVG grid (SVG
+     units = CSS px at 1:1, sheet offset 5 px down by .page's margin), with the
+     fields as fixed-height blocks centred in their cells, so they line up on
+     any font and at any zoom.  If the SVG form is ever redrawn, these numbers
+     must be re-read from its grid lines. -->
+            <style>
+               /* The sheet is always taller than the window: keep the scrollbar
+                  on so the fit-to-width measure (clientWidth) can't flip while
+                  the sheet is zoomed. */
+               html {
+                  overflow-y: scroll;
+               }
+
+               .page-01 table input:not([type="checkbox"]),
+               .page-01 table select {
+                  background-color: transparent !important;
+               }
+
+               /* DATE / LINE / WC / SHIFT sit in two id-less tables that use the
+                  HTML border attribute, so the list above missed them: each box
+                  kept a 1 px top and bottom border beside the grid's own line. */
+               .page-01 table[border],
+               .page-01 table[border] td {
+                  border: none !important;
+               }
+
+               /* …and their rows are pinned to the grid (DATE 37.36 → 63.28,
+                  LINE → 86.64, WC → 105.68, SHIFT → 126.80).  The fields get a
+                  fixed height and line-height: html2canvas draws a <select>'s
+                  text against its content box, and at the natural 16-18 px box
+                  the PDF printed LINE and WC with the bottom of the letters cut
+                  off. */
+               .page-01 table[border="1"] { top: 42.36px !important; }
+               .page-01 table[border="2"] { top: 68.28px !important; }
+               .page-01 table[border] td { padding: 0 !important; }
+               .page-01 table[border="1"] td { height: 25.92px !important; }
+               #machineRow { height: 23.36px !important; }
+               #wcRow > td { height: 19.04px !important; }
+               #shiftRow > td { height: 21.12px !important; }
+
+               #dateInput,
+               #lineSelect,
+               #wcSelect,
+               #shiftSelect {
+                  display: block !important;
+                  box-sizing: border-box !important;
+                  height: 18px !important;
+                  margin: 0 auto !important;
+                  padding: 0 !important;
+               }
+
+               #lineSelect,
+               #wcSelect,
+               #shiftSelect {
+                  line-height: 18px !important;
+               }
+
+               /* Operator row: 11 columns 252.59 → 1160.85, row 87.04 → 105.68.
+                  The boxes sat on the line box's baseline and hung 1.3 px into
+                  the MACHINE NO. row, up to 2.9 px off-centre. */
+               [id="mainTable"] {
+                  top: 92.04px !important;
+                  left: 252.59px !important;
+                  width: 908.26px !important;
+                  table-layout: fixed !important;
+               }
+
+               [id="mainTable"] td {
+                  padding: 0 !important;
+                  width: 82.56px !important;
+                  height: 18.64px !important;
+               }
+
+               [id="mainTable"] input {
+                  display: block !important;
+                  box-sizing: border-box !important;
+                  width: calc(100% - 4px) !important;
+                  height: 16px !important;
+                  margin: 0 auto !important;
+                  padding: 0 2px !important;
+               }
+
+               /* Product rows: columns 19.15 | 46.67 | 252.59 | 335.15 … 995.69 |
+                  1238.45; rows 183.60 → 350.19 (7 product rows + TOTAL). */
+               [id="Sno-Table"] {
+                  top: 188.6px !important;
+                  left: 19.15px !important;
+                  width: 1219.3px !important;
+                  table-layout: fixed !important;
+               }
+
+               [id="Sno-Table"] td {
+                  padding: 0 !important;
+                  width: 82.56px !important;
+                  height: 20.32px !important;
+               }
+
+               [id="Sno-Table"] td:nth-child(1) { width: 27.52px !important; }
+               [id="Sno-Table"] td:nth-child(2) { width: 205.92px !important; }
+               [id="Sno-Table"] td:nth-child(12) { width: 242.76px !important; }
+               [id="Sno-Table"] tr:nth-child(1) > td { height: 20.35px !important; }
+               [id="Sno-Table"] tr:nth-child(2) > td { height: 20.64px !important; }
+               [id="Sno-Table"] tr:nth-child(4) > td { height: 27.2px !important; }
+               [id="Sno-Table"] tr:nth-child(8) > td { height: 17.12px !important; }
+
+               [id="Sno-Table"] input {
+                  display: block !important;
+                  box-sizing: border-box !important;
+                  width: calc(100% - 4px) !important;
+                  height: 16px !important;
+                  margin: 0 auto !important;
+                  padding: 0 2px !important;
+                  text-align: center;
+               }
+
+               [id="Sno-Table"] td:nth-child(2) input {
+                  text-align: left;
+               }
+
+               /* Core-job hour grid: 12 hourly columns + SUB TOTAL,
+                  252.59 → 1290.80; 13 rows 480.95 → 865.01 (the 7th row,
+                  "14 Small Maint.", is 24.96 tall, the rest 29.92). */
+               [id="2NDTable"] {
+                  top: 485.95px !important;
+                  left: 252.59px !important;
+                  width: 1038.21px !important;
+                  table-layout: fixed !important;
+               }
+
+               [id="2NDTable"] td {
+                  padding: 0 !important;
+                  width: 82.56px !important;
+                  height: 29.92px !important;
+               }
+
+               [id="2NDTable"] td:nth-child(12) { width: 77.6px !important; }
+               [id="2NDTable"] td:nth-child(13) { width: 52.35px !important; }
+               [id="2NDTable"] tr:nth-child(7) > td { height: 24.96px !important; }
+
+               [id="2NDTable"] input {
+                  display: block !important;
+                  box-sizing: border-box !important;
+                  width: calc(100% - 6px) !important;
+                  height: 20px !important;
+                  margin: 0 auto !important;
+                  padding: 0 2px !important;
+                  text-align: center;
+               }
+
+               /* The remaining tables were within ~2 px at 1:1, but their rows
+                  also came from inline line boxes, so they drifted with fonts and
+                  zoom rounding (2.5 px on the right panel at 161 %).  Same
+                  treatment: cells sized from the grid, fields centred in them. */
+               [id="machineTable"] { top: 110.68px !important; }
+               [id="machineTable"] td { padding: 0 !important; height: 21.12px !important; }
+
+               /* MANPOWER PLAN / ACTUAL values: 1290.80 → 1357.97, rows 105.68 →
+                  126.80 → 152.72. */
+               [id="plan_actual"] { top: 110.68px !important; left: 1290.8px !important; }
+               [id="plan_actual"] td { padding: 0 !important; width: 67.17px !important; height: 21.12px !important; }
+               [id="plan_actual"] tr:nth-child(2) > td { height: 25.92px !important; }
+
+               /* Operator / Supply / Total values: 748.01 → 1160.85, row 126.80 →
+                  152.72 (cells 2 and 4 are the SVG's own labels). */
+               [id="onrole"] {
+                  top: 131.8px !important;
+                  left: 748.01px !important;
+                  width: 412.84px !important;
+                  table-layout: fixed !important;
+               }
+
+               [id="onrole"] td { padding: 0 !important; width: 82.56px !important; height: 25.92px !important; }
+
+               /* LEADER NAME value, right of its label, row 126.80 → 152.72. */
+               [id="LEADER"] { top: 131.8px !important; }
+               [id="LEADER"] td { padding: 0 !important; height: 25.92px !important; }
+
+               /* Hour / Present Manpower / Man Hour: 1357.97 | 1420.24 | 1513.52 |
+                  1568.08, the same 7 rows as the product table. */
+               [id="semi_core_job"] {
+                  top: 188.6px !important;
+                  left: 1357.97px !important;
+                  width: 210.11px !important;
+                  table-layout: fixed !important;
+               }
+
+               [id="semi_core_job"] td { padding: 0 !important; height: 20.32px !important; }
+               [id="semi_core_job"] td:nth-child(1) { width: 62.27px !important; }
+               [id="semi_core_job"] td:nth-child(2) { width: 93.28px !important; }
+               [id="semi_core_job"] td:nth-child(3) { width: 54.56px !important; }
+               [id="semi_core_job"] tr:nth-child(1) > td { height: 20.35px !important; }
+               [id="semi_core_job"] tr:nth-child(2) > td { height: 20.64px !important; }
+               [id="semi_core_job"] tr:nth-child(4) > td { height: 27.2px !important; }
+
+               /* SEMI CORE JOB / NON CORE JOB "Man Hour": 1513.52 → 1568.08. */
+               [id="semicorejob"],
+               [id="noncorejob"] {
+                  left: 1513.52px !important;
+                  width: 54.56px !important;
+                  table-layout: fixed !important;
+               }
+
+               [id="semicorejob"] { top: 401.47px !important; }
+               [id="noncorejob"] { top: 750.29px !important; }
+               [id="semicorejob"] td,
+               [id="noncorejob"] td { padding: 0 !important; width: 54.56px !important; height: 29.92px !important; }
+               [id="semicorejob"] tr:nth-child(1) > td { height: 28.64px !important; }
+               [id="semicorejob"] tr:nth-child(3) > td { height: 25.92px !important; }
+               [id="semicorejob"] tr:nth-child(10) > td { height: 24.96px !important; }
+               [id="noncorejob"] tr:nth-child(2) > td { height: 29.96px !important; }
+               [id="noncorejob"] tr:nth-child(5) > td { height: 22.4px !important; }
+
+               /* NEW PROD. PREP. JOB (NPP) "Man Hour": 1513.52 → 1568.08, items
+                  91-97 + TOTAL, 916.05 → 1054.64 (item 96 is 27.68 tall). */
+               [id="nppjob"] {
+                  top: 921.05px !important;
+                  left: 1513.52px !important;
+                  width: 54.56px !important;
+                  table-layout: fixed !important;
+               }
+
+               [id="nppjob"],
+               [id="nppjob"] td { border: none !important; }
+               [id="nppjob"] td { padding: 0 !important; width: 54.56px !important; height: 15.84px !important; }
+               [id="nppjob"] tr:nth-child(5) > td { height: 15.87px !important; }
+               [id="nppjob"] tr:nth-child(6) > td { height: 27.68px !important; }
+
+               /* 18 px box with -1.08 px margins = 15.84 px in the row, so the
+                  rows keep the grid.  html2canvas prints an input's text at a
+                  fixed baseline from the box top; in a 14 px box the PDF cut
+                  the bottom off every value (the box is transparent on screen). */
+               [id="nppjob"] input {
+                  display: block !important;
+                  box-sizing: border-box !important;
+                  width: calc(100% - 4px) !important;
+                  height: 18px !important;
+                  margin: -1.08px auto !important;
+                  padding: 0 2px !important;
+                  font-size: 11px;
+                  text-align: center;
+               }
+
+               /* Losses detail row: 12 columns 252.59 → 1238.45, 931.89 → 1054.64. */
+               [id="losses"] {
+                  top: 936.89px !important;
+                  left: 252.59px !important;
+                  width: 985.86px !important;
+                  table-layout: fixed !important;
+               }
+
+               [id="losses"] td { padding: 0 !important; width: 82.56px !important; height: 122.75px !important; }
+               [id="losses"] td:nth-child(12) { width: 77.6px !important; }
+
+               [id="plan_actual"] input,
+               [id="onrole"] input,
+               [id="LEADER"] input,
+               [id="semi_core_job"] input,
+               [id="semicorejob"] input,
+               [id="noncorejob"] input,
+               [id="losses"] input {
+                  display: block !important;
+                  box-sizing: border-box !important;
+                  height: 18px !important;
+                  margin: 0 auto !important;
+                  padding: 0 2px !important;
+                  text-align: center;
+               }
+
+               [id="plan_actual"] input,
+               [id="onrole"] input,
+               [id="semi_core_job"] input,
+               [id="semicorejob"] input,
+               [id="noncorejob"] input,
+               [id="losses"] input {
+                  width: calc(100% - 4px) !important;
+               }
+
+               [id="semi_core_job"] input { height: 16px !important; }
+               [id="semicorejob"] input,
+               [id="noncorejob"] input { height: 20px !important; }
+               [id="losses"] input { height: 116px !important; text-align: left; }
+
+               /* TIME row: 12 slots, 252.59 → 1238.45, row 350.19 → 374.03. */
+               [id="shiftTimingTable"] {
+                  top: 355.19px !important;
+                  left: 252.59px !important;
+                  width: 985.86px !important;
+               }
+
+               #shiftTimingTable td { width: 82.56px !important; }
+               #shiftTimingTable td:nth-child(12) { width: 77.6px !important; }
+            </style>
+
             <!-- ═══════════ MES AUTO-FILL (machines / operators / hourly plan-actual / OK-NG) ═══════════ -->
             <script>
                (function () {
-                  // WC → MES line_id (seat-slider work-centers).  Shift is the WC's last letter.
+                  // WC → MES line_id.  Shift is the WC's last letter.
+                  // 2026-09-21 — recliner work-centers added, as aligned in
+                  // mes_lines.peff_wc (Admin → Work Center (PEFF)).
                   const WC_TO_LINE = {
                      Q31S01A: 18, Q31S01B: 18,   // YRA-SS
                      Q31S02A: 13, Q31S02B: 13,   // YJC-SS
@@ -5425,6 +5744,11 @@
                      Q31S07A: 14, Q31S07B: 14,   // YFG-SS
                      Q31S08A: 6,                 // YWD-SS
                      Q31S09A: 15, Q31S09B: 15,   // Y17-SS
+                     Q31R01A: 5, Q31R01B: 5,     // YRA Recliner
+                     Q31R02A: 29, Q31R02B: 29,   // YSD Recliner
+                     Q31R03A: 27, Q31R03B: 27,   // YHB Recliner
+                     Q31R04A: 28, Q31R04B: 28,   // YNC Recliner
+                     Q31R05A: 10,                // YWD Recliner
                   };
                   // Column x-anchors (match the sheet's absolute grid).
                   const OP_COLS = [253, 335, 417, 499, 581, 663, 745, 827, 909];                 // operator / machine row
@@ -5439,7 +5763,7 @@
                      // Standalone / same-tab fallback.
                      try { return sessionStorage.getItem("mes_token") || ""; } catch (e) { return ""; }
                   }
-                  function msg(t, err) { const m = document.getElementById("peffMsg"); if (m) { m.textContent = t || ""; m.style.color = err ? "#b30000" : "#0a7d2c"; } }
+                  function msg(t, err) { const m = document.getElementById("peffMsg"); if (m) { m.textContent = t || ""; m.title = t || ""; m.style.color = err ? "#b30000" : "#0a7d2c"; } }
                   function clearOverlays() { document.querySelectorAll(".peff-auto").forEach(e => e.remove()); }
                   function put(x, y, txt, opt) {
                      opt = opt || {};
@@ -5534,18 +5858,45 @@
                   function today() { return new Date().toISOString().slice(0, 10); }
 
                   // ── fit the sheet to the window ─────────────────────────────────
-                  // Shrink only — never blow the form up past 1:1 — and keep a floor so
-                  // it can't become unreadable on a very small window.
-                  const FIT_MIN = 0.45;
+                  // Fit the sheet's WIDTH to the window, with a floor so it can't become
+                  // unreadable on a very small window.
+                  // 2026-09-21 — three fixes, all measured:
+                  //  • avail was window.innerWidth, which INCLUDES the vertical
+                  //    scrollbar.  The sheet is always taller than the window, so the
+                  //    zoomed sheet came out one scrollbar (15-17 px) wider than the
+                  //    visible area: a horizontal scrollbar appeared and the right-hand
+                  //    column was cut off.  clientWidth is the visible width (and the
+                  //    <html> scrollbar is always on, see OVERLAY GEOMETRY, so it
+                  //    cannot flip while we zoom).
+                  //  • natural was documentElement.scrollWidth, which is never less
+                  //    than the window, so on any window wider than the sheet it
+                  //    stayed at 1:1 and left a 333 px grey band down the right of a
+                  //    1920 screen.  Measure the sheet itself and let it grow to fill
+                  //    the width (capped).
+                  //  • k is floored, not rounded, so the zoomed sheet never ends up a
+                  //    fraction of a pixel wider than the window.
+                  const FIT_MIN = 0.45, FIT_MAX = 2;
                   function peffFit(force) {
                      const b = document.body;
-                     if (window.__peffFitOff && !force) { b.style.zoom = ""; window.__peffZoom = 1; return 1; }
+                     if (window.__peffFitOff && !force) {
+                        b.style.zoom = ""; window.__peffZoom = 1;
+                        // Undo the counter-zoom on the floating controls too, or they
+                        // stay shrunk/grown after switching to 1:1.
+                        ["savePdfBtn", "wcCfgBtn", "peffMsg", "peffFitBtn"].forEach(id => {
+                           const e = document.getElementById(id); if (e) e.style.zoom = "";
+                        });
+                        const fb0 = document.getElementById("peffFitBtn");
+                        if (fb0) fb0.textContent = "Fit to width";
+                        return 1;
+                     }
                      window.__peffFitting = true;
                      b.style.zoom = "";                                   // measure at 1:1
-                     const natural = document.documentElement.scrollWidth;
-                     const avail = window.innerWidth;
-                     let k = natural > 0 ? avail / natural : 1;
-                     if (k > 1) k = 1;
+                     const sheetEl = document.querySelector(".page-01");
+                     const natural = sheetEl ? sheetEl.getBoundingClientRect().width
+                                             : document.documentElement.scrollWidth;
+                     const avail = document.documentElement.clientWidth || window.innerWidth;
+                     let k = natural > 0 ? Math.floor(avail / natural * 1000) / 1000 : 1;
+                     if (k > FIT_MAX) k = FIT_MAX;
                      if (k < FIT_MIN) k = FIT_MIN;
                      window.__peffZoom = k;
                      b.style.zoom = k === 1 ? "" : String(k);
@@ -5587,6 +5938,157 @@
                      }).observe(document.documentElement);
                   }
 
+                  // ═══ DETAIL WORKING HRS + SEMI CORE JOB auto-fill (2026-09-21) ═══
+                  // Source: shift master (/api/config/shifts), break master
+                  // (/api/config/breaks) and the Shift Allocation page
+                  // (/api/manpower/allocations).  Every cell stays editable: a typed
+                  // value is kept for that line/date/shift (a refit or reload does not
+                  // overwrite it) and feeds the totals.
+                  //
+                  // Lines whose Paid Break (row 82) also counts the line leader:
+                  // 0.33 × (manpower + 1).  Every other line: 0.33 × manpower.
+                  const PAID_BREAK_COUNTS_LEADER = {
+                     4: "YSD-SS", 18: "YRA-SS", 13: "YJC-SS", 14: "YFG-SS",   // seat slider
+                     5: "YRA Recliner", 27: "YHB Recliner",                    // recliner
+                  };
+                  const FIVE_S_MIN = 5;          // 5S activity: added to Normal hours, and rows 32 / 39
+                  const MEAL_MIN = 30;           // breaks this long are meals (unpaid); tea breaks are paid
+                  const PAID_BREAK_HRS = 0.33;   // row 82 "Paid Break (0.33 Hrs)"
+                  // semicorejob rows: 0..8 = items 31..39, 9 = item 82, 10 = TOTAL
+                  const SC_R32 = 1, SC_R39 = 8, SC_R82 = 9, SC_TOTAL = 10;
+                  const DASH = "-";
+                  let whCtx = "";                // line|date|shift the block currently shows
+
+                  const f2 = v => (Math.round((v + Number.EPSILON) * 100) / 100).toFixed(2);
+                  const toMin = t => { const m = /^(\d{1,2}):(\d{2})/.exec(String(t == null ? "" : t)); return m ? (+m[1]) * 60 + (+m[2]) : null; };
+                  const mins = (a, b, crosses) => { let d = b - a; if (crosses || d < 0) d += 1440; return d; };
+                  const numOf = el => { const v = parseFloat(String((el && el.value) || "").replace(",", ".")); return isFinite(v) ? v : null; };
+
+                  function whCells() {
+                     const t1 = document.getElementById("semi_core_job"), t2 = document.getElementById("semicorejob");
+                     return {
+                        detail: t1 ? [...t1.rows].map(r => [...r.querySelectorAll("input")]) : [],   // Normal, Overtime, Sub Total, MP Loan, *WC, MP Borrow, **WC × [Hour, Present Manpower, Man Hour]
+                        semi: t2 ? [...t2.rows].map(r => r.querySelector("input")) : [],
+                        // NON CORE JOB (42, 43, 51, 61) and NPP (91-97): item cells, TOTAL last
+                        lists: ["noncorejob", "nppjob"].map(id => document.getElementById(id))
+                           .filter(Boolean).map(t => [...t.rows].map(r => r.querySelector("input")).filter(Boolean)),
+                     };
+                  }
+                  // Minutes of meal breaks (≥ 30 min, applying to this shift) inside the shift window.
+                  function mealMinutes(breaks, shift, start, span) {
+                     let total = 0;
+                     breaks.forEach(b => {
+                        const on = String(b.applies_to_shifts || "").toUpperCase().split(",").map(x => x.trim());
+                        if (!on.includes(shift)) return;
+                        const bs = toMin(b.start_time), be = toMin(b.end_time);
+                        if (bs == null || be == null) return;
+                        const d = mins(bs, be, b.crosses_midnight);
+                        if (d < MEAL_MIN) return;
+                        const rel = ((bs - start) % 1440 + 1440) % 1440;       // minutes after shift start
+                        [rel, rel - 1440].forEach(r0 => { total += Math.max(0, Math.min(r0 + d, span) - Math.max(r0, 0)); });
+                     });
+                     return total;
+                  }
+                  // Distinct operators allocated; if the day has none, the most recent
+                  // non-empty day earlier in the same ISO week (same rule as /api/peff/data).
+                  async function presentManpower(lineId, date, shift, get) {
+                     const d0 = new Date(date + "T00:00:00Z");
+                     if (isNaN(d0)) return { m: null };
+                     const back = (d0.getUTCDay() + 6) % 7;                  // days since Monday
+                     const days = [];
+                     for (let i = 0; i <= back; i++) days.push(new Date(d0.getTime() - i * 86400000).toISOString().slice(0, 10));
+                     const lists = await Promise.all(days.map(d =>
+                        get("/api/manpower/allocations?line_id=" + lineId + "&date=" + d + "&shift=" + encodeURIComponent(shift))));
+                     for (let i = 0; i < days.length; i++) {
+                        if (!Array.isArray(lists[i])) return { m: null };      // could not read: don't guess
+                        const ids = new Set(lists[i].filter(r => !r.removed_at).map(r => r.operator_id));
+                        if (ids.size) return { m: ids.size, from: days[i] };
+                     }
+                     return { m: 0, from: null };
+                  }
+                  // Sub Total and TOTAL.  fromEdit: an operator edit forces them; a
+                  // reload keeps a value the operator typed into them.
+                  function whRecalc(fromEdit) {
+                     const { detail, semi, lists } = whCells();
+                     const put = (el, v) => {
+                        if (!el || (!fromEdit && el.dataset.peffManual === whCtx)) return;
+                        delete el.dataset.peffManual; el.value = v;
+                     };
+                     const sum = els => { const v = els.map(numOf).filter(x => x != null); return v.length ? f2(v.reduce((a, b) => a + b, 0)) : DASH; };
+                     const n = detail[0] || [], o = detail[1] || [], s = detail[2] || [];
+                     if (s.length >= 3) { put(s[0], sum([n[0], o[0]])); put(s[1], DASH); put(s[2], sum([n[2], o[2]])); }
+                     if (semi.length > SC_TOTAL) put(semi[SC_TOTAL], sum(semi.slice(0, SC_TOTAL)));
+                     // NON CORE JOB / NPP TOTAL: typed values, "-"/blank = 0, 2 decimals.
+                     lists.forEach(l => { if (l.length > 1) put(l[l.length - 1], f2(l.slice(0, -1).reduce((a, el) => a + (numOf(el) || 0), 0))); });
+                  }
+                  function whWire() {
+                     if (whWire.done) return;
+                     whWire.done = true;
+                     const { detail, semi, lists } = whCells();
+                     const sources = [...(detail[0] || []), ...(detail[1] || []), ...semi.slice(0, SC_TOTAL),
+                                      ...lists.flatMap(l => l.slice(0, -1))];
+                     [...detail.flat(), ...semi, ...lists.flat()].forEach(el => {
+                        if (!el) return;
+                        el.addEventListener("focus", () => { if (el.value === DASH) el.select(); });
+                        el.addEventListener("input", () => {
+                           el.dataset.peffManual = whCtx;                     // keep it through reloads
+                           if (sources.includes(el)) whRecalc(true);
+                        });
+                     });
+                  }
+                  async function fillWorkHours(lineId, date, shift, tok, isCurrent) {
+                     const get = async url => {
+                        try { const r = await fetch(url, { headers: { Authorization: "Bearer " + tok } }); return r.ok ? await r.json() : null; }
+                        catch (e) { return null; }
+                     };
+                     whWire();
+                     const [shifts, breaks, mp] = await Promise.all([
+                        get("/api/config/shifts/" + lineId), get("/api/config/breaks/" + lineId),
+                        presentManpower(lineId, date, shift, get)]);
+                     if (!isCurrent()) return "";
+                     whCtx = lineId + "|" + date + "|" + shift;
+                     const setAuto = (el, v) => {
+                        if (!el || el.dataset.peffManual === whCtx) return;  // operator's own value
+                        delete el.dataset.peffManual; el.value = v;
+                     };
+
+                     // Normal (a) hours = (span − meal breaks + 5 min 5S) / 60; Overtime from the OT window.
+                     const row = Array.isArray(shifts) ? shifts.find(r => String(r.shift_name).toUpperCase() === shift) : null;
+                     const s = row ? toMin(row.start_time) : null, e = row ? toMin(row.end_time) : null;
+                     let hA = null, hB = null;
+                     if (s != null && e != null && Array.isArray(breaks)) {
+                        let span = e - s;
+                        if (row.crosses_midnight || span <= 0) span += 1440;
+                        hA = (span - mealMinutes(breaks, shift, s, span) + FIVE_S_MIN) / 60;
+                        const os = toMin(row.ot_start_time), oe = toMin(row.ot_end_time);
+                        if (row.ot_enabled && os != null && oe != null) hB = mins(os, oe) / 60;
+                     }
+                     const M = mp.m;                                            // null = not readable
+                     const { detail, semi, lists } = whCells();
+                     const n = detail[0] || [], o = detail[1] || [];
+                     setAuto(n[0], hA == null ? DASH : f2(hA));
+                     setAuto(n[1], M == null ? DASH : String(M));
+                     setAuto(n[2], hA == null || M == null ? DASH : f2(hA * M));
+                     setAuto(o[0], hB == null ? DASH : f2(hB));
+                     setAuto(o[1], hB == null || M == null ? DASH : String(M));
+                     setAuto(o[2], hB == null || M == null ? DASH : f2(hB * M));
+                     for (let r = 3; r < detail.length; r++) detail[r].forEach(el => setAuto(el, DASH));
+
+                     const lead = PAID_BREAK_COUNTS_LEADER[lineId] ? 1 : 0;
+                     semi.slice(0, SC_TOTAL).forEach((el, i) => {
+                        let v = DASH;
+                        if (M != null && (i === SC_R32 || i === SC_R39)) v = f2(FIVE_S_MIN / 60 * M);
+                        if (M != null && i === SC_R82) v = f2(PAID_BREAK_HRS * (M + lead));
+                        setAuto(el, v);
+                     });
+                     lists.forEach(l => l.slice(0, -1).forEach(el => setAuto(el, DASH)));   // manual-entry rows
+                     whRecalc(false);
+
+                     if (M == null) return "  (manpower not available)";
+                     if (hA == null) return "  (shift timing not available)";
+                     return mp.from && mp.from !== date ? "  (manpower from " + mp.from + ")" : "";
+                  }
+
                   let fillSeq = 0;
                   window.loadPeffData = async function (wc) {
                      const mySeq = ++fillSeq;         // only the newest fill may touch the sheet
@@ -5597,7 +6099,7 @@
                      const di = document.getElementById("dateInput");
                      let date = (di && di.value) || today();
                      if (di && !di.value) di.value = date;
-                     if (!lineId) { msg("Select a Seat-Slider work-center first", true); return; }
+                     if (!lineId) { msg("Select a Seat Slider or Recliner work-center first", true); return; }
                      const tok = token();
                      if (!tok) { msg("Open from inside the MES app (login needed)", true); return; }
                      msg("Loading…");
@@ -5642,6 +6144,13 @@
                      (data.hours || []).forEach((h, i) => { if (timeTds[i]) timeTds[i].textContent = h.label || ""; });
 
                      // ── machine-no row (overlay at real operator-column centers) + operators (real inputs) ──
+                     // 2026-09-21 — choosing a work-center through the Zone → WC popup
+                     // also runs updateMachines(), which types a static "SS-01…SS-08"
+                     // list (machinesByZone) into #machineTable's own cells.  Those cells
+                     // are narrower than the grid columns, so each static number sat
+                     // 9-27 px left of the MES number drawn here and printed as
+                     // "SS-0SS-01".  The MES list is the real one: blank the static text.
+                     if (mt && mt.rows[0]) [...mt.rows[0].cells].forEach(td => { td.textContent = ""; });
                      (data.machines || []).forEach((m, i) => {
                         if (opEls[i] == null) return;
                         putC(cX(opEls[i]), machCy, m.no, { bold: true, fs: 10 });
@@ -5668,6 +6177,7 @@
                            fitCell(el, 13, 6);
                            size = Math.min(size, parseFloat(el.style.fontSize));
                         });
+                        if (size < 13) size -= 0.5;   // PDF headroom, see PRODUCT NAME below
                         filled.forEach(([el]) => { el.style.fontSize = size + "px"; });
                      })();
 
@@ -5752,6 +6262,19 @@
                         setCell(top, 583, p.ng);
                         setCell(top, 666, p.balance);
                      });
+                     // One size for the whole PRODUCT NAME column (as the operator row
+                     // does): a short name such as "Not scanned (no part code)" used to
+                     // print at 13 px beside long model names shrunk to 8.5 px.
+                     // A name that had to shrink sits right at the box edge, which the
+                     // screen tolerates but html2canvas clips ("INR RH" printed as
+                     // "INR RI"), so it gets half a pixel of headroom.
+                     (function () {
+                        const els = prodTops.map(top => cellAt(top, 48)).filter(c => c && c.el.value).map(c => c.el);
+                        if (!els.length) return;
+                        let size = Math.min(...els.map(e => parseFloat(e.style.fontSize) || 13));
+                        if (size < 13) size -= 0.5;
+                        els.forEach(e => { e.style.fontSize = size + "px"; });
+                     })();
                      // TOTAL row — drawn as an overlay ANCHORED to the sheet's own TOTAL
                      // cells, rather than typed into them.  Those inputs are 17 px tall
                      // but the TIME table below starts 4 px before they end, so anything
@@ -5777,9 +6300,13 @@
                         if (h.ok != null) putC(colCx[i], actCy, String(h.ok), { fs: 10, bold: true, color: "#0a7d2c" });
                         if (h.cum != null) putC(colCx[i] + 20, cumCy, String(h.cum), { fs: 9, color: "#555" });
                      });
+                     // ── Detail Working Hrs + Semi Core Job (own fetches, same token) ──
+                     const whNote = await fillWorkHours(lineId, date, shift, tok, () => mySeq === fillSeq);
+                     if (mySeq !== fillSeq) return;
+
                      const noModel = !(data.products || []).length && (T.total || 0) > 0;
                      const opsFilled = (data.machines || []).some(m => m.operator);
-                     msg("✓ " + data.line_name + " " + shift + " " + date + (opsFilled ? "" : "  (operators: allocate in Shift Allocation)") + (noModel ? "  (no model on the part codes — check Model Master)" : ""), false);
+                     msg("✓ " + data.line_name + " " + shift + " " + date + (opsFilled ? "" : "  (operators: allocate in Shift Allocation)") + (noModel ? "  (no model on the part codes — check Model Master)" : "") + whNote, false);
                   };
 
                   // default date = today; reload on date change

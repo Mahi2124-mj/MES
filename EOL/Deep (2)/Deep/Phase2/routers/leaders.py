@@ -113,7 +113,10 @@ def _capability(oee, ng_pct, trained, parts):
 
 @router.get("")
 def list_leaders(days: int = 7, user=Depends(get_current_user)):
-    _gate(user)
+    # 2026-09-21 — any logged-in user may READ the leader list: the Shift
+    # Allocation page's Line Leader dropdown is shown to every user, and with
+    # the old gate every role below shift incharge got an empty list.
+    # Creating / editing / deleting leaders stays gated.
     d0 = date.today() - timedelta(days=max(1, min(days, 60)) - 1)
     out = []
     with get_conn() as conn:
@@ -494,7 +497,9 @@ class ShiftAllocBody(BaseModel):
 
 @router.post("/shift-alloc")
 def set_shift_alloc(body: ShiftAllocBody, user=Depends(get_current_user)):
-    _gate(user)
+    # 2026-09-21 — choosing the shift's line leader is open to every logged-in
+    # user (operator: "leader ka dropdown sabhi user id par show hona chahiye");
+    # the page only enables the dropdown for users who can edit Shift Allocation.
     with get_conn() as conn:
         cur = conn.cursor()
         _ensure_shift_alloc(cur)

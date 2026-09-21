@@ -7,6 +7,7 @@ import MachineMaster from "./MachineMaster";
 import PyConfigEditor from "./PyConfigEditor";
 import FaultConfigPanel from "./FaultConfigPanel";
 import WeldMaster from "./WeldMaster";
+import ClipPriorityPage from "./ClipPriorityPage";
 import PeffDetailsPage from "./PeffDetailsPage";
 import { PAGE_MODULES, moduleKey, pageHasModules } from "../utils/pageModules";
 import TimerConfigPage from "./TimerConfigPage";
@@ -10460,6 +10461,7 @@ export const ADMIN_SECTIONS = [
       { key: "panelmap",    label: "Panel Displays",   icon: "🖥" },
       { key: "workcenter",  label: "Work Center (PEFF)", icon: "🎯" },
       { key: "peffdetails", label: "PEFF Details",       icon: "📋" },
+      { key: "clippriority", label: "Clip Priority (48 h)", icon: "🎬" },
     ],
   },
   {
@@ -11645,6 +11647,7 @@ export function renderAdminTab(sectionKey, tabKey, props) {
       </div>
     );
     case "production/peffdetails": return <PeffDetailsPage {...t} />;
+    case "production/clippriority": return <ClipPriorityPage {...t} />;
     case "production/timercfg":    return <TimerConfigPage {...t} />;
     case "production/panelmap":    return <PanelMapPage {...t} />;
     // Maintenance — Sensor Health is reachable via Poka Yoke → Sensor

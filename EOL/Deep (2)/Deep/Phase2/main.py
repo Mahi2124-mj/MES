@@ -78,6 +78,7 @@ from routers.maintenance_logbook import router as maintenance_logbook_router
 from routers.pm               import router as pm_router
 from routers.pm_mail          import mail_router as pm_mail_router
 from routers.weld             import weld_router, weld_test_worker
+from routers.clip_priority    import router as clip_priority_router   # 48 h plan decisions (Admin)
 from routers.cms_control      import router as cms_control_router
 from routers.network          import router as network_router, start_network_poller
 from routers.machine_master   import router as machine_master_router, start_machine_master_poller
@@ -190,6 +191,7 @@ app.include_router(maintenance_logbook_router)  # maintenance daily log book (DB
 app.include_router(pm_router)                   # preventive maintenance check sheets
 app.include_router(pm_mail_router)              # PM reminder mail (server-side)
 app.include_router(weld_router)                 # Weld Monitor (Quality) — live weld current/voltage
+app.include_router(clip_priority_router)        # Admin → Clip Priority (48 h footage plan)
 app.include_router(cms_control_router)          # MES → CMS per-line Video ON/OFF proxy (loopback)
 app.include_router(network_router)              # Switch-network monitor (SNMP poller)
 app.include_router(machine_master_router)       # Machine Master (DB) + live IP/camera ping status
@@ -381,6 +383,12 @@ def _start_weld_poller():
         start_weld_poller()
     except Exception as exc:
         print(f"[WELD-LIVE] failed to start poller: {exc}")
+
+
+# ── Weld Monitor gas sensor ─────────────────────────────────────────
+# 2026-09-21 — read by weld_poller as a Weld Master row (signal='gas') over
+# the card's shared Modbus connection; the separate gas_poller was removed
+# because these cards accept only one session.
 
 
 # ── Cycle-clip cache warmer ──────────────────────────────────────

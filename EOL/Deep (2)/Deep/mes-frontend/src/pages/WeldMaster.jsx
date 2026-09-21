@@ -33,7 +33,11 @@ const BLANK = {
   voltage_min: "", voltage_set: "", voltage_max: "",
   on_threshold_a: 30, gap_s: 0.35, min_weld_s: 0.2, sample_hz: 50,
   is_active: true, note: "",
+  // 2026-09-21 — several channels per card: weld current (per-weld logic) or a
+  // continuous sensor such as the gas sensor, with its own unit / scale.
+  signal: "current", unit: "", scale: 1, offset_val: 0, sample_s: 2,
 };
+const SIGNALS = [["current", "Weld current"], ["gas", "Gas sensor"], ["sensor", "Other sensor"]];
 
 const L = { fontSize: 10, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "#64748b" };
 const I = { padding: "8px 10px", borderRadius: 8, border: "1.5px solid #e2e8f0",
@@ -92,7 +96,21 @@ export default function WeldMaster({ toast, readOnly = false }) {
   useEffect(() => { load(); }, [load]);
 
   const open = (row) => {
-    setForm(row ? { ...BLANK, ...row, line_id: row.line_id ?? "" } : { ...BLANK });
+    setForm(row ? { ...BLANK, ...row, line_id: row.line_id ?? "",
+                    signal: row.signal || "current", unit: row.unit ?? "",
+                    scale: row.scale ?? 1, offset_val: row.offset_val ?? 0,
+                    sample_s: row.sample_s ?? 2 } : { ...BLANK });
+    setModal(true);
+  };
+  // Another channel on the SAME card: a new row (its own name), same card and
+  // place, first free channel.  The card's one Modbus connection is shared.
+  const addChannel = (row) => {
+    const used = rows.filter(r => r.card_ip === row.card_ip).map(r => Number(r.channel));
+    const free = [1, 2, 3, 4, 5, 6, 7, 8].find(c => !used.includes(c)) || 1;
+    setForm({ ...BLANK, station: `${row.station} Gas`, weld_type: row.weld_type,
+              zone: row.zone || "", line_id: row.line_id ?? "", machine_name: row.machine_name || "",
+              card_ip: row.card_ip, card_port: row.card_port, unit_id: row.unit_id,
+              base_register: row.base_register, channel: free, signal: "gas" });
     setModal(true);
   };
   const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
@@ -111,6 +129,9 @@ export default function WeldMaster({ toast, readOnly = false }) {
       });
       ["card_port", "unit_id", "channel", "base_register"].forEach(k => body[k] = Number(body[k]));
       ["mv_to_a", "on_threshold_a", "gap_s", "min_weld_s", "sample_hz"].forEach(k => body[k] = Number(body[k]));
+      ["scale", "offset_val", "sample_s"].forEach(k => {
+        body[k] = (body[k] === "" || body[k] === null || body[k] === undefined) ? null : Number(body[k]);
+      });
       const r = await api.post("/api/weld/master", body, token);
       if (r && r.ok === false) { say(r.error || "Save failed", "err"); return; }
       say(`Station ${form.station} saved — the poller picks it up within a minute`, "ok");
@@ -204,8 +225,16 @@ export default function WeldMaster({ toast, readOnly = false }) {
                     .filter(Boolean).join(" · ") || <span style={{ color: "#94a3b8" }}>—</span>}
                 </td>
                 <td style={{ ...TD, fontFamily: "monospace" }}>{r.card_ip}:{r.card_port} · u{r.unit_id}</td>
-                <td style={TD}>{r.channel}</td>
-                <td style={TD}>{r.mv_to_a}</td>
+                <td style={TD}>{r.channel}
+                  <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 800, padding: "2px 7px", borderRadius: 999,
+                                 background: (r.signal || "current") === "current" ? "#eff6ff" : "#ecfdf5",
+                                 color: (r.signal || "current") === "current" ? "#1d4ed8" : "#047857" }}>
+                    {(SIGNALS.find(x => x[0] === (r.signal || "current")) || [0, r.signal])[1]}
+                  </span>
+                </td>
+                <td style={TD}>{(r.signal || "current") === "current"
+                  ? r.mv_to_a
+                  : `x${r.scale ?? 1}${r.unit ? " " + r.unit : ""}`}</td>
                 <td style={TD}>
                   {r.current_min != null || r.current_max != null
                     ? `${r.current_min ?? "—"} – ${r.current_max ?? "—"}${r.current_set != null ? `  (set ${r.current_set})` : ""}`
@@ -222,6 +251,9 @@ export default function WeldMaster({ toast, readOnly = false }) {
                   <td style={TD}>
                     <button onClick={() => open(r)} style={{ marginRight: 8, padding: "5px 11px", borderRadius: 7,
                       border: "1.5px solid #e2e8f0", background: "#fff", fontSize: 12, cursor: "pointer" }}>Edit</button>
+                    <button onClick={() => addChannel(r)} title="Add another channel of this same card (e.g. the gas sensor)"
+                      style={{ marginRight: 8, padding: "5px 11px", borderRadius: 7, border: "1.5px solid #bbf7d0",
+                               background: "#f0fdf4", color: "#15803d", fontSize: 12, cursor: "pointer" }}>+ Channel</button>
                     <button onClick={() => del(r)} style={{ padding: "5px 11px", borderRadius: 7,
                       border: "1.5px solid #fecaca", background: "#fef2f2", color: "#b91c1c",
                       fontSize: 12, cursor: "pointer" }}>Delete</button>
@@ -315,14 +347,44 @@ export default function WeldMaster({ toast, readOnly = false }) {
                     <input style={I} type="number" value={form.base_register}
                            onChange={e => set("base_register", e.target.value)} />
                   </F>
-                  <F label="mV → A" hint="60 mV = 600 A → 10">
-                    <input style={I} type="number" step="0.1" value={form.mv_to_a}
-                           onChange={e => set("mv_to_a", e.target.value)} />
+                  <F label="Signal" hint="what this channel measures">
+                    <select style={I} value={form.signal} onChange={e => set("signal", e.target.value)}>
+                      {SIGNALS.map(([k, t]) => <option key={k} value={k}>{t}</option>)}
+                    </select>
                   </F>
+                  {form.signal === "current" ? (
+                    <F label="mV → A" hint="60 mV = 600 A → 10">
+                      <input style={I} type="number" step="0.1" value={form.mv_to_a}
+                             onChange={e => set("mv_to_a", e.target.value)} />
+                    </F>
+                  ) : (
+                    <>
+                      <F label="Unit" hint="e.g. L/min, ppm, %">
+                        <input style={I} value={form.unit ?? ""} onChange={e => set("unit", e.target.value)} />
+                      </F>
+                      <F label="Scale" hint="value = card reading × scale + offset">
+                        <input style={I} type="number" step="any" value={form.scale ?? ""}
+                               onChange={e => set("scale", e.target.value)} />
+                      </F>
+                      <F label="Offset">
+                        <input style={I} type="number" step="any" value={form.offset_val ?? ""}
+                               onChange={e => set("offset_val", e.target.value)} />
+                      </F>
+                      <F label="Sample every (s)">
+                        <input style={I} type="number" step="0.5" value={form.sample_s ?? ""}
+                               onChange={e => set("sample_s", e.target.value)} />
+                      </F>
+                    </>
+                  )}
+                </div>
+                <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 8 }}>
+                  One card can carry several channels (for example weld current on ch8 and a gas
+                  sensor on ch6): add each as its own row with its own name — they share the card's
+                  single connection.
                 </div>
               </section>
 
-              <section>
+              {form.signal === "current" && <section>
                 <div style={{ ...L, marginBottom: 10, color: "#0f172a" }}>Acceptable range (spec band)</div>
                 <div style={GRID}>
                   <F label="Current min (A)"><input style={I} type="number" value={form.current_min ?? ""} onChange={e => set("current_min", e.target.value)} /></F>
@@ -336,7 +398,7 @@ export default function WeldMaster({ toast, readOnly = false }) {
                   Leave voltage blank when the card only carries a current shunt — the monitor
                   simply shows no voltage trend for that station.
                 </div>
-              </section>
+              </section>}
 
               <section>
                 <div style={{ ...L, marginBottom: 10, color: "#0f172a" }}>Weld detection</div>

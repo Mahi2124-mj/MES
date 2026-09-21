@@ -192,6 +192,11 @@ export default function ShiftAllocation() {
   // above pick which leader runs this line for the date+shift.
   const canLead = ["admin", "plant_head", "section_incharge", "shift_incharge",
                    "production_incharge"].includes(user?.role);
+  // 2026-09-21 — the Line Leader dropdown is shown to EVERY user (operator:
+  // "sabhi user id par show hona chahiye"); it is enabled only for users who can
+  // edit this page (`writable`).  canLead above still decides who must pick a
+  // leader before saving, so nobody who could save before is blocked now.
+  const showLead = true;
   const [leaders, setLeaders]         = useState([]);
   const [shiftLeader, setShiftLeader] = useState("");
   const [leaderBusy, setLeaderBusy]   = useState(false);
@@ -201,15 +206,15 @@ export default function ShiftAllocation() {
   // other zones stay one tick away so a cross-zone cover is still possible.
   const [allZoneLeaders, setAllZoneLeaders] = useState(false);
   useEffect(() => {
-    if (!canLead) return;
+    if (!showLead) return;
     api.get("/api/leaders", token).then(r => setLeaders(r.leaders || [])).catch(() => setLeaders([]));
-  }, [canLead, token]);
+  }, [showLead, token]);
   useEffect(() => {
-    if (!canLead || !lineId || !date || !shift) { setShiftLeader(""); return; }
+    if (!showLead || !lineId || !date || !shift) { setShiftLeader(""); return; }
     api.get(`/api/leaders/shift-alloc?line_id=${lineId}&date=${date}&shift=${encodeURIComponent(shift)}`, token)
       .then(r => setShiftLeader(r.leader_id ? String(r.leader_id) : ""))
       .catch(() => setShiftLeader(""));
-  }, [canLead, lineId, date, shift, token]);
+  }, [showLead, lineId, date, shift, token]);
   const saveLeader = async (lid) => {
     setShiftLeader(lid);
     setLeaderBusy(true);
@@ -579,7 +584,7 @@ export default function ShiftAllocation() {
                   <option value="A">A</option><option value="B">B</option><option value="C">C</option>
                 </select>
               </FilterCell>
-              {canLead && (
+              {showLead && (
                 <FilterCell label="Line Leader">
                   {(() => {
                     const curLine  = lines.find(l => String(l.id) === String(lineId));

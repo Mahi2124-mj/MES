@@ -119,6 +119,7 @@ def _ensure_master_table(conn):
         )
     """)
     conn.commit()
+    _migrate_master_once(conn)
     # Seed the one station that is physically wired today (RC-01 on the
     # recliner-zone card) so the feature works out of the box; the admin can
     # edit or delete it like any other row.
@@ -138,6 +139,25 @@ def _ensure_master_table(conn):
         conn.commit()
 
 
+_MASTER_MIGRATED = False
+
+
+def _migrate_master_once(conn) -> None:
+    """2026-09-21 — several channels per card: a row is either the robot's weld
+    current (signal='current', per-weld logic) or a continuous sensor such as
+    the gas sensor (signal='gas'), with its own unit / scale / offset / sample
+    period.  Once per process, never per request."""
+    global _MASTER_MIGRATED
+    if _MASTER_MIGRATED:
+        return
+    cur = conn.cursor()
+    for col in ("signal TEXT NOT NULL DEFAULT 'current'", "unit TEXT", "scale NUMERIC",
+                "offset_val NUMERIC", "sample_s NUMERIC"):
+        cur.execute(f"ALTER TABLE mes_weld_master ADD COLUMN IF NOT EXISTS {col}")
+    conn.commit()
+    _MASTER_MIGRATED = True
+
+
 # ── MASTER (Quality admin) ────────────────────────────────────────────────
 # Columns the admin may set.  Anything not listed is ignored, so a stray key
 # in the payload can never reach the SQL.
@@ -147,6 +167,7 @@ _MASTER_FIELDS = [
     "current_min", "current_set", "current_max",
     "voltage_min", "voltage_set", "voltage_max",
     "on_threshold_a", "gap_s", "min_weld_s", "sample_hz", "is_active", "note",
+    "signal", "unit", "scale", "offset_val", "sample_s",
 ]
 
 
@@ -201,13 +222,21 @@ def weld_master_upsert(body: dict, user=Depends(get_current_user_optional)):
             cur.execute(f"UPDATE mes_weld_master SET {sets} WHERE id = %s",
                         list(data.values()) + [rid])
         else:
+            # 2026-09-21 — creating used to UPSERT on the station name, so adding
+            # a second channel of the same card under the same name silently
+            # rewrote the existing row (RC-01's weld current ch8 became ch6).
+            # A new row needs its own name; editing goes through `id`.
+            cur.execute("SELECT 1 FROM mes_weld_master WHERE station = %s",
+                        (data["station"],))
+            if cur.fetchone():
+                return {"ok": False,
+                        "error": f"A station named '{data['station']}' already exists. "
+                                 f"Give the new channel its own name (e.g. "
+                                 f"'{data['station']} Gas'), or edit that row."}
             cols = ", ".join(data)
             ph   = ", ".join(["%s"] * len(data))
-            upd  = ", ".join(f"{k} = EXCLUDED.{k}" for k in data if k != "station")
-            cur.execute(
-                f"INSERT INTO mes_weld_master ({cols}) VALUES ({ph}) "
-                f"ON CONFLICT (station) DO UPDATE SET {upd}, updated_at = NOW() "
-                f"RETURNING id", list(data.values()))
+            cur.execute(f"INSERT INTO mes_weld_master ({cols}) VALUES ({ph}) RETURNING id",
+                        list(data.values()))
             rid = cur.fetchone()[0]
         conn.commit()
     return {"ok": True, "id": rid}
@@ -406,3 +435,48 @@ def weld_test_worker():
         except Exception as e:
             print(f"[WELD] test gen tick error: {e}", flush=True)
         time.sleep(3)
+
+
+# ── Gas sensor (Weld Monitor) — 2026-09-21 ──────────────────────────────────
+# Readings written by weld_poller._sensor_worker for Weld Master rows with signal=gas.
+# Read-only.  The poller lives in the background-leader worker only, so how
+# fresh the feed is comes from the newest row, not from in-process state.
+@weld_router.get("/gas")
+def gas_readings(minutes: int = Query(30, ge=1, le=720),
+                 station: Optional[str] = None,
+                 user=Depends(get_current_user_optional)):
+    """Recent readings of a gas/sensor channel configured in the Weld Master
+    (signal='gas'), written every sample_s by weld_poller._sensor_worker over
+    the card's shared connection.  Read-only."""
+    with get_conn() as conn:
+        _ensure_master_table(conn)
+        cur = dict_cursor(conn)
+        cur.execute("""SELECT station, card_ip, channel, unit, COALESCE(sample_s, 2) AS every_s
+                         FROM mes_weld_master
+                        WHERE is_active AND COALESCE(signal,'current') IN ('gas','sensor')
+                          AND (%s::text IS NULL OR station = %s)
+                        ORDER BY station LIMIT 1""", (station, station))
+        m = cur.fetchone()
+        if not m:
+            return {"configured": False, "readings": [], "latest": None, "age_s": None}
+        meta = {"configured": True, "station": m["station"], "card": m["card_ip"],
+                "channel": m["channel"], "unit": m["unit"] or "",
+                "every_s": float(m["every_s"])}
+        cur.execute("SELECT to_regclass('mes_gas_log') AS t")
+        if not (cur.fetchone() or {}).get("t"):
+            return {**meta, "readings": [], "latest": None, "age_s": None}
+        cur.execute("""SELECT ts, value FROM mes_gas_log
+                        WHERE card_ip = %s AND channel = %s
+                          AND ts >= now() - make_interval(mins => %s)
+                        ORDER BY ts""", (m["card_ip"], m["channel"], minutes))
+        rows = cur.fetchall()
+        cur.execute("""SELECT ts, value, EXTRACT(EPOCH FROM now() - ts)::int AS age_s
+                         FROM mes_gas_log WHERE card_ip = %s AND channel = %s
+                        ORDER BY ts DESC LIMIT 1""", (m["card_ip"], m["channel"]))
+        last = cur.fetchone()
+    step = max(1, len(rows) // 900)          # ≤ ~900 points for the chart
+    readings = [{"ts": r["ts"].isoformat(), "v": r["value"]} for r in rows[::step]]
+    return {**meta, "minutes": minutes, "readings": readings,
+            "latest": (last or {}).get("value"),
+            "latest_ts": last["ts"].isoformat() if last else None,
+            "age_s": (last or {}).get("age_s")}

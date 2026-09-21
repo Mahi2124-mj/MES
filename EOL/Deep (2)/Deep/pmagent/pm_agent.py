@@ -1499,6 +1499,174 @@ def report_binfill(ab, admin_ids, info, dry=False):
             "would_send": len(msgs) if dry else None}
 
 
+# ── 6. Clip priority coverage (every 15 min) — 2026-09-21 ────────────────────
+# Operator: "jo priority set ki vo actual me 100% honi chahiye".  For every
+# cycle since the priority was saved (ended 3-45 min ago), does its clip
+# exist?  P1 = Final Inspection of every line + NG anywhere; P2 = every
+# sub-machine cycle of the top `p2_zones` zones.  A miss is split into "no
+# footage" (the camera was not recording → camera problem, not the archiver)
+# and "footage there, not cut" (the archiver fell behind).  Read-only: DB
+# SELECTs and file existence checks, nothing else.
+CLIP_ROOT = "/run/media/server/3ad0fece-b7bc-48b1-8f24-d21bb5153735/eol-data/clips"
+PRIO = {"window_min": 45, "settle_min": 3}
+_SAFE_RE = re.compile(r"[^A-Za-z0-9_.-]")
+
+
+def _clip_file(kind, owner, record_date, seq, ng, shift, line_id):
+    s = lambda v: _SAFE_RE.sub("_", str(v))                          # noqa: E731
+    d = record_date.isoformat() if hasattr(record_date, "isoformat") else str(record_date)
+    sh = s(str(shift).strip()) if shift not in (None, "") else "NA"
+    mach = "main" if kind == "line" else f"sub_{s(owner)}"
+    return os.path.join(CLIP_ROOT, s(d), f"line_{s(line_id)}", sh, mach,
+                        f"cycle_{s(seq)}{'_ng' if ng else ''}.mp4")
+
+
+def _footage_spans():
+    """camera id -> [(start_epoch, last_write_epoch)] from the TS file names."""
+    spans = {}
+    try:
+        for e in os.scandir(VIDEOS_DIR):
+            m = re.match(r"^cam_(.+)_(\d{13})\.ts$", e.name)
+            if m:
+                try:
+                    spans.setdefault(m.group(1), []).append(
+                        (int(m.group(2)) / 1000.0, e.stat().st_mtime))
+                except OSError:
+                    pass
+    except OSError:
+        pass
+    return spans
+
+
+def check_priority(ap):
+    out = {"saved": False}
+    with closing(db()) as c:
+        cur = dc(c)
+        cur.execute("SELECT to_regclass('mes_clip_priority') AS t")
+        if not (cur.fetchone() or {}).get("t"):
+            return out
+        cur.execute("SELECT config, updated_at FROM mes_clip_priority WHERE id = 1")
+        row = cur.fetchone()
+        if not row:
+            return out
+        cfg, saved_at = row["config"] or {}, row["updated_at"]
+        zones = cfg.get("zone_order") or []
+        p2z = set(zones[:int(cfg.get("p2_zones") or 0)])
+        out.update(saved=True, zone_order=zones, p2_zones=sorted(p2z),
+                   saved_at=str(saved_at)[:19])
+        cur.execute("SELECT GREATEST(%s::timestamptz, now() - make_interval(mins => %s))::timestamp AS a, "
+                    "(now() - make_interval(mins => %s))::timestamp AS b",
+                    (saved_at, PRIO["window_min"], PRIO["settle_min"]))
+        w = cur.fetchone()
+        out["window"] = f"{w['a']:%H:%M}–{w['b']:%H:%M}"
+        if w["a"] >= w["b"]:
+            out["note"] = "priority saved less than 3 min ago — nothing to judge yet"
+            return out
+        cur.execute("""SELECT l.id, l.line_name, l.db_table_name, z.zone_name,
+                              (SELECT NULLIF(TRIM(pc.nf2_camera_id), '') FROM mes_plc_configs pc
+                                WHERE pc.line_id = l.id AND ((l.dashboard_plc_id IS NOT NULL AND pc.id = l.dashboard_plc_id)
+                                   OR (l.dashboard_plc_id IS NULL AND pc.parent_plc_id IS NULL))
+                                ORDER BY (pc.parent_plc_id IS NULL) DESC LIMIT 1) AS cam
+                         FROM mes_lines l LEFT JOIN mes_zones z ON z.id = l.zone_id
+                        WHERE COALESCE(l.is_active, TRUE)""")
+        lines = cur.fetchall()
+        items = []            # (class, zone, kind, owner, line_id, date, seq, ng, shift, ts, cam)
+        for ln in lines:
+            tbl = ln["db_table_name"]
+            if not tbl or not _TBL.match(tbl):
+                continue
+            cur.execute("SELECT to_regclass(%s) AS t", (tbl + "_ct_log",))
+            if not (cur.fetchone() or {}).get("t"):
+                continue
+            cur.execute(f"SELECT cycle_seq, record_date, shift_name, COALESCE(is_ng, FALSE) AS ng, ts "
+                        f"FROM {tbl}_ct_log WHERE record_date >= current_date - 1 "
+                        f"AND ts >= %s AND ts < %s", (w["a"], w["b"]))
+            for r in cur.fetchall():
+                items.append(("P1", ln["zone_name"], "line", ln["id"], ln["id"], r["record_date"],
+                              r["cycle_seq"], r["ng"], r["shift_name"], r["ts"], ln["cam"]))
+        zone_of = {ln["id"]: ln["zone_name"] for ln in lines}
+        cur.execute("""SELECT l.sub_plc_id, l.cycle_seq, l.record_date, l.shift_name,
+                              COALESCE(l.is_ng, FALSE) AS ng, l.ts_end, p.line_id,
+                              NULLIF(TRIM(p.nf2_camera_id), '') AS cam
+                         FROM mes_submachine_ct_log l JOIN mes_plc_configs p ON p.id = l.sub_plc_id
+                        WHERE l.record_date >= current_date - 1 AND l.ts_end >= %s AND l.ts_end < %s""",
+                    (w["a"], w["b"]))
+        p3 = 0
+        for r in cur.fetchall():
+            z = zone_of.get(r["line_id"])
+            cls = "P1" if r["ng"] else ("P2" if z in p2z else None)
+            if cls is None:
+                p3 += 1
+                continue
+            items.append((cls, z, "sub", r["sub_plc_id"], r["line_id"], r["record_date"],
+                          r["cycle_seq"], r["ng"], r["shift_name"], r["ts_end"], r["cam"]))
+    spans = _footage_spans()
+    stat = {}
+    for cls, z, kind, owner, lid, d, seq, ng, sh, ts, cam in items:
+        k = (cls, z or "(no zone)")
+        st = stat.setdefault(k, {"cycles": 0, "clip": 0, "no_camera": 0, "no_footage": 0, "not_cut": 0})
+        st["cycles"] += 1
+        if os.path.exists(_clip_file(kind, owner, d, seq, ng, sh, lid)):
+            st["clip"] += 1
+            continue
+        if not cam:
+            st["no_camera"] += 1
+            continue
+        t = ts.timestamp() if hasattr(ts, "timestamp") else 0
+        if any(a - 5 <= t <= b + 5 for a, b in spans.get(cam, [])):
+            st["not_cut"] += 1
+        else:
+            st["no_footage"] += 1
+    ap.ok()
+    rows = []
+    for (cls, z), st in sorted(stat.items()):
+        pct = round(100.0 * st["clip"] / st["cycles"], 1) if st["cycles"] else None
+        rows.append(dict(st, cls=cls, zone=z, pct=pct))
+    out.update(rows=rows, p3_skipped=p3)
+    for cls in ("P1", "P2"):
+        tot = [r for r in rows if r["cls"] == cls]
+        cyc = sum(r["cycles"] for r in tot)
+        clip = sum(r["clip"] for r in tot)
+        nc = sum(r["not_cut"] for r in tot)
+        nf = sum(r["no_footage"] for r in tot) + sum(r["no_camera"] for r in tot)
+        pct = round(100.0 * clip / cyc, 1) if cyc else None
+        out[cls] = {"cycles": cyc, "clip": clip, "pct": pct, "not_cut": nc, "no_footage": nf}
+        if cyc and pct < 100:
+            worst = sorted((r for r in tot if r["pct"] is not None and r["pct"] < 100),
+                           key=lambda r: r["pct"])[:4]
+            ap.gap(f"priority:{cls.lower()}", "critical" if cls == "P1" else "warning",
+                   "Clip priority",
+                   f"{cls} clips {pct}% ({clip}/{cyc}) — {nc} not cut, {nf} no footage",
+                   ", ".join(f"{r['zone']} {r['pct']}%" for r in worst),
+                   "not cut = archiver behind (GPU); no footage = camera not recording",
+                   "fix the listed cameras; if 'not cut' grows, lower the P2 zone count")
+    return out
+
+
+def report_priority(app, admin_ids, info, dry=False):
+    """One Inbox line per 15-min run: how far the saved priority is from 100 %."""
+    if not (info or {}).get("saved") or not info.get("P1"):
+        return {"sent": 0}
+    p1, p2 = info.get("P1") or {}, info.get("P2") or {}
+
+    def _l(n, d):
+        return (f"{n} {d.get('pct')}% ({d.get('clip')}/{d.get('cycles')}; "
+                f"{d.get('not_cut')} not cut, {d.get('no_footage')} no footage)") if d.get("cycles") else f"{n} —"
+    title = ("Clip priority — 100% achieved" if p1.get("pct") == 100 and (not p2.get("cycles") or p2.get("pct") == 100)
+             else f"Clip priority — P1 {p1.get('pct')}% · P2 {p2.get('pct')}%")
+    body = (f"Window {info.get('window')} · " + _l("P1 (Final Inspection + NG)", p1) + " · "
+            + _l(f"P2 ({', '.join(info.get('p2_zones') or [])} sub-machines)", p2)
+            + f" · P3 left for on-click: {info.get('p3_skipped', 0)}")
+    if dry:
+        print(f"[pm-agent] (dry run, not sent) {title}: {body}", flush=True)
+        return {"sent": 0}
+    try:
+        return {"sent": _send_alerts(admin_ids, title, body, "/video-coverage")}
+    except Exception as e:
+        print(f"[pm-agent] priority report failed: {e}")
+        return {"sent": 0}
+
+
 def _run_binfill(ab, s):
     try:
         return check_binfill(ab, s)
@@ -1533,7 +1701,7 @@ def _gap_line(g):
     return s + (f" → {g['action']}" if g.get("action") else "")
 
 
-def alert(a, admin_ids, scope=None, dry=False, exclude=("collector:", "binfill:")):
+def alert(a, admin_ids, scope=None, dry=False, exclude=("collector:", "binfill:", "priority:")):
     """Alert on CHANGE only: a gap that just appeared, or one that just cleared.
     With a scope ('video:'), only gaps of that scope are compared; the rest of
     the remembered state is carried over untouched.  `exclude` keys are never
@@ -1655,11 +1823,20 @@ def run_once(video_only=False, dry=False):
         a.checks += ab.checks
         ac.gaps += ab.gaps
         ac.muted += ab.muted
+        print("[pm-agent] clip priority coverage…", flush=True)
+        app_ = Audit()
+        try:
+            pr = check_priority(app_)
+        except Exception as e:
+            pr = {"error": f"{type(e).__name__}: {str(e)[:120]}"}
+        prr = report_priority(app_, admins, pr, dry=dry)
+        a.checks += app_.checks
+        ac.gaps += app_.gaps
         try:
             snap = json.load(open(STATUS_PATH)) if os.path.exists(STATUS_PATH) else {}
         except Exception:
             snap = {}
-        fresh = ("video:", "collector:", "binfill:")
+        fresh = ("video:", "collector:", "binfill:", "priority:")
         snap["gaps"] = [g for g in snap.get("gaps", []) if not g["id"].startswith(fresh)] + a.gaps + ac.gaps
         snap["muted"] = [g for g in snap.get("muted", []) if not g["id"].startswith(fresh)] + a.muted + ac.muted
         snap["gaps"].sort(key=lambda g: sev_rank.get(g["sev"], 3))
@@ -1674,6 +1851,8 @@ def run_once(video_only=False, dry=False):
         snap["binfill"] = bf
         snap["binfill_ran_at"] = time.strftime("%Y-%m-%d %H:%M:%S")
         snap["binfill_report"] = br
+        snap["clip_priority"] = pr
+        snap["clip_priority_report"] = prr
         snap["dry_run"] = dry
         a.gaps = a.gaps + ac.gaps
         a.muted = a.muted + ac.muted
@@ -1713,12 +1892,13 @@ def run_once(video_only=False, dry=False):
             old = json.load(open(STATUS_PATH)) if os.path.exists(STATUS_PATH) else {}
         except Exception:
             old = {}
-        snap["gaps"] += [g for g in old.get("gaps", []) if g["id"].startswith(("collector:", "binfill:"))]
-        snap["muted"] += [g for g in old.get("muted", []) if g["id"].startswith(("collector:", "binfill:"))]
+        snap["gaps"] += [g for g in old.get("gaps", []) if g["id"].startswith(("collector:", "binfill:", "priority:"))]
+        snap["muted"] += [g for g in old.get("muted", []) if g["id"].startswith(("collector:", "binfill:", "priority:"))]
         snap["gaps"].sort(key=lambda g: sev_rank.get(g["sev"], 3))
         snap["counts"] = _counts(snap["gaps"])
         for k in ("collectors", "collectors_ran_at", "collector_report",
-                  "binfill", "binfill_ran_at", "binfill_report"):
+                  "binfill", "binfill_ran_at", "binfill_report",
+                  "clip_priority", "clip_priority_report"):
             if k in old:
                 snap[k] = old[k]
     _write_own(out_path, snap)
