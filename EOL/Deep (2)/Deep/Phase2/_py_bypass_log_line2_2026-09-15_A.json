@@ -1,0 +1,78 @@
+{
+  "line_id": 2,
+  "date": "2026-09-15",
+  "shift": "A",
+  "shift_start": "2026-09-15T08:30:00",
+  "shift_end": "2026-09-15T17:15:00",
+  "episodes": [
+    {
+      "py_no": "D407",
+      "py_name": "Rr.Lwr.Protector",
+      "hit_count": 1,
+      "alert": "WARNING",
+      "start_at": "2026-09-15T11:05:02.939959",
+      "end_at": "2026-09-15T11:05:14.619868",
+      "start_slot": "10:30-11:30",
+      "slot": "10:30-11:30"
+    },
+    {
+      "py_no": "D408",
+      "py_name": "Rr.Upr.PROTECTER/SHIPPING POS.NG",
+      "hit_count": 1,
+      "alert": "WARNING",
+      "start_at": "2026-09-15T11:05:03.975375",
+      "end_at": "2026-09-15T11:05:15.122246",
+      "start_slot": "10:30-11:30",
+      "slot": "10:30-11:30"
+    }
+  ],
+  "by_slot": {
+    "10:30-11:30": [
+      {
+        "py_no": "D407",
+        "py_name": "Rr.Lwr.Protector",
+        "hit_count": 1,
+        "alert": "WARNING",
+        "start_at": "2026-09-15T11:05:02.939959",
+        "end_at": "2026-09-15T11:05:14.619868",
+        "start_slot": "10:30-11:30",
+        "slot": "10:30-11:30",
+        "slot_label": "10:30-11:30",
+        "slot_segment_from": "2026-09-15T11:05:02.939959",
+        "slot_segment_to": "2026-09-15T11:05:14.619868",
+        "slot_segment_sec": 11.7,
+        "starts_here": true,
+        "ends_here": true,
+        "ongoing_now": false
+      },
+      {
+        "py_no": "D408",
+        "py_name": "Rr.Upr.PROTECTER/SHIPPING POS.NG",
+        "hit_count": 1,
+        "alert": "WARNING",
+        "start_at": "2026-09-15T11:05:03.975375",
+        "end_at": "2026-09-15T11:05:15.122246",
+        "start_slot": "10:30-11:30",
+        "slot": "10:30-11:30",
+        "slot_label": "10:30-11:30",
+        "slot_segment_from": "2026-09-15T11:05:03.975375",
+        "slot_segment_to": "2026-09-15T11:05:15.122246",
+        "slot_segment_sec": 11.1,
+        "starts_here": true,
+        "ends_here": true,
+        "ongoing_now": false
+      }
+    ]
+  },
+  "slot_summary": {
+    "10:30-11:30": {
+      "total_bypass_sec": 22.8,
+      "longest_sec": 11.7,
+      "episode_count": 2,
+      "ongoing_count": 0,
+      "distinct_py": 2
+    }
+  },
+  "merge_gap_sec": 60.0,
+  "generated_at": "2026-09-15T13:45:16.278120"
+}

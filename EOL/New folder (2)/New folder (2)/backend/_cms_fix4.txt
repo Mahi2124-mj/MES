@@ -1,0 +1,7 @@
+﻿deleted 144 raw cam_*.ts (skipped 0 locked) in 0s
+deleted 0 _pending temp files
+started fresh CMS -> out6; waiting 55s for prestart...
+ffmpeg recorders: 0
+fresh per-cam logs (<60s): 0
+no fresh TS yet
+  (no spawn-evidence lines)

@@ -1,0 +1,435 @@
+{
+  "line_id": 19,
+  "date": "2026-08-24",
+  "shift": "A",
+  "shift_start": "2026-08-24T08:30:00",
+  "shift_end": "2026-08-24T17:15:00",
+  "episodes": [
+    {
+      "py_no": "D406",
+      "py_name": "Fr.Lwr.Protector",
+      "hit_count": 1,
+      "alert": "WARNING",
+      "start_at": "2026-08-24T09:19:56.512005",
+      "end_at": "2026-08-24T09:19:56.512005",
+      "start_slot": "08:30-09:30",
+      "slot": "08:30-09:30"
+    },
+    {
+      "py_no": "D407",
+      "py_name": "Rr.Lwr.Protector",
+      "hit_count": 1,
+      "alert": "WARNING",
+      "start_at": "2026-08-24T09:19:56.626722",
+      "end_at": "2026-08-24T09:19:56.626722",
+      "start_slot": "08:30-09:30",
+      "slot": "08:30-09:30"
+    },
+    {
+      "py_no": "D408",
+      "py_name": "Rr.Upr.PROTECTER/SHIPPING POS.NG",
+      "hit_count": 1,
+      "alert": "WARNING",
+      "start_at": "2026-08-24T09:19:56.733647",
+      "end_at": "2026-08-24T09:19:56.733647",
+      "start_slot": "08:30-09:30",
+      "slot": "08:30-09:30"
+    },
+    {
+      "py_no": "D406",
+      "py_name": "Fr.Lwr.Protector",
+      "hit_count": 1,
+      "alert": "WARNING",
+      "start_at": "2026-08-24T09:28:55.610631",
+      "end_at": "2026-08-24T09:28:55.610631",
+      "start_slot": "08:30-09:30",
+      "slot": "08:30-09:30"
+    },
+    {
+      "py_no": "D407",
+      "py_name": "Rr.Lwr.Protector",
+      "hit_count": 1,
+      "alert": "WARNING",
+      "start_at": "2026-08-24T09:28:55.717636",
+      "end_at": "2026-08-24T09:28:55.717636",
+      "start_slot": "08:30-09:30",
+      "slot": "08:30-09:30"
+    },
+    {
+      "py_no": "D408",
+      "py_name": "Rr.Upr.PROTECTER/SHIPPING POS.NG",
+      "hit_count": 1,
+      "alert": "WARNING",
+      "start_at": "2026-08-24T09:28:55.824113",
+      "end_at": "2026-08-24T09:28:55.824113",
+      "start_slot": "08:30-09:30",
+      "slot": "08:30-09:30"
+    },
+    {
+      "py_no": "D406",
+      "py_name": "Fr.Lwr.Protector",
+      "hit_count": 1,
+      "alert": "WARNING",
+      "start_at": "2026-08-24T10:12:18.504480",
+      "end_at": "2026-08-24T10:12:18.504480",
+      "start_slot": "09:30-10:30",
+      "slot": "09:30-10:30"
+    },
+    {
+      "py_no": "D407",
+      "py_name": "Rr.Lwr.Protector",
+      "hit_count": 1,
+      "alert": "WARNING",
+      "start_at": "2026-08-24T10:12:18.590478",
+      "end_at": "2026-08-24T10:12:18.590478",
+      "start_slot": "09:30-10:30",
+      "slot": "09:30-10:30"
+    },
+    {
+      "py_no": "D408",
+      "py_name": "Rr.Upr.PROTECTER/SHIPPING POS.NG",
+      "hit_count": 1,
+      "alert": "WARNING",
+      "start_at": "2026-08-24T10:12:18.647852",
+      "end_at": "2026-08-24T10:12:18.647852",
+      "start_slot": "09:30-10:30",
+      "slot": "09:30-10:30"
+    },
+    {
+      "py_no": "D406",
+      "py_name": "Fr.Lwr.Protector",
+      "hit_count": 1,
+      "alert": "WARNING",
+      "start_at": "2026-08-24T10:25:52.575179",
+      "end_at": "2026-08-24T10:25:52.575179",
+      "start_slot": "09:30-10:30",
+      "slot": "09:30-10:30"
+    },
+    {
+      "py_no": "D407",
+      "py_name": "Rr.Lwr.Protector",
+      "hit_count": 1,
+      "alert": "WARNING",
+      "start_at": "2026-08-24T10:25:52.684899",
+      "end_at": "2026-08-24T10:25:52.684899",
+      "start_slot": "09:30-10:30",
+      "slot": "09:30-10:30"
+    },
+    {
+      "py_no": "D408",
+      "py_name": "Rr.Upr.PROTECTER/SHIPPING POS.NG",
+      "hit_count": 1,
+      "alert": "WARNING",
+      "start_at": "2026-08-24T10:25:52.780346",
+      "end_at": "2026-08-24T10:25:52.780346",
+      "start_slot": "09:30-10:30",
+      "slot": "09:30-10:30"
+    },
+    {
+      "py_no": "D406",
+      "py_name": "Fr.Lwr.Protector",
+      "hit_count": 1,
+      "alert": "WARNING",
+      "start_at": "2026-08-24T11:01:07.357308",
+      "end_at": "2026-08-24T11:01:07.357308",
+      "start_slot": "10:30-11:30",
+      "slot": "10:30-11:30"
+    },
+    {
+      "py_no": "D407",
+      "py_name": "Rr.Lwr.Protector",
+      "hit_count": 1,
+      "alert": "WARNING",
+      "start_at": "2026-08-24T11:01:07.504868",
+      "end_at": "2026-08-24T11:01:07.504868",
+      "start_slot": "10:30-11:30",
+      "slot": "10:30-11:30"
+    },
+    {
+      "py_no": "D408",
+      "py_name": "Rr.Upr.PROTECTER/SHIPPING POS.NG",
+      "hit_count": 1,
+      "alert": "WARNING",
+      "start_at": "2026-08-24T11:01:07.679378",
+      "end_at": "2026-08-24T11:01:07.679378",
+      "start_slot": "10:30-11:30",
+      "slot": "10:30-11:30"
+    },
+    {
+      "py_no": "D406",
+      "py_name": "Fr.Lwr.Protector",
+      "hit_count": 1,
+      "alert": "WARNING",
+      "start_at": "2026-08-24T11:22:44.149669",
+      "end_at": "2026-08-24T11:22:44.149669",
+      "start_slot": "10:30-11:30",
+      "slot": "10:30-11:30"
+    },
+    {
+      "py_no": "D407",
+      "py_name": "Rr.Lwr.Protector",
+      "hit_count": 1,
+      "alert": "WARNING",
+      "start_at": "2026-08-24T11:22:44.274350",
+      "end_at": "2026-08-24T11:22:44.274350",
+      "start_slot": "10:30-11:30",
+      "slot": "10:30-11:30"
+    },
+    {
+      "py_no": "D408",
+      "py_name": "Rr.Upr.PROTECTER/SHIPPING POS.NG",
+      "hit_count": 1,
+      "alert": "WARNING",
+      "start_at": "2026-08-24T11:22:44.353351",
+      "end_at": "2026-08-24T11:22:44.353351",
+      "start_slot": "10:30-11:30",
+      "slot": "10:30-11:30"
+    },
+    {
+      "py_no": "D406",
+      "py_name": "Fr.Lwr.Protector",
+      "hit_count": 1,
+      "alert": "WARNING",
+      "start_at": "2026-08-24T11:55:55.958168",
+      "end_at": "2026-08-24T11:55:55.958168",
+      "start_slot": "11:30-13:05",
+      "slot": "11:30-13:05"
+    },
+    {
+      "py_no": "D407",
+      "py_name": "Rr.Lwr.Protector",
+      "hit_count": 1,
+      "alert": "WARNING",
+      "start_at": "2026-08-24T11:55:56.051541",
+      "end_at": "2026-08-24T11:55:56.051541",
+      "start_slot": "11:30-13:05",
+      "slot": "11:30-13:05"
+    },
+    {
+      "py_no": "D408",
+      "py_name": "Rr.Upr.PROTECTER/SHIPPING POS.NG",
+      "hit_count": 1,
+      "alert": "WARNING",
+      "start_at": "2026-08-24T11:55:56.199916",
+      "end_at": "2026-08-24T11:55:56.199916",
+      "start_slot": "11:30-13:05",
+      "slot": "11:30-13:05"
+    },
+    {
+      "py_no": "D406",
+      "py_name": "Fr.Lwr.Protector",
+      "hit_count": 1,
+      "alert": "WARNING",
+      "start_at": "2026-08-24T12:37:44.106109",
+      "end_at": null,
+      "start_slot": "11:30-13:05",
+      "slot": "11:30-13:05"
+    },
+    {
+      "py_no": "D407",
+      "py_name": "Rr.Lwr.Protector",
+      "hit_count": 1,
+      "alert": "WARNING",
+      "start_at": "2026-08-24T12:37:44.253323",
+      "end_at": null,
+      "start_slot": "11:30-13:05",
+      "slot": "11:30-13:05"
+    },
+    {
+      "py_no": "D408",
+      "py_name": "Rr.Upr.PROTECTER/SHIPPING POS.NG",
+      "hit_count": 1,
+      "alert": "WARNING",
+      "start_at": "2026-08-24T12:37:44.329458",
+      "end_at": null,
+      "start_slot": "11:30-13:05",
+      "slot": "11:30-13:05"
+    }
+  ],
+  "by_slot": {
+    "11:30-13:05": [
+      {
+        "py_no": "D406",
+        "py_name": "Fr.Lwr.Protector",
+        "hit_count": 1,
+        "alert": "WARNING",
+        "start_at": "2026-08-24T12:37:44.106109",
+        "end_at": null,
+        "start_slot": "11:30-13:05",
+        "slot": "11:30-13:05",
+        "slot_label": "11:30-13:05",
+        "slot_segment_from": "2026-08-24T12:37:44.106109",
+        "slot_segment_to": "2026-08-24T13:05:00",
+        "slot_segment_sec": 1635.9,
+        "starts_here": true,
+        "ends_here": false,
+        "ongoing_now": false
+      },
+      {
+        "py_no": "D407",
+        "py_name": "Rr.Lwr.Protector",
+        "hit_count": 1,
+        "alert": "WARNING",
+        "start_at": "2026-08-24T12:37:44.253323",
+        "end_at": null,
+        "start_slot": "11:30-13:05",
+        "slot": "11:30-13:05",
+        "slot_label": "11:30-13:05",
+        "slot_segment_from": "2026-08-24T12:37:44.253323",
+        "slot_segment_to": "2026-08-24T13:05:00",
+        "slot_segment_sec": 1635.7,
+        "starts_here": true,
+        "ends_here": false,
+        "ongoing_now": false
+      },
+      {
+        "py_no": "D408",
+        "py_name": "Rr.Upr.PROTECTER/SHIPPING POS.NG",
+        "hit_count": 1,
+        "alert": "WARNING",
+        "start_at": "2026-08-24T12:37:44.329458",
+        "end_at": null,
+        "start_slot": "11:30-13:05",
+        "slot": "11:30-13:05",
+        "slot_label": "11:30-13:05",
+        "slot_segment_from": "2026-08-24T12:37:44.329458",
+        "slot_segment_to": "2026-08-24T13:05:00",
+        "slot_segment_sec": 1635.7,
+        "starts_here": true,
+        "ends_here": false,
+        "ongoing_now": false
+      }
+    ],
+    "13:05-14:05": [
+      {
+        "py_no": "D406",
+        "py_name": "Fr.Lwr.Protector",
+        "hit_count": 1,
+        "alert": "WARNING",
+        "start_at": "2026-08-24T12:37:44.106109",
+        "end_at": null,
+        "start_slot": "11:30-13:05",
+        "slot": "11:30-13:05",
+        "slot_label": "13:05-14:05",
+        "slot_segment_from": "2026-08-24T13:05:00",
+        "slot_segment_to": "2026-08-24T14:05:00",
+        "slot_segment_sec": 3600.0,
+        "starts_here": false,
+        "ends_here": false,
+        "ongoing_now": false
+      },
+      {
+        "py_no": "D407",
+        "py_name": "Rr.Lwr.Protector",
+        "hit_count": 1,
+        "alert": "WARNING",
+        "start_at": "2026-08-24T12:37:44.253323",
+        "end_at": null,
+        "start_slot": "11:30-13:05",
+        "slot": "11:30-13:05",
+        "slot_label": "13:05-14:05",
+        "slot_segment_from": "2026-08-24T13:05:00",
+        "slot_segment_to": "2026-08-24T14:05:00",
+        "slot_segment_sec": 3600.0,
+        "starts_here": false,
+        "ends_here": false,
+        "ongoing_now": false
+      },
+      {
+        "py_no": "D408",
+        "py_name": "Rr.Upr.PROTECTER/SHIPPING POS.NG",
+        "hit_count": 1,
+        "alert": "WARNING",
+        "start_at": "2026-08-24T12:37:44.329458",
+        "end_at": null,
+        "start_slot": "11:30-13:05",
+        "slot": "11:30-13:05",
+        "slot_label": "13:05-14:05",
+        "slot_segment_from": "2026-08-24T13:05:00",
+        "slot_segment_to": "2026-08-24T14:05:00",
+        "slot_segment_sec": 3600.0,
+        "starts_here": false,
+        "ends_here": false,
+        "ongoing_now": false
+      }
+    ],
+    "14:05-15:05": [
+      {
+        "py_no": "D406",
+        "py_name": "Fr.Lwr.Protector",
+        "hit_count": 1,
+        "alert": "WARNING",
+        "start_at": "2026-08-24T12:37:44.106109",
+        "end_at": null,
+        "start_slot": "11:30-13:05",
+        "slot": "11:30-13:05",
+        "slot_label": "14:05-15:05",
+        "slot_segment_from": "2026-08-24T14:05:00",
+        "slot_segment_to": "2026-08-24T14:49:50.701645",
+        "slot_segment_sec": 2690.7,
+        "starts_here": false,
+        "ends_here": false,
+        "ongoing_now": true
+      },
+      {
+        "py_no": "D407",
+        "py_name": "Rr.Lwr.Protector",
+        "hit_count": 1,
+        "alert": "WARNING",
+        "start_at": "2026-08-24T12:37:44.253323",
+        "end_at": null,
+        "start_slot": "11:30-13:05",
+        "slot": "11:30-13:05",
+        "slot_label": "14:05-15:05",
+        "slot_segment_from": "2026-08-24T14:05:00",
+        "slot_segment_to": "2026-08-24T14:49:50.701645",
+        "slot_segment_sec": 2690.7,
+        "starts_here": false,
+        "ends_here": false,
+        "ongoing_now": true
+      },
+      {
+        "py_no": "D408",
+        "py_name": "Rr.Upr.PROTECTER/SHIPPING POS.NG",
+        "hit_count": 1,
+        "alert": "WARNING",
+        "start_at": "2026-08-24T12:37:44.329458",
+        "end_at": null,
+        "start_slot": "11:30-13:05",
+        "slot": "11:30-13:05",
+        "slot_label": "14:05-15:05",
+        "slot_segment_from": "2026-08-24T14:05:00",
+        "slot_segment_to": "2026-08-24T14:49:50.701645",
+        "slot_segment_sec": 2690.7,
+        "starts_here": false,
+        "ends_here": false,
+        "ongoing_now": true
+      }
+    ]
+  },
+  "slot_summary": {
+    "11:30-13:05": {
+      "total_bypass_sec": 4907.3,
+      "longest_sec": 1635.9,
+      "episode_count": 3,
+      "ongoing_count": 0,
+      "distinct_py": 3
+    },
+    "13:05-14:05": {
+      "total_bypass_sec": 10800.0,
+      "longest_sec": 3600.0,
+      "episode_count": 3,
+      "ongoing_count": 0,
+      "distinct_py": 3
+    },
+    "14:05-15:05": {
+      "total_bypass_sec": 8072.1,
+      "longest_sec": 2690.7,
+      "episode_count": 3,
+      "ongoing_count": 3,
+      "distinct_py": 3
+    }
+  },
+  "merge_gap_sec": 60.0,
+  "generated_at": "2026-08-24T14:49:50.702839"
+}

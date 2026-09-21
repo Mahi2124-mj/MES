@@ -1,0 +1,600 @@
+{
+ "ran_at": "2026-09-19 08:13:50",
+ "took_s": 431.9,
+ "service": {
+  "api_ms": 32,
+  "api": 200,
+  "cms_ms": 7,
+  "cms": 401,
+  "cms_threads": 179
+ },
+ "counts": {
+  "critical": 12,
+  "warning": 30,
+  "lines": 31,
+  "video_ok": 13,
+  "video_fail": 8
+ },
+ "video_p50": 57,
+ "problems": [
+  {
+   "sev": "critical",
+   "area": "Video",
+   "what": "2UA RECLINER ki video nahi chali",
+   "why": "Camera ka koi recording file nahi mili",
+   "fix": "Recorder start nahi hua \u2014 CMS restart karo"
+  },
+  {
+   "sev": "critical",
+   "area": "Video",
+   "what": "GEAR LIFTER ki video nahi chali",
+   "why": "Camera ka koi recording file nahi mili",
+   "fix": "Recorder start nahi hua \u2014 CMS restart karo"
+  },
+  {
+   "sev": "critical",
+   "area": "Video",
+   "what": "YHB-SA-4WAY ki video nahi chali",
+   "why": "Camera ka koi recording file nahi mili",
+   "fix": "Recorder start nahi hua \u2014 CMS restart karo"
+  },
+  {
+   "sev": "critical",
+   "area": "Video",
+   "what": "YNC-SA-4WAY ki video nahi chali",
+   "why": "Camera ka koi recording file nahi mili",
+   "fix": "Recorder start nahi hua \u2014 CMS restart karo"
+  },
+  {
+   "sev": "critical",
+   "area": "Video",
+   "what": "YNC-SA-6WAY ki video nahi chali",
+   "why": "Is line pe camera bind hi nahi hai",
+   "fix": "Admin \u2192 Production \u2192 camera mapping me is line ka camera set karo"
+  },
+  {
+   "sev": "critical",
+   "area": "Video",
+   "what": "YRA-SA-4WAY ki video nahi chali",
+   "why": "Is line pe camera bind hi nahi hai",
+   "fix": "Admin \u2192 Production \u2192 camera mapping me is line ka camera set karo"
+  },
+  {
+   "sev": "critical",
+   "area": "Video",
+   "what": "YWD RECLINER ki video nahi chali",
+   "why": "Camera ka koi recording file nahi mili",
+   "fix": "Recorder start nahi hua \u2014 CMS restart karo"
+  },
+  {
+   "sev": "critical",
+   "area": "Video",
+   "what": "YWD-SS ki video nahi chali",
+   "why": "Camera ka koi recording file nahi mili",
+   "fix": "Recorder start nahi hua \u2014 CMS restart karo"
+  },
+  {
+   "sev": "critical",
+   "area": "Network",
+   "what": "Koi bhi camera network reachable nahi (6 subnet)",
+   "why": "server ka apna link theek hai par cameras/PLC tak packet nahi pahunch raha \u2014 plant ka switch ya un devices ki power gayi hui hai",
+   "fix": "IT/electrical ko bolo \u2014 MES se ye theek nahi hoga"
+  },
+  {
+   "sev": "critical",
+   "area": "Network",
+   "what": "7 switch down hain: YRA-RC, LPO3, YHB-SS, NUT W, 06, 02,07 & LP, LINE 01,05",
+   "why": "in switches ke peeche ki saari machine aur camera kat gayi hain",
+   "fix": "in switches ki power/uplink check karao"
+  },
+  {
+   "sev": "critical",
+   "area": "Video Archive",
+   "what": "17 line/shift me video coverage kam hai (2026-09-18)",
+   "why": "in cycles ki footage ab kahin nahi hai \u2014 recording window nikal gaya to clip ban hi nahi sakti. YWD-SS A 159/1079 (15%); YSD-SS A 304/1674 (18%); Loop Pipe-Line 1 A 330/1748 (19%); YFG-SS A 318/1704 (19%)",
+   "fix": "clip_archive ki speed badhao (PARALLEL/GPU lanes) ya CLIP_ARCHIVE_WINDOW_MIN badhao \u2014 lekin asli limit ye hai ki rolling .ts kitni der rakhi jaati hai"
+  },
+  {
+   "sev": "critical",
+   "area": "Evidence",
+   "what": "17 line/shift ki video coverage kam hai (2026-09-18)",
+   "why": "in cycles ki footage ab kahin nahi hai \u2014 recording window nikal gaya to clip ban hi nahi sakti. YWD-SS A 159/1079 (15%); YSD-SS A 304/1674 (18%); Loop Pipe-Line 1 A 330/1748 (19%); YFG-SS A 318/1704 (19%)",
+   "fix": "clip_archive ki speed ya .ts retention badhao"
+  },
+  {
+   "sev": "warning",
+   "area": "Production",
+   "what": "2UA RECLINER se 1038 min se koi cycle nahi aaya",
+   "why": "collector ya PLC se data nahi aa raha",
+   "fix": "collector log dekho: logs/collector_*.log; PLC reachable hai?"
+  },
+  {
+   "sev": "warning",
+   "area": "Production",
+   "what": "GEAR LIFTER se 891 min se koi cycle nahi aaya",
+   "why": "collector ya PLC se data nahi aa raha",
+   "fix": "collector log dekho: logs/collector_*.log; PLC reachable hai?"
+  },
+  {
+   "sev": "warning",
+   "area": "Production",
+   "what": "Loop Pipe-Line 1 se 292 min se koi cycle nahi aaya",
+   "why": "collector ya PLC se data nahi aa raha",
+   "fix": "collector log dekho: logs/collector_*.log; PLC reachable hai?"
+  },
+  {
+   "sev": "warning",
+   "area": "Production",
+   "what": "Loop Pipe-Line 2 se 292 min se koi cycle nahi aaya",
+   "why": "collector ya PLC se data nahi aa raha",
+   "fix": "collector log dekho: logs/collector_*.log; PLC reachable hai?"
+  },
+  {
+   "sev": "warning",
+   "area": "Production",
+   "what": "Loop Pipe-Line 3 se 736 min se koi cycle nahi aaya",
+   "why": "collector ya PLC se data nahi aa raha",
+   "fix": "collector log dekho: logs/collector_*.log; PLC reachable hai?"
+  },
+  {
+   "sev": "warning",
+   "area": "Production",
+   "what": "Y17-SS se 291 min se koi cycle nahi aaya",
+   "why": "collector ya PLC se data nahi aa raha",
+   "fix": "collector log dekho: logs/collector_*.log; PLC reachable hai?"
+  },
+  {
+   "sev": "warning",
+   "area": "Production",
+   "what": "YCA-SS se 291 min se koi cycle nahi aaya",
+   "why": "collector ya PLC se data nahi aa raha",
+   "fix": "collector log dekho: logs/collector_*.log; PLC reachable hai?"
+  },
+  {
+   "sev": "warning",
+   "area": "Production",
+   "what": "YFG-SS se 291 min se koi cycle nahi aaya",
+   "why": "collector ya PLC se data nahi aa raha",
+   "fix": "collector log dekho: logs/collector_*.log; PLC reachable hai?"
+  },
+  {
+   "sev": "warning",
+   "area": "Production",
+   "what": "YHB-SA-4WAY se 673 min se koi cycle nahi aaya",
+   "why": "collector ya PLC se data nahi aa raha",
+   "fix": "collector log dekho: logs/collector_*.log; PLC reachable hai?"
+  },
+  {
+   "sev": "warning",
+   "area": "Production",
+   "what": "YHB-SS se 291 min se koi cycle nahi aaya",
+   "why": "collector ya PLC se data nahi aa raha",
+   "fix": "collector log dekho: logs/collector_*.log; PLC reachable hai?"
+  },
+  {
+   "sev": "warning",
+   "area": "Production",
+   "what": "YJC-SS se 292 min se koi cycle nahi aaya",
+   "why": "collector ya PLC se data nahi aa raha",
+   "fix": "collector log dekho: logs/collector_*.log; PLC reachable hai?"
+  },
+  {
+   "sev": "warning",
+   "area": "Production",
+   "what": "YMC Recliner se 292 min se koi cycle nahi aaya",
+   "why": "collector ya PLC se data nahi aa raha",
+   "fix": "collector log dekho: logs/collector_*.log; PLC reachable hai?"
+  },
+  {
+   "sev": "warning",
+   "area": "Production",
+   "what": "YMC-SS se 294 min se koi cycle nahi aaya",
+   "why": "collector ya PLC se data nahi aa raha",
+   "fix": "collector log dekho: logs/collector_*.log; PLC reachable hai?"
+  },
+  {
+   "sev": "warning",
+   "area": "Production",
+   "what": "YNC-SA-4WAY se 673 min se koi cycle nahi aaya",
+   "why": "collector ya PLC se data nahi aa raha",
+   "fix": "collector log dekho: logs/collector_*.log; PLC reachable hai?"
+  },
+  {
+   "sev": "warning",
+   "area": "Production",
+   "what": "YNC-SA-6WAY se 1236 min se koi cycle nahi aaya",
+   "why": "collector ya PLC se data nahi aa raha",
+   "fix": "collector log dekho: logs/collector_*.log; PLC reachable hai?"
+  },
+  {
+   "sev": "warning",
+   "area": "Production",
+   "what": "YNC-SS se 292 min se koi cycle nahi aaya",
+   "why": "collector ya PLC se data nahi aa raha",
+   "fix": "collector log dekho: logs/collector_*.log; PLC reachable hai?"
+  },
+  {
+   "sev": "warning",
+   "area": "Production",
+   "what": "YRA-SA-4WAY se 673 min se koi cycle nahi aaya",
+   "why": "collector ya PLC se data nahi aa raha",
+   "fix": "collector log dekho: logs/collector_*.log; PLC reachable hai?"
+  },
+  {
+   "sev": "warning",
+   "area": "Production",
+   "what": "YRA-SS se 291 min se koi cycle nahi aaya",
+   "why": "collector ya PLC se data nahi aa raha",
+   "fix": "collector log dekho: logs/collector_*.log; PLC reachable hai?"
+  },
+  {
+   "sev": "warning",
+   "area": "Production",
+   "what": "YSD-SS se 291 min se koi cycle nahi aaya",
+   "why": "collector ya PLC se data nahi aa raha",
+   "fix": "collector log dekho: logs/collector_*.log; PLC reachable hai?"
+  },
+  {
+   "sev": "warning",
+   "area": "Production",
+   "what": "YWD RECLINER se 898 min se koi cycle nahi aaya",
+   "why": "collector ya PLC se data nahi aa raha",
+   "fix": "collector log dekho: logs/collector_*.log; PLC reachable hai?"
+  },
+  {
+   "sev": "warning",
+   "area": "Production",
+   "what": "YWD-SS se 892 min se koi cycle nahi aaya",
+   "why": "collector ya PLC se data nahi aa raha",
+   "fix": "collector log dekho: logs/collector_*.log; PLC reachable hai?"
+  },
+  {
+   "sev": "warning",
+   "area": "Network",
+   "what": "18 IP conflict configured hain",
+   "why": "ek hi IP do ya teen device pe set hai \u2014 dono kabhi-kabhi hi jawab denge, jo flaky camera/PLC jaisa dikhta hai. Jaise 192.168.36.31: IP assigned to 3 devices \u2014 PLC:Both Karakuri Middle Shelf, PLC:YLM Bending Machi",
+   "fix": "Network panel \u2192 IP conflicts me har ek ko alag IP do"
+  },
+  {
+   "sev": "warning",
+   "area": "Network",
+   "what": "2 cable aise device se juda hai jo map pe hai hi nahi",
+   "why": "device hata diya gaya par uska cable reh gaya \u2014 map galat raasta dikhayega",
+   "fix": "Network panel me ye cables hatao ya sahi device se jodo"
+  },
+  {
+   "sev": "warning",
+   "area": "Backlog",
+   "what": "Aadhe ghante se ek bhi clip archive nahi hui",
+   "why": "encoder chal rahe hain par koi clip complete nahi hui \u2014 render atka hua hai",
+   "fix": "clip_archive lanes + GPU dekho (nvidia-smi)"
+  },
+  {
+   "sev": "warning",
+   "area": "HTTP",
+   "what": "1 jagah 404 mila",
+   "why": "in lines ka data hi nahi hai \u2014 ya to line provision nahi hui (per-line table nahi bani), ya aaj us line pe koi shift row nahi bani",
+   "fix": "Admin \u2192 Production me in lines ka setup dekho: LOCATION PIN STACKING - LPS-5 realtime"
+  },
+  {
+   "sev": "warning",
+   "area": "Route",
+   "what": "2 endpoint bahut slow hain (10s se upar)",
+   "why": "ye crash nahi hue, bas bahut der lagate hain \u2014 itni der ek API worker inhi pe atka rehta hai: /api/network/discover 56s; /api/quality/sa-fi/export 17s",
+   "fix": "in endpoints pe ek upper bound lagao, warna kuch click saare workers ko rok sakte hain"
+  },
+  {
+   "sev": "warning",
+   "area": "Render",
+   "what": "/peff-sheet.html 1920px par check nahi ho paya",
+   "why": "browser timed out",
+   "fix": "liveagent/render_check.py"
+  },
+  {
+   "sev": "warning",
+   "area": "Render",
+   "what": "/peff-sheet.html 1600px par check nahi ho paya",
+   "why": "browser timed out",
+   "fix": "liveagent/render_check.py"
+  },
+  {
+   "sev": "warning",
+   "area": "Render",
+   "what": "/peff-sheet.html 1366px par check nahi ho paya",
+   "why": "browser timed out",
+   "fix": "liveagent/render_check.py"
+  },
+  {
+   "sev": "warning",
+   "area": "Render",
+   "what": "/peff-sheet.html 1280px par check nahi ho paya",
+   "why": "browser timed out",
+   "fix": "liveagent/render_check.py"
+  }
+ ],
+ "lines": [
+  {
+   "line": "2UA RECLINER",
+   "id": 8,
+   "producing": "62291s ago",
+   "page_ms": 144,
+   "video_ms": 73,
+   "video": "FAIL 404",
+   "src": ""
+  },
+  {
+   "line": "GEAR LIFTER",
+   "id": 7,
+   "producing": "53503s ago",
+   "page_ms": 269,
+   "video_ms": 71,
+   "video": "FAIL 404",
+   "src": ""
+  },
+  {
+   "line": "LOCATION PIN STACKING - LPS-5",
+   "id": 40,
+   "producing": "no ct_log table",
+   "page_ms": 66,
+   "video_ms": null,
+   "video": "\u2014"
+  },
+  {
+   "line": "Loop Pipe-Line 1",
+   "id": 30,
+   "producing": "17571s ago",
+   "page_ms": 607,
+   "video_ms": 62,
+   "video": "OK",
+   "src": "archive"
+  },
+  {
+   "line": "Loop Pipe-Line 2",
+   "id": 21,
+   "producing": "17535s ago",
+   "page_ms": 653,
+   "video_ms": 57,
+   "video": "OK",
+   "src": "archive"
+  },
+  {
+   "line": "Loop Pipe-Line 3",
+   "id": 31,
+   "producing": "44177s ago",
+   "page_ms": 137,
+   "video_ms": 54,
+   "video": "OK",
+   "src": "archive"
+  },
+  {
+   "line": "NUT LIFTING",
+   "id": 9,
+   "producing": "no cycles",
+   "page_ms": 90,
+   "video_ms": null,
+   "video": "\u2014"
+  },
+  {
+   "line": "NUT WELDING SA",
+   "id": 41,
+   "producing": "no ct_log table",
+   "page_ms": 132,
+   "video_ms": null,
+   "video": "\u2014"
+  },
+  {
+   "line": "Y17-SA-4WAY",
+   "id": 39,
+   "producing": "no ct_log table",
+   "page_ms": 132,
+   "video_ms": null,
+   "video": "\u2014"
+  },
+  {
+   "line": "Y17-SS",
+   "id": 15,
+   "producing": "17514s ago",
+   "page_ms": 629,
+   "video_ms": 50,
+   "video": "OK",
+   "src": "archive"
+  },
+  {
+   "line": "YCA-SS",
+   "id": 12,
+   "producing": "17506s ago",
+   "page_ms": 563,
+   "video_ms": 51,
+   "video": "OK",
+   "src": "archive"
+  },
+  {
+   "line": "YFG-SS",
+   "id": 14,
+   "producing": "17509s ago",
+   "page_ms": 629,
+   "video_ms": 48,
+   "video": "OK",
+   "src": "archive"
+  },
+  {
+   "line": "YHB Recliner",
+   "id": 27,
+   "producing": "no cycles",
+   "page_ms": 299,
+   "video_ms": null,
+   "video": "\u2014"
+  },
+  {
+   "line": "YHB-SA-4WAY",
+   "id": 35,
+   "producing": "40418s ago",
+   "page_ms": 168,
+   "video_ms": 72,
+   "video": "FAIL 404",
+   "src": ""
+  },
+  {
+   "line": "YHB-SS",
+   "id": 11,
+   "producing": "17509s ago",
+   "page_ms": 595,
+   "video_ms": 51,
+   "video": "OK",
+   "src": "archive"
+  },
+  {
+   "line": "YJC-SS",
+   "id": 13,
+   "producing": "17534s ago",
+   "page_ms": 609,
+   "video_ms": 51,
+   "video": "OK",
+   "src": "archive"
+  },
+  {
+   "line": "YMC Recliner",
+   "id": 20,
+   "producing": "17560s ago",
+   "page_ms": 474,
+   "video_ms": 51,
+   "video": "OK",
+   "src": "archive"
+  },
+  {
+   "line": "YMC-SS",
+   "id": 19,
+   "producing": "17658s ago",
+   "page_ms": 534,
+   "video_ms": 87,
+   "video": "OK",
+   "src": "archive"
+  },
+  {
+   "line": "YNC Recliner",
+   "id": 28,
+   "producing": "no ct_log table",
+   "page_ms": 277,
+   "video_ms": null,
+   "video": "\u2014"
+  },
+  {
+   "line": "YNC-SA-4WAY",
+   "id": 36,
+   "producing": "40406s ago",
+   "page_ms": 318,
+   "video_ms": 71,
+   "video": "FAIL 404",
+   "src": ""
+  },
+  {
+   "line": "YNC-SA-6WAY",
+   "id": 38,
+   "producing": "74215s ago",
+   "page_ms": 138,
+   "video_ms": 105,
+   "video": "FAIL 404",
+   "src": ""
+  },
+  {
+   "line": "YNC-SS",
+   "id": 2,
+   "producing": "17536s ago",
+   "page_ms": 629,
+   "video_ms": 49,
+   "video": "OK",
+   "src": "archive"
+  },
+  {
+   "line": "YRA Recliner",
+   "id": 5,
+   "producing": "no cycles",
+   "page_ms": 286,
+   "video_ms": null,
+   "video": "\u2014"
+  },
+  {
+   "line": "YRA-SA-4WAY",
+   "id": 33,
+   "producing": "40402s ago",
+   "page_ms": 406,
+   "video_ms": 71,
+   "video": "FAIL 404",
+   "src": ""
+  },
+  {
+   "line": "YRA-SA-6WAY",
+   "id": 37,
+   "producing": "no ct_log table",
+   "page_ms": 103,
+   "video_ms": null,
+   "video": "\u2014"
+  },
+  {
+   "line": "YRA-SS",
+   "id": 18,
+   "producing": "17519s ago",
+   "page_ms": 619,
+   "video_ms": 47,
+   "video": "OK",
+   "src": "archive"
+  },
+  {
+   "line": "YSD Recliner",
+   "id": 29,
+   "producing": "no ct_log table",
+   "page_ms": 191,
+   "video_ms": null,
+   "video": "\u2014"
+  },
+  {
+   "line": "YSD-SA-4WAY",
+   "id": 34,
+   "producing": "no ct_log table",
+   "page_ms": 138,
+   "video_ms": null,
+   "video": "\u2014"
+  },
+  {
+   "line": "YSD-SS",
+   "id": 4,
+   "producing": "17513s ago",
+   "page_ms": 612,
+   "video_ms": 52,
+   "video": "OK",
+   "src": "archive"
+  },
+  {
+   "line": "YWD RECLINER",
+   "id": 10,
+   "producing": "53911s ago",
+   "page_ms": 174,
+   "video_ms": 69,
+   "video": "FAIL 404",
+   "src": ""
+  },
+  {
+   "line": "YWD-SS",
+   "id": 6,
+   "producing": "53533s ago",
+   "page_ms": 155,
+   "video_ms": 70,
+   "video": "FAIL 404",
+   "src": ""
+  }
+ ],
+ "healed": [
+  {
+   "action": "\u2014",
+   "result": "Network down hai \u2014 kuch heal nahi kiya, warna bekaar restart loop banta"
+  }
+ ],
+ "checks": {
+  "ran": 8,
+  "failed": [
+   "every route answers",
+   "evidence retained for production",
+   "what the operator sees holds together"
+  ]
+ }
+}

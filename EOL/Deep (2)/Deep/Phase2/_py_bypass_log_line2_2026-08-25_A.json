@@ -1,0 +1,491 @@
+{
+  "line_id": 2,
+  "date": "2026-08-25",
+  "shift": "A",
+  "shift_start": "2026-08-25T08:30:00",
+  "shift_end": "2026-08-25T17:15:00",
+  "episodes": [
+    {
+      "py_no": "D401",
+      "py_name": "LOCATE PIN",
+      "hit_count": 1,
+      "alert": "WARNING",
+      "start_at": "2026-08-25T08:38:18.368726",
+      "end_at": "2026-08-25T08:38:18.368726",
+      "start_slot": "08:30-09:30",
+      "slot": "08:30-09:30"
+    },
+    {
+      "py_no": "D406",
+      "py_name": "Fr.Lwr.Protector",
+      "hit_count": 1,
+      "alert": "WARNING",
+      "start_at": "2026-08-25T08:38:18.849182",
+      "end_at": "2026-08-25T08:38:18.849182",
+      "start_slot": "08:30-09:30",
+      "slot": "08:30-09:30"
+    },
+    {
+      "py_no": "D407",
+      "py_name": "Rr.Lwr.Protector",
+      "hit_count": 1,
+      "alert": "WARNING",
+      "start_at": "2026-08-25T08:38:18.969471",
+      "end_at": "2026-08-25T08:38:18.969471",
+      "start_slot": "08:30-09:30",
+      "slot": "08:30-09:30"
+    },
+    {
+      "py_no": "D408",
+      "py_name": "Rr.Upr.PROTECTER/SHIPPING POS.NG",
+      "hit_count": 1,
+      "alert": "WARNING",
+      "start_at": "2026-08-25T08:38:19.113811",
+      "end_at": "2026-08-25T08:38:19.113811",
+      "start_slot": "08:30-09:30",
+      "slot": "08:30-09:30"
+    },
+    {
+      "py_no": "D402",
+      "py_name": "RH.HARNESS-1",
+      "hit_count": 1,
+      "alert": "WARNING",
+      "start_at": "2026-08-25T09:33:31.617731",
+      "end_at": "2026-08-25T09:33:31.617731",
+      "start_slot": "09:30-10:30",
+      "slot": "09:30-10:30"
+    },
+    {
+      "py_no": "D406",
+      "py_name": "Fr.Lwr.Protector",
+      "hit_count": 1,
+      "alert": "WARNING",
+      "start_at": "2026-08-25T09:33:31.964734",
+      "end_at": "2026-08-25T09:33:31.964734",
+      "start_slot": "09:30-10:30",
+      "slot": "09:30-10:30"
+    },
+    {
+      "py_no": "D407",
+      "py_name": "Rr.Lwr.Protector",
+      "hit_count": 1,
+      "alert": "WARNING",
+      "start_at": "2026-08-25T09:33:32.191217",
+      "end_at": "2026-08-25T09:33:32.191217",
+      "start_slot": "09:30-10:30",
+      "slot": "09:30-10:30"
+    },
+    {
+      "py_no": "D408",
+      "py_name": "Rr.Upr.PROTECTER/SHIPPING POS.NG",
+      "hit_count": 1,
+      "alert": "WARNING",
+      "start_at": "2026-08-25T09:33:32.392786",
+      "end_at": "2026-08-25T09:33:32.392786",
+      "start_slot": "09:30-10:30",
+      "slot": "09:30-10:30"
+    },
+    {
+      "py_no": "D402",
+      "py_name": "RH.HARNESS-1",
+      "hit_count": 1,
+      "alert": "WARNING",
+      "start_at": "2026-08-25T11:46:03.621179",
+      "end_at": "2026-08-25T11:48:05.194843",
+      "start_slot": "11:30-13:05",
+      "slot": "11:30-13:05"
+    },
+    {
+      "py_no": "D406",
+      "py_name": "Fr.Lwr.Protector",
+      "hit_count": 1,
+      "alert": "WARNING",
+      "start_at": "2026-08-25T11:46:04.027479",
+      "end_at": "2026-08-25T11:46:04.027479",
+      "start_slot": "11:30-13:05",
+      "slot": "11:30-13:05"
+    },
+    {
+      "py_no": "D407",
+      "py_name": "Rr.Lwr.Protector",
+      "hit_count": 1,
+      "alert": "WARNING",
+      "start_at": "2026-08-25T11:46:04.173468",
+      "end_at": "2026-08-25T11:46:04.173468",
+      "start_slot": "11:30-13:05",
+      "slot": "11:30-13:05"
+    },
+    {
+      "py_no": "D408",
+      "py_name": "Rr.Upr.PROTECTER/SHIPPING POS.NG",
+      "hit_count": 1,
+      "alert": "WARNING",
+      "start_at": "2026-08-25T11:46:04.420218",
+      "end_at": "2026-08-25T15:48:02.870739",
+      "start_slot": "11:30-13:05",
+      "slot": "11:30-13:05"
+    },
+    {
+      "py_no": "D401",
+      "py_name": "LOCATE PIN",
+      "hit_count": 1,
+      "alert": "WARNING",
+      "start_at": "2026-08-25T12:35:53.396387",
+      "end_at": "2026-08-25T12:37:56.395583",
+      "start_slot": "11:30-13:05",
+      "slot": "11:30-13:05"
+    },
+    {
+      "py_no": "D218",
+      "py_name": "E-RING NG X12/X13",
+      "hit_count": 1,
+      "alert": "WARNING",
+      "start_at": "2026-08-25T14:01:03.318156",
+      "end_at": "2026-08-25T14:01:04.460562",
+      "start_slot": "13:05-14:05",
+      "slot": "13:05-14:05"
+    },
+    {
+      "py_no": "D403",
+      "py_name": "LH.HARNESS-1",
+      "hit_count": 1,
+      "alert": "WARNING",
+      "start_at": "2026-08-25T14:01:03.680156",
+      "end_at": "2026-08-25T14:01:04.917539",
+      "start_slot": "13:05-14:05",
+      "slot": "13:05-14:05"
+    },
+    {
+      "py_no": "D422",
+      "py_name": "4W INR/OTR BOLT MIXING.X41",
+      "hit_count": 1,
+      "alert": "WARNING",
+      "start_at": "2026-08-25T15:35:57.066877",
+      "end_at": "2026-08-25T15:37:58.145541",
+      "start_slot": "15:05-16:05",
+      "slot": "15:05-16:05"
+    },
+    {
+      "py_no": "D407",
+      "py_name": "Rr.Lwr.Protector",
+      "hit_count": 1,
+      "alert": "WARNING",
+      "start_at": "2026-08-25T15:48:02.673826",
+      "end_at": "2026-08-25T15:48:02.673826",
+      "start_slot": "15:05-16:05",
+      "slot": "15:05-16:05"
+    },
+    {
+      "py_no": "D411",
+      "py_name": "PoP RIVET-1",
+      "hit_count": 1,
+      "alert": "WARNING",
+      "start_at": "2026-08-25T15:48:03.046469",
+      "end_at": "2026-08-25T15:48:11.699020",
+      "start_slot": "15:05-16:05",
+      "slot": "15:05-16:05"
+    },
+    {
+      "py_no": "D412",
+      "py_name": "PoP RIVET-2",
+      "hit_count": 1,
+      "alert": "WARNING",
+      "start_at": "2026-08-25T15:48:03.225332",
+      "end_at": "2026-08-25T15:48:11.872523",
+      "start_slot": "15:05-16:05",
+      "slot": "15:05-16:05"
+    },
+    {
+      "py_no": "D406",
+      "py_name": "Fr.Lwr.Protector",
+      "hit_count": 1,
+      "alert": "WARNING",
+      "start_at": "2026-08-25T16:15:03.241211",
+      "end_at": "2026-08-25T16:15:38.350236",
+      "start_slot": "16:05-17:15",
+      "slot": "16:05-17:15"
+    },
+    {
+      "py_no": "D407",
+      "py_name": "Rr.Lwr.Protector",
+      "hit_count": 1,
+      "alert": "WARNING",
+      "start_at": "2026-08-25T16:15:03.620970",
+      "end_at": "2026-08-25T16:15:38.695364",
+      "start_slot": "16:05-17:15",
+      "slot": "16:05-17:15"
+    }
+  ],
+  "by_slot": {
+    "11:30-13:05": [
+      {
+        "py_no": "D402",
+        "py_name": "RH.HARNESS-1",
+        "hit_count": 1,
+        "alert": "WARNING",
+        "start_at": "2026-08-25T11:46:03.621179",
+        "end_at": "2026-08-25T11:48:05.194843",
+        "start_slot": "11:30-13:05",
+        "slot": "11:30-13:05",
+        "slot_label": "11:30-13:05",
+        "slot_segment_from": "2026-08-25T11:46:03.621179",
+        "slot_segment_to": "2026-08-25T11:48:05.194843",
+        "slot_segment_sec": 121.6,
+        "starts_here": true,
+        "ends_here": true,
+        "ongoing_now": false
+      },
+      {
+        "py_no": "D408",
+        "py_name": "Rr.Upr.PROTECTER/SHIPPING POS.NG",
+        "hit_count": 1,
+        "alert": "WARNING",
+        "start_at": "2026-08-25T11:46:04.420218",
+        "end_at": "2026-08-25T15:48:02.870739",
+        "start_slot": "11:30-13:05",
+        "slot": "11:30-13:05",
+        "slot_label": "11:30-13:05",
+        "slot_segment_from": "2026-08-25T11:46:04.420218",
+        "slot_segment_to": "2026-08-25T13:05:00",
+        "slot_segment_sec": 4735.6,
+        "starts_here": true,
+        "ends_here": false,
+        "ongoing_now": false
+      },
+      {
+        "py_no": "D401",
+        "py_name": "LOCATE PIN",
+        "hit_count": 1,
+        "alert": "WARNING",
+        "start_at": "2026-08-25T12:35:53.396387",
+        "end_at": "2026-08-25T12:37:56.395583",
+        "start_slot": "11:30-13:05",
+        "slot": "11:30-13:05",
+        "slot_label": "11:30-13:05",
+        "slot_segment_from": "2026-08-25T12:35:53.396387",
+        "slot_segment_to": "2026-08-25T12:37:56.395583",
+        "slot_segment_sec": 123.0,
+        "starts_here": true,
+        "ends_here": true,
+        "ongoing_now": false
+      }
+    ],
+    "13:05-14:05": [
+      {
+        "py_no": "D408",
+        "py_name": "Rr.Upr.PROTECTER/SHIPPING POS.NG",
+        "hit_count": 1,
+        "alert": "WARNING",
+        "start_at": "2026-08-25T11:46:04.420218",
+        "end_at": "2026-08-25T15:48:02.870739",
+        "start_slot": "11:30-13:05",
+        "slot": "11:30-13:05",
+        "slot_label": "13:05-14:05",
+        "slot_segment_from": "2026-08-25T13:05:00",
+        "slot_segment_to": "2026-08-25T14:05:00",
+        "slot_segment_sec": 3600.0,
+        "starts_here": false,
+        "ends_here": false,
+        "ongoing_now": false
+      },
+      {
+        "py_no": "D218",
+        "py_name": "E-RING NG X12/X13",
+        "hit_count": 1,
+        "alert": "WARNING",
+        "start_at": "2026-08-25T14:01:03.318156",
+        "end_at": "2026-08-25T14:01:04.460562",
+        "start_slot": "13:05-14:05",
+        "slot": "13:05-14:05",
+        "slot_label": "13:05-14:05",
+        "slot_segment_from": "2026-08-25T14:01:03.318156",
+        "slot_segment_to": "2026-08-25T14:01:04.460562",
+        "slot_segment_sec": 1.1,
+        "starts_here": true,
+        "ends_here": true,
+        "ongoing_now": false
+      },
+      {
+        "py_no": "D403",
+        "py_name": "LH.HARNESS-1",
+        "hit_count": 1,
+        "alert": "WARNING",
+        "start_at": "2026-08-25T14:01:03.680156",
+        "end_at": "2026-08-25T14:01:04.917539",
+        "start_slot": "13:05-14:05",
+        "slot": "13:05-14:05",
+        "slot_label": "13:05-14:05",
+        "slot_segment_from": "2026-08-25T14:01:03.680156",
+        "slot_segment_to": "2026-08-25T14:01:04.917539",
+        "slot_segment_sec": 1.2,
+        "starts_here": true,
+        "ends_here": true,
+        "ongoing_now": false
+      }
+    ],
+    "14:05-15:05": [
+      {
+        "py_no": "D408",
+        "py_name": "Rr.Upr.PROTECTER/SHIPPING POS.NG",
+        "hit_count": 1,
+        "alert": "WARNING",
+        "start_at": "2026-08-25T11:46:04.420218",
+        "end_at": "2026-08-25T15:48:02.870739",
+        "start_slot": "11:30-13:05",
+        "slot": "11:30-13:05",
+        "slot_label": "14:05-15:05",
+        "slot_segment_from": "2026-08-25T14:05:00",
+        "slot_segment_to": "2026-08-25T15:05:00",
+        "slot_segment_sec": 3600.0,
+        "starts_here": false,
+        "ends_here": false,
+        "ongoing_now": false
+      }
+    ],
+    "15:05-16:05": [
+      {
+        "py_no": "D408",
+        "py_name": "Rr.Upr.PROTECTER/SHIPPING POS.NG",
+        "hit_count": 1,
+        "alert": "WARNING",
+        "start_at": "2026-08-25T11:46:04.420218",
+        "end_at": "2026-08-25T15:48:02.870739",
+        "start_slot": "11:30-13:05",
+        "slot": "11:30-13:05",
+        "slot_label": "15:05-16:05",
+        "slot_segment_from": "2026-08-25T15:05:00",
+        "slot_segment_to": "2026-08-25T15:48:02.870739",
+        "slot_segment_sec": 2582.9,
+        "starts_here": false,
+        "ends_here": true,
+        "ongoing_now": false
+      },
+      {
+        "py_no": "D422",
+        "py_name": "4W INR/OTR BOLT MIXING.X41",
+        "hit_count": 1,
+        "alert": "WARNING",
+        "start_at": "2026-08-25T15:35:57.066877",
+        "end_at": "2026-08-25T15:37:58.145541",
+        "start_slot": "15:05-16:05",
+        "slot": "15:05-16:05",
+        "slot_label": "15:05-16:05",
+        "slot_segment_from": "2026-08-25T15:35:57.066877",
+        "slot_segment_to": "2026-08-25T15:37:58.145541",
+        "slot_segment_sec": 121.1,
+        "starts_here": true,
+        "ends_here": true,
+        "ongoing_now": false
+      },
+      {
+        "py_no": "D411",
+        "py_name": "PoP RIVET-1",
+        "hit_count": 1,
+        "alert": "WARNING",
+        "start_at": "2026-08-25T15:48:03.046469",
+        "end_at": "2026-08-25T15:48:11.699020",
+        "start_slot": "15:05-16:05",
+        "slot": "15:05-16:05",
+        "slot_label": "15:05-16:05",
+        "slot_segment_from": "2026-08-25T15:48:03.046469",
+        "slot_segment_to": "2026-08-25T15:48:11.699020",
+        "slot_segment_sec": 8.7,
+        "starts_here": true,
+        "ends_here": true,
+        "ongoing_now": false
+      },
+      {
+        "py_no": "D412",
+        "py_name": "PoP RIVET-2",
+        "hit_count": 1,
+        "alert": "WARNING",
+        "start_at": "2026-08-25T15:48:03.225332",
+        "end_at": "2026-08-25T15:48:11.872523",
+        "start_slot": "15:05-16:05",
+        "slot": "15:05-16:05",
+        "slot_label": "15:05-16:05",
+        "slot_segment_from": "2026-08-25T15:48:03.225332",
+        "slot_segment_to": "2026-08-25T15:48:11.872523",
+        "slot_segment_sec": 8.6,
+        "starts_here": true,
+        "ends_here": true,
+        "ongoing_now": false
+      }
+    ],
+    "16:05-17:15": [
+      {
+        "py_no": "D406",
+        "py_name": "Fr.Lwr.Protector",
+        "hit_count": 1,
+        "alert": "WARNING",
+        "start_at": "2026-08-25T16:15:03.241211",
+        "end_at": "2026-08-25T16:15:38.350236",
+        "start_slot": "16:05-17:15",
+        "slot": "16:05-17:15",
+        "slot_label": "16:05-17:15",
+        "slot_segment_from": "2026-08-25T16:15:03.241211",
+        "slot_segment_to": "2026-08-25T16:15:38.350236",
+        "slot_segment_sec": 35.1,
+        "starts_here": true,
+        "ends_here": true,
+        "ongoing_now": false
+      },
+      {
+        "py_no": "D407",
+        "py_name": "Rr.Lwr.Protector",
+        "hit_count": 1,
+        "alert": "WARNING",
+        "start_at": "2026-08-25T16:15:03.620970",
+        "end_at": "2026-08-25T16:15:38.695364",
+        "start_slot": "16:05-17:15",
+        "slot": "16:05-17:15",
+        "slot_label": "16:05-17:15",
+        "slot_segment_from": "2026-08-25T16:15:03.620970",
+        "slot_segment_to": "2026-08-25T16:15:38.695364",
+        "slot_segment_sec": 35.1,
+        "starts_here": true,
+        "ends_here": true,
+        "ongoing_now": false
+      }
+    ]
+  },
+  "slot_summary": {
+    "11:30-13:05": {
+      "total_bypass_sec": 4980.2,
+      "longest_sec": 4735.6,
+      "episode_count": 3,
+      "ongoing_count": 0,
+      "distinct_py": 3
+    },
+    "13:05-14:05": {
+      "total_bypass_sec": 3602.4,
+      "longest_sec": 3600.0,
+      "episode_count": 3,
+      "ongoing_count": 0,
+      "distinct_py": 3
+    },
+    "14:05-15:05": {
+      "total_bypass_sec": 3600.0,
+      "longest_sec": 3600.0,
+      "episode_count": 1,
+      "ongoing_count": 0,
+      "distinct_py": 1
+    },
+    "15:05-16:05": {
+      "total_bypass_sec": 2721.2,
+      "longest_sec": 2582.9,
+      "episode_count": 4,
+      "ongoing_count": 0,
+      "distinct_py": 4
+    },
+    "16:05-17:15": {
+      "total_bypass_sec": 70.2,
+      "longest_sec": 35.1,
+      "episode_count": 2,
+      "ongoing_count": 0,
+      "distinct_py": 2
+    }
+  },
+  "merge_gap_sec": 60.0,
+  "generated_at": "2026-08-25T18:23:00.568163"
+}

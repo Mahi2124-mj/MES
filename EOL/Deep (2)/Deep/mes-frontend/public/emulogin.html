@@ -1,0 +1,48 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Emulator session seed</title>
+<!--
+  emulogin.html — seeds ONE browser origin with an already-issued MES session,
+  then forwards to a page.  Used only by loadtest/usergrid.html, which shows 15
+  virtual users side by side, each in its own iframe.
+
+  Why it has to exist: same-origin iframes share the tab's sessionStorage, so
+  fifteen panes pointed at one host would all be the SAME user.  The grid gives
+  each pane a different loopback address (127.0.0.1 … 127.0.0.15) so each is a
+  separate origin with its own storage — and this page is how a token gets into
+  that storage, since nothing else on the origin can write it from outside.
+
+  It grants nothing: the caller must already hold a valid token, and the API
+  validates it on every request exactly as before.
+
+  LOOPBACK ONLY — refuses to run on the LAN IP or through the tunnel, so it can
+  never be handed to someone as a login link.
+-->
+<body style="font:13px system-ui;padding:14px;color:#334155">
+<div id="m">seeding…</div>
+<script>
+(function () {
+  var host = location.hostname;
+  var isLoopback = host === "localhost" || /^127\./.test(host);
+  if (!isLoopback) {
+    document.getElementById("m").textContent =
+      "Refused: this page only runs on a loopback address (it is an emulator helper).";
+    return;
+  }
+  var q = new URLSearchParams(location.search);
+  var tok = q.get("t"), user = q.get("u") || "", role = q.get("r") || "operator",
+      uid = q.get("i") || "0", next = q.get("next") || "/";
+  if (!tok) { document.getElementById("m").textContent = "Refused: no token."; return; }
+  try {
+    sessionStorage.setItem("mes_token", tok);
+    sessionStorage.setItem("mes_username", user);
+    sessionStorage.setItem("user_role", role);
+    sessionStorage.setItem("user_id", uid);
+  } catch (e) {
+    document.getElementById("m").textContent = "Storage blocked: " + e;
+    return;
+  }
+  location.replace(next);
+})();
+</script>
+</body>

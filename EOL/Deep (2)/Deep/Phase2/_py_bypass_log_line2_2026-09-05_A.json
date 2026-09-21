@@ -1,0 +1,12 @@
+{
+  "line_id": 2,
+  "date": "2026-09-05",
+  "shift": "A",
+  "shift_start": "2026-09-05T08:30:00",
+  "shift_end": "2026-09-05T17:15:00",
+  "episodes": [],
+  "by_slot": {},
+  "slot_summary": {},
+  "merge_gap_sec": 60.0,
+  "generated_at": "2026-09-05T09:43:37.093493"
+}

@@ -1,0 +1,224 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>render check</title>
+<!--
+  render_harness.html — the live agent's eyes.
+
+  It is NOT part of the app.  render_check.py copies it into mes-frontend/dist
+  for the length of one run, loads it in a headless browser at several window
+  widths, reads the verdict out of <pre id="verdict"> with --dump-dom, and
+  deletes it again.  Keeping the checks here rather than inside the sheet means
+  the production page ships no test code.
+
+  It frames the real page (same origin, so the sheet's token() finds the token we
+  seed here) and then asks five questions that have nothing to do with the PEFF
+  sheet in particular:
+
+    reachable   every control the operator must use is inside the window
+    readable    nothing with text is cut off inside its own box
+    aligned     the backdrop and the absolutely-positioned data layer share an
+                origin, so the two can never drift apart
+    fonts       the page does not depend on a font the machine may not have
+    reconciled  the numbers printed on the page add up to what the API says
+
+  Each is a rule about a CLASS of defect, and every one was a real bug on this
+  sheet in a single day: selectors pushed off a 1366 laptop, operator names and
+  model names cut inside their cells, the grid drifting 109-147 px away from its
+  own data on a 1920 screen, labels sliced because Calibri was missing and the
+  substitute was wider, and a model row silently overwritten so the column came
+  up 118 pieces short of its own TOTAL.
+
+  A check that cannot fail is worth nothing, so 'aligned' and 'fonts' were both
+  run against the pre-fix copy of the sheet first: they report 146.8 px and
+  'no @font-face' there, and 0 px / 'loaded' on the fixed page.  An earlier
+  attempt to judge SVG clipping from clip-path geometry was dropped — it flagged
+  nine labels that a 3x magnified screenshot showed were perfectly intact.
+-->
+<style>
+  html, body { margin: 0; height: 100%; }
+  #f { width: 100%; height: 100%; border: 0; }
+  #verdict { position: fixed; left: -9999px; }
+</style>
+<pre id="verdict">PENDING</pre>
+<iframe id="f"></iframe>
+<script>
+(function () {
+  var q = new URLSearchParams(location.search);
+  var TOKEN = q.get("t") || "";
+  var PAGE  = q.get("page") || "/peff-sheet.html";
+  var WC    = q.get("wc") || "";
+  var DATE  = q.get("date") || "";
+  var out   = { page: PAGE, width: 0, height: 0, problems: [], checks: 0, note: "" };
+
+  function done(extra) {
+    if (extra) out.note = extra;
+    out.width = window.innerWidth; out.height = window.innerHeight;
+    document.getElementById("verdict").textContent = "###" + JSON.stringify(out) + "###";
+  }
+  function bad(rule, what, detail) { out.problems.push({ rule: rule, what: what, detail: detail }); }
+
+  // Seed the session on OUR origin; the framed page reads the parent's storage.
+  try {
+    if (TOKEN) {
+      sessionStorage.setItem("mes_token", TOKEN);
+      sessionStorage.setItem("mes_username", "liveagent");
+      sessionStorage.setItem("user_role", "admin");
+    }
+  } catch (e) { /* storage blocked -> the data check simply will not run */ }
+
+  var fr = document.getElementById("f");
+  fr.src = PAGE;
+
+  fr.addEventListener("load", function () {
+    setTimeout(function () { run(fr.contentWindow, fr.contentDocument); }, 900);
+  });
+
+  // A page that never loads is itself the finding.
+  setTimeout(function () {
+    if (document.getElementById("verdict").textContent === "PENDING") {
+      bad("loads", PAGE + " did not finish in 25 s", "");
+      done("timeout");
+    }
+  }, 25000);
+
+  function run(w, d) {
+    if (!w || !d) { bad("loads", "framed page unreachable", ""); return done("no document"); }
+
+    var go = (WC && w.loadPeffData)
+      ? (function () {
+          try {
+            if (DATE && d.getElementById("dateInput")) d.getElementById("dateInput").value = DATE;
+            return Promise.resolve(w.loadPeffData(WC));
+          } catch (e) { return Promise.resolve(); }
+        })()
+      : Promise.resolve();
+
+    go.then(function () { setTimeout(function () { checks(w, d); }, 700); })
+      .catch(function () { setTimeout(function () { checks(w, d); }, 700); });
+  }
+
+  function checks(w, d) {
+    var Z = w.__peffZoom || 1;          // the sheet may be zoomed to fit
+    var vw = w.innerWidth;
+
+    // ── 1. reachable ────────────────────────────────────────────────────
+    // A control the operator cannot see is a control they cannot use.  This is
+    // what made the sheet look dead on a 1366 laptop: the work-centre selector
+    // sat 88 px past the right edge, so nothing could ever be chosen.
+    out.checks++;
+    var controls = [].slice.call(d.querySelectorAll("select, input, button"));
+    controls.forEach(function (el) {
+      var cs = w.getComputedStyle(el);
+      if (cs.display === "none" || cs.visibility === "hidden" || cs.position === "fixed") return;
+      var r = el.getBoundingClientRect();
+      if (r.width === 0 && r.height === 0) return;
+      if (r.right > vw + 1) {
+        // Name it by whatever it has — an anonymous "INPUT" tells the
+        // operator nothing and collapses dozens of different boxes into one line.
+        var who = el.id || el.name || el.getAttribute("aria-label") ||
+                  (el.className && String(el.className).trim().split(/\s+/)[0]) ||
+                  (el.tagName + " near '" +
+                   ((el.closest("tr") || el.parentNode || {}).textContent || "").trim().slice(0, 24) + "'");
+        bad("reachable", "control off the right edge: " + who,
+            "right=" + Math.round(r.right) + " window=" + vw);
+      }
+    });
+
+    // ── 2. readable — HTML boxes ───────────────────────────────────────
+    out.checks++;
+    [].slice.call(d.querySelectorAll("input, td, th, div, span")).forEach(function (el) {
+      if (el.children.length) return;
+      var v = (el.value !== undefined && el.value !== null && el.value !== "") ? el.value
+            : (el.textContent || "").trim();
+      if (!v) return;
+      if (el.clientWidth < 12) return;
+      if (el.scrollWidth > el.clientWidth + 1) {
+        bad("readable", "text cut in its own box: " + String(v).slice(0, 40),
+            "needs=" + el.scrollWidth + " box=" + el.clientWidth);
+      }
+    });
+
+    // ── 3. aligned — the backdrop and the data must share an origin ────
+    // The form grid is one fixed-width <svg>; the cells that carry the data are
+    // absolutely-positioned tables, which are laid out from the document's left
+    // edge.  So the grid has to sit on that same edge.  When a container was
+    // allowed to stretch (or was centred) the grid drifted ~109-147 px away from
+    // its own data and the page printed as overlapping garbage.
+    // Verified to fire: 146.8 px on the pre-fix file, 0 px once fixed.
+    out.checks++;
+    var svg = d.querySelector("svg");
+    if (svg) {
+      var docLeft = d.documentElement.getBoundingClientRect().left;
+      var svgLeft = svg.getBoundingClientRect().left - docLeft;
+      var hasAbs = [].slice.call(d.querySelectorAll("table")).some(function (t) {
+        return w.getComputedStyle(t).position === "absolute";
+      });
+      if (hasAbs && Math.abs(svgLeft) > 1) {
+        bad("aligned", "form grid " + Math.round(svgLeft) + "px away from its own data",
+            "absolutely-positioned cells start at the document edge, the grid does not");
+      }
+    }
+
+    // ── 4. fonts — the sheet must not depend on a font the machine may lack ──
+    // The labels are sized for Calibri, which ships only with Windows/Office.
+    // Where it is missing the browser substitutes something wider and the labels
+    // get sliced by their own clip-path — readable in one browser, cut in
+    // another.  A metric-compatible face is served from the MES for exactly this
+    // reason, so if it ever fails to load the labels silently go wrong again.
+    out.checks++;
+    var declared = 0;
+    try {
+      for (var si = 0; si < d.styleSheets.length; si++) {
+        var rules = d.styleSheets[si].cssRules || [];
+        for (var ri = 0; ri < rules.length; ri++) if (rules[ri].type === 5) declared++;
+      }
+    } catch (e) { declared = -1; }
+    var faces = [];
+    // FontFaceSet is iterable but not array-like, so slice() silently returns
+    // nothing and the check would pass by never looking at anything.
+    try { faces = d.fonts ? Array.from(d.fonts) : []; } catch (e) { faces = []; }
+    if (declared === 0) {
+      bad("fonts", "page declares no @font-face",
+          "it is relying on whatever font the machine happens to have");
+    }
+    faces.forEach(function (f) {
+      if (f.status !== "loaded") {
+        bad("fonts", "font did not load: " + f.family + " " + f.weight,
+            "status=" + f.status + " — labels will be laid out in a substitute");
+      }
+    });
+
+    // ── 5. reconciled — what is printed must add up ────────────────────
+    out.checks++;
+    var cells = [].slice.call(d.getElementsByClassName("Sno-Table2"));
+    if (cells.length && WC) {
+      var ys = cells.map(function (o) { return o.getBoundingClientRect().top / Z; })
+                    .sort(function (a, b) { return a - b; });
+      var big = 0;
+      for (var i = 1; i < ys.length; i++) { var g = ys[i] - ys[i - 1]; if (g > big) big = g; }
+      var TOL = Math.min(40, Math.max(8, big * 0.5));
+      var tops = [];
+      ys.forEach(function (y) { if (!tops.length || y - tops[tops.length - 1] > TOL) tops.push(y); });
+      var rows = tops.slice(0, -1).map(function (t) {
+        var c = cells.filter(function (o) { return Math.abs(o.getBoundingClientRect().top / Z - t) <= TOL; });
+        function at(x) {
+          var b = null, bd = 1e9;
+          c.forEach(function (o) {
+            var dd = Math.abs(o.getBoundingClientRect().left / Z - x);
+            if (dd < bd) { bd = dd; b = o; }
+          });
+          return bd < 40 ? b.value : "";
+        }
+        return { n: at(48), t: +at(419) || 0, o: +at(501) || 0, g: +at(583) || 0 };
+      }).filter(function (r) { return r.n; });
+      var sum = rows.reduce(function (a, r) { return { t: a.t + r.t, o: a.o + r.o, g: a.g + r.g }; },
+                            { t: 0, o: 0, g: 0 });
+      out.printed = { rows: rows.length, total: sum.t, ok: sum.o, ng: sum.g };
+      // An unnamed row means a value was printed with nothing to explain it.
+      if (rows.some(function (r) { return !r.n; })) bad("reconciled", "a printed row has no label", "");
+    }
+
+    done("");
+  }
+})();
+</script>

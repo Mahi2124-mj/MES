@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(findmnt -T . -o TARGET,FSTYPE,OPTIONS)",
+      "Bash(.venv-linux/bin/python -)",
+      "Bash(python3 -c \"import json;d=json.load\\(open\\('package.json'\\)\\);print\\(json.dumps\\(d.get\\('scripts',{}\\),indent=2\\)\\)\")",
+      "Bash(grep -oE '[0-9]{3}$')",
+      "Bash(PGPASSWORD=tbdi@123 psql -h 127.0.0.1 -U postgres -d energydb -tAc \"SELECT tablename FROM pg_tables WHERE schemaname='public' AND \\(tablename ILIKE '%cycle%' OR tablename ILIKE '%production%'\\) ORDER BY 1\")",
+      "Bash(PGPASSWORD=tbdi@123 psql -h 127.0.0.1 -U postgres -d energydb -tAc ' *)",
+      "Bash(PGPASSWORD=tbdi@123 psql -h 127.0.0.1 -U postgres -d energydb -c \"\\\\d mes_departments\")",
+      "Bash(PGPASSWORD=tbdi@123 psql -h 127.0.0.1 -U postgres -d energydb -c \"\\\\d mes_lines\")",
+      "Bash(PGPASSWORD=tbdi@123 psql -h 127.0.0.1 -U postgres -d energydb -tAc \"SELECT id, line_code, line_name, zone_id FROM mes_lines WHERE is_active ORDER BY id\")"
+    ]
+  }
+}

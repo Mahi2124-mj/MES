@@ -1,0 +1,100 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>MES Live Agent — Problems &amp; Why</title>
+<style>
+  :root{--bg:#0b1220;--card:#131c30;--line:#243049;--fg:#e6edf7;--mut:#8ba0c0;
+        --ok:#22c55e;--warn:#f59e0b;--bad:#ef4444}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.55 'Segoe UI',system-ui,sans-serif}
+  header{padding:13px 20px;border-bottom:1px solid var(--line);display:flex;gap:16px;
+         align-items:baseline;flex-wrap:wrap;position:sticky;top:0;background:var(--bg);z-index:5}
+  h1{font-size:17px;margin:0;font-weight:800}
+  .sub{color:var(--mut);font-size:12px}
+  .wrap{padding:16px 20px;display:grid;gap:15px}
+  .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+  .tile{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:11px 13px}
+  .tile .k{color:var(--mut);font-size:10.5px;text-transform:uppercase;letter-spacing:.06em}
+  .tile .v{font-size:23px;font-weight:800;margin-top:3px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:13px 15px}
+  .card h2{font-size:12px;margin:0 0 10px;color:var(--mut);text-transform:uppercase;
+           letter-spacing:.07em;font-weight:700}
+  .prob{border-left:4px solid var(--bad);background:#0f1729;border-radius:8px;
+        padding:10px 13px;margin-bottom:9px}
+  .prob.warn{border-left-color:var(--warn)}
+  .prob .w{font-weight:800;font-size:13.5px}
+  .prob .y{color:#fca5a5;font-size:12.5px;margin-top:3px}
+  .prob.warn .y{color:#fcd34d}
+  .prob .f{color:var(--mut);font-size:12px;margin-top:4px}
+  table{width:100%;border-collapse:collapse;font-size:12.5px}
+  th{text-align:left;color:var(--mut);font-weight:700;font-size:10.5px;text-transform:uppercase;
+     letter-spacing:.05em;padding:5px 8px;border-bottom:1px solid var(--line)}
+  td{padding:5px 8px;border-bottom:1px solid #1b2540;white-space:nowrap}
+  .g{color:var(--ok)}.y{color:var(--warn)}.r{color:var(--bad)}.m{color:var(--mut)}
+  .none{color:var(--ok);font-weight:700;text-align:center;padding:16px}
+</style></head><body>
+<header>
+  <h1>MES Live Agent</h1>
+  <span class="sub" id="hdr">waiting for first round…</span>
+  <span class="sub" style="margin-left:auto" id="clock"></span>
+</header>
+<div class="wrap">
+  <div class="tiles" id="tiles"></div>
+  <div class="card"><h2>Rules checked is round — pass / fail</h2><div id="checks"></div></div>
+  <div class="card" id="healcard" hidden><h2>Auto-heal — agent ne khud kya theek kiya</h2><div id="heals"></div></div>
+  <div class="card"><h2>Problems — kya hua, kyun hua, kya karna hai</h2><div id="probs"></div></div>
+  <div class="card"><h2>Line by line</h2>
+    <table><thead><tr><th>Line</th><th>Last cycle</th><th>Page open</th>
+      <th>Video open</th><th>Source</th><th>Video</th></tr></thead><tbody id="lines"></tbody></table></div>
+</div>
+<script>
+const ms = v => v==null ? "—" : (v>=1000 ? (v/1000).toFixed(2)+"s" : v+"ms");
+const cls = (v,t=2000) => v==null ? "m" : (v<=t?"g":v<=t*2.5?"y":"r");
+async function tick(){
+  let d; try { d = await (await fetch("status.json?"+Date.now())).json(); }
+  catch(e){ return; }
+  const c=d.counts||{}, s=d.service||{};
+  document.getElementById("hdr").innerHTML =
+    `last check <b>${d.ran_at}</b> · took ${d.took_s}s · ${c.lines} lines checked`;
+  document.getElementById("clock").textContent = new Date().toLocaleTimeString();
+  document.getElementById("tiles").innerHTML = [
+    ["Critical", c.critical||0, (c.critical?"r":"g")],
+    ["Warning", c.warning||0, (c.warning?"y":"g")],
+    ["Video OK", `${c.video_ok||0}/${c.lines||0}`, ((c.video_fail||0)?"y":"g")],
+    ["Video failed", c.video_fail||0, ((c.video_fail||0)?"r":"g")],
+    ["Video p50", ms(d.video_p50), cls(d.video_p50)],
+    ["MES-API", ms(s.api_ms), cls(s.api_ms,1500)],
+    ["CMS", ms(s.cms_ms), cls(s.cms_ms,1500)],
+    ["CMS threads", s.cms_threads||0, ((s.cms_threads||0)>500?"r":"g")],
+  ].map(([k,v,cl])=>`<div class="tile"><div class="k">${k}</div><div class="v ${cl}">${v}</div></div>`).join("");
+
+  const ck = d.checks || {};
+  const failed = ck.failed || [];
+  document.getElementById("checks").innerHTML = ck.ran
+    ? `<div style="font-size:13px;margin-bottom:8px">
+         <b class="${failed.length?'y':'g'}">${ck.ran - failed.length}/${ck.ran}</b> rules passed</div>` +
+      (failed.length
+        ? failed.map(f=>`<div class="prob warn"><div class="w">FAIL — ${f}</div></div>`).join("")
+        : `<div class="none">✓ Saare rules pass — koi nayi kism ki galti nahi mili</div>`)
+    : `<div class="m" style="font-size:12px">rules abhi chale nahi</div>`;
+
+  const heals = d.healed || [];
+  document.getElementById("healcard").hidden = heals.length === 0;
+  document.getElementById("heals").innerHTML = heals.map(x =>
+    `<div class="prob warn" style="border-left-color:#22c55e">
+       <div class="w">${x.action}</div><div class="f">✔ ${x.result}</div></div>`).join("");
+
+  document.getElementById("probs").innerHTML = (d.problems||[]).length
+    ? d.problems.map(p=>`<div class="prob ${p.sev==='warning'?'warn':''}">
+        <div class="w">${p.area} — ${p.what}</div>
+        <div class="y">↳ ${p.why}</div>
+        <div class="f">✔ ${p.fix||""}</div></div>`).join("")
+    : `<div class="none">✓ Koi problem nahi — sab theek chal raha hai</div>`;
+
+  document.getElementById("lines").innerHTML = (d.lines||[]).map(l=>`
+    <tr><td><b>${l.line}</b></td><td class="m">${l.producing||"—"}</td>
+      <td class="${cls(l.page_ms,4000)}">${ms(l.page_ms)}</td>
+      <td class="${cls(l.video_ms)}">${ms(l.video_ms)}</td>
+      <td class="m">${l.src||"—"}</td>
+      <td class="${l.video==='OK'?'g':(String(l.video).startsWith('FAIL')?'r':'y')}">${l.video}</td></tr>`).join("");
+}
+tick(); setInterval(tick,5000);
+</script></body></html>

@@ -1,0 +1,16 @@
+{
+ "state": "watching",
+ "at": "2026-09-19 08:21:24",
+ "collectors_ok": 29,
+ "collectors_total": 31,
+ "cms": {
+  "pid": "13899",
+  "threads": 179,
+  "health": "401",
+  "recorders": 47,
+  "ts_fresh": 47
+ },
+ "upstream_down": false,
+ "healed_recent": [],
+ "seen_recent": []
+}

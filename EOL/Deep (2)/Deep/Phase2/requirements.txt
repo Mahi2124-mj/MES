@@ -1,0 +1,23 @@
+# ── Web framework ─────────────────────────────────────────────
+fastapi==0.110.0
+uvicorn==0.27.0
+python-multipart==0.0.9
+pydantic==2.6.0
+
+# ── DB ────────────────────────────────────────────────────────
+psycopg2-binary==2.9.9
+
+# ── Auth ──────────────────────────────────────────────────────
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+
+# ── Env / HTTP / Excel ────────────────────────────────────────
+python-dotenv==1.0.1
+requests==2.31.0
+openpyxl==3.1.2
+
+# ── AI chat (Anthropic Claude) ────────────────────────────────
+anthropic==0.39.0
+
+# ── PLC (Mitsubishi MC Protocol) — used by collector_engine.py ─
+pymcprotocol==0.3.0

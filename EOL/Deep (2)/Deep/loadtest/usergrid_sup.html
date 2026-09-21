@@ -1,0 +1,174 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Supervisor ×15 · 15 Users — Live UI Grid</title>
+<style>
+  :root{--bg:#0b1220;--card:#131c30;--line:#243049;--fg:#e6edf7;--mut:#8ba0c0;
+        --ok:#22c55e;--warn:#f59e0b;--bad:#ef4444}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);font:13px 'Segoe UI',system-ui,sans-serif;overflow:hidden}
+  header{padding:7px 14px;border-bottom:1px solid var(--line);display:flex;gap:14px;
+         align-items:baseline;flex-wrap:wrap;height:44px}
+  h1{font-size:15px;margin:0;font-weight:800}
+  .sub{color:var(--mut);font-size:11.5px}
+  .grid{display:grid;grid-template-columns:repeat(5,1fr);grid-template-rows:repeat(3,1fr);
+        gap:6px;padding:6px;height:calc(100vh - 44px)}
+  .pane{background:var(--card);border:1px solid var(--line);border-radius:7px;
+        display:flex;flex-direction:column;overflow:hidden;position:relative}
+  .bar{display:flex;align-items:center;gap:6px;padding:3px 7px;background:#0f1729;
+       border-bottom:1px solid var(--line);font-size:10.5px;white-space:nowrap}
+  .who{font-weight:800;color:#60a5fa}
+  .pg{color:var(--mut);overflow:hidden;text-overflow:ellipsis}
+  .ms{margin-left:auto;font-weight:800}
+  .g{color:var(--ok)}.y{color:var(--warn)}.r{color:var(--bad)}.m{color:var(--mut)}
+  /* the app is built for a full screen; show it shrunk so a whole page fits the pane */
+  .vp{flex:1;position:relative;overflow:hidden;background:#fff}
+  iframe{position:absolute;top:0;left:0;width:1280px;height:900px;border:0;
+         transform-origin:0 0}
+  .pill{padding:1px 7px;border-radius:999px;font-size:10px;font-weight:800}
+</style></head><body>
+<header>
+  <h1>15 Users — live UI</h1>
+  <span class="sub" id="hdr">starting…</span>
+  <span class="sub" style="margin-left:auto" id="clock"></span>
+</header>
+<div class="grid" id="grid"></div>
+<script>
+// Each pane is a DIFFERENT loopback origin (127.0.0.1 … 127.0.0.15).  Same-origin
+// iframes share the tab's sessionStorage, so without this every pane would show
+// the same user.  emulogin.html seeds that origin, then hands over to the page.
+const PORT = 5656;
+const PAGES = [
+  // Supervisor only — 15 panes, 15 different lines, the page the operator
+  // actually watches.  {N} is the line NAME: the live route is /<LINE>/SUPERVISOR
+  // (e.g. /Y17-SS/SUPERVISOR), not /lines/<id>/supervisor.
+  ["Supervisor", "/{N}/SUPERVISOR"],
+];
+let USERS = [], LINES = [], state = [];
+
+function paneHTML(i, u) {
+  return `<div class="pane" id="p${i}">
+    <div class="bar">
+      <span class="who">${u.username}</span>
+      <span class="m">${u.role}</span>
+      <span class="pg" id="pg${i}">…</span>
+      <span class="ms m" id="ms${i}">—</span>
+    </div>
+    <div class="vp" id="vp${i}"><iframe id="f${i}" src="about:blank"></iframe></div>
+  </div>`;
+}
+
+function fitPane(i) {
+  const vp = document.getElementById("vp" + i), f = document.getElementById("f" + i);
+  if (!vp || !f) return;
+  const s = Math.min(vp.clientWidth / 1280, vp.clientHeight / 900);
+  f.style.transform = `scale(${s})`;
+}
+
+function go(i) {
+  const u = USERS[i];
+  const [label, path] = PAGES[(state[i].n + i) % PAGES.length];
+  const line = LINES.length ? LINES[i % LINES.length] : null;   // one line per pane
+  const next = path.replace("{L}", line ? line.id : 2)
+                   .replace("{N}", line ? encodeURIComponent(line.name) : "Y17-SS");
+  const origin = `http://127.0.0.${i + 1}:${PORT}`;
+  const url = `${origin}/emulogin.html?t=${encodeURIComponent(u.token)}`
+            + `&u=${encodeURIComponent(u.username)}&r=${encodeURIComponent(u.role)}`
+            + `&i=${u.id}&next=${encodeURIComponent(next)}`;
+  const f = document.getElementById("f" + i);
+  const t0 = performance.now();
+  state[i].t0 = t0; state[i].label = label;
+  document.getElementById("pg" + i).textContent =
+    label + (line && path.includes("{L}") ? " · " + line.name : "");
+  document.getElementById("ms" + i).textContent = "loading…";
+  document.getElementById("ms" + i).className = "ms m";
+  f.onload = () => {
+    const ms = Math.round(performance.now() - t0);
+    const el = document.getElementById("ms" + i);
+    el.textContent = ms + "ms";
+    el.className = "ms " + (ms <= 2000 ? "g" : ms <= 5000 ? "y" : "r");
+    state[i].samples.push({ page: label, ms });
+    report();
+  };
+  f.src = url;
+  state[i].n++;
+}
+
+function report() {
+  const all = state.flatMap(s => s.samples);
+  if (!all.length) return;
+  const ms = all.map(x => x.ms).sort((a, b) => a - b);
+  const p50 = ms[Math.floor(ms.length / 2)], mx = ms[ms.length - 1];
+  const under = Math.round(ms.filter(x => x <= 2000).length * 100 / ms.length);
+  document.getElementById("hdr").innerHTML =
+    `${USERS.length} users · ${all.length} page loads · p50 <b>${p50}ms</b> · max ${mx}ms · `
+    + `<b class="${under >= 95 ? 'g' : under >= 80 ? 'y' : 'r'}">${under}% under 2s</b>`;
+  // hand the numbers to whoever polls this window (the runner writes them out)
+  window.__grid = { users: USERS.length, loads: all.length, p50, max: mx, under_pct: under,
+                    per_page: all.reduce((a, x) => {
+                      (a[x.page] = a[x.page] || []).push(x.ms); return a; }, {}) };
+}
+
+(async function () {
+  const cfg = await (await fetch("grid_users.json?" + Date.now())).json();
+  USERS = cfg.users; LINES = cfg.lines || [];
+  document.getElementById("grid").innerHTML = USERS.map((u, i) => paneHTML(i, u)).join("");
+  USERS.forEach((_, i) => { state[i] = { n: 0, samples: [] }; fitPane(i); });
+  window.addEventListener("resize", () => USERS.forEach((_, i) => fitPane(i)));
+  // stagger the starts so 15 panes do not all hit the API in the same instant
+  USERS.forEach((_, i) => setTimeout(() => go(i), i * 900));
+  // every pane moves to its next page on its own rhythm
+  USERS.forEach((_, i) => setInterval(() => go(i), 15000 + i * 700));
+  setInterval(() => document.getElementById("clock").textContent =
+    new Date().toLocaleTimeString(), 1000);
+})();
+</script>
+<script>
+// ── live video health per pane ───────────────────────────────────────────
+// Each pane sits on its own loopback ORIGIN, so this page cannot reach into
+// the iframe to click a cycle.  video_probe.py calls the very endpoint the
+// player calls, per line, and drops the answer in video_status.json.
+(function () {
+  function paint(data) {
+    var byName = {};
+    (data.lines || []).forEach(function (l) { byName[l.name] = l; });
+    document.querySelectorAll("[id^=pg]").forEach(function (el) {
+      var i = el.id.replace("pg", "");
+      var f = document.getElementById("f" + i);
+      if (!f) return;
+      var next = "";
+      try { next = decodeURIComponent(new URLSearchParams(new URL(f.src).search).get("next") || ""); } catch (e) {}
+      var line = next.replace(/^\//, "").replace(/\/SUPERVISOR$/i, "");
+      var v = byName[line];
+      var tag = document.getElementById("vid" + i);
+      if (!tag) {
+        tag = document.createElement("span");
+        tag.id = "vid" + i;
+        tag.style.cssText = "margin-left:8px;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:700";
+        el.parentNode.appendChild(tag);
+      }
+      if (!v) { tag.textContent = "video ?"; tag.style.background = "#334155"; tag.style.color = "#cbd5e1"; return; }
+      var ok = v.verdict === "plays";
+      var slow = v.ms && v.ms > 3000;
+      tag.textContent = "video " + v.verdict + (v.ms != null ? " " + v.ms + "ms" : "");
+      tag.style.background = ok && !slow ? "#14532d" : ok ? "#713f12" : "#7f1d1d";
+      tag.style.color = "#fff";
+    });
+    var h = document.getElementById("vidsum");
+    if (!h) {
+      h = document.createElement("span");
+      h.id = "vidsum";
+      h.style.cssText = "margin-left:14px;font-size:12px;font-weight:700";
+      (document.querySelector("header") || document.body).appendChild(h);
+    }
+    h.textContent = "· video: " + (data.plays || 0) + " play / " + (data.broken || 0) + " time out  (" + (data.ts || "") + ")";
+    h.style.color = (data.broken ? "#f87171" : "#4ade80");
+  }
+  function tick() {
+    fetch("video_status.json?_=" + Date.now())
+      .then(function (r) { return r.json(); })
+      .then(paint)
+      .catch(function () {});
+  }
+  tick(); setInterval(tick, 10000);
+})();
+</script>
+</body></html>

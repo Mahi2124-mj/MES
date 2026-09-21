@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <link rel="icon" type="image/jpeg" href="/logo.jpg" />
+    <!-- 2026-09-02 — PWA / TWA (Android app via Bubblewrap): installable web app -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="theme-color" content="#1e40af" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="TBDI MES" />
+    <link rel="apple-touch-icon" href="/icon-192.png" />
+    <title>MES — Live Monitor</title>
+    <!-- 2026-09-03 — Phone-only responsive layer (<=600px). The app is
+         desktop/TV-first with inline styles and no breakpoints; on small
+         phones the fixed multi-column grids and the line-card stat row
+         overflowed and looked tiny. These rules reflow only the heaviest
+         fixed layouts on narrow screens. Desktop / TV (>600px) is untouched. -->
+    <style>
+      /* Capacitor / installed-app: keep content clear of the phone status bar +
+         notch. env(safe-area-inset-*) is 0 in a normal browser, so this only
+         affects the installed Android app on an edge-to-edge / notched phone. */
+      html, body { background-color: #0f172a; }
+      #root {
+        padding-top: env(safe-area-inset-top, 0px);
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+        padding-left: env(safe-area-inset-left, 0px);
+        padding-right: env(safe-area-inset-right, 0px);
+        box-sizing: border-box;
+      }
+
+      /* Capacitor Android status-bar offset. On this WebView the status bar
+         overlays the page and env(safe-area-inset-top) is 0px (and the native
+         setOverlaysWebView(false) is a no-op on Android 14+/Capacitor 8), so
+         page headers sat behind the status bar. The script at the end of
+         <head> adds .cap-android on the native Android app and sets --cap-sat
+         to the real status-bar height (StatusBar.getInfo().height); we pad the
+         app content down by it. Desktop / iOS web never get .cap-android, so
+         they are untouched. Sticky page headers (dashboard topbar) also get
+         their `top` nudged so they clear the bar when the page is scrolled. */
+      html.cap-android #root { padding-top: var(--cap-sat, 28px) !important; }
+      html.cap-android .db-topbar { top: var(--cap-sat, 28px) !important; }
+
+      @media (max-width: 600px) {
+        /* Phone gutters: many page content wrappers carry a desktop 32–48px
+           side padding, wasting a wide strip on each edge and squeezing content
+           into a narrow centre column. Normalise the HORIZONTAL padding to 12px
+           on narrow screens. The "px 48px|40px|32px" match only fires when that
+           value is the 2nd (horizontal) slot of a padding shorthand, and no
+           margin/gap/inset in the app uses these strings — so overriding only
+           padding-left/right here is safe. */
+        [style*="px 48px"], [style*="px 40px"], [style*="px 32px"] { padding-left: 12px !important; padding-right: 12px !important; }
+        /* ...EXCEPT the sticky page topbars (PageTopbar + custom ones use
+           "0 <h> 0 88px"): the 88px left reserves room for the fixed hamburger
+           trigger. The gutter rule above would crush it to 12px and slide the
+           title under the hamburger, so restore a hamburger-clearing left. */
+        [style*="0px 40px 0px 88px"], [style*="0px 48px 0px 88px"] { padding-left: 84px !important; padding-right: 12px !important; }
+        /* Class-based page topbars (Maintenance / Quality / CAPA / Historical
+           pages copy-pasted a PageTopbar-like header into their own <style>):
+           the absolute-centred 37px title overflowed the phone and collided
+           with the fixed hamburger, and a "Signed in as" pill overlapped it.
+           These are CLASS-based, so the inline-style rules above miss them.
+           Shrink the title so it fits centred (clearing the hamburger), hide
+           the redundant pill (user is in the slide-nav), and pull the content
+           wrappers to the phone gutter. Covers prefixes ca/md/mh/mp/qd (+ admin/
+           audit bodies); db/pg are already handled with their own tuned rules. */
+        .ca-title, .md-title, .mh-title, .mp-title, .qd-title { font-size: 18px !important; }
+        .ca-user-pill, .md-pill, .md-user-pill, .mh-pill, .mh-user-pill, .mp-pill, .qd-pill { display: none !important; }
+        .admin-body, .audit-body, .ca-body, .md-body, .mh-body, .mp-body, .qd-body { padding-left: 14px !important; padding-right: 14px !important; }
+        /* Fixed-first-column 2-col page layouts (Settings profile|password,
+           calculators, list|detail) overflowed the phone with the right pane
+           cut off — stack them to one column. */
+        [style*="320px 1fr"], [style*="380px 1fr"], [style*="420px 1fr"] { grid-template-columns: 1fr !important; }
+        /* Stat-tile strips (Maintenance / Quality / CAPA / Historical) rendered
+           one full-width card per row = a lot of scrolling; make them 2-up like
+           the Device Registry cards. */
+        .md-tiles, .qd-tiles, .ca-tiles, .mh-tiles { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 12px !important; }
+        .md-tiles > *, .qd-tiles > *, .ca-tiles > *, .mh-tiles > * { min-width: 0 !important; width: auto !important; }
+        /* Shift Allocation kanban: on the phone stack the board into ONE
+           full-width column — Operator Pool on top, each machine drop-box
+           below it — instead of scrolling sideways through fixed-width columns. */
+        .sa-board { flex-direction: column !important; overflow-x: visible !important; }
+        .sa-board > * { width: auto !important; min-width: 0 !important; max-width: 100% !important; }
+
+        [style*="repeat(4, 1fr)"], [style*="repeat(4,1fr)"] { grid-template-columns: repeat(2, 1fr) !important; }
+        [style*="repeat(3, 1fr)"], [style*="repeat(3,1fr)"] { grid-template-columns: repeat(2, 1fr) !important; }
+        [style*="repeat(5, 1fr)"], [style*="repeat(5,1fr)"] { grid-template-columns: repeat(2, 1fr) !important; }
+        [style*="repeat(6, 1fr)"], [style*="repeat(6,1fr)"] { grid-template-columns: repeat(3, 1fr) !important; }
+        /* line-card Plan / Actual / Performance row: wrap instead of overflow */
+        div[style*="display: flex; gap: 8px; flex: 0 1 auto"] { flex-wrap: wrap !important; }
+
+        /* ── mobile compacting (2026-09-03) — make the desktop-scale UI feel like
+             a phone app: normal-flow titles, 2-col card grids, smaller numbers ── */
+        div[style*="translateX(-50%)"] { position: static !important; transform: none !important; font-size: 18px !important; white-space: nowrap; }
+        [style*="minmax(160px, 1fr)"] { grid-template-columns: repeat(2, 1fr) !important; gap: 10px !important; margin-bottom: 14px !important; }
+        div[style*="border-radius: 12px"][style*="padding: 20px"] { padding: 12px !important; }
+        div[style*="font-size: 34px"] { font-size: 20px !important; }
+        div[style*="font-size: 40px"] { font-size: 22px !important; }
+        div[style*="font-size: 48px"] { font-size: 23px !important; }
+        div[style*="margin-bottom: 36px"] { margin-bottom: 14px !important; }
+
+        /* line-card Plan / Actual / Performance tiles → compact 3-in-a-row */
+        div[style*="display: flex; gap: 8px; flex: 0 1 auto"] { flex: 1 1 100% !important; }
+        div[style*="flex: 1 1 120px"] { min-width: 0 !important; flex: 1 1 0 !important; padding: 8px 6px !important; }
+        div[style*="flex: 1 1 120px"] > div:first-child { font-size: 17px !important; }
+
+        /* MANAGEMENT (final-machine) dashboard — the TV layout is a fixed-height,
+           NON-scrolling 3-column grid that pins body{overflow:hidden}. On a phone:
+           (1) let the whole page scroll so the lower sections (graph, loss, poka,
+           sensor, timeline, hourly) are reachable; (2) stack the 3 main columns;
+           (3) keep the 4 KPI gauges in a COMPACT 2×2 grid (not 4 huge full-width
+           stacks — that wasted a screen of empty space); (4) drop fixed section
+           heights so each card sizes to its content instead of stretching. */
+        /* (MANAGEMENT now lets the body scroll on mobile from its own CSS — see
+           Fullscreen.jsx. The old global html,body{overflow-y:auto;overflow-x:hidden}
+           override here broke position:sticky topbars on EVERY page, so it was
+           removed. Don't put overflow-x:hidden on html/body — it silently
+           forces overflow-y and kills sticky headers.) */
+        [style*="1fr 200px 185px"] { display: flex !important; flex-direction: column !important; gap: 8px !important; height: auto !important; min-height: 0 !important; }
+        [style*="1fr 200px 185px"] > * { grid-column: auto !important; grid-row: auto !important; width: 100% !important; min-width: 0 !important; height: auto !important; min-height: 0 !important; }
+        /* 4 KPI gauges: compact 2×2 instead of full-width stacks */
+        [style*="repeat(12, 1fr)"] { display: grid !important; grid-template-columns: repeat(2, 1fr) !important; height: auto !important; min-height: 0 !important; gap: 8px !important; }
+        [style*="repeat(12, 1fr)"] > * { grid-column: auto !important; grid-row: auto !important; width: auto !important; min-width: 0 !important; height: auto !important; }
+        [style*="1fr 215px"] { grid-template-columns: 1fr !important; }
+        div[style*="overflow: auto hidden"] > table { min-width: 700px !important; }
+
+        /* MANAGEMENT chart panels (CT Graph · Daily · CT Distribution · Weekly).
+           On the phone the fixed-viewport TV grid is flattened to a scrolling
+           column (above), so these chart cards lose the grid-row height they
+           relied on. Their Chart.js canvases are height:100% of a now-0-height
+           parent, so they collapsed to nothing ("graph dikh nahi raha"). All
+           four chart bodies share this exact padding and are position:relative
+           with an absolutely-positioned canvas inside — give each a real height
+           so the canvas has room to paint. */
+        div[style*="padding: 4px 8px 2px"] { height: 210px !important; min-height: 210px !important; flex: 0 0 auto !important; }
+        /* Section titles (lbl9) were wrapping char-by-char inside the squeezed
+           CT-graph header — keep them on one line. */
+        span[style*="letter-spacing: 0.1em"] { white-space: nowrap !important; }
+        /* Let the CT-graph header wrap so its tool strip (Min/Max/slot/Alarm
+           nav) drops below the title instead of crushing it into a vertical
+           stack. Only the 2 chart headers use flex-wrap:nowrap and the
+           landscape one is display:none on the phone, so this is safe. */
+        div[style*="flex-wrap: nowrap"] { flex-wrap: wrap !important; row-gap: 4px !important; }
+      }
+
+      /* 2026-09-13 — Instant boot loader shown inside #root until React mounts.
+         The native splash auto-hides after ~0.5s, but the remote bundle
+         (mes.tbdi.in over the tunnel, or the LAN server) can take several
+         seconds to download+run — leaving a blank/frozen-looking screen with no
+         feedback. This branded blue spinner shows the WHOLE time until React
+         renders (React clears #root on first mount, removing it). Pure CSS, no
+         JS, so it paints the instant index.html loads. Reaches every client via
+         the web bundle — no APK rebuild needed. */
+      @keyframes mesBootSpin { to { transform: rotate(360deg); } }
+      #mes-boot {
+        position: fixed; inset: 0; z-index: 99999; background: #1e40af;
+        display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px;
+      }
+      #mes-boot img { width: 92px; height: 92px; border-radius: 22px; box-shadow: 0 10px 30px rgba(0,0,0,.25); }
+      #mes-boot .mb-sp { width: 42px; height: 42px; border-radius: 50%;
+        border: 4px solid rgba(255,255,255,.25); border-top-color: #fff; animation: mesBootSpin .9s linear infinite; }
+      #mes-boot .mb-tx { color: #dbe4ff; font: 600 15px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; letter-spacing: .3px; }
+    </style>
+    <script>
+      /* 2026-09-05 — Capacitor Android status-bar fix.
+         The installed Android app draws the WebView UNDER the status bar and
+         env(safe-area-inset-top) reports 0px here; setOverlaysWebView(false) is
+         a no-op on Android 14+/Capacitor 8, so page headers sat behind the bar.
+         Fix: mark the native Android app with .cap-android and publish the real
+         status-bar height into --cap-sat (StatusBar.getInfo().height, in CSS
+         px); the CSS above pads #root (and nudges sticky headers) down by it.
+         A 28px fallback covers the moment before getInfo() resolves. Desktop /
+         iOS web never enter this branch, so they are untouched. */
+      (function () {
+        try {
+          var cap = window.Capacitor;
+          if (cap && cap.isNativePlatform && cap.isNativePlatform()
+              && cap.getPlatform && cap.getPlatform() === 'android') {
+            document.documentElement.classList.add('cap-android');
+            var SB = cap.Plugins && cap.Plugins.StatusBar;
+            if (SB) {
+              SB.setBackgroundColor({ color: '#1e40af' }).catch(function () {});
+              SB.setStyle({ style: 'DARK' }).catch(function () {});
+              if (SB.getInfo) {
+                SB.getInfo().then(function (i) {
+                  if (i && i.height) {
+                    document.documentElement.style.setProperty('--cap-sat', i.height + 'px');
+                  }
+                }).catch(function () {});
+              }
+            }
+          }
+        } catch (e) {}
+      })();
+    </script>
+    <script>
+      /* 2026-09-05 — Persistent login on the ANDROID APP ONLY (operator opted in).
+         The app keeps auth in sessionStorage (deliberate "fresh login per tab"
+         policy — see AuthContext), so a WebView teardown (app close / OS reclaim)
+         logs the user out every time. On the native Android app we mirror the
+         auth keys into localStorage and restore them on cold start, so the app
+         stays logged in across restarts. Scoped to cap-android: desktop / shared
+         browsers KEEP the secure per-tab policy (that's where URL-only access is
+         the real risk). Logout is honoured synchronously (removeItem/clear hooks
+         wipe the mirror before any reload can restore it); an expired token still
+         401s and self-clears. Uses a private key the app's own
+         migrateOldLocalStorage() never touches. */
+      (function () {
+        try {
+          var cap = window.Capacitor;
+          if (!(cap && cap.isNativePlatform && cap.isNativePlatform()
+                && cap.getPlatform && cap.getPlatform() === 'android')) return;
+          var KEYS = ["mes_token","mes_username","user_role","user_id","user_dept_slug"];
+          var BLOB = "mes_auth_persist";
+          function save() {
+            try {
+              if (!sessionStorage.getItem("mes_token")) return;
+              var o = {};
+              KEYS.forEach(function (k) { var v = sessionStorage.getItem(k); if (v != null) o[k] = v; });
+              localStorage.setItem(BLOB, JSON.stringify(o));
+            } catch (e) {}
+          }
+          function clear() { try { localStorage.removeItem(BLOB); } catch (e) {} }
+          /* 2026-09-06 — the durable mirror is now dropped ONLY on a DELIBERATE
+             logout (AuthContext.logout(), which also revokes the jti server-side)
+             via this global, OR when client.jsx confirms the token is truly dead
+             (many consecutive 401s). It is NO LONGER wiped by a stray/automatic
+             401: the backend keeps sessions valid ~indefinitely, so a single 401
+             is almost always a transient blip — wiping the mirror on it was what
+             kept throwing the operator back to the password screen. Keeping the
+             mirror means the very next app reopen restores the still-valid token
+             and logs straight in. */
+          window.__mesPersistClear = clear;
+          // Restore on cold start — runs before the app bundle reads sessionStorage.
+          try {
+            if (!sessionStorage.getItem("mes_token")) {
+              var raw = localStorage.getItem(BLOB);
+              if (raw) {
+                var o = JSON.parse(raw);
+                KEYS.forEach(function (k) { if (o && o[k] != null) sessionStorage.setItem(k, o[k]); });
+              }
+            }
+          } catch (e) {}
+          // Capture login instantly. removeItem / clear are left native — they
+          // no longer touch the durable mirror (see __mesPersistClear above).
+          var _si = sessionStorage.setItem.bind(sessionStorage);
+          sessionStorage.setItem = function (k, v) { _si(k, v); if (KEYS.indexOf(k) > -1) save(); };
+          // Safety mirror in case a write path bypasses the setItem hook.
+          setInterval(function () { if (sessionStorage.getItem("mes_token")) save(); }, 2000);
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root">
+      <div id="mes-boot">
+        <img src="/icon-192.png" alt="MES" />
+        <div class="mb-sp"></div>
+        <div class="mb-tx">Starting MES…</div>
+      </div>
+    </div>
+    <script>
+      /* 2026-09-14 — The blue "Starting MES…" boot splash (#mes-boot) is a
+         full-screen fixed overlay meant ONLY for the native app's cold start.
+         In a normal browser it just sat on top of the page and, if a chunk was
+         slow or the app render hiccuped, it stayed stuck blue ("kuch nahi khul
+         raha"). So: remove it immediately outside the Capacitor app, and add a
+         hard safety timeout so it can NEVER linger for anyone. */
+      (function () {
+        try {
+          var isCap = /[?&]src=capacitor/.test(location.search)
+                   || document.documentElement.classList.contains("cap-android");
+          if (!isCap) { var b = document.getElementById("mes-boot"); if (b) b.remove(); }
+          setTimeout(function () { var b = document.getElementById("mes-boot"); if (b) b.remove(); }, 12000);
+        } catch (e) {}
+      })();
+    </script>
+    <script type="module" src="/src/main.jsx"></script>
+
+    <!-- 2026-09-18 — Why some machines showed a completely blank page.
+         The app ships as <script type="module">.  A browser older than roughly
+         Chrome 87 / Edge 88 / Firefox 78 / Safari 14 IGNORES a module script
+         without a word, and the boot splash above is removed immediately
+         outside the native app, so #root was simply left empty: no spinner, no
+         error, nothing to report.  Newer machines rendered the login page and
+         older ones showed white, which is exactly how it looked from the floor.
+         These two blocks make the page explain itself instead. -->
+    <script nomodule>
+      /* Only ever runs on a browser that cannot load the app at all. */
+      document.getElementById("root").innerHTML =
+        '<div style="max-width:620px;margin:12vh auto;padding:28px 32px;border-radius:14px;' +
+        'font:15px/1.6 system-ui,-apple-system,\'Segoe UI\',Roboto,sans-serif;color:#0f172a;' +
+        'background:#fff;box-shadow:0 8px 30px rgba(0,0,0,.12)">' +
+        '<h2 style="margin:0 0 10px;font-size:20px">This browser is too old to run MES</h2>' +
+        '<p style="margin:0 0 14px;color:#334155">The application needs Chrome 87, Edge 88, ' +
+        'Firefox 78 or Safari 14 (or newer). This browser cannot load it, which is why the ' +
+        'page appeared blank.</p>' +
+        '<p style="margin:0;color:#334155">Please update the browser, or open MES from a ' +
+        'machine with an up-to-date one.</p>' +
+        '<p style="margin:14px 0 0;font-size:12px;color:#64748b">' + navigator.userAgent + '</p>' +
+        '</div>';
+    </script>
+
+    <script>
+      /* And if the app is supported but still never paints — a chunk that fails
+         to load, a crash during start-up — say so rather than leaving a white
+         screen that gives the operator nothing to report. */
+      (function () {
+        var lastError = "";
+        window.addEventListener("error", function (e) {
+          lastError = (e && (e.message || (e.target && e.target.src))) || "";
+        }, true);
+        setTimeout(function () {
+          try {
+            var root = document.getElementById("root");
+            if (!root || root.children.length) return;          // app rendered - nothing to do
+            if (!("noModule" in document.createElement("script"))) return;  // nomodule block covers this
+            root.innerHTML =
+              '<div style="max-width:620px;margin:12vh auto;padding:28px 32px;border-radius:14px;' +
+              'font:15px/1.6 system-ui,-apple-system,sans-serif;color:#0f172a;background:#fff;' +
+              'box-shadow:0 8px 30px rgba(0,0,0,.12)">' +
+              '<h2 style="margin:0 0 10px;font-size:20px">MES did not finish loading</h2>' +
+              '<p style="margin:0 0 14px;color:#334155">The page reached this device but the ' +
+              'application did not start. This is usually a network drop while the app was ' +
+              'loading.</p>' +
+              '<p style="margin:0 0 14px"><a href="" onclick="location.reload();return false" ' +
+              'style="color:#1d4ed8;font-weight:600">Reload the page</a></p>' +
+              (lastError ? '<p style="margin:0;font-size:12px;color:#64748b">' +
+                String(lastError).slice(0, 200) + '</p>' : '') +
+              '</div>';
+          } catch (e) {}
+        }, 15000);
+      })();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,83 @@
+{
+ "ran_at": "2026-09-17 15:11:01",
+ "baseline": {
+  "ok": 6,
+  "fail": 0,
+  "worst_ms": 31,
+  "p50_ms": 21
+ },
+ "results": [
+  {
+   "scenario": "DB connection squeeze",
+   "injected": "60 extra DB connections held",
+   "during": {
+    "ok": 6,
+    "fail": 0,
+    "worst_ms": 31,
+    "p50_ms": 27
+   },
+   "after": {
+    "ok": 6,
+    "fail": 0,
+    "worst_ms": 51,
+    "p50_ms": 26
+   },
+   "recovered": true,
+   "took_s": 8.5
+  },
+  {
+   "scenario": "slow-endpoint flood",
+   "injected": "6 concurrent /api/network/discover (45s each)",
+   "during": {
+    "ok": 6,
+    "fail": 0,
+    "worst_ms": 10132,
+    "p50_ms": 4636
+   },
+   "after": {
+    "ok": 6,
+    "fail": 0,
+    "worst_ms": 3358,
+    "p50_ms": 2025
+   },
+   "recovered": false,
+   "took_s": 43.6
+  },
+  {
+   "scenario": "malformed + traversal input",
+   "injected": "malformed + traversal input",
+   "during": {
+    "bad": [],
+    "cases": 8
+   },
+   "after": {
+    "ok": 6,
+    "fail": 0,
+    "worst_ms": 29,
+    "p50_ms": 25
+   },
+   "recovered": true,
+   "took_s": 5.0
+  },
+  {
+   "scenario": "forged / missing session",
+   "injected": "unauthenticated / forged tokens",
+   "during": {
+    "leaks": [
+     "no token was SERVED data (HTTP 200)",
+     "garbage token was SERVED data (HTTP 200)",
+     "empty bearer was SERVED data (HTTP 200)"
+    ]
+   },
+   "after": {
+    "ok": 6,
+    "fail": 0,
+    "worst_ms": 28,
+    "p50_ms": 25
+   },
+   "recovered": true,
+   "took_s": 4.2
+  }
+ ],
+ "all_recovered": false
+}

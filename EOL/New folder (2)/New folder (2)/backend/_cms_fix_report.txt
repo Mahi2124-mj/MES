@@ -1,0 +1,15 @@
+﻿stopped 44188
+stopped 55784
+stopped 63060
+stopped extra 63060
+5555 listeners after kill: 0
+started ONE fresh CMS api_server.py; waiting 35s for recorders...
+ffmpeg recorders now: 0
+CMS :5555 listeners: 2
+newest TS:
+  10:49:54  1536KB  cam_cam_upper_rail_greasing_1778650524_1780463987669.ts
+  10:49:54  1536KB  cam_cam_upper_rail_greasing_1778650524_1780463988378.ts
+  10:49:54  8192KB  cam_cam_lock_bar_insert_1779041857_1780463982337.ts
+  10:49:54  3072KB  cam_cam_semi_auto_1779041507_1780463987900.ts
+  10:49:48  2304KB  cam_cam_panasonic_default_1780463983681.ts
+  10:49:47  37120KB  cam_cam_upper_rail_greasing_1778650524_1780463939468.ts

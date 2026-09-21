@@ -1,0 +1,523 @@
+{
+ "ran_at": "2026-09-17 15:00:18",
+ "round": 1,
+ "took_s": 414.9,
+ "users": 15,
+ "features": 54,
+ "checked": 825,
+ "gaps": 15,
+ "by_kind": {
+  "slow": 15
+ },
+ "slow_bar_ms": 2000,
+ "gap_list": [
+  {
+   "user": "himanshu",
+   "role": "shift_incharge",
+   "feature": "SA / FI History",
+   "kind": "slow",
+   "detail": "11904ms (bar 2000ms)"
+  },
+  {
+   "user": "sanjay",
+   "role": "shift_incharge",
+   "feature": "SA / FI History",
+   "kind": "slow",
+   "detail": "15235ms (bar 2000ms)"
+  },
+  {
+   "user": "shrawan",
+   "role": "production_incharge",
+   "feature": "SA / FI History",
+   "kind": "slow",
+   "detail": "12399ms (bar 2000ms)"
+  },
+  {
+   "user": "sanjeev",
+   "role": "section_incharge",
+   "feature": "SA / FI History",
+   "kind": "slow",
+   "detail": "15100ms (bar 2000ms)"
+  },
+  {
+   "user": "nagender",
+   "role": "section_incharge",
+   "feature": "SA / FI History",
+   "kind": "slow",
+   "detail": "12314ms (bar 2000ms)"
+  },
+  {
+   "user": "jitender",
+   "role": "section_incharge",
+   "feature": "SA / FI History",
+   "kind": "slow",
+   "detail": "11829ms (bar 2000ms)"
+  },
+  {
+   "user": "surender",
+   "role": "section_incharge",
+   "feature": "SA / FI History",
+   "kind": "slow",
+   "detail": "13055ms (bar 2000ms)"
+  },
+  {
+   "user": "Chanderma",
+   "role": "leader",
+   "feature": "SA / FI History",
+   "kind": "slow",
+   "detail": "11573ms (bar 2000ms)"
+  },
+  {
+   "user": "Sunil",
+   "role": "leader",
+   "feature": "SA / FI History",
+   "kind": "slow",
+   "detail": "15283ms (bar 2000ms)"
+  },
+  {
+   "user": "Arunesh",
+   "role": "leader",
+   "feature": "SA / FI History",
+   "kind": "slow",
+   "detail": "13100ms (bar 2000ms)"
+  },
+  {
+   "user": "Karan",
+   "role": "leader",
+   "feature": "SA / FI History",
+   "kind": "slow",
+   "detail": "13081ms (bar 2000ms)"
+  },
+  {
+   "user": "Bhagat",
+   "role": "leader",
+   "feature": "SA / FI History",
+   "kind": "slow",
+   "detail": "13805ms (bar 2000ms)"
+  },
+  {
+   "user": "Jatin",
+   "role": "leader",
+   "feature": "SA / FI History",
+   "kind": "slow",
+   "detail": "12731ms (bar 2000ms)"
+  },
+  {
+   "user": "Manu Dev",
+   "role": "leader",
+   "feature": "SA / FI History",
+   "kind": "slow",
+   "detail": "12921ms (bar 2000ms)"
+  },
+  {
+   "user": "Siddhant",
+   "role": "leader",
+   "feature": "SA / FI History",
+   "kind": "slow",
+   "detail": "13553ms (bar 2000ms)"
+  }
+ ],
+ "notes": [
+  {
+   "user": "himanshu",
+   "feature": "Historical Data",
+   "detail": "2 call returned no rows"
+  },
+  {
+   "user": "himanshu",
+   "feature": "Shift Allocation",
+   "detail": "1 call returned no rows"
+  },
+  {
+   "user": "himanshu",
+   "feature": "Anything Wrong?",
+   "detail": "2 call returned no rows"
+  },
+  {
+   "user": "himanshu",
+   "feature": "Andon History",
+   "detail": "1 call returned no rows"
+  },
+  {
+   "user": "himanshu",
+   "feature": "Store",
+   "detail": "5 call returned no rows"
+  },
+  {
+   "user": "himanshu",
+   "feature": "Dispatch",
+   "detail": "3 call returned no rows"
+  },
+  {
+   "user": "himanshu",
+   "feature": "Production Panel",
+   "detail": "2 call returned no rows"
+  },
+  {
+   "user": "himanshu",
+   "feature": "Maintenance Panel",
+   "detail": "2 call returned no rows"
+  },
+  {
+   "user": "himanshu",
+   "feature": "Quality Panel",
+   "detail": "2 call returned no rows"
+  },
+  {
+   "user": "himanshu",
+   "feature": "Admin Panel",
+   "detail": "2 call returned no rows"
+  },
+  {
+   "user": "himanshu",
+   "feature": "Historical Data",
+   "detail": "2 call returned no rows"
+  },
+  {
+   "user": "himanshu",
+   "feature": "CAPA",
+   "detail": "3 call returned no rows"
+  },
+  {
+   "user": "himanshu",
+   "feature": "Poka Yoke",
+   "detail": "1 call returned no rows"
+  },
+  {
+   "user": "himanshu",
+   "feature": "Quality Deviation",
+   "detail": "4 call returned no rows"
+  },
+  {
+   "user": "himanshu",
+   "feature": "Production Panel",
+   "detail": "2 call returned no rows"
+  },
+  {
+   "user": "himanshu",
+   "feature": "Historical Data",
+   "detail": "2 call returned no rows"
+  },
+  {
+   "user": "himanshu",
+   "feature": "CAPA",
+   "detail": "3 call returned no rows"
+  },
+  {
+   "user": "himanshu",
+   "feature": "Poka Yoke",
+   "detail": "1 call returned no rows"
+  },
+  {
+   "user": "himanshu",
+   "feature": "Quality Deviation",
+   "detail": "4 call returned no rows"
+  },
+  {
+   "user": "himanshu",
+   "feature": "Shift Allocation",
+   "detail": "1 call returned no rows"
+  },
+  {
+   "user": "sanjay",
+   "feature": "Historical Data",
+   "detail": "2 call returned no rows"
+  },
+  {
+   "user": "sanjay",
+   "feature": "Shift Allocation",
+   "detail": "1 call returned no rows"
+  },
+  {
+   "user": "sanjay",
+   "feature": "Anything Wrong?",
+   "detail": "2 call returned no rows"
+  },
+  {
+   "user": "sanjay",
+   "feature": "Andon History",
+   "detail": "2 call returned no rows"
+  },
+  {
+   "user": "sanjay",
+   "feature": "Breakdown Slip",
+   "detail": "1 call returned no rows"
+  },
+  {
+   "user": "sanjay",
+   "feature": "Inbox",
+   "detail": "1 call returned no rows"
+  },
+  {
+   "user": "sanjay",
+   "feature": "Store",
+   "detail": "5 call returned no rows"
+  },
+  {
+   "user": "sanjay",
+   "feature": "Dispatch",
+   "detail": "3 call returned no rows"
+  },
+  {
+   "user": "sanjay",
+   "feature": "Production Panel",
+   "detail": "2 call returned no rows"
+  },
+  {
+   "user": "sanjay",
+   "feature": "Maintenance Panel",
+   "detail": "2 call returned no rows"
+  },
+  {
+   "user": "sanjay",
+   "feature": "Quality Panel",
+   "detail": "2 call returned no rows"
+  },
+  {
+   "user": "sanjay",
+   "feature": "Admin Panel",
+   "detail": "2 call returned no rows"
+  },
+  {
+   "user": "sanjay",
+   "feature": "Historical Data",
+   "detail": "2 call returned no rows"
+  },
+  {
+   "user": "sanjay",
+   "feature": "CAPA",
+   "detail": "3 call returned no rows"
+  },
+  {
+   "user": "sanjay",
+   "feature": "Poka Yoke",
+   "detail": "1 call returned no rows"
+  },
+  {
+   "user": "sanjay",
+   "feature": "Quality Deviation",
+   "detail": "4 call returned no rows"
+  },
+  {
+   "user": "sanjay",
+   "feature": "Production Panel",
+   "detail": "2 call returned no rows"
+  },
+  {
+   "user": "sanjay",
+   "feature": "Historical Data",
+   "detail": "2 call returned no rows"
+  },
+  {
+   "user": "sanjay",
+   "feature": "CAPA",
+   "detail": "3 call returned no rows"
+  },
+  {
+   "user": "sanjay",
+   "feature": "Poka Yoke",
+   "detail": "1 call returned no rows"
+  },
+  {
+   "user": "sanjay",
+   "feature": "Quality Deviation",
+   "detail": "4 call returned no rows"
+  },
+  {
+   "user": "sanjay",
+   "feature": "Shift Allocation",
+   "detail": "1 call returned no rows"
+  },
+  {
+   "user": "shrawan",
+   "feature": "Historical Data",
+   "detail": "2 call returned no rows"
+  },
+  {
+   "user": "shrawan",
+   "feature": "Shift Allocation",
+   "detail": "1 call returned no rows"
+  },
+  {
+   "user": "shrawan",
+   "feature": "Anything Wrong?",
+   "detail": "2 call returned no rows"
+  },
+  {
+   "user": "shrawan",
+   "feature": "Andon History",
+   "detail": "1 call returned no rows"
+  },
+  {
+   "user": "shrawan",
+   "feature": "Store",
+   "detail": "5 call returned no rows"
+  },
+  {
+   "user": "shrawan",
+   "feature": "Dispatch",
+   "detail": "3 call returned no rows"
+  },
+  {
+   "user": "shrawan",
+   "feature": "Production Panel",
+   "detail": "2 call returned no rows"
+  },
+  {
+   "user": "shrawan",
+   "feature": "Maintenance Panel",
+   "detail": "2 call returned no rows"
+  },
+  {
+   "user": "shrawan",
+   "feature": "Quality Panel",
+   "detail": "2 call returned no rows"
+  },
+  {
+   "user": "shrawan",
+   "feature": "Admin Panel",
+   "detail": "2 call returned no rows"
+  },
+  {
+   "user": "shrawan",
+   "feature": "Historical Data",
+   "detail": "2 call returned no rows"
+  },
+  {
+   "user": "shrawan",
+   "feature": "CAPA",
+   "detail": "3 call returned no rows"
+  },
+  {
+   "user": "shrawan",
+   "feature": "Poka Yoke",
+   "detail": "1 call returned no rows"
+  },
+  {
+   "user": "shrawan",
+   "feature": "Quality Deviation",
+   "detail": "4 call returned no rows"
+  },
+  {
+   "user": "shrawan",
+   "feature": "Production Panel",
+   "detail": "2 call returned no rows"
+  },
+  {
+   "user": "shrawan",
+   "feature": "Historical Data",
+   "detail": "2 call returned no rows"
+  },
+  {
+   "user": "shrawan",
+   "feature": "CAPA",
+   "detail": "3 call returned no rows"
+  },
+  {
+   "user": "shrawan",
+   "feature": "Poka Yoke",
+   "detail": "1 call returned no rows"
+  },
+  {
+   "user": "shrawan",
+   "feature": "Quality Deviation",
+   "detail": "4 call returned no rows"
+  },
+  {
+   "user": "shrawan",
+   "feature": "Shift Allocation",
+   "detail": "1 call returned no rows"
+  },
+  {
+   "user": "sanjeev",
+   "feature": "Historical Data",
+   "detail": "2 call returned no rows"
+  },
+  {
+   "user": "sanjeev",
+   "feature": "Shift Allocation",
+   "detail": "1 call returned no rows"
+  },
+  {
+   "user": "sanjeev",
+   "feature": "Anything Wrong?",
+   "detail": "2 call returned no rows"
+  },
+  {
+   "user": "sanjeev",
+   "feature": "Andon History",
+   "detail": "1 call returned no rows"
+  },
+  {
+   "user": "sanjeev",
+   "feature": "Store",
+   "detail": "5 call returned no rows"
+  },
+  {
+   "user": "sanjeev",
+   "feature": "Dispatch",
+   "detail": "3 call returned no rows"
+  },
+  {
+   "user": "sanjeev",
+   "feature": "Production Panel",
+   "detail": "2 call returned no rows"
+  },
+  {
+   "user": "sanjeev",
+   "feature": "Maintenance Panel",
+   "detail": "2 call returned no rows"
+  },
+  {
+   "user": "sanjeev",
+   "feature": "Quality Panel",
+   "detail": "2 call returned no rows"
+  },
+  {
+   "user": "sanjeev",
+   "feature": "Admin Panel",
+   "detail": "2 call returned no rows"
+  },
+  {
+   "user": "sanjeev",
+   "feature": "Historical Data",
+   "detail": "2 call returned no rows"
+  },
+  {
+   "user": "sanjeev",
+   "feature": "CAPA",
+   "detail": "3 call returned no rows"
+  },
+  {
+   "user": "sanjeev",
+   "feature": "Poka Yoke",
+   "detail": "1 call returned no rows"
+  },
+  {
+   "user": "sanjeev",
+   "feature": "Quality Deviation",
+   "detail": "4 call returned no rows"
+  },
+  {
+   "user": "sanjeev",
+   "feature": "Production Panel",
+   "detail": "2 call returned no rows"
+  },
+  {
+   "user": "sanjeev",
+   "feature": "Historical Data",
+   "detail": "2 call returned no rows"
+  },
+  {
+   "user": "sanjeev",
+   "feature": "CAPA",
+   "detail": "3 call returned no rows"
+  },
+  {
+   "user": "sanjeev",
+   "feature": "Poka Yoke",
+   "detail": "1 call returned no rows"
+  }
+ ],
+ "pass_pct": 98
+}

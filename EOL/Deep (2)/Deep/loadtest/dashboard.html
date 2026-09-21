@@ -1,0 +1,113 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>MES Load Emulator — Live</title>
+<style>
+  :root{--bg:#0b1220;--card:#131c30;--line:#243049;--fg:#e6edf7;--mut:#8ba0c0;
+        --ok:#22c55e;--warn:#f59e0b;--bad:#ef4444;--acc:#3b82f6}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);
+       font:14px/1.5 'Segoe UI',system-ui,sans-serif}
+  header{padding:14px 20px;border-bottom:1px solid var(--line);
+         display:flex;gap:18px;align-items:baseline;flex-wrap:wrap;
+         position:sticky;top:0;background:var(--bg);z-index:5}
+  h1{font-size:17px;margin:0;font-weight:800;letter-spacing:.3px}
+  .sub{color:var(--mut);font-size:12px}
+  .wrap{padding:16px 20px;display:grid;gap:16px}
+  .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+  .tile{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:11px 13px}
+  .tile .k{color:var(--mut);font-size:10.5px;text-transform:uppercase;letter-spacing:.06em}
+  .tile .v{font-size:22px;font-weight:800;margin-top:3px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:13px 15px}
+  .card h2{font-size:12px;margin:0 0 10px;color:var(--mut);
+           text-transform:uppercase;letter-spacing:.07em;font-weight:700}
+  .agents{display:grid;grid-template-columns:repeat(auto-fill,minmax(178px,1fr));gap:8px}
+  .ag{background:#0f1729;border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+  .ag .u{font-weight:800;font-size:12px}
+  .ag .st{font-size:11px;margin-top:2px}
+  .ag .ms{font-size:11px;color:var(--mut);margin-top:3px}
+  .dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px}
+  table{width:100%;border-collapse:collapse;font-size:12px}
+  th{text-align:left;color:var(--mut);font-weight:700;font-size:10.5px;
+     text-transform:uppercase;letter-spacing:.05em;padding:5px 8px;border-bottom:1px solid var(--line)}
+  td{padding:5px 8px;border-bottom:1px solid #1b2540;white-space:nowrap}
+  .why td:first-child{white-space:normal}
+  .bar{height:7px;border-radius:4px;background:var(--acc);min-width:2px}
+  .g{color:var(--ok)}.y{color:var(--warn)}.r{color:var(--bad)}.m{color:var(--mut)}
+  .pill{padding:1px 7px;border-radius:999px;font-size:10.5px;font-weight:700}
+</style></head><body>
+<header>
+  <h1>MES Load Emulator</h1>
+  <span class="sub" id="hdr">connecting…</span>
+  <span class="sub" style="margin-left:auto" id="clock"></span>
+</header>
+<div class="wrap">
+  <div class="tiles" id="tiles"></div>
+  <div class="card"><h2>Why video takes time (cause → count)</h2>
+    <table class="why"><tbody id="why"></tbody></table></div>
+  <div class="card"><h2>Virtual users — live</h2><div class="agents" id="agents"></div></div>
+  <div class="card"><h2>Recent samples</h2>
+    <table><thead><tr>
+      <th>User</th><th>Line</th><th>Cycle</th><th>Dash</th><th>Preflight</th>
+      <th>TTFB</th><th>Video</th><th>Size</th><th>Status</th><th>Why</th>
+    </tr></thead><tbody id="recent"></tbody></table></div>
+</div>
+<script>
+const ms = v => v==null ? "—" : (v>=1000 ? (v/1000).toFixed(2)+"s" : v+"ms");
+const cls = v => v==null ? "m" : (v<1500 ? "g" : v<5000 ? "y" : "r");
+const kb  = b => !b ? "—" : (b>1048576 ? (b/1048576).toFixed(1)+"MB" : Math.round(b/1024)+"KB");
+
+async function tick(){
+  let d;
+  try { d = await (await fetch("status.json?"+Date.now())).json(); }
+  catch(e){ document.getElementById("hdr").textContent = "waiting for run to start…"; return; }
+
+  document.getElementById("hdr").innerHTML =
+    `<b>${d.users}</b> virtual users · ${d.base} · ${d.elapsed}s / ${d.duration}s ` +
+    (d.running ? `<span class="pill" style="background:#14351f;color:#22c55e">RUNNING</span>`
+               : `<span class="pill" style="background:#3a1b1b;color:#ef4444">STOPPED</span>`);
+  document.getElementById("clock").textContent = new Date().toLocaleTimeString();
+
+  const t = d.totals||{};
+  document.getElementById("tiles").innerHTML = [
+    ["Video loads", t.samples||0, ""],
+    ["OK", t.ok||0, "g"],
+    ["Failed", t.failed||0, (t.failed?"r":"m")],
+    ["Video avg", ms(t.video_avg_ms), cls(t.video_avg_ms)],
+    ["Video p50", ms(t.video_p50_ms), cls(t.video_p50_ms)],
+    ["Video p95", ms(t.video_p95_ms), cls(t.video_p95_ms)],
+    ["Video max", ms(t.video_max_ms), cls(t.video_max_ms)],
+    ["Full page", ms(t.page_avg_ms), cls(t.page_avg_ms)],
+  ].map(([k,v,c])=>`<div class="tile"><div class="k">${k}</div><div class="v ${c||''}">${v}</div></div>`).join("");
+
+  const tot = (d.why||[]).reduce((a,[,n])=>a+n,0)||1;
+  document.getElementById("why").innerHTML = (d.why||[]).map(([k,n])=>{
+    const pct = Math.round(n*100/tot);
+    const col = /ERROR|502|SLOW/.test(k) ? "var(--bad)" : /slow|404/.test(k) ? "var(--warn)" : "var(--ok)";
+    return `<tr><td style="width:46%">${k}</td>
+      <td style="width:40%"><div class="bar" style="width:${pct}%;background:${col}"></div></td>
+      <td style="text-align:right"><b>${n}</b> <span class="m">${pct}%</span></td></tr>`;
+  }).join("") || `<tr><td class="m">no samples yet…</td></tr>`;
+
+  document.getElementById("agents").innerHTML = (d.agents||[]).map(a=>{
+    const st = a.state||"?";
+    const c = st==="video" ? "var(--acc)" : st==="done" ? "var(--mut)"
+            : st==="think" ? "#64748b" : "var(--ok)";
+    const L = a.last||{};
+    return `<div class="ag"><div class="u">User ${a.user} <span class="m">· ${a.loops||0} loops</span></div>
+      <div class="st"><span class="dot" style="background:${c}"></span>${st}</div>
+      <div class="ms">${L.line?L.line+" #"+L.cycle:"—"}</div>
+      <div class="ms">video <b class="${cls(L.video_ms)}">${ms(L.video_ms)}</b>${a.err?` · <span class="r">${a.err} err</span>`:""}</div>
+    </div>`;
+  }).join("");
+
+  document.getElementById("recent").innerHTML = (d.recent||[]).map(s=>`
+    <tr><td>${s.user}</td><td>${s.line||"—"}</td><td>${s.cycle||"—"}</td>
+      <td class="${cls(s.dash_ms)}">${ms(s.dash_ms)}</td>
+      <td class="${cls(s.preflight_ms)}">${ms(s.preflight_ms)}</td>
+      <td class="${cls(s.ttfb_ms)}">${ms(s.ttfb_ms)}</td>
+      <td class="${cls(s.video_ms)}"><b>${ms(s.video_ms)}</b></td>
+      <td class="m">${kb(s.bytes)}</td>
+      <td class="${(s.status===200||s.status===206)?'g':'r'}">${s.status||"ERR"}</td>
+      <td class="m">${s.why||""}</td></tr>`).join("");
+}
+tick(); setInterval(tick, 1000);
+</script></body></html>

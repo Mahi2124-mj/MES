@@ -1,0 +1,862 @@
+[
+  {
+    "id": 1,
+    "pyNo": "TBDI-PE-PY-6041",
+    "description": "detect harness brkt pop rivet operation miss",
+    "modelType": "4 WAY INNER",
+    "typeSide": "LH",
+    "dBit": "D.041",
+    "desiredValue": 2,
+    "machineFixture": "HARNESS BRKT & POP RIVETING"
+  },
+  {
+    "id": 2,
+    "pyNo": "TBDI-PE-PY-6041",
+    "description": "detect harness brkt pop rivet operation miss",
+    "modelType": "4 WAY INNER",
+    "typeSide": "RH",
+    "dBit": "D.041",
+    "desiredValue": 2,
+    "machineFixture": "HARNESS BRKT & POP RIVETING"
+  },
+  {
+    "id": 3,
+    "pyNo": "TBDI-PE-PY-6042",
+    "description": "detect data matrix miss",
+    "modelType": "4 WAY INNER",
+    "typeSide": "LH",
+    "dBit": "D.042",
+    "desiredValue": 1,
+    "machineFixture": "FINAL INSPECTION MACHINE"
+  },
+  {
+    "id": 4,
+    "pyNo": "TBDI-PE-PY-6042",
+    "description": "detect data matrix miss",
+    "modelType": "4 WAY INNER",
+    "typeSide": "RH",
+    "dBit": "D.042",
+    "desiredValue": 1,
+    "machineFixture": "FINAL INSPECTION MACHINE"
+  },
+  {
+    "id": 5,
+    "pyNo": "TBDI-PE-PY-6043",
+    "description": "detect circlip miss LH",
+    "modelType": "4 WAY INNER",
+    "typeSide": "LH",
+    "dBit": "D.043",
+    "desiredValue": 1,
+    "machineFixture": "FINAL INSPECTION MACHINE"
+  },
+  {
+    "id": 6,
+    "pyNo": "TBDI-PE-PY-6044",
+    "description": "detect circlip miss RH",
+    "modelType": "4 WAY INNER",
+    "typeSide": "RH",
+    "dBit": "D.044",
+    "desiredValue": 1,
+    "machineFixture": "FINAL INSPECTION MACHINE"
+  },
+  {
+    "id": 7,
+    "pyNo": "TBDI-PE-PY-6045",
+    "description": "detect pop riveting check/miss LH",
+    "modelType": "4 WAY INNER",
+    "typeSide": "LH",
+    "dBit": "D.045",
+    "desiredValue": 1,
+    "machineFixture": "FINAL INSPECTION MACHINE"
+  },
+  {
+    "id": 8,
+    "pyNo": "TBDI-PE-PY-6046",
+    "description": "detect pop riveting check/miss RH",
+    "modelType": "4 WAY INNER",
+    "typeSide": "RH",
+    "dBit": "D.046",
+    "desiredValue": 1,
+    "machineFixture": "FINAL INSPECTION MACHINE"
+  },
+  {
+    "id": 9,
+    "pyNo": "TBDI-PE-PY-6049",
+    "description": "detect harness bkt miss LH",
+    "modelType": "4 WAY INNER",
+    "typeSide": "LH",
+    "dBit": "D.049",
+    "desiredValue": 1,
+    "machineFixture": "FINAL INSPECTION MACHINE"
+  },
+  {
+    "id": 10,
+    "pyNo": "TBDI-PE-PY-6050",
+    "description": "detect harness bkt miss RH",
+    "modelType": "4 WAY INNER",
+    "typeSide": "RH",
+    "dBit": "D.050",
+    "desiredValue": 1,
+    "machineFixture": "FINAL INSPECTION MACHINE"
+  },
+  {
+    "id": 11,
+    "pyNo": "TBDI-PE-PY-6053",
+    "description": "detect lighter ejector miss 2 points RH",
+    "modelType": "4 WAY INNER",
+    "typeSide": "RH",
+    "dBit": "D.053",
+    "desiredValue": 1,
+    "machineFixture": "FINAL INSPECTION MACHINE"
+  },
+  {
+    "id": 12,
+    "pyNo": "TBDI-PE-PY-6054",
+    "description": "detect lighter ejector miss 2 points LH",
+    "modelType": "4 WAY INNER",
+    "typeSide": "LH",
+    "dBit": "D.054",
+    "desiredValue": 1,
+    "machineFixture": "FINAL INSPECTION MACHINE"
+  },
+  {
+    "id": 13,
+    "pyNo": "TBDI-PE-PY-6060",
+    "description": "detect e-ring miss RH",
+    "modelType": "4 WAY INNER",
+    "typeSide": "RH",
+    "dBit": "D.060",
+    "desiredValue": 1,
+    "machineFixture": "FINAL INSPECTION MACHINE"
+  },
+  {
+    "id": 14,
+    "pyNo": "TBDI-PE-PY-6061",
+    "description": "detect e-ring miss LH",
+    "modelType": "4 WAY INNER",
+    "typeSide": "LH",
+    "dBit": "D.061",
+    "desiredValue": 1,
+    "machineFixture": "FINAL INSPECTION MACHINE"
+  },
+  {
+    "id": 15,
+    "pyNo": "TBDI-PE-PY-6067",
+    "description": "detect e-ring miss rr side RH",
+    "modelType": "4 WAY INNER",
+    "typeSide": "RH",
+    "dBit": "D.067",
+    "desiredValue": 1,
+    "machineFixture": "FINAL INSPECTION MACHINE"
+  },
+  {
+    "id": 16,
+    "pyNo": "TBDI-PE-PY-6068",
+    "description": "detect e-ring miss rr side LH",
+    "modelType": "4 WAY INNER",
+    "typeSide": "LH",
+    "dBit": "D.068",
+    "desiredValue": 1,
+    "machineFixture": "FINAL INSPECTION MACHINE"
+  },
+  {
+    "id": 17,
+    "pyNo": "TBDI-PE-PY-6074",
+    "description": "detect lighter ejector miss rr side RH",
+    "modelType": "4 WAY INNER",
+    "typeSide": "RH",
+    "dBit": "D.074",
+    "desiredValue": 1,
+    "machineFixture": "FINAL INSPECTION MACHINE"
+  },
+  {
+    "id": 18,
+    "pyNo": "TBDI-PE-PY-6075",
+    "description": "detect lighter ejector miss rr side LH",
+    "modelType": "4 WAY INNER",
+    "typeSide": "LH",
+    "dBit": "D.075",
+    "desiredValue": 1,
+    "machineFixture": "FINAL INSPECTION MACHINE"
+  },
+  {
+    "id": 19,
+    "pyNo": "TBDI-PE-PY-6081",
+    "description": "detect location pin miss & part presence",
+    "modelType": "4 WAY INNER",
+    "typeSide": "LH",
+    "dBit": "D.081",
+    "desiredValue": 1,
+    "machineFixture": "FINAL INSPECTION MACHINE"
+  },
+  {
+    "id": 20,
+    "pyNo": "TBDI-PE-PY-6081",
+    "description": "detect location pin miss & part presence",
+    "modelType": "4 WAY INNER",
+    "typeSide": "RH",
+    "dBit": "D.081",
+    "desiredValue": 1,
+    "machineFixture": "FINAL INSPECTION MACHINE"
+  },
+  {
+    "id": 21,
+    "pyNo": "TBDI-PE-PY-6082",
+    "description": "detect lower rail fr side end cap miss RH",
+    "modelType": "4 WAY INNER",
+    "typeSide": "RH",
+    "dBit": "D.082",
+    "desiredValue": 1,
+    "machineFixture": "FINAL INSPECTION MACHINE"
+  },
+  {
+    "id": 22,
+    "pyNo": "TBDI-PE-PY-6083",
+    "description": "detect lower rail fr side end cap miss LH",
+    "modelType": "4 WAY INNER",
+    "typeSide": "LH",
+    "dBit": "D.083",
+    "desiredValue": 1,
+    "machineFixture": "FINAL INSPECTION MACHINE"
+  },
+  {
+    "id": 23,
+    "pyNo": "TBDI-PE-PY-6089",
+    "description": "detect lower rail rr side end cap miss RH",
+    "modelType": "4 WAY INNER",
+    "typeSide": "RH",
+    "dBit": "D.089",
+    "desiredValue": 1,
+    "machineFixture": "FINAL INSPECTION MACHINE"
+  },
+  {
+    "id": 24,
+    "pyNo": "TBDI-PE-PY-6090",
+    "description": "detect lower rail rr side end cap miss LH",
+    "modelType": "4 WAY INNER",
+    "typeSide": "LH",
+    "dBit": "D.090",
+    "desiredValue": 1,
+    "machineFixture": "FINAL INSPECTION MACHINE"
+  },
+  {
+    "id": 25,
+    "pyNo": "TBDI-PE-PY-6096",
+    "description": "detect upper rail end cap miss RH",
+    "modelType": "4 WAY INNER",
+    "typeSide": "RH",
+    "dBit": "D.096",
+    "desiredValue": 1,
+    "machineFixture": "FINAL INSPECTION MACHINE"
+  },
+  {
+    "id": 26,
+    "pyNo": "TBDI-PE-PY-6097",
+    "description": "detect upper rail end cap miss LH",
+    "modelType": "4 WAY INNER",
+    "typeSide": "LH",
+    "dBit": "D.097",
+    "desiredValue": 1,
+    "machineFixture": "FINAL INSPECTION MACHINE"
+  },
+  {
+    "id": 27,
+    "pyNo": "TBDI-PE-PY-6104",
+    "description": "detect inner/outer mixing final inspection LH",
+    "modelType": "4 WAY INNER",
+    "typeSide": "LH",
+    "dBit": "D.104",
+    "desiredValue": 1,
+    "machineFixture": "FINAL INSPECTION MACHINE"
+  },
+  {
+    "id": 28,
+    "pyNo": "TBDI-PE-PY-6105",
+    "description": "detect inner/outer mixing final inspection RH",
+    "modelType": "4 WAY INNER",
+    "typeSide": "RH",
+    "dBit": "D.105",
+    "desiredValue": 1,
+    "machineFixture": "FINAL INSPECTION MACHINE"
+  },
+  {
+    "id": 29,
+    "pyNo": "TBDI-PE-PY-6106",
+    "description": "detect low air pressure",
+    "modelType": "4 WAY INNER",
+    "typeSide": "LH",
+    "dBit": "D.106",
+    "desiredValue": 2,
+    "machineFixture": "FINAL INSPECTION MACHINE"
+  },
+  {
+    "id": 30,
+    "pyNo": "TBDI-PE-PY-6106",
+    "description": "detect low air pressure",
+    "modelType": "4 WAY INNER",
+    "typeSide": "RH",
+    "dBit": "D.106",
+    "desiredValue": 2,
+    "machineFixture": "FINAL INSPECTION MACHINE"
+  },
+  {
+    "id": 31,
+    "pyNo": "TBDI-PE-PY-6107",
+    "description": "detect spring support miss",
+    "modelType": "4 WAY INNER",
+    "typeSide": "LH",
+    "dBit": "D.107",
+    "desiredValue": 1,
+    "machineFixture": "FINAL INSPECTION MACHINE"
+  },
+  {
+    "id": 32,
+    "pyNo": "TBDI-PE-PY-6107",
+    "description": "detect spring support miss",
+    "modelType": "4 WAY INNER",
+    "typeSide": "RH",
+    "dBit": "D.107",
+    "desiredValue": 1,
+    "machineFixture": "FINAL INSPECTION MACHINE"
+  },
+  {
+    "id": 33,
+    "pyNo": "TBDI-PE-PY-6042",
+    "description": "detect data matrix miss",
+    "modelType": "4 WAY OUTER",
+    "typeSide": "BOTH",
+    "dBit": "D.042",
+    "desiredValue": 1,
+    "machineFixture": "FINAL INSPECTION MACHINE"
+  },
+  {
+    "id": 34,
+    "pyNo": "TBDI-PE-PY-6055",
+    "description": "detect lighter ejector miss fr side 2 points",
+    "modelType": "4 WAY OUTER",
+    "typeSide": "BOTH",
+    "dBit": "D.055",
+    "desiredValue": 1,
+    "machineFixture": "FINAL INSPECTION MACHINE"
+  },
+  {
+    "id": 35,
+    "pyNo": "TBDI-PE-PY-6062",
+    "description": "detect e-ring miss fr side",
+    "modelType": "4 WAY OUTER",
+    "typeSide": "BOTH",
+    "dBit": "D.062",
+    "desiredValue": 1,
+    "machineFixture": "FINAL INSPECTION MACHINE"
+  },
+  {
+    "id": 36,
+    "pyNo": "TBDI-PE-PY-6069",
+    "description": "detect e-ring miss rr side",
+    "modelType": "4 WAY OUTER",
+    "typeSide": "BOTH",
+    "dBit": "D.069",
+    "desiredValue": 1,
+    "machineFixture": "FINAL INSPECTION MACHINE"
+  },
+  {
+    "id": 37,
+    "pyNo": "TBDI-PE-PY-6076",
+    "description": "detect lighter ejector miss rr side",
+    "modelType": "4 WAY OUTER",
+    "typeSide": "BOTH",
+    "dBit": "D.076",
+    "desiredValue": 1,
+    "machineFixture": "FINAL INSPECTION MACHINE"
+  },
+  {
+    "id": 38,
+    "pyNo": "TBDI-PE-PY-6081",
+    "description": "detect location pin miss & part presence",
+    "modelType": "4 WAY OUTER",
+    "typeSide": "BOTH",
+    "dBit": "D.081",
+    "desiredValue": 1,
+    "machineFixture": "FINAL INSPECTION MACHINE"
+  },
+  {
+    "id": 39,
+    "pyNo": "TBDI-PE-PY-6084",
+    "description": "detect lower rail fr side end cap miss",
+    "modelType": "4 WAY OUTER",
+    "typeSide": "BOTH",
+    "dBit": "D.084",
+    "desiredValue": 1,
+    "machineFixture": "FINAL INSPECTION MACHINE"
+  },
+  {
+    "id": 40,
+    "pyNo": "TBDI-PE-PY-6091",
+    "description": "detect lower rail rr side end cap miss",
+    "modelType": "4 WAY OUTER",
+    "typeSide": "BOTH",
+    "dBit": "D.091",
+    "desiredValue": 1,
+    "machineFixture": "FINAL INSPECTION MACHINE"
+  },
+  {
+    "id": 41,
+    "pyNo": "TBDI-PE-PY-6098",
+    "description": "detect upper rail end cap miss",
+    "modelType": "4 WAY OUTER",
+    "typeSide": "BOTH",
+    "dBit": "D.098",
+    "desiredValue": 1,
+    "machineFixture": "FINAL INSPECTION MACHINE"
+  },
+  {
+    "id": 42,
+    "pyNo": "TBDI-PE-PY-6103",
+    "description": "detect inner/outer mixing final inspection",
+    "modelType": "4 WAY OUTER",
+    "typeSide": "BOTH",
+    "dBit": "D.103",
+    "desiredValue": 1,
+    "machineFixture": "FINAL INSPECTION MACHINE"
+  },
+  {
+    "id": 43,
+    "pyNo": "TBDI-PE-PY-6106",
+    "description": "detect low air pressure",
+    "modelType": "4 WAY OUTER",
+    "typeSide": "BOTH",
+    "dBit": "D.106",
+    "desiredValue": 2,
+    "machineFixture": "FINAL INSPECTION MACHINE"
+  },
+  {
+    "id": 44,
+    "pyNo": "TBDI-PE-PY-6107",
+    "description": "detect spring support miss",
+    "modelType": "4 WAY OUTER",
+    "typeSide": "BOTH",
+    "dBit": "D.107",
+    "desiredValue": 1,
+    "machineFixture": "FINAL INSPECTION MACHINE"
+  },
+  {
+    "id": 45,
+    "pyNo": "TBDI-PE-PY-7041",
+    "description": "Poka-Yoke to detect harness brkt. pop rivet operation miss",
+    "modelType": "6 WAY INNER",
+    "typeSide": "LH",
+    "dBit": "D.041",
+    "desiredValue": 2,
+    "machineFixture": "Final Inspection Machine"
+  },
+  {
+    "id": 46,
+    "pyNo": "TBDI-PE-PY-7041",
+    "description": "Poka-Yoke to detect harness brkt. pop rivet operation miss",
+    "modelType": "6 WAY INNER",
+    "typeSide": "RH",
+    "dBit": "D.041",
+    "desiredValue": 2,
+    "machineFixture": "Final Inspection Machine"
+  },
+  {
+    "id": 47,
+    "pyNo": "TBDI-PE-PY-7042",
+    "description": "Poka-Yoke for detect data matrix miss",
+    "modelType": "6 WAY INNER",
+    "typeSide": "LH",
+    "dBit": "D.042",
+    "desiredValue": 1,
+    "machineFixture": "Final Inspection Machine"
+  },
+  {
+    "id": 48,
+    "pyNo": "TBDI-PE-PY-7042",
+    "description": "Poka-Yoke for detect data matrix miss",
+    "modelType": "6 WAY INNER",
+    "typeSide": "RH",
+    "dBit": "D.042",
+    "desiredValue": 1,
+    "machineFixture": "Final Inspection Machine"
+  },
+  {
+    "id": 49,
+    "pyNo": "TBDI-PE-PY-7047",
+    "description": "Poka-Yoke for detect pop riveting check / miss LH",
+    "modelType": "6 WAY INNER",
+    "typeSide": "LH",
+    "dBit": "D.047",
+    "desiredValue": 1,
+    "machineFixture": "Final Inspection Machine"
+  },
+  {
+    "id": 50,
+    "pyNo": "TBDI-PE-PY-7048",
+    "description": "Poka-Yoke for detect pop riveting check / miss RH",
+    "modelType": "6 WAY INNER",
+    "typeSide": "RH",
+    "dBit": "D.048",
+    "desiredValue": 1,
+    "machineFixture": "Final Inspection Machine"
+  },
+  {
+    "id": 51,
+    "pyNo": "TBDI-PE-PY-7051",
+    "description": "Poka-Yoke for detect harness bkt. Miss LH",
+    "modelType": "6 WAY INNER",
+    "typeSide": "LH",
+    "dBit": "D.051",
+    "desiredValue": 1,
+    "machineFixture": "Final Inspection Machine"
+  },
+  {
+    "id": 52,
+    "pyNo": "TBDI-PE-PY-7052",
+    "description": "Poka-Yoke for detect harness bkt. Miss RH",
+    "modelType": "6 WAY INNER",
+    "typeSide": "RH",
+    "dBit": "D.052",
+    "desiredValue": 1,
+    "machineFixture": "Final Inspection Machine"
+  },
+  {
+    "id": 53,
+    "pyNo": "TBDI-PE-PY-7056",
+    "description": "Poka-Yoke for detect lighter ejector miss fr side 2 points ejector LH",
+    "modelType": "6 WAY INNER",
+    "typeSide": "LH",
+    "dBit": "D.056",
+    "desiredValue": 1,
+    "machineFixture": "Final Inspection Machine"
+  },
+  {
+    "id": 54,
+    "pyNo": "TBDI-PE-PY-7057",
+    "description": "Poka-Yoke for detect lighter ejector miss fr side 2 points ejector RH",
+    "modelType": "6 WAY INNER",
+    "typeSide": "RH",
+    "dBit": "D.057",
+    "desiredValue": 1,
+    "machineFixture": "Final Inspection Machine"
+  },
+  {
+    "id": 55,
+    "pyNo": "TBDI-PE-PY-7063",
+    "description": "Poka-Yoke for detect e-ring miss fr side LH",
+    "modelType": "6 WAY INNER",
+    "typeSide": "LH",
+    "dBit": "D.063",
+    "desiredValue": 1,
+    "machineFixture": "Final Inspection Machine"
+  },
+  {
+    "id": 56,
+    "pyNo": "TBDI-PE-PY-7064",
+    "description": "Poka-Yoke for detect e-ring miss fr side RH",
+    "modelType": "6 WAY INNER",
+    "typeSide": "RH",
+    "dBit": "D.064",
+    "desiredValue": 1,
+    "machineFixture": "Final Inspection Machine"
+  },
+  {
+    "id": 57,
+    "pyNo": "TBDI-PE-PY-7070",
+    "description": "Poka-Yoke for detect e-ring miss rr side LH",
+    "modelType": "6 WAY INNER",
+    "typeSide": "LH",
+    "dBit": "D.070",
+    "desiredValue": 1,
+    "machineFixture": "Final Inspection Machine"
+  },
+  {
+    "id": 58,
+    "pyNo": "TBDI-PE-PY-7071",
+    "description": "Poka-Yoke for detect e-ring miss rr side RH",
+    "modelType": "6 WAY INNER",
+    "typeSide": "RH",
+    "dBit": "D.071",
+    "desiredValue": 1,
+    "machineFixture": "Final Inspection Machine"
+  },
+  {
+    "id": 59,
+    "pyNo": "TBDI-PE-PY-7077",
+    "description": "Poka-Yoke for detect lighter ejector miss rr side LH",
+    "modelType": "6 WAY INNER",
+    "typeSide": "LH",
+    "dBit": "D.077",
+    "desiredValue": 1,
+    "machineFixture": "Final Inspection Machine"
+  },
+  {
+    "id": 60,
+    "pyNo": "TBDI-PE-PY-7078",
+    "description": "Poka-Yoke for detect lighter ejector miss rr side RH",
+    "modelType": "6 WAY INNER",
+    "typeSide": "RH",
+    "dBit": "D.078",
+    "desiredValue": 1,
+    "machineFixture": "Final Inspection Machine"
+  },
+  {
+    "id": 61,
+    "pyNo": "TBDI-PE-PY-7081",
+    "description": "Poka-Yoke for detect location pin miss & part presence",
+    "modelType": "6 WAY INNER",
+    "typeSide": "LH",
+    "dBit": "D.081",
+    "desiredValue": 1,
+    "machineFixture": "Final Inspection Machine"
+  },
+  {
+    "id": 62,
+    "pyNo": "TBDI-PE-PY-7081",
+    "description": "Poka-Yoke for detect location pin miss & part presence",
+    "modelType": "6 WAY INNER",
+    "typeSide": "RH",
+    "dBit": "D.081",
+    "desiredValue": 1,
+    "machineFixture": "Final Inspection Machine"
+  },
+  {
+    "id": 63,
+    "pyNo": "TBDI-PE-PY-7085",
+    "description": "Poka-Yoke for detect lower rail fr side end cap miss LH",
+    "modelType": "6 WAY INNER",
+    "typeSide": "LH",
+    "dBit": "D.085",
+    "desiredValue": 1,
+    "machineFixture": "Final Inspection Machine"
+  },
+  {
+    "id": 64,
+    "pyNo": "TBDI-PE-PY-7086",
+    "description": "Poka-Yoke for detect lower rail fr side end cap miss RH",
+    "modelType": "6 WAY INNER",
+    "typeSide": "RH",
+    "dBit": "D.086",
+    "desiredValue": 1,
+    "machineFixture": "Final Inspection Machine"
+  },
+  {
+    "id": 65,
+    "pyNo": "TBDI-PE-PY-7092",
+    "description": "Poka-Yoke for detect lower rail rr side end cap miss LH",
+    "modelType": "6 WAY INNER",
+    "typeSide": "LH",
+    "dBit": "D.092",
+    "desiredValue": 1,
+    "machineFixture": "Final Inspection Machine"
+  },
+  {
+    "id": 66,
+    "pyNo": "TBDI-PE-PY-7093",
+    "description": "Poka-Yoke for detect lower rail rr side end cap miss RH",
+    "modelType": "6 WAY INNER",
+    "typeSide": "RH",
+    "dBit": "D.093",
+    "desiredValue": 1,
+    "machineFixture": "Final Inspection Machine"
+  },
+  {
+    "id": 67,
+    "pyNo": "TBDI-PE-PY-7099",
+    "description": "Poka-Yoke for detect uppr rail end cap miss LH",
+    "modelType": "6 WAY INNER",
+    "typeSide": "LH",
+    "dBit": "D.099",
+    "desiredValue": 1,
+    "machineFixture": "Final Inspection Machine"
+  },
+  {
+    "id": 68,
+    "pyNo": "TBDI-PE-PY-7100",
+    "description": "Poka-Yoke for detect uppr rail end cap miss RH",
+    "modelType": "6 WAY INNER",
+    "typeSide": "RH",
+    "dBit": "D.100",
+    "desiredValue": 1,
+    "machineFixture": "Final Inspection Machine"
+  },
+  {
+    "id": 69,
+    "pyNo": "TBDI-PE-PY-7106",
+    "description": "Poka-Yoke to detect low air pressure",
+    "modelType": "6 WAY INNER",
+    "typeSide": "LH",
+    "dBit": "D.106",
+    "desiredValue": 2,
+    "machineFixture": "Final Inspection Machine"
+  },
+  {
+    "id": 70,
+    "pyNo": "TBDI-PE-PY-7106",
+    "description": "Poka-Yoke to detect low air pressure",
+    "modelType": "6 WAY INNER",
+    "typeSide": "RH",
+    "dBit": "D.106",
+    "desiredValue": 2,
+    "machineFixture": "Final Inspection Machine"
+  },
+  {
+    "id": 71,
+    "pyNo": "TBDI-PE-PY-7107",
+    "description": "Poka-Yoke for detecting spring support miss",
+    "modelType": "6 WAY INNER",
+    "typeSide": "LH",
+    "dBit": "D.107",
+    "desiredValue": 1,
+    "machineFixture": "Final Inspection Machine"
+  },
+  {
+    "id": 72,
+    "pyNo": "TBDI-PE-PY-7107",
+    "description": "Poka-Yoke for detecting spring support miss",
+    "modelType": "6 WAY INNER",
+    "typeSide": "RH",
+    "dBit": "D.107",
+    "desiredValue": 1,
+    "machineFixture": "Final Inspection Machine"
+  },
+  {
+    "id": 73,
+    "pyNo": "TBDI-PE-PY-7058",
+    "description": "Poka-Yoke for detect lighter ejector miss fr side 2 points ejector LH",
+    "modelType": "6 WAY OUTER",
+    "typeSide": "LH",
+    "dBit": "D.058",
+    "desiredValue": 1,
+    "machineFixture": "Final Inspection Machine"
+  },
+  {
+    "id": 74,
+    "pyNo": "TBDI-PE-PY-7059",
+    "description": "Poka-Yoke for detect lighter ejector miss fr side 2 points ejector RH",
+    "modelType": "6 WAY OUTER",
+    "typeSide": "RH",
+    "dBit": "D.059",
+    "desiredValue": 1,
+    "machineFixture": "Final Inspection Machine"
+  },
+  {
+    "id": 75,
+    "pyNo": "TBDI-PE-PY-7065",
+    "description": "Poka-Yoke for detect e-ring miss fr side LH",
+    "modelType": "6 WAY OUTER",
+    "typeSide": "LH",
+    "dBit": "D.065",
+    "desiredValue": 1,
+    "machineFixture": "Final Inspection Machine"
+  },
+  {
+    "id": 76,
+    "pyNo": "TBDI-PE-PY-7066",
+    "description": "Poka-Yoke for detect e-ring miss fr side RH",
+    "modelType": "6 WAY OUTER",
+    "typeSide": "RH",
+    "dBit": "D.066",
+    "desiredValue": 1,
+    "machineFixture": "Final Inspection Machine"
+  },
+  {
+    "id": 77,
+    "pyNo": "TBDI-PE-PY-7072",
+    "description": "Poka-Yoke for detect e-ring miss rr side LH",
+    "modelType": "6 WAY OUTER",
+    "typeSide": "LH",
+    "dBit": "D.072",
+    "desiredValue": 1,
+    "machineFixture": "Final Inspection Machine"
+  },
+  {
+    "id": 78,
+    "pyNo": "TBDI-PE-PY-7073",
+    "description": "Poka-Yoke for detect e-ring miss rr side RH",
+    "modelType": "6 WAY OUTER",
+    "typeSide": "RH",
+    "dBit": "D.073",
+    "desiredValue": 1,
+    "machineFixture": "Final Inspection Machine"
+  },
+  {
+    "id": 79,
+    "pyNo": "TBDI-PE-PY-7079",
+    "description": "Poka-Yoke for detect lighter ejector miss rr side LH",
+    "modelType": "6 WAY OUTER",
+    "typeSide": "LH",
+    "dBit": "D.079",
+    "desiredValue": 1,
+    "machineFixture": "Final Inspection Machine"
+  },
+  {
+    "id": 80,
+    "pyNo": "TBDI-PE-PY-7080",
+    "description": "Poka-Yoke for detect lighter ejector miss rr side RH",
+    "modelType": "6 WAY OUTER",
+    "typeSide": "RH",
+    "dBit": "D.080",
+    "desiredValue": 1,
+    "machineFixture": "Final Inspection Machine"
+  },
+  {
+    "id": 81,
+    "pyNo": "TBDI-PE-PY-7087",
+    "description": "Poka-Yoke for detect lower rail fr side end cap miss LH",
+    "modelType": "6 WAY OUTER",
+    "typeSide": "LH",
+    "dBit": "D.087",
+    "desiredValue": 1,
+    "machineFixture": "Final Inspection Machine"
+  },
+  {
+    "id": 82,
+    "pyNo": "TBDI-PE-PY-7088",
+    "description": "Poka-Yoke for detect lower rail fr side end cap miss RH",
+    "modelType": "6 WAY OUTER",
+    "typeSide": "RH",
+    "dBit": "D.088",
+    "desiredValue": 1,
+    "machineFixture": "Final Inspection Machine"
+  },
+  {
+    "id": 83,
+    "pyNo": "TBDI-PE-PY-7094",
+    "description": "Poka-Yoke for detect lower rail rr side end cap miss LH",
+    "modelType": "6 WAY OUTER",
+    "typeSide": "LH",
+    "dBit": "D.094",
+    "desiredValue": 1,
+    "machineFixture": "Final Inspection Machine"
+  },
+  {
+    "id": 84,
+    "pyNo": "TBDI-PE-PY-7095",
+    "description": "Poka-Yoke for detect lower rail rr side end cap miss RH",
+    "modelType": "6 WAY OUTER",
+    "typeSide": "RH",
+    "dBit": "D.095",
+    "desiredValue": 1,
+    "machineFixture": "Final Inspection Machine"
+  },
+  {
+    "id": 85,
+    "pyNo": "TBDI-PE-PY-7101",
+    "description": "Poka-Yoke for detect uppr rail end cap miss LH",
+    "modelType": "6 WAY OUTER",
+    "typeSide": "LH",
+    "dBit": "D.101",
+    "desiredValue": 1,
+    "machineFixture": "Final Inspection Machine"
+  },
+  {
+    "id": 86,
+    "pyNo": "TBDI-PE-PY-7102",
+    "description": "Poka-Yoke for detect uppr rail end cap miss RH",
+    "modelType": "6 WAY OUTER",
+    "typeSide": "RH",
+    "dBit": "D.102",
+    "desiredValue": 1,
+    "machineFixture": "Final Inspection Machine"
+  }
+]

@@ -1,0 +1,135 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>MES PM Audit — Gaps</title>
+<style>
+  :root{--bg:#0b1220;--card:#131c30;--line:#243049;--fg:#e6edf7;--mut:#8ba0c0;
+        --ok:#22c55e;--warn:#f59e0b;--bad:#ef4444;--info:#3b82f6}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.5 'Segoe UI',system-ui,sans-serif}
+  header{padding:14px 20px;border-bottom:1px solid var(--line);display:flex;gap:18px;
+         align-items:baseline;flex-wrap:wrap;position:sticky;top:0;background:var(--bg);z-index:5}
+  h1{font-size:17px;margin:0;font-weight:800}
+  .sub{color:var(--mut);font-size:12px}
+  .wrap{padding:16px 20px;display:grid;gap:16px}
+  .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+  .tile{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+  .tile .k{color:var(--mut);font-size:10.5px;text-transform:uppercase;letter-spacing:.06em}
+  .tile .v{font-size:24px;font-weight:800;margin-top:3px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:13px 15px}
+  .card h2{font-size:12px;margin:0 0 10px;color:var(--mut);text-transform:uppercase;
+           letter-spacing:.07em;font-weight:700}
+  table{width:100%;border-collapse:collapse;font-size:12.5px}
+  th{text-align:left;color:var(--mut);font-weight:700;font-size:10.5px;text-transform:uppercase;
+     letter-spacing:.05em;padding:6px 8px;border-bottom:1px solid var(--line)}
+  td{padding:6px 8px;border-bottom:1px solid #1b2540;vertical-align:top}
+  .pill{padding:1px 8px;border-radius:999px;font-size:10.5px;font-weight:800;white-space:nowrap}
+  .g{color:var(--ok)}.y{color:var(--warn)}.r{color:var(--bad)}.m{color:var(--mut)}.b{color:var(--info)}
+  .none{color:var(--ok);font-weight:700;padding:14px 0;text-align:center}
+</style></head><body>
+<header>
+  <h1>MES PM Audit</h1>
+  <span class="sub" id="hdr">loading…</span>
+  <span class="sub" style="margin-left:auto" id="clock"></span>
+</header>
+<div class="wrap">
+  <div class="tiles" id="tiles"></div>
+  <div class="card"><h2>Gaps — fix these to reach zero</h2>
+    <table><thead><tr><th style="width:90px">Severity</th><th style="width:110px">Area</th>
+      <th>What</th><th>Detail · cause · action</th></tr></thead><tbody id="gaps"></tbody></table></div>
+  <div class="card" id="vidcard" style="display:none"><h2 id="vidhdr">Video</h2>
+    <div class="tiles" id="vtiles" style="margin-bottom:12px"></div>
+    <table style="margin-bottom:12px"><thead><tr><th>Zone (sub-machines)</th><th>Cycles</th><th>Clips</th>
+      <th>Coverage</th><th>Normal</th></tr></thead><tbody id="vzones"></tbody></table>
+    <table><thead><tr><th>Final Inspection</th><th>Cycles</th><th>Clips</th><th>Coverage</th></tr></thead>
+      <tbody id="vfi"></tbody></table></div>
+  <div class="card" id="mutecard" style="display:none"><h2>Muted — known items, no alerts</h2>
+    <table><thead><tr><th>What</th><th style="width:120px">Until</th><th>Note</th></tr></thead>
+      <tbody id="muted"></tbody></table></div>
+  <div class="card"><h2>Users — what each account can actually reach</h2>
+    <table><thead><tr><th>User</th><th>Role</th><th>Pages</th><th>Lines</th>
+      <th>Auth</th><th>State</th></tr></thead><tbody id="users"></tbody></table></div>
+  <div class="card"><h2>Slowest endpoints</h2>
+    <table><thead><tr><th>Endpoint</th><th style="width:90px">Status</th>
+      <th style="width:90px">Time</th></tr></thead><tbody id="eps"></tbody></table></div>
+</div>
+<script>
+const ms = v => v==null ? "—" : (v>=1000 ? (v/1000).toFixed(2)+"s" : v+"ms");
+const sevPill = s => {
+  const c = s==="critical" ? "background:#3a1b1b;color:#ef4444"
+          : s==="warning"  ? "background:#3a2f14;color:#f59e0b"
+          : "background:#16263f;color:#3b82f6";
+  return `<span class="pill" style="${c}">${s.toUpperCase()}</span>`;
+};
+async function tick(){
+  let d; try { d = await (await fetch("status.json?"+Date.now())).json(); }
+  catch(e){ document.getElementById("hdr").textContent="no audit has run yet…"; return; }
+  const c = d.counts||{};
+  document.getElementById("hdr").innerHTML =
+    `last run <b>${d.ran_at}</b> · ${d.checks} checks in ${d.took_s}s · ` +
+    `${d.endpoint_total} endpoints · alerts sent ${d.alerts?.alerts_sent ?? 0}`;
+  document.getElementById("clock").textContent = new Date().toLocaleTimeString();
+
+  const sys = d.system||{};
+  document.getElementById("tiles").innerHTML = [
+    ["Critical", c.critical||0, (c.critical?"r":"g")],
+    ["Warning",  c.warning||0,  (c.warning?"y":"g")],
+    ["Info",     c.info||0,     "b"],
+    ["New this run", d.alerts?.new ?? 0, ((d.alerts?.new)?"y":"g")],
+    ["Cleared",  d.alerts?.cleared ?? 0, "g"],
+    ["MES-API",  ms(sys["MES-API"]?.ms), "m"],
+    ["CMS",      ms(sys.CMS?.ms), "m"],
+    ["CPU load", (sys.load ?? "—") + (sys.cores?` / ${sys.cores}`:""),
+                 (sys.load>sys.cores?"r":"g")],
+  ].map(([k,v,cl])=>`<div class="tile"><div class="k">${k}</div><div class="v ${cl}">${v}</div></div>`).join("");
+
+  document.getElementById("gaps").innerHTML = (d.gaps||[]).length
+    ? d.gaps.map(g=>`<tr><td>${sevPill(g.sev)}</td><td class="m">${g.area}</td>
+        <td>${g.what}</td><td class="m">${g.detail||""}${g.cause?`<div style="margin-top:3px">${g.cause}</div>`:""}${g.action?`<div class="b" style="margin-top:2px">→ ${g.action}</div>`:""}</td></tr>`).join("")
+    : `<tr><td colspan="4" class="none">✓ No gaps — everything checked is healthy</td></tr>`;
+
+  const v = d.video;
+  document.getElementById("vidcard").style.display = v ? "" : "none";
+  if (v) {
+    const pc = x => x==null ? "—" : x+"%";
+    const cam = v.cameras||{}, rec = v.recorders||{}, tr = v.tracker||{};
+    const stale = (tr.sample??99)>5 || (tr.eval??99)>10;
+    document.getElementById("vidhdr").textContent =
+      `Video — last check ${d.video_ran_at||v.ran_at}` + (d.dry_run ? " (test run)" : "");
+    document.getElementById("vtiles").innerHTML = [
+      ["Final Inspection", pc(v.fi_pct), (v.fi_pct??100)<90?"r":"g"],
+      ["Sub-machines", pc(v.sub_pct), "y"],
+      ["Recording", cam.recording||0, "g"],
+      ["Offline", cam.camera_offline||0, (cam.camera_offline?"y":"g")],
+      ["Hung", cam.camera_hung||0, (cam.camera_hung?"y":"g")],
+      ["Recorders", `${rec.cameras??"—"}${rec.duplicates?` · ${rec.duplicates} dup`:""}${rec.stuck?` · ${rec.stuck} stuck`:""}`,
+        (rec.duplicates||rec.stuck||rec.deleted_file)?"y":"g"],
+      ["Disk free", v.disk_free_tb!=null ? v.disk_free_tb+" TB" : "—", (v.disk_free_tb??99)<3?"r":"g"],
+      ["Tracker", stale ? "STOPPED" : "running", stale?"r":"g"],
+    ].map(([k,val,cl])=>`<div class="tile"><div class="k">${k}</div><div class="v ${cl}" style="font-size:19px">${val}</div></div>`).join("");
+    document.getElementById("vzones").innerHTML = (v.zones||[]).map(z=>`<tr><td><b>${z.zone}</b></td>
+      <td>${z.cycles}</td><td>${z.clips}</td><td class="${z.baseline!=null&&z.pct<z.baseline-15?'y':''}">${z.pct}%</td>
+      <td class="m">${z.baseline!=null ? z.baseline+"%" : `learning (${z.samples||0} samples)`}</td></tr>`).join("")
+      || `<tr><td colspan="5" class="m">No sub-machine cycles judged yet</td></tr>`;
+    document.getElementById("vfi").innerHTML = (v.fi||[]).map(f=>`<tr><td>${f.line}</td>
+      <td>${f.cycles}</td><td>${f.clips}</td><td class="${f.pct<90?'r':'g'}">${f.pct}%</td></tr>`).join("")
+      || `<tr><td colspan="4" class="m">No Final Inspection cycles judged yet</td></tr>`;
+  }
+  const mu = d.muted||[];
+  document.getElementById("mutecard").style.display = mu.length ? "" : "none";
+  document.getElementById("muted").innerHTML = mu.map(g=>`<tr><td>${g.what}</td>
+    <td class="m">${g.muted_until||"—"}</td><td class="m">${g.note||""}</td></tr>`).join("");
+
+  document.getElementById("users").innerHTML = (d.users||[]).map(u=>{
+    const bad = u.state!=="ok";
+    return `<tr><td><b>${u.user}</b></td><td class="m">${u.role}</td>
+      <td>${u.pages||0}</td><td class="${u.lines?'':'y'}">${u.lines||0}</td>
+      <td class="${(u.ms||0)>2000?'y':'m'}">${ms(u.ms)}</td>
+      <td class="${bad?'y':'g'}">${u.state}</td></tr>`;
+  }).join("");
+
+  document.getElementById("eps").innerHTML = (d.endpoints||[]).map(e=>`
+    <tr><td class="m">${e.path}</td>
+      <td class="${e.status>=500||e.status===0?'r':e.status>=400?'y':'g'}">${e.status||"ERR"}${e.note?` <span class="m">(${e.note})</span>`:""}</td>
+      <td class="${(e.ms||0)>2000?'y':'g'}">${ms(e.ms)}</td></tr>`).join("");
+}
+tick(); setInterval(tick, 5000);
+</script></body></html>

@@ -1,0 +1,61 @@
+{
+  "line_id": 2,
+  "date": "2026-09-01",
+  "shift": "B",
+  "shift_start": "2026-09-01T18:30:00",
+  "shift_end": "2026-09-02T03:15:00",
+  "episodes": [
+    {
+      "py_no": "D422",
+      "py_name": "4W INR/OTR BOLT MIXING.X41",
+      "hit_count": 1,
+      "alert": "WARNING",
+      "start_at": "2026-09-01T18:30:01.023205",
+      "end_at": "2026-09-01T18:30:01.023205",
+      "start_slot": "18:30-19:30",
+      "slot": "18:30-19:30"
+    },
+    {
+      "py_no": "D422",
+      "py_name": "4W INR/OTR BOLT MIXING.X41",
+      "hit_count": 1,
+      "alert": "WARNING",
+      "start_at": "2026-09-01T19:23:17.028463",
+      "end_at": "2026-09-01T19:25:20.140929",
+      "start_slot": "18:30-19:30",
+      "slot": "18:30-19:30"
+    }
+  ],
+  "by_slot": {
+    "18:30-19:30": [
+      {
+        "py_no": "D422",
+        "py_name": "4W INR/OTR BOLT MIXING.X41",
+        "hit_count": 1,
+        "alert": "WARNING",
+        "start_at": "2026-09-01T19:23:17.028463",
+        "end_at": "2026-09-01T19:25:20.140929",
+        "start_slot": "18:30-19:30",
+        "slot": "18:30-19:30",
+        "slot_label": "18:30-19:30",
+        "slot_segment_from": "2026-09-01T19:23:17.028463",
+        "slot_segment_to": "2026-09-01T19:25:20.140929",
+        "slot_segment_sec": 123.1,
+        "starts_here": true,
+        "ends_here": true,
+        "ongoing_now": false
+      }
+    ]
+  },
+  "slot_summary": {
+    "18:30-19:30": {
+      "total_bypass_sec": 123.1,
+      "longest_sec": 123.1,
+      "episode_count": 1,
+      "ongoing_count": 0,
+      "distinct_py": 1
+    }
+  },
+  "merge_gap_sec": 60.0,
+  "generated_at": "2026-09-01T19:41:15.839541"
+}

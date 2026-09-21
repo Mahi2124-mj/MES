@@ -1,0 +1,16 @@
+[Unit]
+Description=EOL MES/CMS reboot-safe startup (disks + ARP pin + stack)
+# Run after the network is up so the NIC has its IP and the DB is reachable.
+After=network-online.target local-fs.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+# The script backgrounds start_everything.sh, so mark the unit "started"
+# once eol_boot.sh returns and keep it active.
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/eol_boot.sh
+TimeoutStartSec=600
+
+[Install]
+WantedBy=multi-user.target

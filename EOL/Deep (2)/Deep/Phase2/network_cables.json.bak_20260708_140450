@@ -1,0 +1,128 @@
+[
+  {
+    "id": "C-9803",
+    "from": "sw-736408",
+    "to": "yca",
+    "fromPort": "",
+    "toPort": "25",
+    "media": "CAT-7",
+    "len": 0
+  },
+  {
+    "id": "C-21221",
+    "from": "y17",
+    "to": "ync",
+    "fromPort": "",
+    "toPort": "",
+    "media": "CAT-7",
+    "len": 0
+  },
+  {
+    "id": "C-26738",
+    "from": "sw-778012",
+    "to": "ysd",
+    "fromPort": "",
+    "toPort": "",
+    "media": "CAT-7",
+    "len": 0
+  },
+  {
+    "id": "C-39104",
+    "from": "sw-552176",
+    "to": "sw-575792",
+    "fromPort": "",
+    "toPort": "",
+    "media": "CAT-7",
+    "len": 0
+  },
+  {
+    "id": "C-58371",
+    "from": "y17",
+    "to": "sw-552176",
+    "fromPort": "",
+    "toPort": "",
+    "media": "CAT-7",
+    "len": 0
+  },
+  {
+    "id": "C-72883",
+    "from": "sw-560238",
+    "to": "sw-957630",
+    "fromPort": "",
+    "toPort": "",
+    "media": "CAT-7",
+    "len": 0
+  },
+  {
+    "id": "C-01999",
+    "from": "yca",
+    "to": "sw-776235",
+    "fromPort": "",
+    "toPort": "",
+    "media": "CAT-7",
+    "len": 0
+  },
+  {
+    "id": "C-97415",
+    "from": "sw-957630",
+    "to": "yca",
+    "fromPort": "",
+    "toPort": "",
+    "media": "CAT-7",
+    "len": 0
+  },
+  {
+    "id": "C-42658",
+    "from": "sw-560238",
+    "to": "sw-778012",
+    "fromPort": "",
+    "toPort": "",
+    "media": "CAT-7",
+    "len": 0
+  },
+  {
+    "id": "C-44825",
+    "from": "sw-957630",
+    "to": "ysd",
+    "fromPort": "",
+    "toPort": "",
+    "media": "CAT-7",
+    "len": 0
+  },
+  {
+    "id": "C-68763",
+    "from": "sw-776235",
+    "to": "ysd",
+    "fromPort": "",
+    "toPort": "",
+    "media": "CAT-7",
+    "len": 0
+  },
+  {
+    "id": "C-95434",
+    "from": "sw-594823",
+    "to": "sw-552176",
+    "fromPort": "",
+    "toPort": "",
+    "media": "CAT-7",
+    "len": 0
+  },
+  {
+    "id": "C-99090",
+    "from": "sw-776235",
+    "to": "sw-594823",
+    "fromPort": "",
+    "toPort": "",
+    "media": "CAT-7",
+    "len": 0
+  },
+  {
+    "id": "C-01283",
+    "from": "yca",
+    "to": "ync",
+    "fromPort": "",
+    "toPort": "",
+    "media": "CAT-7",
+    "len": 0
+  }
+]

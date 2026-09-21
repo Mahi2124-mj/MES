@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Toyota Boshoku — Digital Systems</title>
+<link rel="icon" type="image/jpeg" href="/logo.jpg" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  :root {
+    --bg: #f1f5f9; --card: #ffffff; --ink: #0f172a; --muted: #64748b;
+    --line: #e2e8f0; --brand: #1e40af; --accent: #dc2626;
+    --shadow: 0 1px 2px rgba(15,23,42,.05), 0 8px 24px rgba(15,23,42,.06);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0b0e13; --card: #141922; --ink: #e2e8f0; --muted: #94a3b8;
+      --line: rgba(255,255,255,.08); --brand: #60a5fa; --accent: #f87171;
+      --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35);
+    }
+  }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg); color: var(--ink); min-height: 100vh;
+    font-family: 'Barlow', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 40px 20px 56px;
+  }
+  header { text-align: center; margin-bottom: 36px; max-width: 720px; }
+  .logo {
+    width: 62px; height: 62px; border-radius: 14px; object-fit: contain;
+    background: var(--card); border: 1px solid var(--line);
+    padding: 8px; margin-bottom: 16px; box-shadow: var(--shadow);
+  }
+  h1 {
+    margin: 0 0 6px; font-size: clamp(22px, 4.5vw, 32px); font-weight: 800;
+    letter-spacing: -.02em;
+  }
+  h1 span { color: var(--brand); }
+  .sub {
+    margin: 0; color: var(--muted); font-size: 14px; font-weight: 500;
+    letter-spacing: .01em;
+  }
+  main {
+    width: 100%; max-width: 1080px;
+    display: grid; gap: 16px;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  }
+  a.tile {
+    display: flex; flex-direction: column; gap: 10px;
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: 14px; padding: 20px 22px;
+    text-decoration: none; color: inherit;
+    box-shadow: var(--shadow);
+    transition: transform .14s ease, box-shadow .14s ease, border-color .14s ease;
+  }
+  a.tile:hover, a.tile:focus-visible {
+    transform: translateY(-3px);
+    border-color: var(--brand);
+    box-shadow: 0 2px 4px rgba(15,23,42,.06), 0 14px 34px rgba(30,64,175,.16);
+    outline: none;
+  }
+  .row { display: flex; align-items: center; gap: 12px; }
+  .ico {
+    width: 40px; height: 40px; flex: 0 0 40px; border-radius: 10px;
+    display: grid; place-items: center; font-size: 20px;
+    background: color-mix(in srgb, var(--brand) 12%, transparent);
+  }
+  .name { font-size: 17px; font-weight: 700; letter-spacing: -.01em; }
+  .host {
+    font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+    font-size: 11.5px; color: var(--brand); font-weight: 600;
+    word-break: break-all;
+  }
+  .desc { margin: 0; font-size: 13px; color: var(--muted); line-height: 1.5; }
+  .go {
+    margin-top: auto; padding-top: 6px; font-size: 12px; font-weight: 700;
+    color: var(--brand); letter-spacing: .03em; text-transform: uppercase;
+  }
+  footer {
+    margin-top: 40px; color: var(--muted); font-size: 12px; text-align: center;
+    line-height: 1.7;
+  }
+  footer code {
+    font-family: ui-monospace, Menlo, monospace; font-size: 11px;
+    background: var(--card); border: 1px solid var(--line);
+    padding: 1px 6px; border-radius: 5px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <img src="/logo.jpg" alt="" class="logo" onerror="this.style.display='none'" />
+  <h1>Toyota Boshoku <span>Digital Systems</span></h1>
+  <p class="sub">Select a system to open</p>
+</header>
+
+<main>
+  <a class="tile" href="https://mes.tbdi.in/">
+    <div class="row">
+      <div class="ico">🏭</div>
+      <div>
+        <div class="name">MES</div>
+        <div class="host">mes.tbdi.in</div>
+      </div>
+    </div>
+    <p class="desc">Live production monitoring — line dashboards, cycle times,
+       OEE, wallboards and cycle video.</p>
+    <div class="go">Open →</div>
+  </a>
+
+  <a class="tile" href="https://ems.tbdi.in/">
+    <div class="row">
+      <div class="ico">⚡</div>
+      <div>
+        <div class="name">Utility EMS</div>
+        <div class="host">ems.tbdi.in</div>
+      </div>
+    </div>
+    <p class="desc">Utility energy management — power, air and consumption
+       monitoring across the plant.</p>
+    <div class="go">Open →</div>
+  </a>
+
+  <a class="tile" href="https://t-d.tbdi.in/">
+    <div class="row">
+      <div class="ico">🛠️</div>
+      <div>
+        <div class="name">Die Health Monitor</div>
+        <div class="host">t-d.tbdi.in</div>
+      </div>
+    </div>
+    <p class="desc">Tool &amp; die health tracking — Maintenance 2.0 die
+       condition and shot-count monitoring.</p>
+    <div class="go">Open →</div>
+  </a>
+
+  <a class="tile" href="https://maintenance.tbdi.in/">
+    <div class="row">
+      <div class="ico">🔧</div>
+      <div>
+        <div class="name">Maintenance</div>
+        <div class="host">maintenance.tbdi.in</div>
+      </div>
+    </div>
+    <p class="desc">Breakdown slips, CAPA, poka-yoke checks, PM schedules and
+       maintenance history.</p>
+    <div class="go">Open →</div>
+  </a>
+
+  <a class="tile" href="https://attendance.tbdi.in/">
+    <div class="row">
+      <div class="ico">🪪</div>
+      <div>
+        <div class="name">Attendance</div>
+        <div class="host">attendance.tbdi.in</div>
+      </div>
+    </div>
+    <p class="desc">Shift attendance dashboard — manpower presence per line
+       and shift.</p>
+    <div class="go">Open →</div>
+  </a>
+
+  <a class="tile" href="https://robot.tbdi.in/">
+    <div class="row">
+      <div class="ico">🤖</div>
+      <div>
+        <div class="name">Robot</div>
+        <div class="host">robot.tbdi.in</div>
+      </div>
+    </div>
+    <p class="desc">Robot cell monitoring and status.</p>
+    <div class="go">Open →</div>
+  </a>
+</main>
+
+<footer>
+  Toyota Boshoku — Digital Innovation<br />
+  On the plant network these are also reachable directly by IP and port.
+</footer>
+
+</body>
+</html>

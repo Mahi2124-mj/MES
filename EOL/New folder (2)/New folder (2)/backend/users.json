@@ -1,0 +1,23 @@
+[
+  {
+    "id": "user_admin",
+    "username": "admin",
+    "password_hash": "scrypt:32768:8:1$LMLZa1L9N1CB3Zb1$67526865519154bf98f88ce76fcce4092236e530261333e9efed39886da9e380b6e441a8abe0416167c88bb7781f1dc46de2fbec622c646517560d3dedc729df",
+    "role": "admin",
+    "display_name": "Administrator"
+  },
+  {
+    "id": "user_supervisor",
+    "username": "supervisor",
+    "password_hash": "4e4c56e4a15f89f05c2f4c72613da2a18c9665d4f0d6acce16415eb06f9be776",
+    "role": "supervisor",
+    "display_name": "Supervisor"
+  },
+  {
+    "id": "user_operator",
+    "username": "operator",
+    "password_hash": "13a93f9a5502e71eed80a806f87bc4424e03e6b0d90acd513ea9d561c853b738",
+    "role": "operator",
+    "display_name": "Operator"
+  }
+]

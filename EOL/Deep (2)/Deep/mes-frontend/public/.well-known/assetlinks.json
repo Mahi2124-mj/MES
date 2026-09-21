@@ -1,0 +1,10 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "in.tbdi.mes",
+      "sha256_cert_fingerprints": ["2A:79:3F:88:0B:14:17:EC:6B:EA:5C:B5:46:64:14:4F:62:AF:9A:9B:D6:A8:04:92:B1:10:63:58:C9:BD:89:47"]
+    }
+  }
+]

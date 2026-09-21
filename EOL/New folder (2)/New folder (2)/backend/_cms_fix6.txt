@@ -1,0 +1,16 @@
+﻿killed CMS 5555 PIDs: 31832,49252,58048
+killed ffmpeg* orphans: 8
+D:\MES_Videos writable: True
+started ONE clean CMS -> out8; waiting 28s...
+CMS 5555 instances: 1 [57804]
+live ffmpeg* recorders: 6
+TS in D:\MES_Videos (live):
+  23s 0MB cam_cam_ball_guide_1779079466
+  23s 0MB cam_cam_lock_bar_1779043510
+  23s 0MB cam_cam_lock_bar_insert_1779041857
+  24s 0MB cam_cam_semi_auto_1779041507
+  24s 0MB cam_cam_panasonic_default
+  25s 0MB cam_cam_upper_rail_greasing_1778650524
+  32s 0.2MB cam_cam_lock_bar_1779043510
+  32s 0.5MB cam_cam_upper_rail_greasing_1778650524
+out8 storm-check: ZOMBIE-REAPER=0  AccessDenied=0  PathFallback=0

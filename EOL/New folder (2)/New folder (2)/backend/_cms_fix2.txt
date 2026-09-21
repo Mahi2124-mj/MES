@@ -1,0 +1,7 @@
+﻿stopped 51792
+stopped 62164
+5555 PIDs 6s after kill (BEFORE my start): 0 []
+no auto-restarter -> started ONE fresh CMS
+FINAL 5555 PIDs: 1 [64224]  (want exactly 1)
+ffmpeg recorders: 0
+newest TS age: 510s (live if <=15s)

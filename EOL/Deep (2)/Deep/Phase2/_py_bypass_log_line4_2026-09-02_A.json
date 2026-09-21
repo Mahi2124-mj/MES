@@ -1,0 +1,159 @@
+{
+  "line_id": 4,
+  "date": "2026-09-02",
+  "shift": "A",
+  "shift_start": "2026-09-02T08:30:00",
+  "shift_end": "2026-09-02T17:15:00",
+  "episodes": [
+    {
+      "py_no": "D408",
+      "py_name": "Rr.Upr.PROTECTER/SHIPPING POS.NG",
+      "hit_count": 1,
+      "alert": "WARNING",
+      "start_at": "2026-09-02T08:43:07.052934",
+      "end_at": "2026-09-02T08:43:20.448319",
+      "start_slot": "08:30-09:30",
+      "slot": "08:30-09:30"
+    },
+    {
+      "py_no": "D414",
+      "py_name": "FR.LIGHTER PROTECTOR-2",
+      "hit_count": 1,
+      "alert": "WARNING",
+      "start_at": "2026-09-02T08:43:07.468016",
+      "end_at": "2026-09-02T08:43:20.737219",
+      "start_slot": "08:30-09:30",
+      "slot": "08:30-09:30"
+    },
+    {
+      "py_no": "D415",
+      "py_name": "FR.LIGHTER PROTECTOR-3",
+      "hit_count": 1,
+      "alert": "WARNING",
+      "start_at": "2026-09-02T08:43:07.608662",
+      "end_at": "2026-09-02T08:43:20.843951",
+      "start_slot": "08:30-09:30",
+      "slot": "08:30-09:30"
+    },
+    {
+      "py_no": "D416",
+      "py_name": "Rr.LIGHTER PROTECTOR-1",
+      "hit_count": 1,
+      "alert": "WARNING",
+      "start_at": "2026-09-02T08:43:07.747466",
+      "end_at": "2026-09-02T08:43:20.977146",
+      "start_slot": "08:30-09:30",
+      "slot": "08:30-09:30"
+    },
+    {
+      "py_no": "D401",
+      "py_name": "LOCATE PIN",
+      "hit_count": 1,
+      "alert": "WARNING",
+      "start_at": "2026-09-02T08:43:08.098751",
+      "end_at": "2026-09-02T08:43:21.333623",
+      "start_slot": "08:30-09:30",
+      "slot": "08:30-09:30"
+    }
+  ],
+  "by_slot": {
+    "08:30-09:30": [
+      {
+        "py_no": "D408",
+        "py_name": "Rr.Upr.PROTECTER/SHIPPING POS.NG",
+        "hit_count": 1,
+        "alert": "WARNING",
+        "start_at": "2026-09-02T08:43:07.052934",
+        "end_at": "2026-09-02T08:43:20.448319",
+        "start_slot": "08:30-09:30",
+        "slot": "08:30-09:30",
+        "slot_label": "08:30-09:30",
+        "slot_segment_from": "2026-09-02T08:43:07.052934",
+        "slot_segment_to": "2026-09-02T08:43:20.448319",
+        "slot_segment_sec": 13.4,
+        "starts_here": true,
+        "ends_here": true,
+        "ongoing_now": false
+      },
+      {
+        "py_no": "D414",
+        "py_name": "FR.LIGHTER PROTECTOR-2",
+        "hit_count": 1,
+        "alert": "WARNING",
+        "start_at": "2026-09-02T08:43:07.468016",
+        "end_at": "2026-09-02T08:43:20.737219",
+        "start_slot": "08:30-09:30",
+        "slot": "08:30-09:30",
+        "slot_label": "08:30-09:30",
+        "slot_segment_from": "2026-09-02T08:43:07.468016",
+        "slot_segment_to": "2026-09-02T08:43:20.737219",
+        "slot_segment_sec": 13.3,
+        "starts_here": true,
+        "ends_here": true,
+        "ongoing_now": false
+      },
+      {
+        "py_no": "D415",
+        "py_name": "FR.LIGHTER PROTECTOR-3",
+        "hit_count": 1,
+        "alert": "WARNING",
+        "start_at": "2026-09-02T08:43:07.608662",
+        "end_at": "2026-09-02T08:43:20.843951",
+        "start_slot": "08:30-09:30",
+        "slot": "08:30-09:30",
+        "slot_label": "08:30-09:30",
+        "slot_segment_from": "2026-09-02T08:43:07.608662",
+        "slot_segment_to": "2026-09-02T08:43:20.843951",
+        "slot_segment_sec": 13.2,
+        "starts_here": true,
+        "ends_here": true,
+        "ongoing_now": false
+      },
+      {
+        "py_no": "D416",
+        "py_name": "Rr.LIGHTER PROTECTOR-1",
+        "hit_count": 1,
+        "alert": "WARNING",
+        "start_at": "2026-09-02T08:43:07.747466",
+        "end_at": "2026-09-02T08:43:20.977146",
+        "start_slot": "08:30-09:30",
+        "slot": "08:30-09:30",
+        "slot_label": "08:30-09:30",
+        "slot_segment_from": "2026-09-02T08:43:07.747466",
+        "slot_segment_to": "2026-09-02T08:43:20.977146",
+        "slot_segment_sec": 13.2,
+        "starts_here": true,
+        "ends_here": true,
+        "ongoing_now": false
+      },
+      {
+        "py_no": "D401",
+        "py_name": "LOCATE PIN",
+        "hit_count": 1,
+        "alert": "WARNING",
+        "start_at": "2026-09-02T08:43:08.098751",
+        "end_at": "2026-09-02T08:43:21.333623",
+        "start_slot": "08:30-09:30",
+        "slot": "08:30-09:30",
+        "slot_label": "08:30-09:30",
+        "slot_segment_from": "2026-09-02T08:43:08.098751",
+        "slot_segment_to": "2026-09-02T08:43:21.333623",
+        "slot_segment_sec": 13.2,
+        "starts_here": true,
+        "ends_here": true,
+        "ongoing_now": false
+      }
+    ]
+  },
+  "slot_summary": {
+    "08:30-09:30": {
+      "total_bypass_sec": 66.4,
+      "longest_sec": 13.4,
+      "episode_count": 5,
+      "ongoing_count": 0,
+      "distinct_py": 5
+    }
+  },
+  "merge_gap_sec": 60.0,
+  "generated_at": "2026-09-02T10:35:17.245069"
+}

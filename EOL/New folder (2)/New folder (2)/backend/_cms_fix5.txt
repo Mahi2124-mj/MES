@@ -1,0 +1,12 @@
+﻿persisted User env IMAGEIO_FFMPEG_EXE -> C:\Users\DX-ADMIN\AppData\Roaming\Python\Python312\site-packages\imageio_ffmpeg\binaries\ffmpeg-win-x86_64-v7.1.exe
+started CMS with IMAGEIO_FFMPEG_EXE set; waiting 45s for recorders...
+ffmpeg recorders: 0
+fresh per-cam logs (<50s): 6 [ball_guide_1779079466, lock_bar_1779043510, lock_bar_insert_1779041857, panasonic_default, semi_auto_1779041507, upper_rail_greasing_1778650524]
+newest TS age: 1s (30976KB)
+  [ENCODER-LIVE] picked 'h264_nvenc' for live RTSP recording
+  [PLC] Pre-started TS recorder for camera cam_upper_rail_greasing_1778650524
+  [PLC] Pre-started TS recorder for camera cam_semi_auto_1779041507
+  [PLC] Pre-started TS recorder for camera cam_lock_bar_1779043510
+  [PLC] Pre-started TS recorder for camera cam_lock_bar_insert_1779041857
+  [PLC] Pre-started TS recorder for camera cam_ball_guide_1779079466
+  [PLC] Pre-started TS recorder for camera cam_panasonic_default

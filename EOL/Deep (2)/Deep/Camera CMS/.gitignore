@@ -1,0 +1,48 @@
+# ─── Python ───────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+*.spec
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# ─── Backend secrets & local data ─────────────────────────────────────────────
+backend/.jwt_secret         # auto-generated JWT signing key — NEVER commit this
+backend/secret.key          # Fernet encryption key — NEVER commit this
+backend/users.json          # contains password hashes
+backend/cameras.json        # contains encrypted camera credentials
+backend/zones.json          # runtime data
+backend/cycle_state.json    # live state file
+backend/cycle_state.json.lock
+backend/cycles.csv          # recorded cycle data
+backend/videos/             # recorded video files
+
+# ─── Frontend ─────────────────────────────────────────────────────────────────
+frontend/node_modules/
+frontend/dist/
+frontend/.env               # local env (not .env.example)
+
+# ─── OS junk ──────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ─── Editor config ────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ─── Logs ─────────────────────────────────────────────────────────────────────
+*.log
+npm-debug.log*

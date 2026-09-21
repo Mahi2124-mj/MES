@@ -1,0 +1,14 @@
+{
+  "active_camera_id": "cam_panasonic_default",
+  "cameras": [
+    {
+      "id": "cam_panasonic_default",
+      "name": "Panasonic Default",
+      "ip": "192.168.10.115",
+      "port": 554,
+      "username": "admin",
+      "password": "admin123",
+      "path": "/h264/ch1/main/av_stream"
+    }
+  ]
+}

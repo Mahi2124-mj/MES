@@ -1,0 +1,71 @@
+{
+  "_about": "Video rules for the PM agent. Change a number or a text here to retrain it; no code change and no restart needed. The agent only reads and reports - it never restarts, stops or changes anything.",
+
+  "thresholds": {
+    "tracker_sample_stale_min": 5,
+    "tracker_eval_stale_min": 10,
+    "tracker_agent_stale_min": 15,
+
+    "fi_min_cycles": 20,
+    "fi_critical_pct": 90,
+
+    "zone_min_cycles": 100,
+    "zone_drop_points": 15,
+    "baseline_days": 7,
+    "baseline_min_samples": 12,
+    "baseline_same_time_samples": 6,
+
+    "segment_min_cameras": 3,
+    "segment_offline_pct": 80,
+
+    "recorder_stale_min": 3,
+
+    "archiver_share_pct": 50,
+    "archiver_min_missing": 100,
+
+    "shift_check_after_min": 15,
+    "shift_check_window_min": 180,
+    "shift_loss_cameras": 5,
+
+    "disk_warn_tb": 3,
+    "disk_crit_tb": 1.5
+  },
+
+  "causes": {
+    "tracker_stale":        {"cause": "The Video Coverage tracker runs in MES-API's background worker and has stopped updating.",
+                             "action": "Check MES-API for 'THE background leader'; restart MES-API by hand only with approval."},
+    "tracker_error":        {"cause": "The Video Coverage tracker reported an error on its last pass.",
+                             "action": "Read the error text; check the MES-API log for [VCOV]."},
+    "cms_down":             {"cause": "The CMS (:5555) is not answering, so no camera is recording.",
+                             "action": "Check the CMS; restart it by hand (CMS_QUIET_SECONDS=90) only with approval."},
+    "segment_down":         {"cause": "Every camera on this network segment stopped answering ping: switch, gateway or power, not MES.",
+                             "action": "Ask the network team to check the switch and gateway for this segment."},
+    "camera_offline":       {"cause": "The camera does not answer ping: power, cable or switch port.",
+                             "action": "Check camera power and cable at the machine."},
+    "camera_hung":          {"cause": "The camera answers ping but sends no video, usually a hung stream after a reconnect.",
+                             "action": "Power-cycle the camera."},
+    "recorder_duplicate":   {"cause": "Two recorders are writing the same camera; a single-session camera then drops one.",
+                             "action": "Check the CMS recorders for this camera."},
+    "recorder_stuck":       {"cause": "The recorder is running but its footage file has stopped growing.",
+                             "action": "Check the camera stream on the Video Coverage page."},
+    "recorder_deleted_file":{"cause": "A recorder is writing to a file that was already deleted, so its footage is lost.",
+                             "action": "Leftover recorder from an earlier CMS run; needs a manual CMS clean-up."},
+    "archiver_capacity":    {"cause": "Cameras recorded the cycles but the clip archiver could not cut them in time.",
+                             "action": "Capacity issue, covered by the 48-hour footage and zone archiver plan."},
+    "fi_no_camera":         {"cause": "No camera is assigned to this Final Inspection machine.",
+                             "action": "Assign a camera if video is needed, otherwise mute this item."},
+    "no_camera_machines":   {"cause": "These machines produce cycles but have no camera assigned.",
+                             "action": "Assign cameras where video is needed, otherwise mute this item."},
+    "zone_low":             {"cause": "Sub-machine clip coverage is clearly below this zone's normal level.",
+                             "action": "Check the zone's cameras and the archiver on the Video Coverage page."},
+    "zone_no_clips":        {"cause": "Machines in this zone produce cycles but no clips are being cut.",
+                             "action": "Check the zone's cameras on the Video Coverage page."},
+    "shift_change_loss":    {"cause": "Cameras dropped at the shift change: the CMS restarts every recorder at each shift start and single-session cameras can hang.",
+                             "action": "Check the cameras on the Video Coverage page; power-cycle any that stay hung."},
+    "disk_low":             {"cause": "The video disk is running out of space.",
+                             "action": "Free space or shorten retention (decision needed)."}
+  },
+
+  "_mute_help": "To silence a known item, add {\"id\": \"<gap id or prefix>\", \"until\": \"YYYY-MM-DD\", \"note\": \"why\"}. It stays visible as muted but sends no alerts. Example ids: video:cam:<camera_id>, video:nocam, video:fi:<line_id>.",
+  "mute": []
+}

@@ -1,0 +1,182 @@
+[
+  {
+    "id": "YFG-SS \u2194 YMC-SS",
+    "from": "sw-552176",
+    "to": "sw-575792",
+    "fromPort": "",
+    "toPort": "",
+    "media": "CAT-7",
+    "len": 0
+  },
+  {
+    "id": "C-63769",
+    "from": "sw-778012",
+    "to": "sw-150496",
+    "fromPort": "",
+    "toPort": "",
+    "media": "CAT-7",
+    "len": 0
+  },
+  {
+    "id": "C-68840",
+    "from": "sw-150496",
+    "to": "sw-957630",
+    "fromPort": "",
+    "toPort": "",
+    "media": "CAT-7",
+    "len": 0
+  },
+  {
+    "id": "MAIN SWITCH \u2194 Y17-SS",
+    "from": "sw-210845",
+    "to": "y17",
+    "fromPort": "",
+    "toPort": "",
+    "media": "CAT-7",
+    "len": 0
+  },
+  {
+    "id": "YNC-RC \u2194 YHB-RC",
+    "from": "sw-805764",
+    "to": "sw-815216",
+    "fromPort": "",
+    "toPort": "",
+    "media": "CAT-7",
+    "len": 0
+  },
+  {
+    "id": "YHB-RC \u2194 YRA-RC",
+    "from": "sw-815216",
+    "to": "sw-378412",
+    "fromPort": "",
+    "toPort": "",
+    "media": "CAT-7",
+    "len": 0
+  },
+  {
+    "id": "YRA-RC \u2194 YSD-RC",
+    "from": "sw-378412",
+    "to": "sw-813642",
+    "fromPort": "",
+    "toPort": "",
+    "media": "CAT-7",
+    "len": 0
+  },
+  {
+    "id": " MAIN SWITCH \u2194 LP01",
+    "from": "sw-210845",
+    "to": "sw-879987",
+    "fromPort": "",
+    "toPort": "",
+    "media": "CAT-7",
+    "len": 0
+  },
+  {
+    "id": "LP01 & LPO2 \u2194 LPO3",
+    "from": "sw-879987",
+    "to": "sw-878957",
+    "fromPort": "",
+    "toPort": "",
+    "media": "CAT-7",
+    "len": 0
+  },
+  {
+    "id": " Y17-SS \u2194 YFG-SS",
+    "from": "y17",
+    "to": "sw-552176",
+    "fromPort": "",
+    "toPort": "",
+    "media": "CAT-7",
+    "len": 0
+  },
+  {
+    "id": " YFG-SS \u2194 YJC-SS",
+    "from": "sw-552176",
+    "to": "sw-594823",
+    "fromPort": "",
+    "toPort": "",
+    "media": "CAT-7",
+    "len": 0
+  },
+  {
+    "id": "YSD-SS \u2194 YWD Switch",
+    "from": "ysd",
+    "to": "sw-778012",
+    "fromPort": "",
+    "toPort": "",
+    "media": "CAT-7",
+    "len": 0
+  },
+  {
+    "id": "YRA - SS \u2194 YSD-SS",
+    "from": "sw-776235",
+    "to": "ysd",
+    "fromPort": "",
+    "toPort": "",
+    "media": "CAT-7",
+    "len": 0
+  },
+  {
+    "id": "YJC-SS \u2194 YRA - SS",
+    "from": "sw-594823",
+    "to": "sw-776235",
+    "fromPort": "",
+    "toPort": "",
+    "media": "CAT-7",
+    "len": 0
+  },
+  {
+    "id": "Y17-SS \u2194 YNC-SS",
+    "from": "y17",
+    "to": "ync",
+    "fromPort": "",
+    "toPort": "",
+    "media": "CAT-7",
+    "len": 0
+  },
+  {
+    "id": "YNC-SS \u2194 YCA-SS",
+    "from": "ync",
+    "to": "yca",
+    "fromPort": "",
+    "toPort": "",
+    "media": "CAT-7",
+    "len": 0
+  },
+  {
+    "id": "YCA-SS \u2194 YHB-SS",
+    "from": "yca",
+    "to": "sw-957630",
+    "fromPort": "",
+    "toPort": "",
+    "media": "CAT-7",
+    "len": 0
+  },
+  {
+    "id": " MAIN SWITCH \u2194 YMC-RC",
+    "from": "sw-210845",
+    "to": "sw-805764",
+    "fromPort": "",
+    "toPort": "",
+    "media": "CAT-7",
+    "len": 0
+  },
+  {
+    "id": "YSD-RC \u2194 YNC-RC",
+    "from": "sw-813642",
+    "to": "sw-879714",
+    "fromPort": "",
+    "toPort": "",
+    "media": "CAT-7",
+    "len": 0
+  },
+  {
+    "id": "C-16921",
+    "from": "sw-210845",
+    "to": "sw-087209",
+    "fromPort": "",
+    "toPort": "",
+    "media": "CAT-7",
+    "len": 0
+  }
+]

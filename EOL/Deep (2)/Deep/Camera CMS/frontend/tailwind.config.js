@@ -1,0 +1,51 @@
+/** @type {import('tailwindcss').Config} */
+export default {
+  darkMode: 'class',
+  content: ['./index.html', './src/**/*.{js,jsx}'],
+  theme: {
+    extend: {
+      colors: {
+        dark:    '#ffffff',
+        card:    '#faf8f6',
+        border:  '#e8d7c3',
+        accent:  '#d95d3a',
+        success: '#c97f4f',
+        warning: '#e8a853',
+        danger:  '#c85a5a',
+        toyota:  '#EB0A1E',
+      },
+      fontFamily: {
+        sans: ['Inter', 'sans-serif'],
+      },
+      keyframes: {
+        fadeInUp:   { from: { opacity: '0', transform: 'translateY(28px)' }, to: { opacity: '1', transform: 'translateY(0)' } },
+        fadeInDown: { from: { opacity: '0', transform: 'translateY(-16px)' }, to: { opacity: '1', transform: 'translateY(0)' } },
+        fadeIn:     { from: { opacity: '0' }, to: { opacity: '1' } },
+        slideRight: { from: { opacity: '0', transform: 'translateX(-20px)' }, to: { opacity: '1', transform: 'translateX(0)' } },
+        scaleIn:    { from: { opacity: '0', transform: 'scale(0.88)' }, to: { opacity: '1', transform: 'scale(1)' } },
+        shimmer:    { '0%': { backgroundPosition: '-600px 0' }, '100%': { backgroundPosition: '600px 0' } },
+        floatUp:    { '0%,100%': { transform: 'translateY(0px)' }, '50%': { transform: 'translateY(-10px)' } },
+        pulseFast:  { '0%,100%': { opacity: '1' }, '50%': { opacity: '0.35' } },
+        scanline:   { '0%': { top: '-4px' }, '100%': { top: '100%' } },
+        borderRun:  { '0%': { backgroundPosition: '0% 50%' }, '100%': { backgroundPosition: '200% 50%' } },
+        energyFlow: { '0%': { strokeDashoffset: '200' }, '100%': { strokeDashoffset: '0' } },
+        countUp:    { from: { opacity: '0', transform: 'translateY(10px)' }, to: { opacity: '1', transform: 'translateY(0)' } },
+      },
+      animation: {
+        'fade-in-up':   'fadeInUp 0.5s cubic-bezier(0.16,1,0.3,1) both',
+        'fade-in-down': 'fadeInDown 0.35s ease-out both',
+        'fade-in':      'fadeIn 0.3s ease-out both',
+        'slide-right':  'slideRight 0.4s ease-out both',
+        'scale-in':     'scaleIn 0.45s cubic-bezier(0.16,1,0.3,1) both',
+        'shimmer':      'shimmer 1.6s infinite linear',
+        'float-up':     'floatUp 3.5s ease-in-out infinite',
+        'pulse-fast':   'pulseFast 0.9s ease-in-out infinite',
+        'scanline':     'scanline 2.5s linear infinite',
+        'border-run':   'borderRun 2s linear infinite',
+        'energy-flow':  'energyFlow 1.5s ease-out forwards',
+        'count-up':     'countUp 0.4s ease-out both',
+      },
+    },
+  },
+  plugins: [],
+}

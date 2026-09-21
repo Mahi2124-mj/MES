@@ -1,0 +1,215 @@
+{
+  "line_id": 14,
+  "date": "2026-09-02",
+  "shift": "A",
+  "shift_start": "2026-09-02T08:30:00",
+  "shift_end": "2026-09-02T17:15:00",
+  "episodes": [
+    {
+      "py_no": "D406",
+      "py_name": "Fr.Lwr.Protector",
+      "hit_count": 1,
+      "alert": "WARNING",
+      "start_at": "2026-09-02T08:43:09.553135",
+      "end_at": "2026-09-02T08:43:09.553135",
+      "start_slot": "08:30-09:30",
+      "slot": "08:30-09:30"
+    },
+    {
+      "py_no": "D407",
+      "py_name": "Rr.Lwr.Protector",
+      "hit_count": 1,
+      "alert": "WARNING",
+      "start_at": "2026-09-02T08:43:09.692560",
+      "end_at": "2026-09-02T08:43:09.692560",
+      "start_slot": "08:30-09:30",
+      "slot": "08:30-09:30"
+    },
+    {
+      "py_no": "D413",
+      "py_name": "FR.LIGHTER PROTECTOR-1",
+      "hit_count": 1,
+      "alert": "WARNING",
+      "start_at": "2026-09-02T08:43:09.886897",
+      "end_at": "2026-09-02T08:43:09.886897",
+      "start_slot": "08:30-09:30",
+      "slot": "08:30-09:30"
+    },
+    {
+      "py_no": "D414",
+      "py_name": "FR.LIGHTER PROTECTOR-2",
+      "hit_count": 1,
+      "alert": "WARNING",
+      "start_at": "2026-09-02T08:43:09.979422",
+      "end_at": "2026-09-02T08:43:47.568224",
+      "start_slot": "08:30-09:30",
+      "slot": "08:30-09:30"
+    },
+    {
+      "py_no": "D417",
+      "py_name": "Rr.LIGHTER PROTECTOR-2",
+      "hit_count": 1,
+      "alert": "WARNING",
+      "start_at": "2026-09-02T08:43:10.306408",
+      "end_at": "2026-09-02T09:36:06.197628",
+      "start_slot": "08:30-09:30",
+      "slot": "08:30-09:30"
+    },
+    {
+      "py_no": "D406",
+      "py_name": "Fr.Lwr.Protector",
+      "hit_count": 1,
+      "alert": "WARNING",
+      "start_at": "2026-09-02T09:11:02.572199",
+      "end_at": "2026-09-02T09:11:10.904794",
+      "start_slot": "08:30-09:30",
+      "slot": "08:30-09:30"
+    },
+    {
+      "py_no": "D407",
+      "py_name": "Rr.Lwr.Protector",
+      "hit_count": 1,
+      "alert": "WARNING",
+      "start_at": "2026-09-02T09:11:02.759514",
+      "end_at": "2026-09-02T09:11:10.983364",
+      "start_slot": "08:30-09:30",
+      "slot": "08:30-09:30"
+    },
+    {
+      "py_no": "D413",
+      "py_name": "FR.LIGHTER PROTECTOR-1",
+      "hit_count": 1,
+      "alert": "WARNING",
+      "start_at": "2026-09-02T09:11:03.121531",
+      "end_at": "2026-09-02T09:11:11.148551",
+      "start_slot": "08:30-09:30",
+      "slot": "08:30-09:30"
+    }
+  ],
+  "by_slot": {
+    "08:30-09:30": [
+      {
+        "py_no": "D414",
+        "py_name": "FR.LIGHTER PROTECTOR-2",
+        "hit_count": 1,
+        "alert": "WARNING",
+        "start_at": "2026-09-02T08:43:09.979422",
+        "end_at": "2026-09-02T08:43:47.568224",
+        "start_slot": "08:30-09:30",
+        "slot": "08:30-09:30",
+        "slot_label": "08:30-09:30",
+        "slot_segment_from": "2026-09-02T08:43:09.979422",
+        "slot_segment_to": "2026-09-02T08:43:47.568224",
+        "slot_segment_sec": 37.6,
+        "starts_here": true,
+        "ends_here": true,
+        "ongoing_now": false
+      },
+      {
+        "py_no": "D417",
+        "py_name": "Rr.LIGHTER PROTECTOR-2",
+        "hit_count": 1,
+        "alert": "WARNING",
+        "start_at": "2026-09-02T08:43:10.306408",
+        "end_at": "2026-09-02T09:36:06.197628",
+        "start_slot": "08:30-09:30",
+        "slot": "08:30-09:30",
+        "slot_label": "08:30-09:30",
+        "slot_segment_from": "2026-09-02T08:43:10.306408",
+        "slot_segment_to": "2026-09-02T09:30:00",
+        "slot_segment_sec": 2809.7,
+        "starts_here": true,
+        "ends_here": false,
+        "ongoing_now": false
+      },
+      {
+        "py_no": "D406",
+        "py_name": "Fr.Lwr.Protector",
+        "hit_count": 1,
+        "alert": "WARNING",
+        "start_at": "2026-09-02T09:11:02.572199",
+        "end_at": "2026-09-02T09:11:10.904794",
+        "start_slot": "08:30-09:30",
+        "slot": "08:30-09:30",
+        "slot_label": "08:30-09:30",
+        "slot_segment_from": "2026-09-02T09:11:02.572199",
+        "slot_segment_to": "2026-09-02T09:11:10.904794",
+        "slot_segment_sec": 8.3,
+        "starts_here": true,
+        "ends_here": true,
+        "ongoing_now": false
+      },
+      {
+        "py_no": "D407",
+        "py_name": "Rr.Lwr.Protector",
+        "hit_count": 1,
+        "alert": "WARNING",
+        "start_at": "2026-09-02T09:11:02.759514",
+        "end_at": "2026-09-02T09:11:10.983364",
+        "start_slot": "08:30-09:30",
+        "slot": "08:30-09:30",
+        "slot_label": "08:30-09:30",
+        "slot_segment_from": "2026-09-02T09:11:02.759514",
+        "slot_segment_to": "2026-09-02T09:11:10.983364",
+        "slot_segment_sec": 8.2,
+        "starts_here": true,
+        "ends_here": true,
+        "ongoing_now": false
+      },
+      {
+        "py_no": "D413",
+        "py_name": "FR.LIGHTER PROTECTOR-1",
+        "hit_count": 1,
+        "alert": "WARNING",
+        "start_at": "2026-09-02T09:11:03.121531",
+        "end_at": "2026-09-02T09:11:11.148551",
+        "start_slot": "08:30-09:30",
+        "slot": "08:30-09:30",
+        "slot_label": "08:30-09:30",
+        "slot_segment_from": "2026-09-02T09:11:03.121531",
+        "slot_segment_to": "2026-09-02T09:11:11.148551",
+        "slot_segment_sec": 8.0,
+        "starts_here": true,
+        "ends_here": true,
+        "ongoing_now": false
+      }
+    ],
+    "09:30-10:30": [
+      {
+        "py_no": "D417",
+        "py_name": "Rr.LIGHTER PROTECTOR-2",
+        "hit_count": 1,
+        "alert": "WARNING",
+        "start_at": "2026-09-02T08:43:10.306408",
+        "end_at": "2026-09-02T09:36:06.197628",
+        "start_slot": "08:30-09:30",
+        "slot": "08:30-09:30",
+        "slot_label": "09:30-10:30",
+        "slot_segment_from": "2026-09-02T09:30:00",
+        "slot_segment_to": "2026-09-02T09:36:06.197628",
+        "slot_segment_sec": 366.2,
+        "starts_here": false,
+        "ends_here": true,
+        "ongoing_now": false
+      }
+    ]
+  },
+  "slot_summary": {
+    "08:30-09:30": {
+      "total_bypass_sec": 2871.9,
+      "longest_sec": 2809.7,
+      "episode_count": 5,
+      "ongoing_count": 0,
+      "distinct_py": 5
+    },
+    "09:30-10:30": {
+      "total_bypass_sec": 366.2,
+      "longest_sec": 366.2,
+      "episode_count": 1,
+      "ongoing_count": 0,
+      "distinct_py": 1
+    }
+  },
+  "merge_gap_sec": 60.0,
+  "generated_at": "2026-09-02T10:41:52.969362"
+}

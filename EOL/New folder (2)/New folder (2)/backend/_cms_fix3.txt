@@ -1,0 +1,7 @@
+﻿killed 64224
+started fresh CMS -> out5; waiting 45s for prestart spawn...
+ffmpeg recorders: 0
+fresh per-cam logs (<55s): 0 []
+newest TS age: 968s
+--- out5 spawn-evidence ---
+  (no spawn-evidence lines yet)

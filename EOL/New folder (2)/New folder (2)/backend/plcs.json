@@ -1,0 +1,468 @@
+{
+  "plcs": [
+    {
+      "id": "mes_plc_8",
+      "ip": "192.168.30.190",
+      "port": 502,
+      "bit_address": "M100",
+      "enabled": true,
+      "description": "Upper Rail Greasing Machine"
+    },
+    {
+      "id": "mes_plc_12",
+      "ip": "192.168.30.152",
+      "port": 502,
+      "bit_address": "M157",
+      "enabled": true,
+      "description": "Semi-Auto"
+    },
+    {
+      "id": "mes_plc_15",
+      "ip": "192.168.30.191",
+      "port": 502,
+      "bit_address": "M100",
+      "enabled": true,
+      "description": "Lock Bar insert Machine"
+    },
+    {
+      "id": "mes_plc_10",
+      "ip": "192.168.30.192",
+      "port": 502,
+      "bit_address": "L108",
+      "enabled": true,
+      "description": "LOWER RAIL GREASING"
+    },
+    {
+      "id": "mes_plc_13",
+      "ip": "192.168.30.156",
+      "port": 502,
+      "bit_address": "M100",
+      "enabled": true,
+      "description": "Ball Guide Insert Machine"
+    },
+    {
+      "id": "mes_plc_14",
+      "ip": "192.168.30.157",
+      "port": 502,
+      "bit_address": "M100",
+      "enabled": true,
+      "description": "Ball Guide Insert Machine"
+    },
+    {
+      "id": "mes_plc_2",
+      "ip": "192.168.30.150",
+      "port": 502,
+      "bit_address": "M100",
+      "enabled": true,
+      "description": "Final Inspection"
+    },
+    {
+      "id": "mes_plc_29",
+      "ip": "192.168.30.50",
+      "port": 502,
+      "bit_address": "M100",
+      "enabled": true,
+      "description": "Upper Rail Greasing m/c"
+    },
+    {
+      "id": "mes_plc_30",
+      "ip": "192.168.30.51",
+      "port": 502,
+      "bit_address": "M100",
+      "enabled": true,
+      "description": "Lock Bar Insert M/c"
+    },
+    {
+      "id": "mes_plc_31",
+      "ip": "192.168.30.52",
+      "port": 502,
+      "bit_address": "M100",
+      "enabled": true,
+      "description": "Lower Rail Grease & Bar Coding M/c"
+    },
+    {
+      "id": "mes_plc_32",
+      "ip": "192.168.30.53",
+      "port": 502,
+      "bit_address": "M100",
+      "enabled": true,
+      "description": "Rail Assy M/c # 01"
+    },
+    {
+      "id": "mes_plc_33",
+      "ip": "192.168.30.54",
+      "port": 502,
+      "bit_address": "M100",
+      "enabled": true,
+      "description": "Rail Assy M/c # 02"
+    },
+    {
+      "id": "mes_plc_34",
+      "ip": "192.168.30.55",
+      "port": 502,
+      "bit_address": "M100",
+      "enabled": true,
+      "description": "Semi Automatic & Bending M/c"
+    },
+    {
+      "id": "mes_plc_35",
+      "ip": "192.168.30.56",
+      "port": 502,
+      "bit_address": "M100",
+      "enabled": true,
+      "description": "Final Inspection M/c"
+    },
+    {
+      "id": "mes_plc_23",
+      "ip": "192.168.30.231",
+      "port": 502,
+      "bit_address": "M100",
+      "enabled": true,
+      "description": "2UA"
+    },
+    {
+      "id": "mes_plc_27",
+      "ip": "192.168.30.233",
+      "port": 502,
+      "bit_address": "M100",
+      "enabled": true,
+      "description": "YWD SS"
+    },
+    {
+      "id": "mes_plc_24",
+      "ip": "192.168.30.230",
+      "port": 502,
+      "bit_address": "M157",
+      "enabled": true,
+      "description": "Gear Lifter"
+    },
+    {
+      "id": "mes_plc_25",
+      "ip": "192.168.30.232",
+      "port": 502,
+      "bit_address": "M100",
+      "enabled": true,
+      "description": "Nut Lifting"
+    },
+    {
+      "id": "mes_plc_28",
+      "ip": "192.168.30.234",
+      "port": 502,
+      "bit_address": "M100",
+      "enabled": true,
+      "description": "YWD RC"
+    },
+    {
+      "id": "mes_plc_36",
+      "ip": "192.168.30.70",
+      "port": 502,
+      "bit_address": "M100",
+      "enabled": true,
+      "description": "Upper Rail Greasing m/c"
+    },
+    {
+      "id": "mes_plc_37",
+      "ip": "192.168.30.71",
+      "port": 502,
+      "bit_address": "M100",
+      "enabled": true,
+      "description": "Lock Bar Insert M/c"
+    },
+    {
+      "id": "mes_plc_38",
+      "ip": "192.168.30.72",
+      "port": 502,
+      "bit_address": "M100",
+      "enabled": true,
+      "description": "Lower Rail Grease & Bar Coding M/c"
+    },
+    {
+      "id": "mes_plc_39",
+      "ip": "192.168.30.73",
+      "port": 502,
+      "bit_address": "M100",
+      "enabled": true,
+      "description": "Rail Assy M/c # 01"
+    },
+    {
+      "id": "mes_plc_40",
+      "ip": "192.168.30.74",
+      "port": 502,
+      "bit_address": "M100",
+      "enabled": true,
+      "description": "Rail Assy M/c # 02"
+    },
+    {
+      "id": "mes_plc_41",
+      "ip": "192.168.30.75",
+      "port": 502,
+      "bit_address": "M100",
+      "enabled": true,
+      "description": "Semi Automatic & Bending M/c"
+    },
+    {
+      "id": "mes_plc_42",
+      "ip": "192.168.30.76",
+      "port": 502,
+      "bit_address": "M100",
+      "enabled": true,
+      "description": "Final Inspection M/c"
+    },
+    {
+      "id": "mes_plc_45",
+      "ip": "192.168.30.92",
+      "port": 502,
+      "bit_address": "M100",
+      "enabled": true,
+      "description": "Lower Rail Grease & Bar Coding M/c"
+    },
+    {
+      "id": "mes_plc_46",
+      "ip": "192.168.30.93",
+      "port": 502,
+      "bit_address": "M100",
+      "enabled": true,
+      "description": "Rail Assy M/c # 01"
+    },
+    {
+      "id": "mes_plc_47",
+      "ip": "192.168.30.94",
+      "port": 502,
+      "bit_address": "M100",
+      "enabled": true,
+      "description": "Rail Assy M/c # 02"
+    },
+    {
+      "id": "mes_plc_49",
+      "ip": "192.168.30.90",
+      "port": 502,
+      "bit_address": "M100",
+      "enabled": true,
+      "description": "Upper Rail Grease Machine"
+    },
+    {
+      "id": "mes_plc_48",
+      "ip": "192.168.30.96",
+      "port": 502,
+      "bit_address": "M100",
+      "enabled": true,
+      "description": "Final Inspection M/c"
+    },
+    {
+      "id": "mes_plc_53",
+      "ip": "192.168.30.121",
+      "port": 502,
+      "bit_address": "M100",
+      "enabled": true,
+      "description": "Lock Bar Insert M/c"
+    },
+    {
+      "id": "mes_plc_54",
+      "ip": "192.168.30.122",
+      "port": 502,
+      "bit_address": "M100",
+      "enabled": true,
+      "description": "Lower Rail Grease & Bar Coding M/c"
+    },
+    {
+      "id": "mes_plc_55",
+      "ip": "192.168.30.123",
+      "port": 502,
+      "bit_address": "M100",
+      "enabled": true,
+      "description": "Rail Assy M/c # 01"
+    },
+    {
+      "id": "mes_plc_56",
+      "ip": "192.168.30.124",
+      "port": 502,
+      "bit_address": "M100",
+      "enabled": true,
+      "description": "Rail Assy M/c # 02"
+    },
+    {
+      "id": "mes_plc_57",
+      "ip": "192.168.30.120",
+      "port": 502,
+      "bit_address": "M100",
+      "enabled": true,
+      "description": "Upper Rail Greasing m/c"
+    },
+    {
+      "id": "mes_plc_58",
+      "ip": "192.168.30.125",
+      "port": 502,
+      "bit_address": "M100",
+      "enabled": true,
+      "description": "Semi Automatic & Bending M/c"
+    },
+    {
+      "id": "mes_plc_59",
+      "ip": "192.168.30.126",
+      "port": 502,
+      "bit_address": "M100",
+      "enabled": true,
+      "description": "Final Inspection M/c"
+    },
+    {
+      "id": "mes_plc_50",
+      "ip": "192.168.30.95",
+      "port": 502,
+      "bit_address": "M100",
+      "enabled": true,
+      "description": "Semi Automatic & Bending M/c"
+    },
+    {
+      "id": "mes_plc_70",
+      "ip": "192.168.30.180",
+      "port": 502,
+      "bit_address": "M100",
+      "enabled": true,
+      "description": "Upper Rail Greasing M/c"
+    },
+    {
+      "id": "mes_plc_72",
+      "ip": "192.168.30.188",
+      "port": 502,
+      "bit_address": "M100",
+      "enabled": true,
+      "description": "Lower Rail Grease & Bar Coding M/c"
+    },
+    {
+      "id": "mes_plc_73",
+      "ip": "192.168.30.183",
+      "port": 502,
+      "bit_address": "M100",
+      "enabled": true,
+      "description": "Rail Assy M/c #01"
+    },
+    {
+      "id": "mes_plc_74",
+      "ip": "192.168.30.184",
+      "port": 502,
+      "bit_address": "M100",
+      "enabled": true,
+      "description": "Rail Assy M/c #02"
+    },
+    {
+      "id": "mes_plc_75",
+      "ip": "192.168.30.189",
+      "port": 502,
+      "bit_address": "M100",
+      "enabled": true,
+      "description": "Semi-Automatic & Bending M/c"
+    },
+    {
+      "id": "mes_plc_69",
+      "ip": "192.168.30.186",
+      "port": 502,
+      "bit_address": "M100",
+      "enabled": true,
+      "description": "Final Inspection M/c"
+    },
+    {
+      "id": "mes_plc_63",
+      "ip": "192.168.30.160",
+      "port": 502,
+      "bit_address": "M100",
+      "enabled": true,
+      "description": "Upper Rail Greasing M/c"
+    },
+    {
+      "id": "mes_plc_65",
+      "ip": "192.168.30.162",
+      "port": 502,
+      "bit_address": "M100",
+      "enabled": true,
+      "description": "Lower Rail Greasing & Bar Coding M/c"
+    },
+    {
+      "id": "mes_plc_66",
+      "ip": "192.168.30.163",
+      "port": 502,
+      "bit_address": "M100",
+      "enabled": true,
+      "description": "Rail Assy M/c #01"
+    },
+    {
+      "id": "mes_plc_67",
+      "ip": "192.168.30.164",
+      "port": 502,
+      "bit_address": "M100",
+      "enabled": true,
+      "description": "Rail Assy M/c #02"
+    },
+    {
+      "id": "mes_plc_68",
+      "ip": "192.168.30.165",
+      "port": 502,
+      "bit_address": "M100",
+      "enabled": true,
+      "description": "Semi-Automatic & Bending M/c"
+    },
+    {
+      "id": "mes_plc_62",
+      "ip": "192.168.30.166",
+      "port": 502,
+      "bit_address": "M100",
+      "enabled": true,
+      "description": "Final Inspection M/c"
+    },
+    {
+      "id": "mes_plc_94",
+      "ip": "192.168.31.60",
+      "port": 502,
+      "bit_address": "M100",
+      "enabled": true,
+      "description": "MAG Welding of Arm x Recliner"
+    },
+    {
+      "id": "mes_plc_93",
+      "ip": "192.168.31.66",
+      "port": 502,
+      "bit_address": "M100",
+      "enabled": true,
+      "description": "Projection Welding of Washer with Lwr Arm UprBKT\uff58Nut PJW M/C"
+    },
+    {
+      "id": "mes_plc_98",
+      "ip": "192.168.31.64",
+      "port": 502,
+      "bit_address": "M100",
+      "enabled": true,
+      "description": "SP Insert Fixture with Machine"
+    },
+    {
+      "id": "mes_plc_92",
+      "ip": "192.168.31.65",
+      "port": 502,
+      "bit_address": "M100",
+      "enabled": true,
+      "description": "Final Inspection"
+    },
+    {
+      "id": "mes_plc_97",
+      "ip": "192.168.31.63",
+      "port": 502,
+      "bit_address": "M100",
+      "enabled": true,
+      "description": "Mag Welding Relese x Hinge Pin"
+    },
+    {
+      "id": "mes_plc_95",
+      "ip": "192.168.31.61",
+      "port": 502,
+      "bit_address": "M100",
+      "enabled": true,
+      "description": "MAG Welding of  Lwr Hook with Lwr Arrm"
+    },
+    {
+      "id": "mes_plc_96",
+      "ip": "192.168.31.62",
+      "port": 502,
+      "bit_address": "M100",
+      "enabled": true,
+      "description": "Press in REC with PIN Hinge & Date Code Stamping"
+    }
+  ]
+}

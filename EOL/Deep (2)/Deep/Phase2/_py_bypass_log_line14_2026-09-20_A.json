@@ -1,0 +1,185 @@
+{
+  "line_id": 14,
+  "date": "2026-09-20",
+  "shift": "A",
+  "shift_start": "2026-09-20T08:30:00",
+  "shift_end": "2026-09-20T17:15:00",
+  "episodes": [
+    {
+      "py_no": "D406",
+      "py_name": "Fr.Lwr.Protector",
+      "hit_count": 1,
+      "alert": "WARNING",
+      "start_at": "2026-09-20T09:07:02.520119",
+      "end_at": "2026-09-20T09:07:10.535129",
+      "start_slot": "08:30-09:30",
+      "slot": "08:30-09:30"
+    },
+    {
+      "py_no": "D407",
+      "py_name": "Rr.Lwr.Protector",
+      "hit_count": 1,
+      "alert": "WARNING",
+      "start_at": "2026-09-20T09:07:02.643273",
+      "end_at": "2026-09-20T09:07:10.652551",
+      "start_slot": "08:30-09:30",
+      "slot": "08:30-09:30"
+    },
+    {
+      "py_no": "D408",
+      "py_name": "Rr.Upr.PROTECTER/SHIPPING POS.NG",
+      "hit_count": 1,
+      "alert": "WARNING",
+      "start_at": "2026-09-20T09:07:02.768961",
+      "end_at": "2026-09-20T09:07:10.726401",
+      "start_slot": "08:30-09:30",
+      "slot": "08:30-09:30"
+    },
+    {
+      "py_no": "D415",
+      "py_name": "FR.LIGHTER PROTECTOR-3",
+      "hit_count": 1,
+      "alert": "WARNING",
+      "start_at": "2026-09-20T09:07:03.061559",
+      "end_at": "2026-09-20T09:07:11.083051",
+      "start_slot": "08:30-09:30",
+      "slot": "08:30-09:30"
+    },
+    {
+      "py_no": "D417",
+      "py_name": "Rr.LIGHTER PROTECTOR-2",
+      "hit_count": 1,
+      "alert": "WARNING",
+      "start_at": "2026-09-20T09:07:03.295429",
+      "end_at": "2026-09-20T09:41:24.816602",
+      "start_slot": "08:30-09:30",
+      "slot": "08:30-09:30"
+    }
+  ],
+  "by_slot": {
+    "08:30-09:30": [
+      {
+        "py_no": "D406",
+        "py_name": "Fr.Lwr.Protector",
+        "hit_count": 1,
+        "alert": "WARNING",
+        "start_at": "2026-09-20T09:07:02.520119",
+        "end_at": "2026-09-20T09:07:10.535129",
+        "start_slot": "08:30-09:30",
+        "slot": "08:30-09:30",
+        "slot_label": "08:30-09:30",
+        "slot_segment_from": "2026-09-20T09:07:02.520119",
+        "slot_segment_to": "2026-09-20T09:07:10.535129",
+        "slot_segment_sec": 8.0,
+        "starts_here": true,
+        "ends_here": true,
+        "ongoing_now": false
+      },
+      {
+        "py_no": "D407",
+        "py_name": "Rr.Lwr.Protector",
+        "hit_count": 1,
+        "alert": "WARNING",
+        "start_at": "2026-09-20T09:07:02.643273",
+        "end_at": "2026-09-20T09:07:10.652551",
+        "start_slot": "08:30-09:30",
+        "slot": "08:30-09:30",
+        "slot_label": "08:30-09:30",
+        "slot_segment_from": "2026-09-20T09:07:02.643273",
+        "slot_segment_to": "2026-09-20T09:07:10.652551",
+        "slot_segment_sec": 8.0,
+        "starts_here": true,
+        "ends_here": true,
+        "ongoing_now": false
+      },
+      {
+        "py_no": "D408",
+        "py_name": "Rr.Upr.PROTECTER/SHIPPING POS.NG",
+        "hit_count": 1,
+        "alert": "WARNING",
+        "start_at": "2026-09-20T09:07:02.768961",
+        "end_at": "2026-09-20T09:07:10.726401",
+        "start_slot": "08:30-09:30",
+        "slot": "08:30-09:30",
+        "slot_label": "08:30-09:30",
+        "slot_segment_from": "2026-09-20T09:07:02.768961",
+        "slot_segment_to": "2026-09-20T09:07:10.726401",
+        "slot_segment_sec": 8.0,
+        "starts_here": true,
+        "ends_here": true,
+        "ongoing_now": false
+      },
+      {
+        "py_no": "D415",
+        "py_name": "FR.LIGHTER PROTECTOR-3",
+        "hit_count": 1,
+        "alert": "WARNING",
+        "start_at": "2026-09-20T09:07:03.061559",
+        "end_at": "2026-09-20T09:07:11.083051",
+        "start_slot": "08:30-09:30",
+        "slot": "08:30-09:30",
+        "slot_label": "08:30-09:30",
+        "slot_segment_from": "2026-09-20T09:07:03.061559",
+        "slot_segment_to": "2026-09-20T09:07:11.083051",
+        "slot_segment_sec": 8.0,
+        "starts_here": true,
+        "ends_here": true,
+        "ongoing_now": false
+      },
+      {
+        "py_no": "D417",
+        "py_name": "Rr.LIGHTER PROTECTOR-2",
+        "hit_count": 1,
+        "alert": "WARNING",
+        "start_at": "2026-09-20T09:07:03.295429",
+        "end_at": "2026-09-20T09:41:24.816602",
+        "start_slot": "08:30-09:30",
+        "slot": "08:30-09:30",
+        "slot_label": "08:30-09:30",
+        "slot_segment_from": "2026-09-20T09:07:03.295429",
+        "slot_segment_to": "2026-09-20T09:30:00",
+        "slot_segment_sec": 1376.7,
+        "starts_here": true,
+        "ends_here": false,
+        "ongoing_now": false
+      }
+    ],
+    "09:30-10:30": [
+      {
+        "py_no": "D417",
+        "py_name": "Rr.LIGHTER PROTECTOR-2",
+        "hit_count": 1,
+        "alert": "WARNING",
+        "start_at": "2026-09-20T09:07:03.295429",
+        "end_at": "2026-09-20T09:41:24.816602",
+        "start_slot": "08:30-09:30",
+        "slot": "08:30-09:30",
+        "slot_label": "09:30-10:30",
+        "slot_segment_from": "2026-09-20T09:30:00",
+        "slot_segment_to": "2026-09-20T09:41:24.816602",
+        "slot_segment_sec": 684.8,
+        "starts_here": false,
+        "ends_here": true,
+        "ongoing_now": false
+      }
+    ]
+  },
+  "slot_summary": {
+    "08:30-09:30": {
+      "total_bypass_sec": 1408.7,
+      "longest_sec": 1376.7,
+      "episode_count": 5,
+      "ongoing_count": 0,
+      "distinct_py": 5
+    },
+    "09:30-10:30": {
+      "total_bypass_sec": 684.8,
+      "longest_sec": 684.8,
+      "episode_count": 1,
+      "ongoing_count": 0,
+      "distinct_py": 1
+    }
+  },
+  "merge_gap_sec": 60.0,
+  "generated_at": "2026-09-20T12:23:06.001639"
+}

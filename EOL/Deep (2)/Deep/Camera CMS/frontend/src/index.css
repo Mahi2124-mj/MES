@@ -1,0 +1,228 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: #f8fafc;
+    color: #1e293b;
+    font-family: 'Inter', 'Segoe UI', 'Roboto', sans-serif;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .dark body {
+    background-color: #020617;
+    color: #e2e8f0;
+  }
+
+  code {
+    font-family: 'Source Code Pro', 'JetBrains Mono', monospace;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 999px; }
+  ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+  .dark ::-webkit-scrollbar-thumb { background: #334155; }
+  .dark ::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+  ::selection { background: #3b82f6; color: #fff; }
+}
+
+@layer components {
+
+  /* ── Cards / Glass ── */
+  .glass {
+    @apply bg-white/90 backdrop-blur-sm border border-gray-200 shadow-sm rounded-2xl;
+    @apply dark:bg-slate-800/80 dark:border-slate-700/60;
+  }
+
+  .card {
+    @apply bg-white border border-gray-200 rounded-2xl shadow-sm;
+    @apply dark:bg-slate-800 dark:border-slate-700;
+  }
+
+  /* ── Buttons ── */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl font-semibold text-white
+           bg-gradient-to-r from-blue-500 to-indigo-500
+           hover:from-blue-400 hover:to-indigo-400
+           shadow-lg shadow-blue-500/25
+           transition-all duration-150;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center gap-2 px-4 py-2 rounded-xl font-medium
+           bg-gray-100 text-gray-800 hover:bg-gray-200 border border-gray-200 transition-all
+           dark:bg-slate-700 dark:text-slate-200 dark:border-slate-600 dark:hover:bg-slate-600;
+  }
+
+  /* ── Inputs ── */
+  .input-field {
+    @apply w-full px-3 py-2 rounded-lg border border-gray-300 bg-white text-gray-900
+           focus:border-blue-500 focus:ring-2 focus:ring-blue-200/50 outline-none transition-all
+           dark:bg-slate-800 dark:border-slate-600 dark:text-slate-100
+           dark:focus:border-blue-400 dark:focus:ring-blue-500/30
+           placeholder:text-gray-400 dark:placeholder:text-slate-500;
+  }
+
+  select.input-field {
+    @apply cursor-pointer;
+  }
+
+  /* ── Badges ── */
+  .badge { @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold; }
+  .badge-success {
+    @apply bg-emerald-100 text-emerald-700;
+    @apply dark:bg-emerald-900/40 dark:text-emerald-400;
+  }
+  .badge-warning {
+    @apply bg-amber-100 text-amber-700;
+    @apply dark:bg-amber-900/40 dark:text-amber-400;
+  }
+  .badge-danger {
+    @apply bg-red-100 text-red-700;
+    @apply dark:bg-red-900/40 dark:text-red-400;
+  }
+  .badge-blue {
+    @apply bg-blue-100 text-blue-700;
+    @apply dark:bg-blue-900/40 dark:text-blue-400;
+  }
+
+  /* ── Tables ── */
+  .table-row-hover {
+    @apply hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors;
+  }
+
+  /* ── Pulse animation ── */
+  .pulse-dot { @apply animate-pulse; }
+
+  /* ── Page sections ── */
+  .page-title {
+    @apply text-xl font-bold text-gray-800 dark:text-slate-100;
+  }
+
+  .page-subtitle {
+    @apply text-sm text-gray-500 dark:text-slate-400 mt-0.5;
+  }
+}
+
+/* Sidebar nav hover helper (opacity-based) */
+.hover\:bg-white\/8:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+}
+.group-hover\:bg-white\/8 {
+  /* handled inline */
+}
+
+/* ── Page entry animation ── */
+.page-enter {
+  animation: fadeInUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* ── Staggered children ── */
+.stagger > * { animation: fadeInUp 0.45s cubic-bezier(0.16,1,0.3,1) both; }
+.stagger > *:nth-child(1)  { animation-delay: 0ms;  }
+.stagger > *:nth-child(2)  { animation-delay: 60ms; }
+.stagger > *:nth-child(3)  { animation-delay: 120ms; }
+.stagger > *:nth-child(4)  { animation-delay: 180ms; }
+.stagger > *:nth-child(5)  { animation-delay: 240ms; }
+.stagger > *:nth-child(6)  { animation-delay: 300ms; }
+.stagger > *:nth-child(7)  { animation-delay: 360ms; }
+.stagger > *:nth-child(8)  { animation-delay: 420ms; }
+
+/* ── Shimmer skeleton ── */
+.skeleton {
+  background: linear-gradient(90deg,
+    #e2e8f0 25%,
+    #f1f5f9 50%,
+    #e2e8f0 75%
+  );
+  background-size: 600px 100%;
+  animation: shimmer 1.6s infinite linear;
+  border-radius: 6px;
+}
+.dark .skeleton {
+  background: linear-gradient(90deg,
+    #1e293b 25%,
+    #334155 50%,
+    #1e293b 75%
+  );
+  background-size: 600px 100%;
+}
+
+/* ── Card hover lift ── */
+.card-hover {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.10);
+}
+.dark .card-hover:hover {
+  box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+}
+
+/* ── Button press ── */
+.btn-primary:active, .btn-secondary:active {
+  transform: scale(0.97);
+}
+
+/* ── Live dot ── */
+.live-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 0 0 rgba(34,197,94,0.6);
+  animation: livePulse 1.8s ease-out infinite;
+}
+.live-dot.red {
+  background: #ef4444;
+  box-shadow: 0 0 0 0 rgba(239,68,68,0.6);
+  animation: livePulseRed 1.8s ease-out infinite;
+}
+@keyframes livePulse {
+  0%   { box-shadow: 0 0 0 0 rgba(34,197,94,0.6); }
+  70%  { box-shadow: 0 0 0 8px rgba(34,197,94,0); }
+  100% { box-shadow: 0 0 0 0 rgba(34,197,94,0); }
+}
+@keyframes livePulseRed {
+  0%   { box-shadow: 0 0 0 0 rgba(239,68,68,0.6); }
+  70%  { box-shadow: 0 0 0 8px rgba(239,68,68,0); }
+  100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); }
+}
+
+/* ── Toyota login bg grid ── */
+.toyota-grid {
+  background-image:
+    linear-gradient(rgba(235,10,30,0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(235,10,30,0.06) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+.dark .toyota-grid {
+  background-image:
+    linear-gradient(rgba(235,10,30,0.10) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(235,10,30,0.10) 1px, transparent 1px);
+}
+
+/* ── Number counter animation ── */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(28px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes shimmer {
+  0%   { background-position: -600px 0; }
+  100% { background-position:  600px 0; }
+}

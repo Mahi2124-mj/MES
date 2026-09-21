@@ -1,0 +1,14 @@
+D:\EOL\EOL\Deep (2)\Deep\Phase2\routers\lines.py:144: UserWarning: Field name "register" in "DataRegisterItem" shadows an attribute in parent "BaseModel"
+  class DataRegisterItem(BaseModel):
+D:\EOL\EOL\Deep (2)\Deep\Phase2\routers\lines.py:149: UserWarning: Field name "register" in "LoadcellItem" shadows an attribute in parent "BaseModel"
+  class LoadcellItem(BaseModel):
+D:\EOL\EOL\Deep (2)\Deep\Phase2\routers\poka_yoke.py:64: UserWarning: Field name "register" in "PYMasterCreate" shadows an attribute in parent "BaseModel"
+  class PYMasterCreate(BaseModel):
+D:\EOL\EOL\Deep (2)\Deep\Phase2\routers\poka_yoke.py:81: UserWarning: Field name "register" in "PYMasterUpdate" shadows an attribute in parent "BaseModel"
+  class PYMasterUpdate(BaseModel):
+D:\EOL\EOL\Deep (2)\Deep\Phase2\routers\poka_yoke.py:1694: UserWarning: Field name "register" in "EventAckRequest" shadows an attribute in parent "BaseModel"
+  class EventAckRequest(BaseModel):
+INFO:     Started server process [21692]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8080 (Press CTRL+C to quit)

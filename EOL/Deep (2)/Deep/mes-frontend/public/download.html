@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Install TBDI MES — Android App</title>
+<style>
+  :root{ --blue:#1e40af; --blue2:#2563eb; --grn:#15803d; --grn2:#16a34a; --bg:#f1f5f9; --card:#ffffff; --tx:#0f172a; --mut:#64748b; --line:#e2e8f0; }
+  @media (prefers-color-scheme: dark){
+    :root{ --bg:#0b1220; --card:#111a2e; --tx:#e5edff; --mut:#94a3b8; --line:#22304d; }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--tx);
+       min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:20px;max-width:440px;width:100%;
+        padding:28px 24px 26px;box-shadow:0 18px 50px rgba(2,8,40,.18);text-align:center}
+  .icon{width:92px;height:92px;border-radius:20px;box-shadow:0 6px 18px rgba(30,64,175,.25);margin:0 auto 14px;display:block}
+  h1{font-size:1.45rem;margin:0 0 2px;letter-spacing:-.3px}
+  .sub{color:var(--mut);font-size:.9rem;margin:0 0 20px}
+  .ver{display:inline-block;font-size:.72rem;color:var(--blue2);border:1px solid var(--line);border-radius:999px;
+       padding:3px 10px;margin-bottom:20px}
+  .btn{display:block;width:100%;background:linear-gradient(135deg,var(--blue),var(--blue2));color:#fff;text-decoration:none;
+       font-weight:700;font-size:1.05rem;padding:15px;border-radius:14px;box-shadow:0 8px 22px rgba(30,64,175,.35);
+       transition:transform .08s ease;margin-bottom:12px}
+  .btn.lan{background:linear-gradient(135deg,var(--grn),var(--grn2));box-shadow:0 8px 22px rgba(21,128,61,.32)}
+  .btn:active{transform:scale(.98)}
+  .btn small{display:block;font-weight:500;font-size:.72rem;opacity:.85;margin-top:2px}
+  .pick{text-align:left;font-size:.72rem;text-transform:uppercase;letter-spacing:.6px;color:var(--mut);margin:2px 0 6px}
+  .qr{margin:22px auto 6px;width:160px;height:160px;background:#fff;border-radius:14px;padding:8px;border:1px solid var(--line)}
+  .qr img{width:100%;height:100%;display:block}
+  .qrhint{color:var(--mut);font-size:.76rem;margin:0 0 18px}
+  .steps{text-align:left;background:transparent;border-top:1px solid var(--line);padding-top:16px;margin-top:6px}
+  .steps h2{font-size:.82rem;text-transform:uppercase;letter-spacing:.6px;color:var(--mut);margin:0 0 10px}
+  ol{margin:0;padding-left:20px}
+  ol li{font-size:.9rem;line-height:1.55;margin-bottom:7px}
+  .note{font-size:.78rem;color:var(--mut);margin-top:16px;line-height:1.5}
+  .note b{color:var(--tx)}
+  .alt{margin-top:14px;font-size:.8rem;color:var(--mut)}
+  .alt a{color:var(--blue2)}
+</style>
+</head>
+<body>
+  <div class="card">
+    <img class="icon" src="/icon-192.png" alt="TBDI MES" />
+    <h1>TBDI MES</h1>
+    <p class="sub">Live Production Monitor</p>
+    <span class="ver">Version 2.0.8 · Android</span>
+
+    <p class="pick">Phone / Tablet — internet (mes.tbdi.in)</p>
+    <a class="btn" href="/TBDI-MES-v2.0.8.apk" download>
+      ⬇ Download &amp; Install
+      <small>TBDI-MES.apk · v2.0.8 · 3.3 MB</small>
+    </a>
+
+    <p class="pick">Plant panel — LAN (192.168.30.15)</p>
+    <a class="btn lan" href="/TBDI-MES-LAN.apk" download>
+      ⬇ Download LAN Panel App
+      <small>TBDI-MES-LAN.apk · v2.0.8 (LAN) · 3.3 MB</small>
+    </a>
+
+    <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;padding:12px 14px;margin:2px 0 18px;text-align:left;font-size:.82rem;line-height:1.5;color:#9a3412">
+      <b>⚠ Download par "File might be harmful" aaye to ghabrao mat</b> — <b>"Download anyway"</b> dabao. Ye Android ka normal apk warning hai; bina ise dabaye download <b>ruka (buffer)</b> dikhta hai.
+      <br><br>
+      <b>Bina install ke turant chalana hai?</b> Panel ke <b>Chrome</b> me seedha <b>http://192.168.30.15:5656/</b> kholo — MES wahi khul jayega.
+    </div>
+
+    <div class="qr"><img src="/app-qr.png" alt="Scan to open on your device" /></div>
+    <p class="qrhint">Kisi doosre phone/tablet par scan karo</p>
+
+    <div class="steps">
+      <h2>Install kaise kare</h2>
+      <ol>
+        <li>Apne device ke hisaab se button dabao — <b>phone/tablet</b> ke liye upar wala (blue), <b>plant panel</b> (65") ke liye <b>LAN</b> wala (green).</li>
+        <li>Download notification ya <b>Files</b> me APK par tap karo.</li>
+        <li>Android <b>"Unknown sources / Install unknown apps"</b> maange to us app (Chrome/Files) ko <b>Allow</b> karo.</li>
+        <li><b>Install</b> dabao → <b>TBDI MES</b> icon app drawer me aa jayega.</li>
+      </ol>
+    </div>
+
+    <p class="note"><b>Note:</b> Blue app <b>mes.tbdi.in</b> (internet) kholta hai; LAN app <b>192.168.30.15:5656</b> (plant network) — panel ke liye. Update aane par yahi page phir kholke nayi APK download kar lena.</p>
+    <p class="alt">Ya Chrome me <a href="/">mes.tbdi.in</a> → menu ⋮ → <b>Install app</b> se bhi laga sakte ho.</p>
+  </div>
+</body>
+</html>

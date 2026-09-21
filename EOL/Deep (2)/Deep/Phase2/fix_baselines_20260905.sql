@@ -1,0 +1,9 @@
+INSERT INTO mes_reg_baseline (line_id,record_date,shift_name,base) VALUES (4,CURRENT_DATE,'A',432) ON CONFLICT (line_id,record_date,shift_name) DO UPDATE SET base=EXCLUDED.base;
+INSERT INTO mes_reg_baseline (line_id,record_date,shift_name,base) VALUES (6,CURRENT_DATE,'A',150) ON CONFLICT (line_id,record_date,shift_name) DO UPDATE SET base=EXCLUDED.base;
+INSERT INTO mes_reg_baseline (line_id,record_date,shift_name,base) VALUES (7,CURRENT_DATE,'A',405) ON CONFLICT (line_id,record_date,shift_name) DO UPDATE SET base=EXCLUDED.base;
+INSERT INTO mes_reg_baseline (line_id,record_date,shift_name,base) VALUES (10,CURRENT_DATE,'A',239) ON CONFLICT (line_id,record_date,shift_name) DO UPDATE SET base=EXCLUDED.base;
+INSERT INTO mes_reg_baseline (line_id,record_date,shift_name,base) VALUES (11,CURRENT_DATE,'A',401) ON CONFLICT (line_id,record_date,shift_name) DO UPDATE SET base=EXCLUDED.base;
+INSERT INTO mes_reg_baseline (line_id,record_date,shift_name,base) VALUES (13,CURRENT_DATE,'A',421) ON CONFLICT (line_id,record_date,shift_name) DO UPDATE SET base=EXCLUDED.base;
+INSERT INTO mes_reg_baseline (line_id,record_date,shift_name,base) VALUES (14,CURRENT_DATE,'A',301) ON CONFLICT (line_id,record_date,shift_name) DO UPDATE SET base=EXCLUDED.base;
+INSERT INTO mes_reg_baseline (line_id,record_date,shift_name,base) VALUES (15,CURRENT_DATE,'A',278) ON CONFLICT (line_id,record_date,shift_name) DO UPDATE SET base=EXCLUDED.base;
+INSERT INTO mes_reg_baseline (line_id,record_date,shift_name,base) VALUES (20,CURRENT_DATE,'A',396) ON CONFLICT (line_id,record_date,shift_name) DO UPDATE SET base=EXCLUDED.base;
