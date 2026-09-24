@@ -102,7 +102,13 @@ def main():
             # a bad value hung the CMS).  Only these opt-in keys; DB creds etc.
             # still come from penv.
             for _k in list(os.environ):
-                if _k.startswith("CLIP_PREWARM") or _k.startswith("VIDEO_"):
+                # 2026-09-24 — CLIP_ARCHIVE_* added.  Widening the archiver
+                # (window 42 -> 1440 min, CPU lane 6 -> 12) on 24-Sep loaded the
+                # box enough that three collectors hit a DB lock timeout, lost
+                # their register mirror and fell into clamp drip-mode.  Backing
+                # the value out was impossible because the carried env pinned it.
+                if (_k.startswith("CLIP_PREWARM") or _k.startswith("VIDEO_")
+                        or _k.startswith("CLIP_ARCHIVE_") or _k == "MES_BG_ELECT_WAIT_S"):
                     env[_k] = os.environ[_k]
                     print(f"  shell override: {_k}={os.environ[_k]}")
         try:

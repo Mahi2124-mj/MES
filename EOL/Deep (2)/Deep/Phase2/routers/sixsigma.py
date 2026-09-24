@@ -182,16 +182,31 @@ def get_clips(line_id: int = Query(...),
             if shift:
                 base += f"&shift={shift}"
             ng = 1 if r.get("is_ng") else 0
+            # 2026-09-24 — DO NOT hand back the line's ordinary cycle clip as
+            # if it were Ball Guide footage.  `/api/lines/{id}/cycle-video` has
+            # no `cam` parameter (see routers/lines.py get_cycle_video), so the
+            # old "&cam=1" / "&cam=2" URLs both resolved to the SAME Final
+            # Inspection clip: the page played FI video under the two Ball Guide
+            # camera headings, which is what the operator caught on 24-Sep
+            # ("camera abhi configure kiye hain, clips kahan se aayi?").
+            # Nothing records these two cameras yet — the CMS has no Ball Guide
+            # recorder at all — so the honest answer is "no clip".  When the CMS
+            # starts emitting per-camera files, fill these from THOSE files.
             cycles.append({
                 "cycle_seq": seq,
                 "ts": r["ts"].isoformat() if r.get("ts") else None,
                 "is_ng": bool(r.get("is_ng")),
                 "part_code": r.get("part_code"),
-                "cam1_url": f"{base}&ng={ng}&cam=1",
-                "cam2_url": f"{base}&ng={ng}&cam=2",
+                "cam1_url": None,
+                "cam2_url": None,
             })
         conn.commit()
-        return {"config": _cfg_public(cfg), "cycles": cycles}
+        note = ("Ball Guide cameras are saved, but nothing is recording them yet "
+                "— the CMS has no Ball Guide recorder, so these cycles have no "
+                "Ball Guide clip. The cycle list below is the line's real "
+                "production, shown so the station can be reviewed once recording "
+                "is wired up.")
+        return {"config": _cfg_public(cfg), "cycles": cycles, "clips_note": note}
 
 
 def _cfg_public(cfg):

@@ -55,6 +55,11 @@ def _ensure_wc_col():
 
 _TBL_RE = re.compile(r"^[a-z0-9_]+$")
 
+# How many CONSECUTIVE un-scanned cycles make the "Not scanned" row a real
+# production block (and so a model number in that hour's Model S. N.) rather
+# than ordinary scanner misses.
+UNSCANNED_BLOCK = 10
+
 
 @router.get("/data")
 def peff_data(line_id: int = Query(...),
@@ -264,6 +269,8 @@ def peff_data(line_id: int = Query(...),
         ss, se = s["start_time"], s["end_time"]
         ok = ng = 0
         seen = set()
+        noscan = 0
+        noscan_run = noscan_best = 0
         for c in cycles:
             if _in_slot(c["t"], ss, se):
                 if c["is_ng"]:
@@ -272,13 +279,23 @@ def peff_data(line_id: int = Query(...),
                     ok += 1
                 if c.get("mno") is not None and int(c["mno"]) in sno_by_mno:
                     seen.add(sno_by_mno[int(c["mno"])])
+                    noscan_run = 0
                 else:
-                    # 2026-09-23 — cycles with no part code (or a code no model
-                    # owns) are the sheet's "Not scanned (no part code)" row, which
-                    # the leader renames by hand.  It is a model like any other, so
-                    # the hours it ran must show its S.No in Model S. N. — the one
-                    # after the scanned models (the sheet builds the same number).
-                    seen.add(len(order) + 1)
+                    # 2026-09-24 — cycles with no part code are counted apart.
+                    # They were added to Model S. N. as their own S.No on 23-Sep,
+                    # but measured on 24-Sep they are SCAN FAILURES scattered
+                    # through the shift (YFG-SS 144 of 1506 = 10 %, longest
+                    # unbroken run 5; YHB-SS 164 of 1497 = 11 %, same), not a model
+                    # running unscanned.  Because a few land in every hour, the row
+                    # read "(1)+(4)" all day and hid the real model sequence the
+                    # operator reads it for ("pehle 1st model, complete hone ke baad
+                    # 2nd, phir 3rd").  So: Model S. N. lists the models that were
+                    # actually scanned in that hour, and the unscanned bucket only
+                    # stands in when the hour has NO scanned cycle at all — then the
+                    # cell names it instead of being blank.
+                    noscan += 1
+                    noscan_run += 1
+                    noscan_best = max(noscan_best, noscan_run)
         plan = int(s["plan_pieces"] or 0)
         elapsed = latest is not None and _mins(ss) <= latest   # slot already started
         if elapsed:
@@ -293,6 +310,17 @@ def peff_data(line_id: int = Query(...),
         if s.get("_ot"):
             h["ot"] = True
         hours.append(h)
+        # 2026-09-24 — the "Not scanned" row earns its S.No in an hour only when
+        # the misses form a BLOCK (parts that really ran unidentified), not when
+        # they are the scanner dropping one part here and there.  Measured today
+        # on the Seat Slider lines: YMC 1.7 % and YRA 0.3 % missed (a healthy
+        # scanner), while YHB 10.8 %, YFG 9.8 %, YCA 8.4 % miss one part in ten
+        # ALL DAY with a longest unbroken run of only 3-5 — scattered failures,
+        # which is why printing it every hour hid the real model sequence.  YJC
+        # has a true run of 89 consecutive un-scanned parts, and that hour SHOULD
+        # read "(1)+(2)".  An hour with no scanned cycle at all also names it.
+        if noscan and (noscan_best >= UNSCANNED_BLOCK or not seen):
+            seen.add(len(order) + 1)
         slot_models.append(sorted(seen))
         tot_plan += plan
 

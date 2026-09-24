@@ -174,6 +174,25 @@ REVIVE_ENABLED = os.environ.get("CAM_REVIVE", "1") not in ("0", "false", "False"
 # it is what keeps every new recorder out.  Old enough that it can never be a
 # recorder currently being spawned.
 ORPHAN_MIN_AGE_S = float(os.environ.get("CAM_ORPHAN_MIN_AGE_S", "60"))
+# 2026-09-24 — THE SHIFT ROTATION IS WHAT HANGS THESE CAMERAS.
+# Measured today: the 08:30 rotation put 137 cameras into "hung" and the 18:30
+# one another 153, each time by killing every recorder and reconnecting it (the
+# cameras allow ONE RTSP session and many never release it, after which they
+# answer ping and refuse every TCP port — only a power-cycle clears that, since
+# a hung camera has no management port open either).
+#   TS_SEGMENT_MIN > 0  -> ffmpeg writes a NEW .ts every N minutes by itself
+#                          (-f segment).  The RTSP session is never dropped, so
+#                          the shift boundary no longer kills anything.  The
+#                          clip cutter already picks footage by scoring time
+#                          overlap across candidate cam_<id>_<ms>.ts files, and
+#                          the segments keep exactly that naming.
+#                          0 (default) = unchanged behaviour.
+#   TS_ROTATE_MIN_AGE_S -> even in the old mode, never rotate a recorder that
+#                          started less than this ago: after a power recovery
+#                          the rotation used to undo the cameras that had just
+#                          come back.
+SEGMENT_MIN = float(os.environ.get("TS_SEGMENT_MIN", "0") or 0)
+ROTATE_MIN_AGE_S = float(os.environ.get("TS_ROTATE_MIN_AGE_S", "1800") or 0)
 ROTATE_QUIET_S = float(os.environ.get("TS_ROTATE_QUIET_S", "20"))
 _PRODUCING: set = set()
 _PRODUCING_AT: float = 0.0
@@ -1757,7 +1776,16 @@ class PlcMonitor:
 
             videos_abs = _resolve_videos_root(self.base_dir)
             os.makedirs(videos_abs, exist_ok=True)
-            ts_file = os.path.join(videos_abs, f"cam_{camera_id}_{int(time.time()*1000)}.ts")
+            # In segment mode ffmpeg names each file itself (-strftime), so the
+            # live path is discovered by the tracker below; the pattern keeps the
+            # exact cam_<id>_<ms>.ts shape every existing reader expects.
+            _seg_sec = int(SEGMENT_MIN * 60)
+            if _seg_sec > 0:
+                ts_file = None
+                ts_pattern = os.path.join(videos_abs, f"cam_{camera_id}_%s000.ts")
+            else:
+                ts_file = os.path.join(videos_abs, f"cam_{camera_id}_{int(time.time()*1000)}.ts")
+                ts_pattern = None
 
             ffmpeg = _get_ffmpeg()
             # Capture stderr to a per-camera log file so silent RTSP/encoder failures
@@ -1917,9 +1945,18 @@ class PlcMonitor:
                 # makes file growth track the live feed, so ONLY a true freeze (no
                 # packets at all) trips the watchdog.
                 "-flush_packets", "1",
+            ] + ([
+                "-f", "segment",
+                "-segment_time", str(_seg_sec),
+                "-segment_format", "mpegts",
+                "-reset_timestamps", "1",   # every segment starts at 0, like a
+                                            # freshly spawned recorder's file
+                "-strftime", "1",
+                ts_pattern,
+            ] if _seg_sec > 0 else [
                 "-f", "mpegts",
                 ts_file,
-            ]
+            ])
             record_start = datetime.now()
             try:
                 cam_log = open(cam_log_path, "wb", buffering=0)   # overwrite, not append
@@ -1943,7 +1980,18 @@ class PlcMonitor:
                     daemon=True,
                 )
                 t.start()
-                print(f"[PLC] Continuous TS recording started: {ts_file}")
+                if _seg_sec > 0:
+                    # Keep cam["ts_file"] pointing at the segment being written,
+                    # so every existing reader (clip cut, MJPEG, stall watchdog)
+                    # keeps working unchanged while the file rolls underneath.
+                    threading.Thread(target=self._track_segments,
+                                     args=(camera_id, cam, videos_abs),
+                                     daemon=True).start()
+                    print(f"[PLC] Continuous TS recording started (segments of "
+                          f"{SEGMENT_MIN:g} min, session never dropped): "
+                          f"cam_{camera_id}_*.ts")
+                else:
+                    print(f"[PLC] Continuous TS recording started: {ts_file}")
                 # 2026-05-21 — IMMEDIATE-DEATH DETECTOR (storm-guard companion).
                 # RTSP 451 / unreachable / auth-fail causes ffmpeg to exit in
                 # well under a second.  The watchdog only runs every ~3 s, so
@@ -2011,6 +2059,29 @@ class PlcMonitor:
         except OSError:
             pass
 
+    def _track_segments(self, camera_id: str, cam: Dict, videos_abs: str) -> None:
+        """Follow the segment ffmpeg is currently writing for this camera.
+
+        With -f segment the filename changes every TS_SEGMENT_MIN minutes while
+        the RTSP session stays up.  Everything else in the CMS asks the worker
+        for `ts_file`, so this keeps that pointing at the newest segment.
+        """
+        import glob as _glob
+        pat = os.path.join(videos_abs, f"cam_{camera_id}_*.ts")
+        while True:
+            proc = cam.get("proc")
+            if proc is None or proc.poll() is not None:
+                return
+            try:
+                files = _glob.glob(pat)
+                if files:
+                    newest = max(files, key=lambda f: os.path.getmtime(f))
+                    if newest != cam.get("ts_file"):
+                        cam["ts_file"] = newest
+            except Exception:
+                pass
+            time.sleep(2.0)
+
     def _detect_write_start(self, cam: Dict, ts_file: str) -> None:
         """Two-phase monitor for a live recorder:
 
@@ -2053,8 +2124,26 @@ class PlcMonitor:
         last_grow_ts = time.monotonic()
 
         while True:
+            # In segment mode the path rolls under us (the tracker updates it);
+            # take the live one each pass and treat a roll as growth so the stall
+            # watchdog cannot false-kill a healthy recorder at a segment boundary.
+            cur_path = ts_file or cam.get("ts_file")
+            if not ts_file:
+                if cur_path != getattr(self, "_ws_last_path", {}).get(id(cam)):
+                    if not hasattr(self, "_ws_last_path"):
+                        self._ws_last_path = {}
+                    self._ws_last_path[id(cam)] = cur_path
+                    last_size = 0
+                    last_grow_ts = time.monotonic()
+            if not cur_path:
+                if time.monotonic() >= deadline and not write_started:
+                    print(f"[PLC] write_start timeout for cam segment "
+                          f"(no file yet) — will use elapsed fallback")
+                    return
+                time.sleep(0.2)
+                continue
             try:
-                cur_size = os.path.getsize(ts_file) if os.path.exists(ts_file) else 0
+                cur_size = os.path.getsize(cur_path) if os.path.exists(cur_path) else 0
             except OSError:
                 cur_size = 0
             now = time.monotonic()
@@ -2063,12 +2152,12 @@ class PlcMonitor:
             if not write_started:
                 if cur_size >= 65536:
                     cam["write_start"] = datetime.now()
-                    print(f"[PLC] write_start detected for {ts_file}")
+                    print(f"[PLC] write_start detected for {cur_path}")
                     write_started = True
                     last_size    = cur_size
                     last_grow_ts = now
                 elif now >= deadline:
-                    print(f"[PLC] write_start timeout for {ts_file} "
+                    print(f"[PLC] write_start timeout for {cur_path} "
                           f"— will use elapsed fallback")
                     return
                 time.sleep(0.2)
@@ -2085,7 +2174,7 @@ class PlcMonitor:
                 last_size    = cur_size
                 last_grow_ts = now
             elif now - last_grow_ts >= STALL_TIMEOUT:
-                print(f"[PLC] Stall detected on {os.path.basename(ts_file)} "
+                print(f"[PLC] Stall detected on {os.path.basename(cur_path)} "
                       f"(no growth for {STALL_TIMEOUT:.0f}s, size frozen at "
                       f"{cur_size//1024}KB) — killing ffmpeg to force RTSP reconnect")
                 try:
@@ -2210,9 +2299,33 @@ class PlcMonitor:
         if not hasattr(self, "_cam_fail_state"):
             self._cam_fail_state = {}
 
+        if int(SEGMENT_MIN * 60) > 0:
+            # Segment mode: ffmpeg already rolls the file on its own schedule, so
+            # there is nothing to rotate — and NOT killing the recorders is the
+            # whole point (that kill is what leaves the cameras hung).
+            print(f"[PLC] shift boundary: {len(ids)} camera(s) left untouched — "
+                  f"segments roll every {SEGMENT_MIN:g} min, RTSP sessions kept",
+                  flush=True)
+            return
+
         def _rotate() -> None:
             done = 0
             for cid in ids:
+                cam = self._camera_workers.get(cid)
+                # 2026-09-24 — never rotate a recorder that only just started.
+                # After the 16:43 power cut the 18:30 rotation killed cameras that
+                # had been recording barely an hour and left 153 of them hung.
+                if cam and ROTATE_MIN_AGE_S > 0:
+                    try:
+                        _age = (datetime.now() - cam["record_start"]).total_seconds()
+                    except Exception:
+                        _age = 1e9
+                    if _age < ROTATE_MIN_AGE_S:
+                        print(f"[PLC] shift-rotate skipped {cid} — recording only "
+                              f"{_age/60:.0f} min (min {ROTATE_MIN_AGE_S/60:.0f} min)",
+                              flush=True)
+                        time.sleep(0.05)
+                        continue
                 cam = self._camera_workers.pop(cid, None)
                 st = self._cam_fail_state.setdefault(
                     cid, {"fails": 0, "next_try": 0.0, "announced": False})

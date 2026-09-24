@@ -215,8 +215,24 @@ export default function SixSigmaPage({ toast }) {
                 <div style={{ fontSize: 12, fontWeight: 700, color: "#334155", marginBottom: 6 }}>
                   {nm} · cycle #{sel.cycle_seq}{sel.is_ng ? " · NG" : ""}
                 </div>
-                <video key={sel.cycle_seq + k} controls style={{ width: "100%", borderRadius: 10, background: "#000", aspectRatio: "16/9" }}
-                       src={withTok(sel[k])} />
+                {/* 2026-09-24 — a Ball Guide clip is shown ONLY if one exists.
+                    The API used to return the line's ordinary cycle-video URL
+                    with "&cam=1/2", which that endpoint ignores, so both boxes
+                    played the same Final Inspection clip under the Ball Guide
+                    camera names. Anything pointing at /cycle-video is therefore
+                    NOT this station's footage and must not be presented as it. */}
+                {(sel[k] && !String(sel[k]).includes("/cycle-video")) ? (
+                  <video key={sel.cycle_seq + k} controls style={{ width: "100%", borderRadius: 10, background: "#000", aspectRatio: "16/9" }}
+                         src={withTok(sel[k])} />
+                ) : (
+                  <div style={{ width: "100%", borderRadius: 10, background: "#0f172a", aspectRatio: "16/9",
+                                display: "flex", alignItems: "center", justifyContent: "center",
+                                textAlign: "center", padding: 16, color: "#cbd5e1", fontSize: 13, lineHeight: 1.5 }}>
+                    No clip from this camera yet.<br />
+                    The RTSP address is saved, but recording for the Ball Guide
+                    station is not running, so this cycle has no footage.
+                  </div>
+                )}
               </div>
             ))}
           </div>

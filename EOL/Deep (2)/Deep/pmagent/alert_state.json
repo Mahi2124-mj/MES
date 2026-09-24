@@ -5,7 +5,7 @@
  },
  "user:39:nolines": {
   "sev": "warning",
-  "what": "Chanderma (leader) has NO lines assigned"
+  "what": "Chanderma (operator) has NO lines assigned"
  },
  "user:40:nolines": {
   "sev": "warning",
@@ -75,9 +75,9 @@
   "sev": "warning",
   "what": "Jony Singh (leader) has NO lines assigned"
  },
- "ep:/api/maintenance-kpi/targets:slow": {
+ "ep:/api/peff/workcenters:slow": {
   "sev": "warning",
-  "what": "/api/maintenance-kpi/targets is slow"
+  "what": "/api/peff/workcenters is slow"
  },
  "ep:/api/quality/sa-fi/log:slow": {
   "sev": "warning",
@@ -93,95 +93,119 @@
  },
  "data:leaderlines": {
   "sev": "warning",
-  "what": "9 of 18 leaders have NO lines assigned"
+  "what": "8 of 17 leaders have NO lines assigned"
+ },
+ "data:coverage": {
+  "sev": "warning",
+  "what": "clip pre-render coverage only 0%"
+ },
+ "sys:cmsthreads": {
+  "sev": "critical",
+  "what": "CMS thread pile-up: 872"
  },
  "video:tracker:error": {
   "sev": "warning",
   "what": "Video Coverage tracker reports an error"
  },
- "video:fi:10": {
+ "video:fi:21": {
   "sev": "critical",
-  "what": "YWD RECLINER Final Inspection video 0% (0/170)"
+  "what": "Loop Pipe-Line 2 Final Inspection video 0% (0/46)"
  },
- "video:fi:38": {
+ "video:fi:30": {
   "sev": "critical",
-  "what": "YNC-SA-6WAY Final Inspection video 0% (0/160)"
+  "what": "Loop Pipe-Line 1 Final Inspection video 0% (0/35)"
  },
- "video:zone0:Sub-Assembly": {
-  "sev": "warning",
-  "what": "Sub-Assembly: no sub-machine clips at all"
- },
- "video:cam:cam_mag_weld_upr_brkt_with_t_nut_bolt_m_c_1790063983": {
-  "sev": "warning",
-  "what": "YNC-SA-6WAY \u00b7 Upr Rail Inspection M/C camera 192.168.35.42 offline (no ping) since 12:59"
- },
- "video:cam:cam_upr_rinforce_s_a_uprinrbkt_pjw_m_c_6_way_1790063911": {
-  "sev": "warning",
-  "what": "YNC-SA-6WAY \u00b7 Upr \u00d7Rinforce S/A\u00d7UprINRBKT PJW\u3000M/C (6 Way) camera 192.168.35.40 offline (no ping) since 12:59"
- },
- "video:cam:cam_mag_welding_relese_x_hinge_pin_1786596253": {
-  "sev": "warning",
-  "what": "YRA Recliner \u00b7 Mag Welding Relese x Hinge Pin camera 192.168.33.35 offline (no ping) since 12:59"
- },
- "video:cam:cam_ywd_rc_1782385798": {
-  "sev": "warning",
-  "what": "YWD RECLINER \u00b7 YWD RC camera 192.168.31.214 offline (no ping) since 12:59"
- },
- "video:cam:cam_mag_welding_of_arm_x_recliner_st_1_1786596037": {
-  "sev": "warning",
-  "what": "YRA Recliner \u00b7 MAG Welding of Arm x Recliner ST #1` camera 192.168.33.31 offline (no ping) since 12:59"
- },
- "video:cam:cam_mag_welding_of_lwr_hook_with_lwr_arrm_1786596153": {
-  "sev": "warning",
-  "what": "YRA Recliner \u00b7 MAG Welding of  Lwr Hook with Lwr Arrm camera 192.168.33.33 offline (no ping) since 12:59"
- },
- "video:cam:cam_mag_welding_of_lwr_hook_with_lwr_arrm_1787031413": {
-  "sev": "warning",
-  "what": "YSD Recliner \u00b7 MAG Welding of  Lwr Hook with Lwr Arrm camera 192.168.33.93 offline (no ping) since 12:59"
- },
- "video:archiver": {
-  "sev": "warning",
-  "what": "Archiver is not keeping up: 84% of missing clips were never cut"
+ "video:cms": {
+  "sev": "critical",
+  "what": "CMS is not answering"
  },
  "video:nocam": {
   "sev": "info",
   "what": "3 machines produce cycles but have no camera"
  },
- "collector:collector_l_6:sub_offline": {
-  "sev": "warning",
-  "what": "YNC-SA-6WAY (collector_l_6): 2 sub-machine(s) offline"
- },
- "collector:collector_lp_01:count_stuck": {
+ "collector:collector_2ua_recliner:db_stale": {
   "sev": "critical",
-  "what": "Loop Pipe-Line 1 (collector_lp_01): count stuck \u2014 PLC D101 reads 1463, MES holds 1086"
+  "what": "2UA RECLINER (collector_2ua_recliner): dashboard not updated for 270 min"
+ },
+ "collector:collector_gear_lifter:db_stale": {
+  "sev": "critical",
+  "what": "GEAR LIFTER (collector_gear_lifter): dashboard not updated for 270 min"
+ },
+ "collector:collector_l_1:plc_offline": {
+  "sev": "info",
+  "what": "YRA-SA-4WAY (collector_l_1): main PLC unreachable 100% of the time (line not producing)"
+ },
+ "collector:collector_l_1:sub_offline": {
+  "sev": "info",
+  "what": "YRA-SA-4WAY (collector_l_1): 4 sub-machine(s) offline (line not producing)"
+ },
+ "collector:collector_l_2:plc_offline": {
+  "sev": "info",
+  "what": "YSD-SA-4WAY (collector_l_2): main PLC unreachable 100% of the time (line not producing)"
+ },
+ "collector:collector_l_2:sub_offline": {
+  "sev": "info",
+  "what": "YSD-SA-4WAY (collector_l_2): 4 sub-machine(s) offline (line not producing)"
+ },
+ "collector:collector_l_3:plc_offline": {
+  "sev": "info",
+  "what": "YHB-SA-4WAY (collector_l_3): main PLC unreachable 100% of the time (line not producing)"
+ },
+ "collector:collector_l_3:sub_offline": {
+  "sev": "info",
+  "what": "YHB-SA-4WAY (collector_l_3): 4 sub-machine(s) offline (line not producing)"
+ },
+ "collector:collector_l_4:plc_offline": {
+  "sev": "info",
+  "what": "YNC-SA-4WAY (collector_l_4): main PLC unreachable 100% of the time (line not producing)"
+ },
+ "collector:collector_l_4:sub_offline": {
+  "sev": "info",
+  "what": "YNC-SA-4WAY (collector_l_4): 4 sub-machine(s) offline (line not producing)"
+ },
+ "collector:collector_l_6:plc_offline": {
+  "sev": "info",
+  "what": "YNC-SA-6WAY (collector_l_6): main PLC unreachable 100% of the time (line not producing)"
+ },
+ "collector:collector_l_6:sub_offline": {
+  "sev": "info",
+  "what": "YNC-SA-6WAY (collector_l_6): 4 sub-machine(s) offline (line not producing)"
+ },
+ "collector:collector_l_7:plc_offline": {
+  "sev": "info",
+  "what": "Y17-SA-4WAY (collector_l_7): main PLC unreachable 100% of the time (line not producing)"
+ },
+ "collector:collector_l_7:sub_offline": {
+  "sev": "info",
+  "what": "Y17-SA-4WAY (collector_l_7): 2 sub-machine(s) offline (line not producing)"
  },
  "collector:collector_lp_02:count_stuck": {
   "sev": "critical",
-  "what": "Loop Pipe-Line 2 (collector_lp_02): count stuck \u2014 PLC D101 reads 1978, MES holds 1450"
+  "what": "Loop Pipe-Line 2 (collector_lp_02): count stuck \u2014 PLC D101 reads 1264, MES holds 970"
  },
- "collector:collector_lp_03:count_stuck": {
-  "sev": "critical",
-  "what": "Loop Pipe-Line 3 (collector_lp_03): count stuck \u2014 PLC D101 reads 1473, MES holds 1092"
+ "collector:collector_lp_03:plc_offline": {
+  "sev": "info",
+  "what": "Loop Pipe-Line 3 (collector_lp_03): main PLC unreachable 100% of the time (line not producing)"
  },
  "collector:collector_lp_03:sub_offline": {
-  "sev": "warning",
-  "what": "Loop Pipe-Line 3 (collector_lp_03): 1 sub-machine(s) offline"
+  "sev": "info",
+  "what": "Loop Pipe-Line 3 (collector_lp_03): 5 sub-machine(s) offline (line not producing)"
  },
- "collector:collector_lp_03:sub_idle": {
-  "sev": "warning",
-  "what": "Loop Pipe-Line 3 (collector_lp_03): 1 sub-machine(s) not counting while siblings made \u226510 parts"
+ "collector:collector_nut_lifting:db_stale": {
+  "sev": "critical",
+  "what": "NUT LIFTING (collector_nut_lifting): dashboard not updated for 270 min"
  },
  "collector:collector_nut_lifting:plc_offline": {
   "sev": "info",
   "what": "NUT LIFTING (collector_nut_lifting): main PLC unreachable 100% of the time (line not producing)"
  },
- "collector:collector_yfg_ss:sub_idle": {
-  "sev": "warning",
-  "what": "YFG-SS (collector_yfg_ss): 1 sub-machine(s) not counting while siblings made \u226510 parts"
+ "collector:collector_pwm_39:plc_offline": {
+  "sev": "info",
+  "what": "NUT WELDING SA (collector_pwm_39): main PLC unreachable 100% of the time (line not producing)"
  },
  "collector:collector_yhb_l3_rec:not_counting": {
   "sev": "critical",
-  "what": "YHB Recliner (collector_yhb_l3_rec): main count not moving \u2014 sub-machines made 15 parts in 15 min, main 0"
+  "what": "YHB Recliner (collector_yhb_l3_rec): main count not moving \u2014 sub-machines made 61 parts in 15 min, main 0"
  },
  "collector:collector_yhb_l3_rec:plc_offline": {
   "sev": "warning",
@@ -193,11 +217,11 @@
  },
  "collector:collector_ync_l4:db_stale": {
   "sev": "critical",
-  "what": "YNC Recliner (collector_ync_l4): dashboard not updated for 195 min"
+  "what": "YNC Recliner (collector_ync_l4): dashboard not updated for 270 min"
  },
  "collector:collector_ync_l4:db_errors": {
   "sev": "critical",
-  "what": "YNC Recliner (collector_ync_l4): DB writes failing \u2014 147\u00d7 hourly write in 15 min"
+  "what": "YNC Recliner (collector_ync_l4): DB writes failing \u2014 432\u00d7 traceback in 15 min"
  },
  "collector:collector_ync_l4:plc_offline": {
   "sev": "warning",
@@ -213,7 +237,7 @@
  },
  "collector:collector_yra_l1:not_counting": {
   "sev": "critical",
-  "what": "YRA Recliner (collector_yra_l1): main count not moving \u2014 sub-machines made 12 parts in 15 min, main 0"
+  "what": "YRA Recliner (collector_yra_l1): main count not moving \u2014 sub-machines made 71 parts in 15 min, main 0"
  },
  "collector:collector_yra_l1:plc_offline": {
   "sev": "warning",
@@ -229,11 +253,11 @@
  },
  "collector:collector_ysd_l2_rec:db_stale": {
   "sev": "critical",
-  "what": "YSD Recliner (collector_ysd_l2_rec): dashboard not updated for 195 min"
+  "what": "YSD Recliner (collector_ysd_l2_rec): dashboard not updated for 269 min"
  },
  "collector:collector_ysd_l2_rec:db_errors": {
   "sev": "critical",
-  "what": "YSD Recliner (collector_ysd_l2_rec): DB writes failing \u2014 232\u00d7 hourly write in 15 min"
+  "what": "YSD Recliner (collector_ysd_l2_rec): DB writes failing \u2014 429\u00d7 traceback in 15 min"
  },
  "collector:collector_ysd_l2_rec:plc_offline": {
   "sev": "warning",
@@ -243,13 +267,17 @@
   "sev": "warning",
   "what": "YSD Recliner (collector_ysd_l2_rec): 6 sub-machine(s) offline"
  },
- "collector:collector_ywd_ss:plc_offline": {
-  "sev": "info",
-  "what": "YWD-SS (collector_ywd_ss): main PLC unreachable 100% of the time (line not producing)"
+ "collector:collector_ywd_rec:db_stale": {
+  "sev": "critical",
+  "what": "YWD RECLINER (collector_ywd_rec): dashboard not updated for 270 min"
+ },
+ "collector:collector_ywd_ss:db_stale": {
+  "sev": "critical",
+  "what": "YWD-SS (collector_ywd_ss): dashboard not updated for 270 min"
  },
  "binfill:need_manual": {
   "sev": "warning",
-  "what": "1 bin(s) need a manual count \u2014 the recording gave no clean count"
+  "what": "3 bin(s) need a manual count \u2014 the recording gave no clean count"
  },
  "binfill:_auto_seen": {
   "sev": "info",
@@ -260,7 +288,10 @@
    "20260924 16 09:27:42",
    "20260924 32 10:21:24",
    "20260924 42 10:45:59",
-   "20260924 111 14:09:34"
+   "20260924 111 14:09:34",
+   "20260924 123 14:59:09",
+   "20260924 151 16:02:08",
+   "20260924 152 16:49:53"
   ]
  }
 }

@@ -52,7 +52,7 @@ export DB_PASS="tbdi@123"
 # time".  The CPU lane goes wider because the single NVENC engine sits at 100%
 # while ~45 cores are idle; CLIP_ARCHIVE_CPU_MIN_IDLE still throttles it.
 export CLIP_ARCHIVE_WINDOW_MIN="${CLIP_ARCHIVE_WINDOW_MIN:-1440}"
-export CLIP_ARCHIVE_CPU_PARALLEL="${CLIP_ARCHIVE_CPU_PARALLEL:-12}"
+export CLIP_ARCHIVE_CPU_PARALLEL="${CLIP_ARCHIVE_CPU_PARALLEL:-6}"
 export VIDEO_LIVE_ENCODER="${VIDEO_LIVE_ENCODER:-h264_nvenc}"
 echo "  video encoder: VIDEO_LIVE_ENCODER=$VIDEO_LIVE_ENCODER (recorders forced to GPU at boot)"
 
@@ -386,8 +386,17 @@ elif [[ -f "$CMS_DIR/backend/api_server.py" ]]; then
   # of 141 cameras into "hung" (ping OK, no video) and 72 were still dead two
   # hours later.  A 90 s hold is what the by-hand recovery uses
   # (CMS_QUIET_SECONDS=90 restart_cms.py), which brought 31 -> 73 cameras back.
+  # 2026-09-24 — the shift rotation is what hangs these single-session cameras
+  # (the 08:30 rotation put 137 into "hung", the 18:30 one another 153, each by
+  # killing every recorder and reconnecting it).  TS_SEGMENT_MIN=N makes ffmpeg
+  # roll the .ts itself every N minutes with the RTSP session kept open, so the
+  # boundary stops killing anything; 0 = old behaviour.  Until that is switched
+  # on, TS_ROTATE_MIN_AGE_S stops the rotation from undoing cameras that only
+  # just came back (e.g. right after a power cut).
   CLIP_RENDER_PARALLEL="${CLIP_RENDER_PARALLEL:-24}" \
   TS_ROTATE_QUIET_S="${TS_ROTATE_QUIET_S:-90}" \
+  TS_SEGMENT_MIN="${TS_SEGMENT_MIN:-0}" \
+  TS_ROTATE_MIN_AGE_S="${TS_ROTATE_MIN_AGE_S:-1800}" \
   VIDEO_ALLOW_UDP="${VIDEO_ALLOW_UDP:-0}" \
   launch CMS-API "$CMS_DIR/backend" "$PY_CMS" api_server.py
 else

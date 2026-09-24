@@ -1,63 +1,88 @@
 {
- "ran_at": "2026-09-24 14:17:54",
- "took_s": 52.6,
- "checks": 254,
+ "ran_at": "2026-09-24 22:18:01",
+ "took_s": 59.6,
+ "checks": 276,
  "counts": {
-  "critical": 12,
-  "warning": 49,
-  "info": 4
+  "critical": 17,
+  "warning": 37,
+  "info": 18
  },
  "gaps": [
   {
-   "id": "video:fi:10",
+   "id": "sys:cmsthreads",
    "sev": "critical",
-   "area": "Video",
-   "what": "YWD RECLINER Final Inspection video 0% (0/170)",
-   "detail": "main reason: camera offline (169 of 169 missing)",
-   "cause": "The camera does not answer ping: power, cable or switch port.",
-   "action": "Check camera power and cable at the machine."
+   "area": "System",
+   "what": "CMS thread pile-up: 872",
+   "detail": "video will wedge \u2014 restart CMS"
   },
   {
-   "id": "video:fi:38",
+   "id": "video:fi:21",
    "sev": "critical",
    "area": "Video",
-   "what": "YNC-SA-6WAY Final Inspection video 0% (0/160)",
-   "detail": "main reason: camera offline (160 of 160 missing)",
-   "cause": "The camera does not answer ping: power, cable or switch port.",
-   "action": "Check camera power and cable at the machine."
+   "what": "Loop Pipe-Line 2 Final Inspection video 0% (0/46)",
+   "detail": "main reason: camera hung (45 of 45 missing)",
+   "cause": "The camera answers ping but sends no video, usually a hung stream after a reconnect.",
+   "action": "Power-cycle the camera."
   },
   {
-   "id": "collector:collector_lp_01:count_stuck",
+   "id": "video:fi:30",
+   "sev": "critical",
+   "area": "Video",
+   "what": "Loop Pipe-Line 1 Final Inspection video 0% (0/35)",
+   "detail": "main reason: camera hung (35 of 35 missing)",
+   "cause": "The camera answers ping but sends no video, usually a hung stream after a reconnect.",
+   "action": "Power-cycle the camera."
+  },
+  {
+   "id": "video:cms",
+   "sev": "critical",
+   "area": "Video",
+   "what": "CMS is not answering",
+   "detail": "CMS is not answering \u2014 no camera is recording",
+   "cause": "The CMS (:5555) is not answering, so no camera is recording.",
+   "action": "Check the CMS; restart it by hand (CMS_QUIET_SECONDS=90) only with approval."
+  },
+  {
+   "id": "collector:collector_2ua_recliner:db_stale",
    "sev": "critical",
    "area": "Collector",
-   "what": "Loop Pipe-Line 1 (collector_lp_01): count stuck \u2014 PLC D101 reads 1463, MES holds 1086",
-   "detail": "the noise filter rejects the real, rising count as garbage",
-   "cause": "bad first read after a restart/reconnect; filter defends it",
-   "action": "restart only this collector (operator)"
+   "what": "2UA RECLINER (collector_2ua_recliner): dashboard not updated for 270 min",
+   "detail": "ua2_recliner_dashboard.updated_at",
+   "cause": "main loop stuck or DB writes failing",
+   "action": "check this collector's log (operator)"
+  },
+  {
+   "id": "collector:collector_gear_lifter:db_stale",
+   "sev": "critical",
+   "area": "Collector",
+   "what": "GEAR LIFTER (collector_gear_lifter): dashboard not updated for 270 min",
+   "detail": "gear_lifter_dashboard.updated_at",
+   "cause": "main loop stuck or DB writes failing",
+   "action": "check this collector's log (operator)"
   },
   {
    "id": "collector:collector_lp_02:count_stuck",
    "sev": "critical",
    "area": "Collector",
-   "what": "Loop Pipe-Line 2 (collector_lp_02): count stuck \u2014 PLC D101 reads 1978, MES holds 1450",
+   "what": "Loop Pipe-Line 2 (collector_lp_02): count stuck \u2014 PLC D101 reads 1264, MES holds 970",
    "detail": "the noise filter rejects the real, rising count as garbage",
    "cause": "bad first read after a restart/reconnect; filter defends it",
    "action": "restart only this collector (operator)"
   },
   {
-   "id": "collector:collector_lp_03:count_stuck",
+   "id": "collector:collector_nut_lifting:db_stale",
    "sev": "critical",
    "area": "Collector",
-   "what": "Loop Pipe-Line 3 (collector_lp_03): count stuck \u2014 PLC D101 reads 1473, MES holds 1092",
-   "detail": "the noise filter rejects the real, rising count as garbage",
-   "cause": "bad first read after a restart/reconnect; filter defends it",
-   "action": "restart only this collector (operator)"
+   "what": "NUT LIFTING (collector_nut_lifting): dashboard not updated for 270 min",
+   "detail": "nut_lifting_dashboard.updated_at",
+   "cause": "main loop stuck or DB writes failing",
+   "action": "check this collector's log (operator)"
   },
   {
    "id": "collector:collector_yhb_l3_rec:not_counting",
    "sev": "critical",
    "area": "Collector",
-   "what": "YHB Recliner (collector_yhb_l3_rec): main count not moving \u2014 sub-machines made 15 parts in 15 min, main 0",
+   "what": "YHB Recliner (collector_yhb_l3_rec): main count not moving \u2014 sub-machines made 61 parts in 15 min, main 0",
    "detail": "no cycle rows in 15 min while the line produces",
    "cause": "stuck count, DB write failure or main PLC not read",
    "action": "check this collector (operator)"
@@ -66,7 +91,7 @@
    "id": "collector:collector_ync_l4:db_stale",
    "sev": "critical",
    "area": "Collector",
-   "what": "YNC Recliner (collector_ync_l4): dashboard not updated for 195 min",
+   "what": "YNC Recliner (collector_ync_l4): dashboard not updated for 270 min",
    "detail": "ync_recliner_complete.updated_at",
    "cause": "main loop stuck or DB writes failing",
    "action": "check this collector's log (operator)"
@@ -75,8 +100,8 @@
    "id": "collector:collector_ync_l4:db_errors",
    "sev": "critical",
    "area": "Collector",
-   "what": "YNC Recliner (collector_ync_l4): DB writes failing \u2014 147\u00d7 hourly write in 15 min",
-   "detail": "column \"hour_0205_0305_ok\" of relation \"ync_recliner_complete\" does not exist",
+   "what": "YNC Recliner (collector_ync_l4): DB writes failing \u2014 432\u00d7 traceback in 15 min",
+   "detail": "traceback 432, DB reconnect 864",
    "cause": "every failed write drops the DB connection; counts/graph freeze",
    "action": "fix the error shown (config/column); then restart only this collector"
   },
@@ -84,7 +109,7 @@
    "id": "collector:collector_yra_l1:not_counting",
    "sev": "critical",
    "area": "Collector",
-   "what": "YRA Recliner (collector_yra_l1): main count not moving \u2014 sub-machines made 12 parts in 15 min, main 0",
+   "what": "YRA Recliner (collector_yra_l1): main count not moving \u2014 sub-machines made 71 parts in 15 min, main 0",
    "detail": "no cycle rows in 15 min while the line produces",
    "cause": "stuck count, DB write failure or main PLC not read",
    "action": "check this collector (operator)"
@@ -93,7 +118,7 @@
    "id": "collector:collector_ysd_l2_rec:db_stale",
    "sev": "critical",
    "area": "Collector",
-   "what": "YSD Recliner (collector_ysd_l2_rec): dashboard not updated for 195 min",
+   "what": "YSD Recliner (collector_ysd_l2_rec): dashboard not updated for 269 min",
    "detail": "ysd_recliner_complete.updated_at",
    "cause": "main loop stuck or DB writes failing",
    "action": "check this collector's log (operator)"
@@ -102,17 +127,35 @@
    "id": "collector:collector_ysd_l2_rec:db_errors",
    "sev": "critical",
    "area": "Collector",
-   "what": "YSD Recliner (collector_ysd_l2_rec): DB writes failing \u2014 232\u00d7 hourly write in 15 min",
-   "detail": "column \"hour_0205_0305_ok\" of relation \"ysd_recliner_complete\" does not exist",
+   "what": "YSD Recliner (collector_ysd_l2_rec): DB writes failing \u2014 429\u00d7 traceback in 15 min",
+   "detail": "traceback 429, DB reconnect 858",
    "cause": "every failed write drops the DB connection; counts/graph freeze",
    "action": "fix the error shown (config/column); then restart only this collector"
+  },
+  {
+   "id": "collector:collector_ywd_rec:db_stale",
+   "sev": "critical",
+   "area": "Collector",
+   "what": "YWD RECLINER (collector_ywd_rec): dashboard not updated for 270 min",
+   "detail": "ywd_recliner_dashboard.updated_at",
+   "cause": "main loop stuck or DB writes failing",
+   "action": "check this collector's log (operator)"
+  },
+  {
+   "id": "collector:collector_ywd_ss:db_stale",
+   "sev": "critical",
+   "area": "Collector",
+   "what": "YWD-SS (collector_ywd_ss): dashboard not updated for 270 min",
+   "detail": "ywd_ss_dashboard.updated_at",
+   "cause": "main loop stuck or DB writes failing",
+   "action": "check this collector's log (operator)"
   },
   {
    "id": "priority:p1",
    "sev": "critical",
    "area": "Clip priority",
-   "what": "P1 clips 91.7% (3114/3396) \u2014 57 not cut, 225 no footage",
-   "detail": "YWD/2UA 74.9%, Sub-Assembly 89.0%, SEAT SLIDER 97.6%, Recliner 99.2%",
+   "what": "P1 clips 34.6% (385/1113) \u2014 0 not cut, 728 no footage",
+   "detail": "Loop Pipe 0.0%, Recliner 0.0%, SEAT SLIDER 52.2%",
    "cause": "not cut = archiver behind (GPU); no footage = camera not recording",
    "action": "fix the listed cameras; if 'not cut' grows, lower the P2 zone count"
   },
@@ -120,7 +163,7 @@
    "id": "user:39:nolines",
    "sev": "warning",
    "area": "User",
-   "what": "Chanderma (leader) has NO lines assigned",
+   "what": "Chanderma (operator) has NO lines assigned",
    "detail": "their dashboard will be empty \u2014 assign in Admin \u2192 Users \u2192 Assign Lines"
   },
   {
@@ -243,165 +286,55 @@
    "detail": "their dashboard will be empty \u2014 assign in Admin \u2192 Users \u2192 Assign Lines"
   },
   {
-   "id": "ep:/api/maintenance-kpi/targets:slow",
+   "id": "ep:/api/peff/workcenters:slow",
    "sev": "warning",
    "area": "Page/API",
-   "what": "/api/maintenance-kpi/targets is slow",
-   "detail": "2544ms (>2000ms)"
+   "what": "/api/peff/workcenters is slow",
+   "detail": "3578ms (>2000ms)"
   },
   {
    "id": "ep:/api/quality/sa-fi/log:slow",
    "sev": "warning",
    "area": "Page/API",
    "what": "/api/quality/sa-fi/log is slow",
-   "detail": "3903ms (>2000ms)"
+   "detail": "4047ms (>2000ms)"
   },
   {
    "id": "ep:/api/shift-compile/compiled:slow",
    "sev": "warning",
    "area": "Page/API",
    "what": "/api/shift-compile/compiled is slow",
-   "detail": "2053ms (>2000ms)"
+   "detail": "3139ms (>2000ms)"
   },
   {
    "id": "ep:/api/shift-compile/historical:slow",
    "sev": "warning",
    "area": "Page/API",
    "what": "/api/shift-compile/historical is slow",
-   "detail": "4208ms (>2000ms)"
+   "detail": "4901ms (>2000ms)"
   },
   {
    "id": "data:leaderlines",
    "sev": "warning",
    "area": "Data",
-   "what": "9 of 18 leaders have NO lines assigned",
-   "detail": "Chanderma, Deepak, Jatin Khurana, Kanhaiya, Manisha, Sagar, Shubham, Sunil"
+   "what": "8 of 17 leaders have NO lines assigned",
+   "detail": "Deepak, Jatin Khurana, Kanhaiya, Manisha, Sagar, Shubham, Sunil, Vishal"
+  },
+  {
+   "id": "data:coverage",
+   "sev": "warning",
+   "area": "Video",
+   "what": "clip pre-render coverage only 0%",
+   "detail": "0/88 recent cycles ready \u2014 opens will render on demand"
   },
   {
    "id": "video:tracker:error",
    "sev": "warning",
    "area": "Video",
    "what": "Video Coverage tracker reports an error",
-   "detail": "09:18:58 sample: cannot schedule new futures after interpreter shutdown",
+   "detail": "15:52:35 sample: cannot schedule new futures after interpreter shutdown",
    "cause": "The Video Coverage tracker reported an error on its last pass.",
    "action": "Read the error text; check the MES-API log for [VCOV]."
-  },
-  {
-   "id": "video:zone0:Sub-Assembly",
-   "sev": "warning",
-   "area": "Video",
-   "what": "Sub-Assembly: no sub-machine clips at all",
-   "detail": "5522 cycles in the last judged hour, 0 clips",
-   "cause": "Machines in this zone produce cycles but no clips are being cut.",
-   "action": "Check the zone's cameras on the Video Coverage page."
-  },
-  {
-   "id": "video:cam:cam_mag_weld_upr_brkt_with_t_nut_bolt_m_c_1790063983",
-   "sev": "warning",
-   "area": "Video",
-   "what": "YNC-SA-6WAY \u00b7 Upr Rail Inspection M/C camera 192.168.35.42 offline (no ping) since 12:59",
-   "detail": "",
-   "cause": "The camera does not answer ping: power, cable or switch port.",
-   "action": "Check camera power and cable at the machine."
-  },
-  {
-   "id": "video:cam:cam_upr_rinforce_s_a_uprinrbkt_pjw_m_c_6_way_1790063911",
-   "sev": "warning",
-   "area": "Video",
-   "what": "YNC-SA-6WAY \u00b7 Upr \u00d7Rinforce S/A\u00d7UprINRBKT PJW\u3000M/C (6 Way) camera 192.168.35.40 offline (no ping) since 12:59",
-   "detail": "",
-   "cause": "The camera does not answer ping: power, cable or switch port.",
-   "action": "Check camera power and cable at the machine."
-  },
-  {
-   "id": "video:cam:cam_mag_welding_relese_x_hinge_pin_1786596253",
-   "sev": "warning",
-   "area": "Video",
-   "what": "YRA Recliner \u00b7 Mag Welding Relese x Hinge Pin camera 192.168.33.35 offline (no ping) since 12:59",
-   "detail": "",
-   "cause": "The camera does not answer ping: power, cable or switch port.",
-   "action": "Check camera power and cable at the machine."
-  },
-  {
-   "id": "video:cam:cam_ywd_rc_1782385798",
-   "sev": "warning",
-   "area": "Video",
-   "what": "YWD RECLINER \u00b7 YWD RC camera 192.168.31.214 offline (no ping) since 12:59",
-   "detail": "",
-   "cause": "The camera does not answer ping: power, cable or switch port.",
-   "action": "Check camera power and cable at the machine."
-  },
-  {
-   "id": "video:cam:cam_mag_welding_of_arm_x_recliner_st_1_1786596037",
-   "sev": "warning",
-   "area": "Video",
-   "what": "YRA Recliner \u00b7 MAG Welding of Arm x Recliner ST #1` camera 192.168.33.31 offline (no ping) since 12:59",
-   "detail": "",
-   "cause": "The camera does not answer ping: power, cable or switch port.",
-   "action": "Check camera power and cable at the machine."
-  },
-  {
-   "id": "video:cam:cam_mag_welding_of_lwr_hook_with_lwr_arrm_1786596153",
-   "sev": "warning",
-   "area": "Video",
-   "what": "YRA Recliner \u00b7 MAG Welding of  Lwr Hook with Lwr Arrm camera 192.168.33.33 offline (no ping) since 12:59",
-   "detail": "",
-   "cause": "The camera does not answer ping: power, cable or switch port.",
-   "action": "Check camera power and cable at the machine."
-  },
-  {
-   "id": "video:cam:cam_mag_welding_of_lwr_hook_with_lwr_arrm_1787031413",
-   "sev": "warning",
-   "area": "Video",
-   "what": "YSD Recliner \u00b7 MAG Welding of  Lwr Hook with Lwr Arrm camera 192.168.33.93 offline (no ping) since 12:59",
-   "detail": "",
-   "cause": "The camera does not answer ping: power, cable or switch port.",
-   "action": "Check camera power and cable at the machine."
-  },
-  {
-   "id": "video:archiver",
-   "sev": "warning",
-   "area": "Video",
-   "what": "Archiver is not keeping up: 84% of missing clips were never cut",
-   "detail": "13462 of 15900 missing in the last judged hour (Final Inspection 0, sub-machines 13462)",
-   "cause": "Cameras recorded the cycles but the clip archiver could not cut them in time.",
-   "action": "Capacity issue, covered by the 48-hour footage and zone archiver plan."
-  },
-  {
-   "id": "collector:collector_l_6:sub_offline",
-   "sev": "warning",
-   "area": "Collector",
-   "what": "YNC-SA-6WAY (collector_l_6): 2 sub-machine(s) offline",
-   "detail": "213 Mag WELD Upr Brkt With T-Nut 192.168.34.43; 212 Mag WELD Upr Brkt With T-Nut 192.168.34.42",
-   "cause": "network / PLC side",
-   "action": "check PLC network"
-  },
-  {
-   "id": "collector:collector_lp_03:sub_offline",
-   "sev": "warning",
-   "area": "Collector",
-   "what": "Loop Pipe-Line 3 (collector_lp_03): 1 sub-machine(s) offline",
-   "detail": "150 Squeezing Machine 192.168.36.70",
-   "cause": "network / PLC side",
-   "action": "check PLC network"
-  },
-  {
-   "id": "collector:collector_lp_03:sub_idle",
-   "sev": "warning",
-   "area": "Collector",
-   "what": "Loop Pipe-Line 3 (collector_lp_03): 1 sub-machine(s) not counting while siblings made \u226510 parts",
-   "detail": "154 Both Karakuri Middle Shelf",
-   "cause": "register/bit not counting or wrong address",
-   "action": "check the station's count register"
-  },
-  {
-   "id": "collector:collector_yfg_ss:sub_idle",
-   "sev": "warning",
-   "area": "Collector",
-   "what": "YFG-SS (collector_yfg_ss): 1 sub-machine(s) not counting while siblings made \u226510 parts",
-   "detail": "65 Lower Rail Greasing & Bar Co",
-   "cause": "register/bit not counting or wrong address",
-   "action": "check the station's count register"
   },
   {
    "id": "collector:collector_yhb_l3_rec:plc_offline",
@@ -417,7 +350,7 @@
    "sev": "warning",
    "area": "Collector",
    "what": "YHB Recliner (collector_yhb_l3_rec): 4 sub-machine(s) offline",
-   "detail": "109 Projection Welding of Washer 192.168.32.70; 113 Press in REC with PIN Hinge 192.168.32.74; 110 MAG Welding of Arm x Recline 192.168.32.71; 111 MAG Welding of Arm x Recline 192.168.32.71",
+   "detail": "113 Press in REC with PIN Hinge 192.168.32.74; 109 Projection Welding of Washer 192.168.32.70; 110 MAG Welding of Arm x Recline 192.168.32.71; 111 MAG Welding of Arm x Recline 192.168.32.71",
    "cause": "network / PLC side",
    "action": "check PLC network"
   },
@@ -462,7 +395,7 @@
    "sev": "warning",
    "area": "Collector",
    "what": "YRA Recliner (collector_yra_l1): 3 sub-machine(s) offline",
-   "detail": "117 Projection Welding of Washer 192.168.32.30; 121 Press in REC with PIN Hinge 192.168.32.34; 123 SP Insert Fixture with Machi 192.168.32.36",
+   "detail": "121 Press in REC with PIN Hinge 192.168.32.34; 123 SP Insert Fixture with Machi 192.168.32.36; 117 Projection Welding of Washer 192.168.32.30",
    "cause": "network / PLC side",
    "action": "check PLC network"
   },
@@ -471,7 +404,7 @@
    "sev": "warning",
    "area": "Collector",
    "what": "YRA-SS (collector_yra_ss_l1): 3 sub-machine(s) offline",
-   "detail": "82 Guide S/Ab Insert #2 M/c 192.168.30.34; 81 Guide S/Ab Insert #1 M/c 192.168.30.33; 86 Slide Force Inspection M/c 192.168.30.38",
+   "detail": "86 Slide Force Inspection M/c 192.168.30.38; 81 Guide S/Ab Insert #1 M/c 192.168.30.33; 82 Guide S/Ab Insert #2 M/c 192.168.30.34",
    "cause": "network / PLC side",
    "action": "check PLC network"
   },
@@ -489,7 +422,7 @@
    "sev": "warning",
    "area": "Collector",
    "what": "YSD Recliner (collector_ysd_l2_rec): 6 sub-machine(s) offline",
-   "detail": "146 SP Insert Fixture with Machi 192.168.32.96; 145 Mag Welding Relese x Hinge P 192.168.32.95; 141 MAG Welding of Arm x Recline 192.168.32.91; 140 Projection Welding of Washer 192.168.32.90; 143 Press in REC with PIN Hinge 192.168.32.94; 144 MAG Welding of Arm x Recline 192.168.32.91",
+   "detail": "143 Press in REC with PIN Hinge 192.168.32.94; 145 Mag Welding Relese x Hinge P 192.168.32.95; 144 MAG Welding of Arm x Recline 192.168.32.91; 146 SP Insert Fixture with Machi 192.168.32.96; 141 MAG Welding of Arm x Recline 192.168.32.91; 140 Projection Welding of Washer 192.168.32.90",
    "cause": "network / PLC side",
    "action": "check PLC network"
   },
@@ -497,8 +430,8 @@
    "id": "binfill:need_manual",
    "sev": "warning",
    "area": "Bin Filling",
-   "what": "1 bin(s) need a manual count \u2014 the recording gave no clean count",
-   "detail": "bin 42 10:47:52",
+   "what": "3 bin(s) need a manual count \u2014 the recording gave no clean count",
+   "detail": "bin 42 10:47:52, bin 151 16:49:49, bin 152 16:56:53",
    "cause": "the bin was not clearly visible in the recording either",
    "action": "count them from the video on the Bin Filling page"
   },
@@ -506,8 +439,8 @@
    "id": "priority:p2",
    "sev": "warning",
    "area": "Clip priority",
-   "what": "P2 clips 54.0% (3949/7309) \u2014 2539 not cut, 821 no footage",
-   "detail": "Loop Pipe 19.8%, SEAT SLIDER 70.9%",
+   "what": "P2 clips 32.4% (1736/5355) \u2014 437 not cut, 3182 no footage",
+   "detail": "Loop Pipe 11.4%, SEAT SLIDER 43.1%",
    "cause": "not cut = archiver behind (GPU); no footage = camera not recording",
    "action": "fix the listed cameras; if 'not cut' grows, lower the P2 zone count"
   },
@@ -523,9 +456,135 @@
    "sev": "info",
    "area": "Video",
    "what": "3 machines produce cycles but have no camera",
-   "detail": "Loop Pipe-Line 1 \u00b7 Squeezing Machine (9705), Loop Pipe-Line 2 \u00b7 Squeezing Machine (6333), Loop Pipe-Line 2 \u00b7 Both Karakuri Middle Shelf (2738)",
+   "detail": "Loop Pipe-Line 1 \u00b7 Squeezing Machine (9516), Loop Pipe-Line 2 \u00b7 Squeezing Machine (6474), Loop Pipe-Line 2 \u00b7 Both Karakuri Middle Shelf (3005)",
    "cause": "These machines produce cycles but have no camera assigned.",
    "action": "Assign cameras where video is needed, otherwise mute this item."
+  },
+  {
+   "id": "collector:collector_l_1:plc_offline",
+   "sev": "info",
+   "area": "Collector",
+   "what": "YRA-SA-4WAY (collector_l_1): main PLC unreachable 100% of the time (line not producing)",
+   "detail": "status table shows PLC [ ]",
+   "cause": "network / PLC side",
+   "action": "check PLC network"
+  },
+  {
+   "id": "collector:collector_l_1:sub_offline",
+   "sev": "info",
+   "area": "Collector",
+   "what": "YRA-SA-4WAY (collector_l_1): 4 sub-machine(s) offline (line not producing)",
+   "detail": "206 Upr Rail \u00d7Bolt Fr PJW M/C  ( 192.168.34.52; 207 Upr \u00d7Rinforce S/A\u00d7UprINRBKT 192.168.34.53; 204 Rainforce Bolt PJW M/C (4 Wa 192.168.34.50; 205 \"Rinforce\u00d7Bolt PJW M/C Upr B 192.168.34.51",
+   "cause": "network / PLC side",
+   "action": "check PLC network"
+  },
+  {
+   "id": "collector:collector_l_2:plc_offline",
+   "sev": "info",
+   "area": "Collector",
+   "what": "YSD-SA-4WAY (collector_l_2): main PLC unreachable 100% of the time (line not producing)",
+   "detail": "status table shows PLC [ ]",
+   "cause": "network / PLC side",
+   "action": "check PLC network"
+  },
+  {
+   "id": "collector:collector_l_2:sub_offline",
+   "sev": "info",
+   "area": "Collector",
+   "what": "YSD-SA-4WAY (collector_l_2): 4 sub-machine(s) offline (line not producing)",
+   "detail": "199 Rainforce Bolt PJW M/C 192.168.34.60; 201 Upr Rail \u00d7Bolt Fr PJW M/C  ( 192.168.34.62; 200 \"Rinforce\u00d7Bolt PJW M/C Upr B 192.168.34.61; 202 Upr \u00d7Rinforce S/A\u00d7UprINRBKT 192.168.34.63",
+   "cause": "network / PLC side",
+   "action": "check PLC network"
+  },
+  {
+   "id": "collector:collector_l_3:plc_offline",
+   "sev": "info",
+   "area": "Collector",
+   "what": "YHB-SA-4WAY (collector_l_3): main PLC unreachable 100% of the time (line not producing)",
+   "detail": "status table shows PLC [ ]",
+   "cause": "network / PLC side",
+   "action": "check PLC network"
+  },
+  {
+   "id": "collector:collector_l_3:sub_offline",
+   "sev": "info",
+   "area": "Collector",
+   "what": "YHB-SA-4WAY (collector_l_3): 4 sub-machine(s) offline (line not producing)",
+   "detail": "157 Rainforce Bolt PJW M/C 192.168.34.70; 160 Upr \u00d7Rinforce S/A\u00d7UprINRBKT 192.168.34.73; 159 Upr Rail \u00d7Bolt Fr PJW M/C  ( 192.168.34.72; 158 \"Rinforce\u00d7Bolt PJW M/C Upr B 192.168.34.71",
+   "cause": "network / PLC side",
+   "action": "check PLC network"
+  },
+  {
+   "id": "collector:collector_l_4:plc_offline",
+   "sev": "info",
+   "area": "Collector",
+   "what": "YNC-SA-4WAY (collector_l_4): main PLC unreachable 100% of the time (line not producing)",
+   "detail": "status table shows PLC [ ]",
+   "cause": "network / PLC side",
+   "action": "check PLC network"
+  },
+  {
+   "id": "collector:collector_l_4:sub_offline",
+   "sev": "info",
+   "area": "Collector",
+   "what": "YNC-SA-4WAY (collector_l_4): 4 sub-machine(s) offline (line not producing)",
+   "detail": "197 Upr \u00d7Rinforce S/A\u00d7UprINRBKT 192.168.34.83; 194 Rainforce Bolt PJW M/C 192.168.34.80; 208 \"Rinforce\u00d7Bolt PJW M/C Upr B 192.168.34.81; 196 Upr Rail \u00d7Bolt Fr PJW M/C  ( 192.168.34.82",
+   "cause": "network / PLC side",
+   "action": "check PLC network"
+  },
+  {
+   "id": "collector:collector_l_6:plc_offline",
+   "sev": "info",
+   "area": "Collector",
+   "what": "YNC-SA-6WAY (collector_l_6): main PLC unreachable 100% of the time (line not producing)",
+   "detail": "status table shows PLC [ ]",
+   "cause": "network / PLC side",
+   "action": "check PLC network"
+  },
+  {
+   "id": "collector:collector_l_6:sub_offline",
+   "sev": "info",
+   "area": "Collector",
+   "what": "YNC-SA-6WAY (collector_l_6): 4 sub-machine(s) offline (line not producing)",
+   "detail": "213 Mag WELD Upr Brkt With T-Nut 192.168.34.43; 210 Upr \u00d7Rinforce S/A\u00d7UprINRBKT 192.168.34.40; 212 Mag WELD Upr Brkt With T-Nut 192.168.34.42; 211 Riser Bkt. Staking Inner M/C 192.168.34.41",
+   "cause": "network / PLC side",
+   "action": "check PLC network"
+  },
+  {
+   "id": "collector:collector_l_7:plc_offline",
+   "sev": "info",
+   "area": "Collector",
+   "what": "Y17-SA-4WAY (collector_l_7): main PLC unreachable 100% of the time (line not producing)",
+   "detail": "status table shows PLC [ ]",
+   "cause": "network / PLC side",
+   "action": "check PLC network"
+  },
+  {
+   "id": "collector:collector_l_7:sub_offline",
+   "sev": "info",
+   "area": "Collector",
+   "what": "Y17-SA-4WAY (collector_l_7): 2 sub-machine(s) offline (line not producing)",
+   "detail": "216 \"Rinforce\u00d7Bolt PJW M/C Upr 192.168.34.91; 215 Rainforce Bolt PJW M/C (4 Wa 192.168.34.90",
+   "cause": "network / PLC side",
+   "action": "check PLC network"
+  },
+  {
+   "id": "collector:collector_lp_03:plc_offline",
+   "sev": "info",
+   "area": "Collector",
+   "what": "Loop Pipe-Line 3 (collector_lp_03): main PLC unreachable 100% of the time (line not producing)",
+   "detail": "status table shows PLC [ ]",
+   "cause": "network / PLC side",
+   "action": "check PLC network"
+  },
+  {
+   "id": "collector:collector_lp_03:sub_offline",
+   "sev": "info",
+   "area": "Collector",
+   "what": "Loop Pipe-Line 3 (collector_lp_03): 5 sub-machine(s) offline (line not producing)",
+   "detail": "150 Squeezing Machine 192.168.36.70; 152 YLM Bending Machine-02 192.168.36.71; 151 YLM Bending Machine-01 192.168.36.71; 154 Both Karakuri Middle Shelf 192.168.36.71; 153 Squaring Machine 192.168.36.74",
+   "cause": "network / PLC side",
+   "action": "check PLC network"
   },
   {
    "id": "collector:collector_nut_lifting:plc_offline",
@@ -537,10 +596,10 @@
    "action": "check PLC network"
   },
   {
-   "id": "collector:collector_ywd_ss:plc_offline",
+   "id": "collector:collector_pwm_39:plc_offline",
    "sev": "info",
    "area": "Collector",
-   "what": "YWD-SS (collector_ywd_ss): main PLC unreachable 100% of the time (line not producing)",
+   "what": "NUT WELDING SA (collector_pwm_39): main PLC unreachable 100% of the time (line not producing)",
    "detail": "status table shows PLC [ ]",
    "cause": "network / PLC side",
    "action": "check PLC network"
@@ -554,7 +613,7 @@
    "role": "admin",
    "pages": 0,
    "lines": 0,
-   "ms": 37,
+   "ms": 17,
    "state": "ok"
   },
   {
@@ -563,7 +622,7 @@
    "role": "department",
    "pages": 0,
    "lines": 0,
-   "ms": 57,
+   "ms": 52,
    "state": "ok"
   },
   {
@@ -572,7 +631,7 @@
    "role": "production",
    "pages": 7,
    "lines": 9,
-   "ms": 52,
+   "ms": 51,
    "state": "ok"
   },
   {
@@ -590,7 +649,7 @@
    "role": "operator",
    "pages": 6,
    "lines": 5,
-   "ms": 51,
+   "ms": 50,
    "state": "ok"
   },
   {
@@ -617,7 +676,7 @@
    "role": "shift_incharge",
    "pages": 11,
    "lines": 14,
-   "ms": 53,
+   "ms": 51,
    "state": "ok"
   },
   {
@@ -626,7 +685,7 @@
    "role": "shift_incharge",
    "pages": 17,
    "lines": 14,
-   "ms": 52,
+   "ms": 51,
    "state": "ok"
   },
   {
@@ -635,7 +694,7 @@
    "role": "production",
    "pages": 4,
    "lines": 14,
-   "ms": 50,
+   "ms": 105,
    "state": "ok"
   },
   {
@@ -644,7 +703,7 @@
    "role": "production",
    "pages": 1,
    "lines": 14,
-   "ms": 49,
+   "ms": 56,
    "state": "no dashboard"
   },
   {
@@ -653,7 +712,7 @@
    "role": "section_incharge",
    "pages": 15,
    "lines": 5,
-   "ms": 139,
+   "ms": 52,
    "state": "ok"
   },
   {
@@ -662,7 +721,7 @@
    "role": "operator",
    "pages": 0,
    "lines": 3,
-   "ms": 49,
+   "ms": 52,
    "state": "ok"
   },
   {
@@ -671,7 +730,7 @@
    "role": "shift_incharge",
    "pages": 16,
    "lines": 5,
-   "ms": 52,
+   "ms": 53,
    "state": "ok"
   },
   {
@@ -689,7 +748,7 @@
    "role": "shift_incharge",
    "pages": 2,
    "lines": 3,
-   "ms": 97,
+   "ms": 52,
    "state": "ok"
   },
   {
@@ -707,7 +766,7 @@
    "role": "section_incharge",
    "pages": 17,
    "lines": 5,
-   "ms": 50,
+   "ms": 52,
    "state": "ok"
   },
   {
@@ -716,7 +775,7 @@
    "role": "operator",
    "pages": 5,
    "lines": 1,
-   "ms": 55,
+   "ms": 53,
    "state": "ok"
   },
   {
@@ -725,16 +784,16 @@
    "role": "operator",
    "pages": 6,
    "lines": 9,
-   "ms": 51,
+   "ms": 52,
    "state": "ok"
   },
   {
    "id": 39,
    "user": "Chanderma",
-   "role": "leader",
+   "role": "operator",
    "pages": 0,
    "lines": 0,
-   "ms": 401,
+   "ms": 50,
    "state": "no lines"
   },
   {
@@ -752,7 +811,7 @@
    "role": "leader",
    "pages": 0,
    "lines": 0,
-   "ms": 47,
+   "ms": 51,
    "state": "no lines"
   },
   {
@@ -761,7 +820,7 @@
    "role": "leader",
    "pages": 0,
    "lines": 0,
-   "ms": 48,
+   "ms": 51,
    "state": "no lines"
   },
   {
@@ -770,7 +829,7 @@
    "role": "leader",
    "pages": 0,
    "lines": 0,
-   "ms": 48,
+   "ms": 51,
    "state": "no lines"
   },
   {
@@ -779,7 +838,7 @@
    "role": "leader",
    "pages": 0,
    "lines": 0,
-   "ms": 48,
+   "ms": 51,
    "state": "no lines"
   },
   {
@@ -788,7 +847,7 @@
    "role": "leader",
    "pages": 0,
    "lines": 0,
-   "ms": 102,
+   "ms": 52,
    "state": "no lines"
   },
   {
@@ -797,7 +856,7 @@
    "role": "leader",
    "pages": 0,
    "lines": 0,
-   "ms": 52,
+   "ms": 105,
    "state": "no lines"
   },
   {
@@ -806,7 +865,7 @@
    "role": "leader",
    "pages": 0,
    "lines": 0,
-   "ms": 49,
+   "ms": 50,
    "state": "no lines"
   },
   {
@@ -815,7 +874,7 @@
    "role": "leader",
    "pages": 0,
    "lines": 0,
-   "ms": 47,
+   "ms": 51,
    "state": "no lines"
   },
   {
@@ -824,7 +883,7 @@
    "role": "section_incharge",
    "pages": 6,
    "lines": 3,
-   "ms": 50,
+   "ms": 52,
    "state": "ok"
   },
   {
@@ -833,7 +892,7 @@
    "role": "leader",
    "pages": 0,
    "lines": 0,
-   "ms": 48,
+   "ms": 51,
    "state": "no lines"
   },
   {
@@ -842,7 +901,7 @@
    "role": "leader",
    "pages": 0,
    "lines": 0,
-   "ms": 49,
+   "ms": 50,
    "state": "no lines"
   },
   {
@@ -851,7 +910,7 @@
    "role": "leader",
    "pages": 0,
    "lines": 0,
-   "ms": 50,
+   "ms": 51,
    "state": "no lines"
   },
   {
@@ -860,7 +919,7 @@
    "role": "leader",
    "pages": 0,
    "lines": 0,
-   "ms": 68,
+   "ms": 50,
    "state": "no lines"
   },
   {
@@ -869,7 +928,7 @@
    "role": "leader",
    "pages": 0,
    "lines": 0,
-   "ms": 67,
+   "ms": 49,
    "state": "no lines"
   },
   {
@@ -878,7 +937,7 @@
    "role": "leader",
    "pages": 0,
    "lines": 0,
-   "ms": 130,
+   "ms": 50,
    "state": "no lines"
   },
   {
@@ -887,7 +946,7 @@
    "role": "leader",
    "pages": 0,
    "lines": 0,
-   "ms": 50,
+   "ms": 49,
    "state": "no lines"
   },
   {
@@ -896,7 +955,7 @@
    "role": "quality_incharge",
    "pages": 12,
    "lines": 31,
-   "ms": 49,
+   "ms": 54,
    "state": "ok"
   },
   {
@@ -905,7 +964,7 @@
    "role": "production",
    "pages": 2,
    "lines": 9,
-   "ms": 54,
+   "ms": 51,
    "state": "ok"
   },
   {
@@ -922,259 +981,253 @@
   {
    "path": "/api/shift-compile/historical",
    "status": 200,
-   "ms": 4208
+   "ms": 4901
   },
   {
    "path": "/api/quality/sa-fi/log",
    "status": 200,
-   "ms": 3903
-  },
-  {
-   "path": "/api/maintenance-kpi/targets",
-   "status": 200,
-   "ms": 2544
-  },
-  {
-   "path": "/api/shift-compile/compiled",
-   "status": 200,
-   "ms": 2053
-  },
-  {
-   "path": "/api/shift-compile/overview",
-   "status": 200,
-   "ms": 608
-  },
-  {
-   "path": "/api/ui-timing/stats",
-   "status": 200,
-   "ms": 503
-  },
-  {
-   "path": "/api/cms-sync/state",
-   "status": 200,
-   "ms": 363
-  },
-  {
-   "path": "/api/quality/ppm",
-   "status": 200,
-   "ms": 357
-  },
-  {
-   "path": "/api/network/status",
-   "status": 200,
-   "ms": 326
+   "ms": 4047
   },
   {
    "path": "/api/peff/workcenters",
    "status": 200,
-   "ms": 300
+   "ms": 3578
   },
   {
-   "path": "/api/clip-priority",
+   "path": "/api/shift-compile/compiled",
    "status": 200,
-   "ms": 286
+   "ms": 3139
   },
   {
-   "path": "/api/breakdowns/pending-production",
+   "path": "/api/maintenance-kpi/targets",
    "status": 200,
-   "ms": 269
+   "ms": 1333
+  },
+  {
+   "path": "/api/quality/ppm",
+   "status": 200,
+   "ms": 547
+  },
+  {
+   "path": "/api/ui-timing/stats",
+   "status": 200,
+   "ms": 478
   },
   {
    "path": "/api/maintenance-kpi/",
    "status": 200,
-   "ms": 247
+   "ms": 449
   },
   {
-   "path": "/api/leaders/candidates",
+   "path": "/api/shift-compile/overview",
    "status": 200,
-   "ms": 243
+   "ms": 347
   },
   {
-   "path": "/api/poka-yoke/master/",
+   "path": "/api/quality/first-last-piece",
    "status": 200,
-   "ms": 242
-  },
-  {
-   "path": "/api/manpower/processes",
-   "status": 200,
-   "ms": 222
+   "ms": 228
   },
   {
    "path": "/api/leaders",
    "status": 200,
-   "ms": 216
+   "ms": 207
   },
   {
-   "path": "/api/andon/options",
+   "path": "/api/plants/",
    "status": 200,
-   "ms": 209
+   "ms": 162
   },
   {
-   "path": "/api/shift-compile/zone-summary",
+   "path": "/api/leaders/candidates",
    "status": 200,
-   "ms": 208
+   "ms": 129
   },
   {
-   "path": "/api/clip-archive/lines",
+   "path": "/api/clip-priority",
+   "status": 200,
+   "ms": 127
+  },
+  {
+   "path": "/api/andon/history",
+   "status": 200,
+   "ms": 119
+  },
+  {
+   "path": "/api/heijunka/board",
    "status": 422,
-   "ms": 179,
-   "note": "needs params"
-  },
-  {
-   "path": "/api/quality/deviations",
-   "status": 200,
-   "ms": 164
-  },
-  {
-   "path": "/api/manpower/allocations",
-   "status": 422,
-   "ms": 162,
+   "ms": 116,
    "note": "needs params"
   },
   {
    "path": "/api/network/devices",
    "status": 200,
-   "ms": 160
-  },
-  {
-   "path": "/api/machine-master",
-   "status": 200,
-   "ms": 156
-  },
-  {
-   "path": "/api/machines/",
-   "status": 200,
-   "ms": 154
-  },
-  {
-   "path": "/api/breakdown-mails/",
-   "status": 200,
-   "ms": 147
-  },
-  {
-   "path": "/api/poka-yoke/series/",
-   "status": 200,
-   "ms": 142
-  },
-  {
-   "path": "/api/andon/history",
-   "status": 200,
-   "ms": 138
-  },
-  {
-   "path": "/api/quality/inspection-chars",
-   "status": 200,
-   "ms": 111
-  },
-  {
-   "path": "/api/ui-timing/activity/summary",
-   "status": 200,
-   "ms": 111
-  },
-  {
-   "path": "/api/lines/part-trace",
-   "status": 422,
-   "ms": 110,
-   "note": "needs params"
-  },
-  {
-   "path": "/api/heijunka/board",
-   "status": 422,
-   "ms": 102,
-   "note": "needs params"
-  },
-  {
-   "path": "/api/lines/producing",
-   "status": 200,
-   "ms": 102
-  },
-  {
-   "path": "/api/py-config/publish-status",
-   "status": 422,
-   "ms": 102,
-   "note": "needs params"
-  },
-  {
-   "path": "/api/machines/lookup",
-   "status": 422,
-   "ms": 100,
-   "note": "needs params"
-  },
-  {
-   "path": "/api/ui-timing/activity/detail",
-   "status": 422,
-   "ms": 79,
-   "note": "needs params"
+   "ms": 113
   },
   {
    "path": "/api/escalation/my",
    "status": 200,
-   "ms": 76
+   "ms": 110
   },
   {
-   "path": "/api/poka-yoke/models/",
+   "path": "/api/lines/producing",
    "status": 200,
-   "ms": 72
+   "ms": 108
   },
   {
-   "path": "/api/logs/tail",
+   "path": "/api/panel/maps",
+   "status": 200,
+   "ms": 108
+  },
+  {
+   "path": "/api/shift-compile/zone-summary",
+   "status": 200,
+   "ms": 106
+  },
+  {
+   "path": "/api/ui-timing/activity/summary",
+   "status": 200,
+   "ms": 93
+  },
+  {
+   "path": "/api/sixsigma/config",
+   "status": 200,
+   "ms": 73
+  },
+  {
+   "path": "/api/quality/inspection-chars",
+   "status": 200,
+   "ms": 61
+  },
+  {
+   "path": "/api/py-bypass/cases",
+   "status": 200,
+   "ms": 58
+  },
+  {
+   "path": "/api/quality/ncr/defect-types",
+   "status": 200,
+   "ms": 58
+  },
+  {
+   "path": "/api/5s/audits",
+   "status": 200,
+   "ms": 57
+  },
+  {
+   "path": "/api/cms-sync/machines",
+   "status": 200,
+   "ms": 57
+  },
+  {
+   "path": "/api/devices/list",
+   "status": 200,
+   "ms": 51
+  },
+  {
+   "path": "/api/poka-yoke/requests",
+   "status": 200,
+   "ms": 50
+  },
+  {
+   "path": "/api/logs/codes",
    "status": 422,
-   "ms": 71,
+   "ms": 48,
    "note": "needs params"
   },
   {
-   "path": "/api/timer-config",
+   "path": "/api/prod-breakdown-slips/pending",
    "status": 200,
-   "ms": 70
+   "ms": 45
+  },
+  {
+   "path": "/api/cms-sync/state",
+   "status": 200,
+   "ms": 43
+  },
+  {
+   "path": "/api/logs/files",
+   "status": 200,
+   "ms": 43
+  },
+  {
+   "path": "/api/quality/sa-fi/meta",
+   "status": 200,
+   "ms": 43
+  },
+  {
+   "path": "/api/store/stock",
+   "status": 200,
+   "ms": 43
+  },
+  {
+   "path": "/api/capa/",
+   "status": 200,
+   "ms": 41
+  },
+  {
+   "path": "/api/kanban/dashboard",
+   "status": 200,
+   "ms": 40
+  },
+  {
+   "path": "/api/quality/ncr",
+   "status": 200,
+   "ms": 39
+  },
+  {
+   "path": "/api/quality/kpi",
+   "status": 200,
+   "ms": 38
   }
  ],
  "endpoint_total": 166,
  "notes": [
   "lines: 31",
-  "leaders: 18",
-  "clip coverage 92%",
-  "video: Final Inspection 94.5%, sub-machines 26.0%"
+  "leaders: 17",
+  "clip coverage 0%",
+  "video: Final Inspection 43.2%, sub-machines 36.9%"
  ],
  "system": {
   "MES-API": {
-   "ms": 25,
+   "ms": 30,
    "status": 200
   },
   "CMS": {
-   "ms": 35,
+   "ms": 422,
    "status": 401
   },
-  "load": 45.3,
+  "load": 20.2,
   "cores": 64,
-  "cms_threads": 264
+  "cms_threads": 872
  },
  "alerts": {
-  "new": 2,
-  "cleared": 0,
-  "alerts_sent": 1,
+  "new": 1,
+  "cleared": 1,
+  "alerts_sent": 2,
   "would_send": null
  },
  "video": {
-  "ran_at": "2026-09-24 14:45:01",
+  "ran_at": "2026-09-24 23:00:02",
   "tracker": {
-   "sample": 0.2,
-   "eval": 1.0,
-   "agent": 2.0
+   "sample": 0.1,
+   "eval": 0.6,
+   "agent": 0.6
   },
   "fi": [
    {
-    "line_id": 10,
-    "line": "YWD RECLINER",
-    "zone": "YWD/2UA",
-    "cycles": 170,
+    "line_id": 13,
+    "line": "YJC-SS",
+    "zone": "SEAT SLIDER",
+    "cycles": 1,
     "clips": 0,
     "pct": 0.0
    },
    {
-    "line_id": 38,
-    "line": "YNC-SA-6WAY",
-    "zone": "Sub-Assembly",
-    "cycles": 160,
+    "line_id": 21,
+    "line": "Loop Pipe-Line 2",
+    "zone": "Loop Pipe",
+    "cycles": 46,
     "clips": 0,
     "pct": 0.0
    },
@@ -1182,324 +1235,153 @@
     "line_id": 30,
     "line": "Loop Pipe-Line 1",
     "zone": "Loop Pipe",
-    "cycles": 137,
-    "clips": 137,
-    "pct": 100.0
-   },
-   {
-    "line_id": 15,
-    "line": "Y17-SS",
-    "zone": "SEAT SLIDER",
-    "cycles": 222,
-    "clips": 222,
-    "pct": 100.0
-   },
-   {
-    "line_id": 19,
-    "line": "YMC-SS",
-    "zone": "SEAT SLIDER",
-    "cycles": 230,
-    "clips": 230,
-    "pct": 100.0
-   },
-   {
-    "line_id": 4,
-    "line": "YSD-SS",
-    "zone": "SEAT SLIDER",
-    "cycles": 237,
-    "clips": 237,
-    "pct": 100.0
-   },
-   {
-    "line_id": 6,
-    "line": "YWD-SS",
-    "zone": "YWD/2UA",
-    "cycles": 36,
-    "clips": 36,
-    "pct": 100.0
-   },
-   {
-    "line_id": 35,
-    "line": "YHB-SA-4WAY",
-    "zone": "Sub-Assembly",
-    "cycles": 266,
-    "clips": 266,
-    "pct": 100.0
-   },
-   {
-    "line_id": 33,
-    "line": "YRA-SA-4WAY",
-    "zone": "Sub-Assembly",
-    "cycles": 285,
-    "clips": 285,
-    "pct": 100.0
-   },
-   {
-    "line_id": 31,
-    "line": "Loop Pipe-Line 3",
-    "zone": "Loop Pipe",
-    "cycles": 179,
-    "clips": 179,
-    "pct": 100.0
-   },
-   {
-    "line_id": 11,
-    "line": "YHB-SS",
-    "zone": "SEAT SLIDER",
-    "cycles": 248,
-    "clips": 248,
-    "pct": 100.0
-   },
-   {
-    "line_id": 14,
-    "line": "YFG-SS",
-    "zone": "SEAT SLIDER",
-    "cycles": 229,
-    "clips": 229,
-    "pct": 100.0
-   },
-   {
-    "line_id": 36,
-    "line": "YNC-SA-4WAY",
-    "zone": "Sub-Assembly",
-    "cycles": 299,
-    "clips": 299,
-    "pct": 100.0
-   },
-   {
-    "line_id": 20,
-    "line": "YMC Recliner",
-    "zone": "Recliner",
-    "cycles": 205,
-    "clips": 205,
-    "pct": 100.0
-   },
-   {
-    "line_id": 34,
-    "line": "YSD-SA-4WAY",
-    "zone": "Sub-Assembly",
-    "cycles": 315,
-    "clips": 315,
-    "pct": 100.0
-   },
-   {
-    "line_id": 12,
-    "line": "YCA-SS",
-    "zone": "SEAT SLIDER",
-    "cycles": 232,
-    "clips": 232,
-    "pct": 100.0
-   },
-   {
-    "line_id": 21,
-    "line": "Loop Pipe-Line 2",
-    "zone": "Loop Pipe",
-    "cycles": 184,
-    "clips": 184,
-    "pct": 100.0
-   },
-   {
-    "line_id": 7,
-    "line": "GEAR LIFTER",
-    "zone": "YWD/2UA",
-    "cycles": 403,
-    "clips": 403,
-    "pct": 100.0
-   },
-   {
-    "line_id": 41,
-    "line": "NUT WELDING SA",
-    "zone": "Sub-Assembly",
-    "cycles": 329,
-    "clips": 329,
-    "pct": 100.0
-   },
-   {
-    "line_id": 39,
-    "line": "Y17-SA-4WAY",
-    "zone": "Sub-Assembly",
-    "cycles": 244,
-    "clips": 244,
-    "pct": 100.0
-   },
-   {
-    "line_id": 8,
-    "line": "2UA RECLINER",
-    "zone": "YWD/2UA",
-    "cycles": 127,
-    "clips": 127,
-    "pct": 100.0
-   },
-   {
-    "line_id": 2,
-    "line": "YNC-SS",
-    "zone": "SEAT SLIDER",
-    "cycles": 192,
-    "clips": 192,
-    "pct": 100.0
-   },
-   {
-    "line_id": 13,
-    "line": "YJC-SS",
-    "zone": "SEAT SLIDER",
-    "cycles": 230,
-    "clips": 230,
-    "pct": 100.0
-   },
-   {
-    "line_id": 18,
-    "line": "YRA-SS",
-    "zone": "SEAT SLIDER",
-    "cycles": 228,
-    "clips": 228,
-    "pct": 100.0
+    "cycles": 35,
+    "clips": 0,
+    "pct": 0.0
    }
   ],
-  "fi_pct": 93.9,
-  "sub_pct": 27.5,
+  "fi_pct": 0.0,
+  "sub_pct": 14.1,
   "totals": {
-   "fi_cycles": 5387,
-   "fi_clips": 5057,
-   "sub_cycles": 22119,
-   "sub_clips": 6089
+   "fi_cycles": 82,
+   "fi_clips": 0,
+   "sub_cycles": 348,
+   "sub_clips": 49
   },
   "zones": [
    {
-    "zone": "SEAT SLIDER",
-    "cycles": 10464,
-    "clips": 6085,
-    "pct": 58.2,
-    "baseline": 47.1,
-    "samples": 390
-   },
-   {
-    "zone": "Sub-Assembly",
-    "cycles": 5522,
-    "clips": 0,
-    "pct": 0.0,
-    "baseline": 0.0,
-    "samples": 408
-   },
-   {
-    "zone": "Recliner",
-    "cycles": 3203,
-    "clips": 2,
-    "pct": 0.1,
-    "baseline": 0.1,
-    "samples": 315
-   },
-   {
     "zone": "Loop Pipe",
-    "cycles": 2930,
-    "clips": 2,
-    "pct": 0.1,
-    "baseline": 6.9,
-    "samples": 400
+    "cycles": 324,
+    "clips": 39,
+    "pct": 12.0,
+    "baseline": 12.8,
+    "samples": 436
+   },
+   {
+    "zone": "SEAT SLIDER",
+    "cycles": 24,
+    "clips": 10,
+    "pct": 41.7,
+    "baseline": 49.8,
+    "samples": 430
    }
   ],
   "cameras": {
-   "recording": 104,
-   "camera_wrong_ip": 11,
-   "camera_offline": 26
+   "cms_down": 143
   },
   "recorders": {
-   "cameras": 104,
+   "cameras": 34,
    "duplicates": 0,
    "stuck": 0,
    "deleted_file": 0
   },
   "reasons": {
-   "clip_failed": 13462,
-   "camera_offline": 1378,
-   "no_camera": 1038,
-   "camera_hung": 22
+   "camera_hung": 217,
+   "no_camera": 140
   },
-  "disk_free_tb": 10.51,
+  "disk_free_tb": 10.78,
   "shift": null
  },
- "video_ran_at": "2026-09-24 14:45:05",
+ "video_ran_at": "2026-09-24 23:00:25",
  "dry_run": false,
  "collectors": {
   "total": 29,
   "running": 29,
-  "problem_lines": 13,
+  "problem_lines": 20,
   "rows": [
    {
     "collector": "collector_2ua_recliner",
     "line": "2UA RECLINER",
     "running": true,
-    "log_silent_s": 3,
-    "db_age_s": 0,
-    "parts_15m": 11,
+    "log_silent_s": 13,
+    "db_age_s": 16210,
+    "parts_15m": 0,
     "sub_parts_15m": 0,
     "plc_off_pct": 0,
-    "problems": []
+    "problems": [
+     "db_stale"
+    ]
    },
    {
     "collector": "collector_gear_lifter",
     "line": "GEAR LIFTER",
     "running": true,
-    "log_silent_s": 0,
-    "db_age_s": 0,
-    "parts_15m": 32,
+    "log_silent_s": 13,
+    "db_age_s": 16209,
+    "parts_15m": 0,
     "sub_parts_15m": 0,
     "plc_off_pct": 0,
-    "problems": []
+    "problems": [
+     "db_stale"
+    ]
    },
    {
     "collector": "collector_l_1",
     "line": "YRA-SA-4WAY",
     "running": true,
-    "log_silent_s": 1,
+    "log_silent_s": 0,
     "db_age_s": 0,
-    "parts_15m": 99,
-    "sub_parts_15m": 96,
-    "plc_off_pct": 0,
-    "problems": []
+    "parts_15m": 0,
+    "sub_parts_15m": 0,
+    "plc_off_pct": 100,
+    "problems": [
+     "plc_offline",
+     "sub_offline"
+    ]
    },
    {
     "collector": "collector_l_2",
     "line": "YSD-SA-4WAY",
     "running": true,
-    "log_silent_s": 1,
-    "db_age_s": 0,
-    "parts_15m": 66,
-    "sub_parts_15m": 65,
-    "plc_off_pct": 0,
-    "problems": []
+    "log_silent_s": 2,
+    "db_age_s": 2,
+    "parts_15m": 0,
+    "sub_parts_15m": 0,
+    "plc_off_pct": 100,
+    "problems": [
+     "plc_offline",
+     "sub_offline"
+    ]
    },
    {
     "collector": "collector_l_3",
     "line": "YHB-SA-4WAY",
     "running": true,
     "log_silent_s": 1,
-    "db_age_s": 0,
-    "parts_15m": 94,
-    "sub_parts_15m": 93,
-    "plc_off_pct": 0,
-    "problems": []
+    "db_age_s": 1,
+    "parts_15m": 0,
+    "sub_parts_15m": 0,
+    "plc_off_pct": 100,
+    "problems": [
+     "plc_offline",
+     "sub_offline"
+    ]
    },
    {
     "collector": "collector_l_4",
     "line": "YNC-SA-4WAY",
     "running": true,
     "log_silent_s": 1,
-    "db_age_s": 0,
-    "parts_15m": 90,
-    "sub_parts_15m": 87,
-    "plc_off_pct": 0,
-    "problems": []
+    "db_age_s": 1,
+    "parts_15m": 0,
+    "sub_parts_15m": 0,
+    "plc_off_pct": 100,
+    "problems": [
+     "plc_offline",
+     "sub_offline"
+    ]
    },
    {
     "collector": "collector_l_6",
     "line": "YNC-SA-6WAY",
     "running": true,
-    "log_silent_s": 0,
-    "db_age_s": 0,
-    "parts_15m": 53,
-    "sub_parts_15m": 51,
-    "plc_off_pct": 0,
+    "log_silent_s": 1,
+    "db_age_s": 1,
+    "parts_15m": 0,
+    "sub_parts_15m": 0,
+    "plc_off_pct": 100,
     "problems": [
+     "plc_offline",
      "sub_offline"
     ]
    },
@@ -1507,35 +1389,36 @@
     "collector": "collector_l_7",
     "line": "Y17-SA-4WAY",
     "running": true,
-    "log_silent_s": 0,
-    "db_age_s": 0,
-    "parts_15m": 80,
-    "sub_parts_15m": 80,
-    "plc_off_pct": 0,
-    "problems": []
+    "log_silent_s": 1,
+    "db_age_s": 1,
+    "parts_15m": 0,
+    "sub_parts_15m": 0,
+    "plc_off_pct": 100,
+    "problems": [
+     "plc_offline",
+     "sub_offline"
+    ]
    },
    {
     "collector": "collector_lp_01",
     "line": "Loop Pipe-Line 1",
     "running": true,
-    "log_silent_s": 1,
-    "db_age_s": 0,
-    "parts_15m": 35,
-    "sub_parts_15m": 84,
-    "plc_off_pct": 3,
-    "problems": [
-     "count_stuck"
-    ]
+    "log_silent_s": 3,
+    "db_age_s": 1,
+    "parts_15m": 40,
+    "sub_parts_15m": 44,
+    "plc_off_pct": 8,
+    "problems": []
    },
    {
     "collector": "collector_lp_02",
     "line": "Loop Pipe-Line 2",
     "running": true,
     "log_silent_s": 0,
-    "db_age_s": 1,
+    "db_age_s": 0,
     "parts_15m": 48,
-    "sub_parts_15m": 105,
-    "plc_off_pct": 8,
+    "sub_parts_15m": 108,
+    "plc_off_pct": 6,
     "problems": [
      "count_stuck"
     ]
@@ -1544,23 +1427,36 @@
     "collector": "collector_lp_03",
     "line": "Loop Pipe-Line 3",
     "running": true,
-    "log_silent_s": 1,
-    "db_age_s": 1,
-    "parts_15m": 47,
-    "sub_parts_15m": 101,
-    "plc_off_pct": 5,
+    "log_silent_s": 2,
+    "db_age_s": 2,
+    "parts_15m": 0,
+    "sub_parts_15m": 0,
+    "plc_off_pct": 100,
     "problems": [
-     "count_stuck",
-     "sub_offline",
-     "sub_idle"
+     "plc_offline",
+     "sub_offline"
     ]
    },
    {
     "collector": "collector_nut_lifting",
     "line": "NUT LIFTING",
     "running": true,
+    "log_silent_s": 1,
+    "db_age_s": 16211,
+    "parts_15m": 0,
+    "sub_parts_15m": 0,
+    "plc_off_pct": 100,
+    "problems": [
+     "db_stale",
+     "plc_offline"
+    ]
+   },
+   {
+    "collector": "collector_pwm_39",
+    "line": "NUT WELDING SA",
+    "running": true,
     "log_silent_s": 2,
-    "db_age_s": 0,
+    "db_age_s": 2,
     "parts_15m": 0,
     "sub_parts_15m": 0,
     "plc_off_pct": 100,
@@ -1569,25 +1465,14 @@
     ]
    },
    {
-    "collector": "collector_pwm_39",
-    "line": "NUT WELDING SA",
-    "running": true,
-    "log_silent_s": 0,
-    "db_age_s": 0,
-    "parts_15m": 45,
-    "sub_parts_15m": 0,
-    "plc_off_pct": 0,
-    "problems": []
-   },
-   {
     "collector": "collector_y17_l7",
     "line": "Y17-SS",
     "running": true,
-    "log_silent_s": 2,
-    "db_age_s": 2,
-    "parts_15m": 56,
-    "sub_parts_15m": 17,
-    "plc_off_pct": 1,
+    "log_silent_s": 0,
+    "db_age_s": 1,
+    "parts_15m": 60,
+    "sub_parts_15m": 63,
+    "plc_off_pct": 0,
     "problems": []
    },
    {
@@ -1596,8 +1481,8 @@
     "running": true,
     "log_silent_s": 2,
     "db_age_s": 0,
-    "parts_15m": 12,
-    "sub_parts_15m": 14,
+    "parts_15m": 65,
+    "sub_parts_15m": 66,
     "plc_off_pct": 0,
     "problems": []
    },
@@ -1607,21 +1492,19 @@
     "running": true,
     "log_silent_s": 1,
     "db_age_s": 0,
-    "parts_15m": 42,
-    "sub_parts_15m": 13,
+    "parts_15m": 57,
+    "sub_parts_15m": 57,
     "plc_off_pct": 0,
-    "problems": [
-     "sub_idle"
-    ]
+    "problems": []
    },
    {
     "collector": "collector_yhb_l3",
     "line": "YHB-SS",
     "running": true,
-    "log_silent_s": 1,
+    "log_silent_s": 0,
     "db_age_s": 0,
-    "parts_15m": 9,
-    "sub_parts_15m": 15,
+    "parts_15m": 74,
+    "sub_parts_15m": 68,
     "plc_off_pct": 0,
     "problems": []
    },
@@ -1630,9 +1513,9 @@
     "line": "YHB Recliner",
     "running": true,
     "log_silent_s": 1,
-    "db_age_s": 0,
+    "db_age_s": 1,
     "parts_15m": 0,
-    "sub_parts_15m": 15,
+    "sub_parts_15m": 61,
     "plc_off_pct": 100,
     "problems": [
      "not_counting",
@@ -1644,10 +1527,10 @@
     "collector": "collector_yjc_l2",
     "line": "YJC-SS",
     "running": true,
-    "log_silent_s": 1,
+    "log_silent_s": 2,
     "db_age_s": 0,
-    "parts_15m": 35,
-    "sub_parts_15m": 15,
+    "parts_15m": 63,
+    "sub_parts_15m": 64,
     "plc_off_pct": 0,
     "problems": []
    },
@@ -1655,21 +1538,21 @@
     "collector": "collector_ymc_l5",
     "line": "YMC Recliner",
     "running": true,
-    "log_silent_s": 2,
+    "log_silent_s": 0,
     "db_age_s": 0,
-    "parts_15m": 23,
-    "sub_parts_15m": 23,
-    "plc_off_pct": 5,
+    "parts_15m": 59,
+    "sub_parts_15m": 66,
+    "plc_off_pct": 6,
     "problems": []
    },
    {
     "collector": "collector_ymc_l9",
     "line": "YMC-SS",
     "running": true,
-    "log_silent_s": 1,
+    "log_silent_s": 0,
     "db_age_s": 0,
-    "parts_15m": 8,
-    "sub_parts_15m": 7,
+    "parts_15m": 32,
+    "sub_parts_15m": 31,
     "plc_off_pct": 0,
     "problems": []
    },
@@ -1677,10 +1560,10 @@
     "collector": "collector_ync_l4",
     "line": "YNC Recliner",
     "running": true,
-    "log_silent_s": 0,
-    "db_age_s": 11704,
+    "log_silent_s": 2,
+    "db_age_s": 16207,
     "parts_15m": null,
-    "sub_parts_15m": 10,
+    "sub_parts_15m": 62,
     "plc_off_pct": 100,
     "problems": [
      "db_stale",
@@ -1693,10 +1576,10 @@
     "collector": "collector_ync_l6",
     "line": "YNC-SS",
     "running": true,
-    "log_silent_s": 1,
+    "log_silent_s": 0,
     "db_age_s": 0,
-    "parts_15m": 16,
-    "sub_parts_15m": 19,
+    "parts_15m": 70,
+    "sub_parts_15m": 71,
     "plc_off_pct": 0,
     "problems": [
      "sub_offline"
@@ -1707,9 +1590,9 @@
     "line": "YRA Recliner",
     "running": true,
     "log_silent_s": 1,
-    "db_age_s": 0,
+    "db_age_s": 1,
     "parts_15m": 0,
-    "sub_parts_15m": 12,
+    "sub_parts_15m": 71,
     "plc_off_pct": 100,
     "problems": [
      "not_counting",
@@ -1723,8 +1606,8 @@
     "running": true,
     "log_silent_s": 0,
     "db_age_s": 0,
-    "parts_15m": 11,
-    "sub_parts_15m": 14,
+    "parts_15m": 36,
+    "sub_parts_15m": 35,
     "plc_off_pct": 0,
     "problems": [
      "sub_offline"
@@ -1734,10 +1617,10 @@
     "collector": "collector_ysd_l2",
     "line": "YSD-SS",
     "running": true,
-    "log_silent_s": 1,
+    "log_silent_s": 3,
     "db_age_s": 0,
-    "parts_15m": 11,
-    "sub_parts_15m": 12,
+    "parts_15m": 62,
+    "sub_parts_15m": 63,
     "plc_off_pct": 0,
     "problems": []
    },
@@ -1745,10 +1628,10 @@
     "collector": "collector_ysd_l2_rec",
     "line": "YSD Recliner",
     "running": true,
-    "log_silent_s": 0,
-    "db_age_s": 11704,
+    "log_silent_s": 2,
+    "db_age_s": 16168,
     "parts_15m": null,
-    "sub_parts_15m": 12,
+    "sub_parts_15m": 69,
     "plc_off_pct": 100,
     "problems": [
      "db_stale",
@@ -1762,30 +1645,32 @@
     "line": "YWD RECLINER",
     "running": true,
     "log_silent_s": 1,
-    "db_age_s": 0,
-    "parts_15m": 11,
+    "db_age_s": 16211,
+    "parts_15m": 0,
     "sub_parts_15m": 0,
     "plc_off_pct": 0,
-    "problems": []
+    "problems": [
+     "db_stale"
+    ]
    },
    {
     "collector": "collector_ywd_ss",
     "line": "YWD-SS",
     "running": true,
-    "log_silent_s": 0,
-    "db_age_s": 0,
+    "log_silent_s": 15,
+    "db_age_s": 16211,
     "parts_15m": 0,
     "sub_parts_15m": 0,
-    "plc_off_pct": 100,
+    "plc_off_pct": 0,
     "problems": [
-     "plc_offline"
+     "db_stale"
     ]
    }
   ]
  },
- "collectors_ran_at": "2026-09-24 14:45:05",
+ "collectors_ran_at": "2026-09-24 23:00:25",
  "collector_report": {
-  "problems": 23,
+  "problems": 22,
   "alerts_sent": 1,
   "would_send": null
  },
@@ -1793,7 +1678,7 @@
   "days": [
    "20260924"
   ],
-  "bins": 118,
+  "bins": 158,
   "short": [
    {
     "day": "20260924",
@@ -1802,7 +1687,7 @@
     "end": "09:22:03",
     "live": 9,
     "recount": 10,
-    "age_s": 19381,
+    "age_s": 49091,
     "operator": null,
     "clip": "bin_013_9of10_092203.mp4",
     "clip_ok": true
@@ -1814,7 +1699,7 @@
     "end": "10:23:36",
     "live": 9,
     "recount": 10,
-    "age_s": 15688,
+    "age_s": 45398,
     "operator": null,
     "clip": "bin_032_9of10_102336.mp4",
     "clip_ok": true
@@ -1826,9 +1711,21 @@
     "end": "14:11:35",
     "live": 9,
     "recount": 10,
-    "age_s": 2009,
+    "age_s": 31719,
     "operator": null,
     "clip": "bin_111_9of10_141135.mp4",
+    "clip_ok": true
+   },
+   {
+    "day": "20260924",
+    "bin": 123,
+    "start": "14:59:09",
+    "end": "15:01:55",
+    "live": 9,
+    "recount": 10,
+    "age_s": 28699,
+    "operator": null,
+    "clip": "bin_123_9of10_150155.mp4",
     "clip_ok": true
    }
   ],
@@ -1840,7 +1737,7 @@
     "end": "09:27:39",
     "live": null,
     "recount": 10,
-    "age_s": 19045,
+    "age_s": 48755,
     "operator": null,
     "clip": "bin_015_nocount_092739.mp4",
     "clip_ok": true
@@ -1852,7 +1749,7 @@
     "end": "09:30:51",
     "live": null,
     "recount": 10,
-    "age_s": 18853,
+    "age_s": 48563,
     "operator": null,
     "clip": "bin_016_nocount_093051.mp4",
     "clip_ok": true
@@ -1864,9 +1761,33 @@
     "end": "10:47:52",
     "live": null,
     "recount": null,
-    "age_s": 14232,
+    "age_s": 43942,
     "operator": null,
     "clip": "bin_042_nocount_104752.mp4",
+    "clip_ok": true
+   },
+   {
+    "day": "20260924",
+    "bin": 151,
+    "start": "16:02:08",
+    "end": "16:49:49",
+    "live": null,
+    "recount": null,
+    "age_s": 22225,
+    "operator": null,
+    "clip": "bin_151_nocount_164949.mp4",
+    "clip_ok": true
+   },
+   {
+    "day": "20260924",
+    "bin": 152,
+    "start": "16:49:53",
+    "end": "16:56:53",
+    "live": null,
+    "recount": null,
+    "age_s": 21801,
+    "operator": null,
+    "clip": "bin_152_nocount_165653.mp4",
     "clip_ok": true
    }
   ],
@@ -1924,6 +1845,33 @@
     "recount": "10",
     "result": "false_short_cleared",
     "at": "2026-09-24T14:16:08"
+   },
+   {
+    "day": "20260924",
+    "bin": "123",
+    "start": "14:59:09",
+    "live": "9",
+    "recount": "10",
+    "result": "false_short_cleared",
+    "at": "2026-09-24T15:05:36"
+   },
+   {
+    "day": "20260924",
+    "bin": "151",
+    "start": "16:02:08",
+    "live": "",
+    "recount": "",
+    "result": "no_clean_count",
+    "at": "2026-09-24T17:06:43"
+   },
+   {
+    "day": "20260924",
+    "bin": "152",
+    "start": "16:49:53",
+    "live": "",
+    "recount": "",
+    "result": "no_clean_count",
+    "at": "2026-09-24T17:13:59"
    }
   ],
   "videos": {
@@ -1934,26 +1882,26 @@
    "avg_s": 0.02
   },
   "jobs": {
-   "live5m5": 3,
-   "binclips": 20,
-   "recover": 25,
+   "live5m5": 19767,
+   "binclips": 19784,
+   "recover": 19785,
    "recorder": 0
   },
-  "counting": "LIVE",
+  "counting": "STOPPED",
   "short_summary": {
-   "total": 3,
-   "false_cleared": 3,
+   "total": 4,
+   "false_cleared": 4,
    "confirmed": 0,
    "operator_decided": 0
   },
   "not_counted_summary": {
-   "total": 3,
+   "total": 5,
    "counted_from_recording": 2,
    "operator_counted": 0,
-   "need_manual": 1
+   "need_manual": 3
   }
  },
- "binfill_ran_at": "2026-09-24 14:45:05",
+ "binfill_ran_at": "2026-09-24 23:00:25",
  "binfill_report": {
   "problems": 1,
   "auto_new": 0,
@@ -1974,103 +1922,83 @@
    "SEAT SLIDER"
   ],
   "saved_at": "2026-09-21 22:31:48",
-  "window": "14:00\u201314:42",
+  "window": "22:15\u201322:57",
   "rows": [
    {
-    "cycles": 365,
-    "clip": 363,
-    "no_camera": 2,
-    "no_footage": 0,
+    "cycles": 321,
+    "clip": 0,
+    "no_camera": 0,
+    "no_footage": 321,
     "not_cut": 0,
     "cls": "P1",
     "zone": "Loop Pipe",
-    "pct": 99.5
+    "pct": 0.0
    },
    {
-    "cycles": 132,
-    "clip": 131,
+    "cycles": 55,
+    "clip": 0,
     "no_camera": 0,
-    "no_footage": 0,
-    "not_cut": 1,
+    "no_footage": 55,
+    "not_cut": 0,
     "cls": "P1",
     "zone": "Recliner",
-    "pct": 99.2
+    "pct": 0.0
    },
    {
-    "cycles": 1154,
-    "clip": 1126,
+    "cycles": 737,
+    "clip": 385,
     "no_camera": 0,
-    "no_footage": 0,
-    "not_cut": 28,
+    "no_footage": 352,
+    "not_cut": 0,
     "cls": "P1",
     "zone": "SEAT SLIDER",
-    "pct": 97.6
+    "pct": 52.2
    },
    {
-    "cycles": 1326,
-    "clip": 1180,
-    "no_camera": 0,
-    "no_footage": 124,
-    "not_cut": 22,
-    "cls": "P1",
-    "zone": "Sub-Assembly",
-    "pct": 89.0
-   },
-   {
-    "cycles": 419,
-    "clip": 314,
-    "no_camera": 0,
-    "no_footage": 99,
-    "not_cut": 6,
-    "cls": "P1",
-    "zone": "YWD/2UA",
-    "pct": 74.9
-   },
-   {
-    "cycles": 2417,
-    "clip": 479,
-    "no_camera": 820,
-    "no_footage": 1,
-    "not_cut": 1117,
+    "cycles": 1804,
+    "clip": 205,
+    "no_camera": 792,
+    "no_footage": 780,
+    "not_cut": 27,
     "cls": "P2",
     "zone": "Loop Pipe",
-    "pct": 19.8
+    "pct": 11.4
    },
    {
-    "cycles": 4892,
-    "clip": 3470,
+    "cycles": 3551,
+    "clip": 1531,
     "no_camera": 0,
-    "no_footage": 0,
-    "not_cut": 1422,
+    "no_footage": 1610,
+    "not_cut": 410,
     "cls": "P2",
     "zone": "SEAT SLIDER",
-    "pct": 70.9
+    "pct": 43.1
    }
   ],
-  "p3_skipped": 5624,
+  "p3_skipped": 1121,
   "P1": {
-   "cycles": 3396,
-   "clip": 3114,
-   "pct": 91.7,
-   "not_cut": 57,
-   "no_footage": 225
+   "cycles": 1113,
+   "clip": 385,
+   "pct": 34.6,
+   "not_cut": 0,
+   "no_footage": 728
   },
   "P2": {
-   "cycles": 7309,
-   "clip": 3949,
-   "pct": 54.0,
-   "not_cut": 2539,
-   "no_footage": 821
+   "cycles": 5355,
+   "clip": 1736,
+   "pct": 32.4,
+   "not_cut": 437,
+   "no_footage": 3182
   }
  },
  "clip_priority_report": {
   "sent": 1
  },
- "video_took_s": 3.4,
+ "video_took_s": 23.4,
  "video_alerts": {
   "new": 0,
-  "cleared": 0,
-  "alerts_sent": 0,
+  "cleared": 6,
+  "alerts_sent": 1,
   "would_send": null
  }
 }
