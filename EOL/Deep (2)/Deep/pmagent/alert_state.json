@@ -101,11 +101,11 @@
  },
  "video:fi:10": {
   "sev": "critical",
-  "what": "YWD RECLINER Final Inspection video 0% (0/125)"
+  "what": "YWD RECLINER Final Inspection video 0% (0/170)"
  },
  "video:fi:38": {
   "sev": "critical",
-  "what": "YNC-SA-6WAY Final Inspection video 0% (0/111)"
+  "what": "YNC-SA-6WAY Final Inspection video 0% (0/160)"
  },
  "video:zone0:Sub-Assembly": {
   "sev": "warning",
@@ -141,7 +141,7 @@
  },
  "video:archiver": {
   "sev": "warning",
-  "what": "Archiver is not keeping up: 85% of missing clips were never cut"
+  "what": "Archiver is not keeping up: 84% of missing clips were never cut"
  },
  "video:nocam": {
   "sev": "info",
@@ -153,15 +153,15 @@
  },
  "collector:collector_lp_01:count_stuck": {
   "sev": "critical",
-  "what": "Loop Pipe-Line 1 (collector_lp_01): count stuck \u2014 PLC D101 reads 1397, MES holds 1052"
+  "what": "Loop Pipe-Line 1 (collector_lp_01): count stuck \u2014 PLC D101 reads 1463, MES holds 1086"
  },
  "collector:collector_lp_02:count_stuck": {
   "sev": "critical",
-  "what": "Loop Pipe-Line 2 (collector_lp_02): count stuck \u2014 PLC D101 reads 1885, MES holds 1404"
+  "what": "Loop Pipe-Line 2 (collector_lp_02): count stuck \u2014 PLC D101 reads 1978, MES holds 1450"
  },
  "collector:collector_lp_03:count_stuck": {
   "sev": "critical",
-  "what": "Loop Pipe-Line 3 (collector_lp_03): count stuck \u2014 PLC D101 reads 1380, MES holds 1045"
+  "what": "Loop Pipe-Line 3 (collector_lp_03): count stuck \u2014 PLC D101 reads 1473, MES holds 1092"
  },
  "collector:collector_lp_03:sub_offline": {
   "sev": "warning",
@@ -175,17 +175,13 @@
   "sev": "info",
   "what": "NUT LIFTING (collector_nut_lifting): main PLC unreachable 100% of the time (line not producing)"
  },
- "collector:collector_y17_l7:count_stuck": {
-  "sev": "critical",
-  "what": "Y17-SS (collector_y17_l7): count stuck \u2014 PLC D101 reads 1258, MES holds 1216"
- },
- "collector:collector_yfg_ss:count_stuck": {
-  "sev": "critical",
-  "what": "YFG-SS (collector_yfg_ss): count stuck \u2014 PLC D101 reads 1254, MES holds 1226"
+ "collector:collector_yfg_ss:sub_idle": {
+  "sev": "warning",
+  "what": "YFG-SS (collector_yfg_ss): 1 sub-machine(s) not counting while siblings made \u226510 parts"
  },
  "collector:collector_yhb_l3_rec:not_counting": {
   "sev": "critical",
-  "what": "YHB Recliner (collector_yhb_l3_rec): main count not moving \u2014 sub-machines made 67 parts in 15 min, main 0"
+  "what": "YHB Recliner (collector_yhb_l3_rec): main count not moving \u2014 sub-machines made 15 parts in 15 min, main 0"
  },
  "collector:collector_yhb_l3_rec:plc_offline": {
   "sev": "warning",
@@ -195,17 +191,13 @@
   "sev": "warning",
   "what": "YHB Recliner (collector_yhb_l3_rec): 4 sub-machine(s) offline"
  },
- "collector:collector_yjc_l2:down": {
-  "sev": "critical",
-  "what": "YJC-SS (collector_yjc_l2): collector not running"
- },
  "collector:collector_ync_l4:db_stale": {
   "sev": "critical",
-  "what": "YNC Recliner (collector_ync_l4): dashboard not updated for 180 min"
+  "what": "YNC Recliner (collector_ync_l4): dashboard not updated for 195 min"
  },
  "collector:collector_ync_l4:db_errors": {
   "sev": "critical",
-  "what": "YNC Recliner (collector_ync_l4): DB writes failing \u2014 101\u00d7 hourly write in 15 min"
+  "what": "YNC Recliner (collector_ync_l4): DB writes failing \u2014 147\u00d7 hourly write in 15 min"
  },
  "collector:collector_ync_l4:plc_offline": {
   "sev": "warning",
@@ -213,11 +205,7 @@
  },
  "collector:collector_ync_l4:sub_offline": {
   "sev": "warning",
-  "what": "YNC Recliner (collector_ync_l4): 3 sub-machine(s) offline"
- },
- "collector:collector_ync_l4:sub_idle": {
-  "sev": "warning",
-  "what": "YNC Recliner (collector_ync_l4): 2 sub-machine(s) not counting while siblings made \u226510 parts"
+  "what": "YNC Recliner (collector_ync_l4): 5 sub-machine(s) offline"
  },
  "collector:collector_ync_l6:sub_offline": {
   "sev": "warning",
@@ -225,7 +213,7 @@
  },
  "collector:collector_yra_l1:not_counting": {
   "sev": "critical",
-  "what": "YRA Recliner (collector_yra_l1): main count not moving \u2014 sub-machines made 51 parts in 15 min, main 0"
+  "what": "YRA Recliner (collector_yra_l1): main count not moving \u2014 sub-machines made 12 parts in 15 min, main 0"
  },
  "collector:collector_yra_l1:plc_offline": {
   "sev": "warning",
@@ -241,11 +229,11 @@
  },
  "collector:collector_ysd_l2_rec:db_stale": {
   "sev": "critical",
-  "what": "YSD Recliner (collector_ysd_l2_rec): dashboard not updated for 180 min"
+  "what": "YSD Recliner (collector_ysd_l2_rec): dashboard not updated for 195 min"
  },
  "collector:collector_ysd_l2_rec:db_errors": {
   "sev": "critical",
-  "what": "YSD Recliner (collector_ysd_l2_rec): DB writes failing \u2014 111\u00d7 hourly write in 15 min"
+  "what": "YSD Recliner (collector_ysd_l2_rec): DB writes failing \u2014 232\u00d7 hourly write in 15 min"
  },
  "collector:collector_ysd_l2_rec:plc_offline": {
   "sev": "warning",
