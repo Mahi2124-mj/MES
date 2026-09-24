@@ -121,7 +121,11 @@ function WeldChart({ title, paramKey, unit, readings, spec, color, xMode }) {
 /* 2026-09-21 — gas sensor on the PPI analog card at 192.168.32.52, channel 6
  * (Phase2/gas_poller.py reads it every 2 s into mes_gas_log).  It is its own
  * feed — not tied to a weld, station or the filters above — so the x-axis is
- * time and it shows the last 30 minutes. */
+ * time and it shows the last 30 minutes.
+ * 2026-09-22 — shown as "Gas Flow" with the sign flipped (operator): the card
+ * reports flow as negative, so negative readings display positive and positive
+ * readings negative.  Display only — the stored readings are unchanged. */
+const flip = (v) => (v == null || v === "" || isNaN(Number(v)) ? null : (Number(v) === 0 ? 0 : -Number(v)));
 function GasChart({ token }) {
   const [g, setG] = useState(null);
   const [err, setErr] = useState("");
@@ -138,9 +142,9 @@ function GasChart({ token }) {
   const unit = (g && g.unit) || "";
   const data = ((g && g.readings) || []).map(r => ({
     x: r.ts ? new Date(r.ts).toLocaleTimeString("en-GB", { hour12: false }) : "",
-    v: r.v,
+    v: flip(r.v),
   }));
-  const latest = g ? g.latest : null;
+  const latest = g ? flip(g.latest) : null;
   const live = g && g.age_s != null && g.age_s <= 30;
   const badge = latest == null ? "NO DATA" : live ? "LIVE" : "NO NEW DATA";
 
@@ -153,7 +157,7 @@ function GasChart({ token }) {
                      marginBottom: 12, flexWrap: "wrap", gap: 10 }}>
         <div>
           <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: ".06em",
-                         textTransform: "uppercase", color: "#64748b" }}>Gas Sensor · CH{(g && g.channel) || 6}</div>
+                         textTransform: "uppercase", color: "#64748b" }}>Gas Flow · CH{(g && g.channel) || 6}</div>
           <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 2 }}>
             Card {(g && g.card) || "192.168.32.52"} · every {(g && g.every_s) || 2}s · last 30 min
             {" · x-axis: "}<b style={{ color: "#64748b" }}>Time</b>
@@ -188,7 +192,7 @@ function GasChart({ token }) {
             <CartesianGrid strokeDasharray="3 3" stroke="#eef2f7" />
             <XAxis dataKey="x" tick={{ fontSize: 10, fill: "#94a3b8" }} minTickGap={24} />
             <YAxis domain={["auto", "auto"]} tick={{ fontSize: 10, fill: "#94a3b8" }} width={44} />
-            <Tooltip formatter={(v) => [`${num(v, 2)} ${unit}`.trim(), "Gas sensor"]} />
+            <Tooltip formatter={(v) => [`${num(v, 2)} ${unit}`.trim(), "Gas flow"]} />
             <Line type="monotone" dataKey="v" stroke="#0f766e" strokeWidth={2}
                   dot={false} isAnimationActive={false} connectNulls />
           </LineChart>

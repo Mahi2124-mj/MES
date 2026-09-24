@@ -44,6 +44,8 @@
                              "action": "Check camera power and cable at the machine."},
     "camera_hung":          {"cause": "The camera answers ping but sends no video, usually a hung stream after a reconnect.",
                              "action": "Power-cycle the camera."},
+    "camera_wrong_ip":      {"cause": "The camera is bound to an IP that belongs to a PLC, so no video can come from it.",
+                             "action": "Correct the camera IP in Camera Master."},
     "recorder_duplicate":   {"cause": "Two recorders are writing the same camera; a single-session camera then drops one.",
                              "action": "Check the CMS recorders for this camera."},
     "recorder_stuck":       {"cause": "The recorder is running but its footage file has stopped growing.",

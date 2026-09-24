@@ -155,6 +155,25 @@ TS_KEEP_SEC = int(TS_KEEP_HOURS * 3600)
 # Shift rotation: one camera at a time, respawn held so the camera can free
 # its single RTSP session before the new recorder connects.
 ROTATE_STAGGER_S = float(os.environ.get("TS_ROTATE_STAGGER_S", "10"))
+# 2026-09-24 — reachability prober: how often a camera WITHOUT a recorder is
+# retried, how long each TCP probe may take, and how many run at once.  Cameras
+# that are recording are never probed.
+PROBE_EVERY_S = float(os.environ.get("CAM_PROBE_EVERY_S", "5"))
+PROBE_TIMEOUT_S = float(os.environ.get("CAM_PROBE_TIMEOUT_S", "2"))
+PROBE_WORKERS = int(os.environ.get("CAM_PROBE_WORKERS", "24"))
+# Startup: seconds between one recorder spawn and the next, so a restart never
+# hits every single-session camera at the same instant.
+PRESTART_STAGGER_S = float(os.environ.get("TS_PRESTART_STAGGER_S", "0.4"))
+# Hung camera self-reboot (camera_revive.py): try only after the camera has been
+# unreachable this long, and never more often than the cool-down.
+REVIVE_AFTER_S = float(os.environ.get("CAM_REVIVE_AFTER_S", "600"))
+REVIVE_COOLDOWN_S = float(os.environ.get("CAM_REVIVE_COOLDOWN_S", "1800"))
+REVIVE_ENABLED = os.environ.get("CAM_REVIVE", "1") not in ("0", "false", "False")
+# A recorder we do not track, still pulling a camera, older than this can only
+# be a leftover from an earlier CMS generation — and on a single-session camera
+# it is what keeps every new recorder out.  Old enough that it can never be a
+# recorder currently being spawned.
+ORPHAN_MIN_AGE_S = float(os.environ.get("CAM_ORPHAN_MIN_AGE_S", "60"))
 ROTATE_QUIET_S = float(os.environ.get("TS_ROTATE_QUIET_S", "20"))
 _PRODUCING: set = set()
 _PRODUCING_AT: float = 0.0
@@ -703,6 +722,23 @@ class PlcMonitor:
         those spawns (one per offline camera every 3 s) that were stealing CPU and
         camera-network bandwidth from the cameras that actually work."""
         import socket as _sock
+        from concurrent.futures import ThreadPoolExecutor
+
+        def _reachable(args):
+            ip, port = args
+            s = _sock.socket(_sock.AF_INET, _sock.SOCK_STREAM)
+            s.settimeout(PROBE_TIMEOUT_S)
+            try:
+                s.connect((ip, port))
+                return True
+            except Exception:
+                return False
+            finally:
+                try: s.close()
+                except Exception: pass
+
+        pool = ThreadPoolExecutor(max_workers=PROBE_WORKERS,
+                                  thread_name_prefix="cam-probe")
         while not self._stop.is_set():
             try:
                 cams = list_cameras(self.base_dir) or []
@@ -714,26 +750,44 @@ class PlcMonitor:
                 # 2026-09-20 — every camera now gets 2 s (operator).  Offline
                 # cameras fail in ~1 s (host unreachable) and hung ones are
                 # refused at once, so a full round still takes ~30 s.
-                unreachable = set()
+                # 2026-09-24 — operator: "mujhe camera hung nhi chahiye koi bhi".
+                # A hung single-session camera frees its RTSP socket for only a
+                # few SECONDS at a time.  This round used to be sequential with a
+                # 2 s timeout — ~31 s for 141 cameras — so it kept missing those
+                # windows and a camera that was ready to record stayed "paused"
+                # for hours (YCA-SS/YSD-SS Final Inspection, 24-Sep).  Now:
+                #   • a camera whose recorder is alive is NOT probed at all — the
+                #     running ffmpeg is the proof, and its RTSP session must not
+                #     be disturbed;
+                #   • the rest are probed in parallel and the round repeats every
+                #     PROBE_EVERY_S, so a window is caught within seconds.
+                # Still a plain TCP connect, never an ffmpeg spawn, so the
+                # bandwidth protection the gate exists for is unchanged.
+                live = set()
+                for _cid, _cam in list(self._camera_workers.items()):
+                    try:
+                        if _cam["proc"].poll() is None:
+                            live.add(_cid)
+                    except Exception:
+                        pass
+                todo, unreachable = [], set()
                 for c in cams:
-                    if self._stop.is_set():
-                        break
                     cid = str(c.get("id") or "").strip()
                     ip  = str(c.get("ip") or "").strip()
-                    if not cid or not ip:
+                    if not cid or not ip or cid in live:
                         continue
-                    port = int(c.get("port") or 554)
-                    s = _sock.socket(_sock.AF_INET, _sock.SOCK_STREAM)
-                    s.settimeout(2.0)
-                    try:
-                        s.connect((ip, port))
-                    except Exception:
-                        unreachable.add(cid)
-                    finally:
-                        try: s.close()
-                        except Exception: pass
+                    todo.append((cid, ip, int(c.get("port") or 554)))
+                if todo and not self._stop.is_set():
+                    for (cid, _ip, _p), ok in zip(
+                            todo, pool.map(_reachable, [(x[1], x[2]) for x in todo])):
+                        if not ok:
+                            unreachable.add(cid)
                 prev = getattr(self, "_cam_unreachable", set())
                 self._cam_unreachable = unreachable
+                try:
+                    self._revive_stuck_cameras(cams, unreachable, prev)
+                except Exception as _rex:
+                    print(f"[REVIVE] pass failed: {_rex}", flush=True)
                 came_back = prev - unreachable
                 went_away = unreachable - prev
                 if came_back:
@@ -745,7 +799,53 @@ class PlcMonitor:
                           f"of {len(cams)}); the live cameras keep the bandwidth.")
             except Exception as exc:
                 print(f"[PLC] reachability probe error: {exc}", flush=True)
-            self._stop.wait(30)
+            self._stop.wait(PROBE_EVERY_S)
+
+    def _revive_stuck_cameras(self, cams, unreachable, prev) -> None:
+        """Ask a long-hung camera to reboot itself (operator-approved 24-Sep).
+
+        These cameras keep the RTSP session of a killed recorder and then refuse
+        every new connection — ping answers, nothing else.  Most of them drop
+        their whole TCP stack, so this only works while a management port is
+        still up; when it is, it saves a walk to the panel.  Credentials come
+        from camera_config and are never logged.  A camera is only tried after
+        REVIVE_AFTER_S of being unreachable, at most once per REVIVE_COOLDOWN_S.
+        """
+        if not REVIVE_ENABLED:
+            return
+        now = time.time()
+        since = getattr(self, "_cam_down_since", None)
+        if since is None:
+            since = self._cam_down_since = {}
+        tried = getattr(self, "_cam_revive_at", None)
+        if tried is None:
+            tried = self._cam_revive_at = {}
+        for cid in unreachable:
+            since.setdefault(cid, now)
+        for cid in list(since):
+            if cid not in unreachable:
+                since.pop(cid, None)
+        due = [cid for cid in unreachable
+               if now - since.get(cid, now) >= REVIVE_AFTER_S
+               and now - tried.get(cid, 0.0) >= REVIVE_COOLDOWN_S]
+        if not due:
+            return
+        try:
+            import camera_revive
+        except Exception as exc:
+            print(f"[REVIVE] module unavailable: {exc}", flush=True)
+            return
+        by_id = {str(c.get("id") or ""): c for c in cams}
+        for cid in due[:4]:                      # a few per round, never a storm
+            cam = by_id.get(cid)
+            if not cam:
+                continue
+            tried[cid] = now
+            down_min = (now - since.get(cid, now)) / 60.0
+            ok, why = camera_revive.revive_camera(
+                cam, log=lambda m: print(m, flush=True))
+            print(f"[REVIVE] {cid} down {down_min:.0f} min -> "
+                  f"{'REBOOT SENT' if ok else 'not revived'}: {why}", flush=True)
 
     # ─── Thread lifecycle ─────────────────────────────────────────────────────
 
@@ -863,13 +963,21 @@ class PlcMonitor:
                 pass
         if pending_removed:
             print(f"[PLC] Startup cleanup: removed {pending_removed} orphan _pending_ files")
+        # 2026-09-24 — spawn one recorder at a time.  This loop used to Popen a
+        # recorder for all ~127 bound cameras back to back; every restart then
+        # hit every single-session camera in the same instant, which is how a
+        # restart used to leave dozens of them hung (24-Sep: 137 at one shift
+        # boundary).  PRESTART_STAGGER_S spreads the same work over ~1 minute.
         started: set = set()
         for b in bindings:
+            if self._stop.is_set():
+                break
             cid = str(b.get("camera_id", "")).strip()
             if cid and cid not in started:
                 self._ensure_camera_recording(cid)
                 started.add(cid)
                 print(f"[PLC] Pre-started TS recorder for camera {cid}")
+                self._stop.wait(PRESTART_STAGGER_S)
 
     def _reset_stale_machine_states(self) -> None:
         """
@@ -1231,7 +1339,37 @@ class PlcMonitor:
                             # to defend — leave any orphans alone, the
                             # next launch attempt will pick its own
                             # process up as the canonical live one.
+                            #
+                            # 2026-09-24 — THAT ASSUMPTION IS WHY CAMERAS
+                            # STAY HUNG.  These cameras allow exactly ONE
+                            # RTSP session.  An ffmpeg still pulling this
+                            # camera while we track NO recorder can only be
+                            # a leftover from an earlier CMS generation
+                            # (restart_cms kills direct children only, so a
+                            # reparented recorder survives every restart).
+                            # It holds the session, so every new recorder
+                            # gets "Connection timed out" and the camera
+                            # looks firmware-hung — ping answers, all TCP
+                            # refused — until the whole stack is killed by
+                            # hand.  So: kill it, but only once it is older
+                            # than ORPHAN_MIN_AGE_S, which keeps the
+                            # 2026-05-21 fix intact (never shoot a recorder
+                            # we are in the middle of spawning).
                             if live_pid is None:
+                                try:
+                                    _age = time.time() - p.create_time()
+                                except Exception:
+                                    _age = 0.0
+                                if _age >= ORPHAN_MIN_AGE_S:
+                                    print(f"[PLC] ORPHAN-REAPER killing stale "
+                                          f"recorder PID={p.info['pid']} for "
+                                          f"{cid} (age {_age:.0f}s) — it holds "
+                                          f"the camera's single RTSP session",
+                                          flush=True)
+                                    try:
+                                        p.kill()
+                                    except Exception:
+                                        pass
                                 break
                             if live_pid != p.info["pid"]:
                                 print(f"[PLC] ZOMBIE-REAPER killing extra "

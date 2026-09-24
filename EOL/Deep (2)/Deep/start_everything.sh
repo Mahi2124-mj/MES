@@ -44,6 +44,15 @@ export DB_PASS="tbdi@123"
 # problem.  NVENC is proven-good on this box's RTX A2000, so force it at boot and
 # skip the flaky probe.  If the GPU/driver ever breaks, set this to libx264 here
 # (or `VIDEO_LIVE_ENCODER=libx264 ./start_everything.sh`) to fall back to CPU.
+# 2026-09-24 — clip archive catch-up.  The window was 42 min, a leftover from
+# when the .ts files were kept ~50 min; since 21-Sep TS_KEEP_HOURS=48, so every
+# cycle of the last two days can still be cut.  At 42 min anything older was
+# abandoned unarchived — measured 24-Sep: 120,605 cycles, 37,542 clips (31%),
+# 46,151 of the misses logged as "camera was recording but no clip was cut in
+# time".  The CPU lane goes wider because the single NVENC engine sits at 100%
+# while ~45 cores are idle; CLIP_ARCHIVE_CPU_MIN_IDLE still throttles it.
+export CLIP_ARCHIVE_WINDOW_MIN="${CLIP_ARCHIVE_WINDOW_MIN:-1440}"
+export CLIP_ARCHIVE_CPU_PARALLEL="${CLIP_ARCHIVE_CPU_PARALLEL:-12}"
 export VIDEO_LIVE_ENCODER="${VIDEO_LIVE_ENCODER:-h264_nvenc}"
 echo "  video encoder: VIDEO_LIVE_ENCODER=$VIDEO_LIVE_ENCODER (recorders forced to GPU at boot)"
 
@@ -370,7 +379,16 @@ elif [[ -f "$CMS_DIR/backend/api_server.py" ]]; then
   # lands on the state the box actually runs in.  It was 16 here while the
   # renderer was on the CPU; on NVENC a wider gate keeps clips inside the 15 s
   # upstream timeout (no 502 retry storm).  Override: CLIP_RENDER_PARALLEL=N.
+  # 2026-09-24 — TS_ROTATE_QUIET_S=90 (code default 20).  At every shift start
+  # the CMS rotates each camera's TS file: kill the recorder, hold the respawn
+  # this long, next camera 10 s later.  These cameras allow ONE RTSP session,
+  # and 20 s was not enough to release it: the 08:30 rotation on 24-Sep put 137
+  # of 141 cameras into "hung" (ping OK, no video) and 72 were still dead two
+  # hours later.  A 90 s hold is what the by-hand recovery uses
+  # (CMS_QUIET_SECONDS=90 restart_cms.py), which brought 31 -> 73 cameras back.
   CLIP_RENDER_PARALLEL="${CLIP_RENDER_PARALLEL:-24}" \
+  TS_ROTATE_QUIET_S="${TS_ROTATE_QUIET_S:-90}" \
+  VIDEO_ALLOW_UDP="${VIDEO_ALLOW_UDP:-0}" \
   launch CMS-API "$CMS_DIR/backend" "$PY_CMS" api_server.py
 else
   echo "        [WARN] $CMS_DIR/backend/api_server.py not found — skipped"

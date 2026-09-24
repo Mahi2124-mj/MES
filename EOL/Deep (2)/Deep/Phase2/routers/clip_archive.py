@@ -195,6 +195,42 @@ def _idle_cores(sample: float = 0.25) -> float:
     return (i1 - i0) / dt * (os.cpu_count() or 1)
 
 
+# 2026-09-22 — AVERAGED idle.  The feeder used a 0.1 s /proc/stat sample, and
+# one libx264 clip bursts across many cores for a moment, so the sample kept
+# dipping under the ceiling and every round stopped after its first PARALLEL
+# clips (measured: rounds of rows=118 ok=8) while the box averaged ~47 idle
+# cores.  A background sampler keeps a ~2 s average instead; processes that do
+# not run the sampler (request workers) fall back to the direct probe.
+_IDLE = {"v": None, "t": 0.0}
+
+
+def _idle_sampler() -> None:
+    hist = []
+    ncpu = os.cpu_count() or 1
+    while True:
+        try:
+            with open("/proc/stat") as fh:
+                p = fh.readline().split()[1:]
+            v = [int(x) for x in p[:8]]
+            now = time.time()
+            hist.append((now, sum(v), v[3] + v[4]))
+            while len(hist) > 2 and now - hist[1][0] >= 2.0:
+                hist.pop(0)
+            t0, tot0, idl0 = hist[0]
+            if now - t0 >= 1.0:
+                _IDLE["v"] = (v[3] + v[4] - idl0) / max(1, sum(v) - tot0) * ncpu
+                _IDLE["t"] = now
+        except Exception:
+            pass
+        time.sleep(0.25)
+
+
+def _idle_avg() -> float:
+    if _IDLE["v"] is not None and time.time() - _IDLE["t"] < 5.0:
+        return _IDLE["v"]
+    return _idle_cores()
+
+
 _MIN_BYTES = 40 * 1024          # smaller than this is a frameless stub, not a clip
 
 # ── DIRECT RENDER — cut the clip here, not through the CMS ────────────────
@@ -269,6 +305,20 @@ _GPU_SEM = threading.Semaphore(GPU_PARALLEL) if GPU_PARALLEL > 0 else None
 # latency-critical click), so the extra wait is free.  Raised in code (not just
 # env) so it PERSISTS across restarts — the env resets to the default every boot.
 GPU_WAIT_S = float(os.environ.get("CLIP_ARCHIVE_GPU_WAIT_S", "5.0") or 5.0)
+
+# 2026-09-22 — CONTROLLED CPU LANE (operator-approved).  Measured: the A2000's
+# single encode engine is 99-100 % busy, mostly with CMS work (15 live
+# transcodes + per-cycle Final Inspection extracts), so an archive clip on NVENC
+# took 6.6 s against 1.0 s on libx264 while ~47 cores sat idle.  The CPU lane is
+# now used FIRST while at least CPU_MIN_IDLE cores are idle (averaged), with a
+# hard cap of CPU_PARALLEL concurrent libx264 renders of CPU_THREADS encoder
+# threads each; otherwise the GPU lane as before.  A render that finds neither
+# lane free waits for a CPU slot — it no longer spills to an unlimited number of
+# libx264 processes, which is what pegged the box in August/September.
+CPU_PARALLEL = _int_env("CLIP_ARCHIVE_CPU_PARALLEL", 6, low=0)
+CPU_THREADS  = _int_env("CLIP_ARCHIVE_CPU_THREADS", 4, low=1)
+CPU_MIN_IDLE = float(os.environ.get("CLIP_ARCHIVE_CPU_MIN_IDLE", "16") or 16)
+_CPU_SEM = threading.Semaphore(CPU_PARALLEL) if CPU_PARALLEL > 0 else None
 
 _TS_META: dict = {}                 # path -> (size, mtime, duration, probed_at)
 _TS_META_LOCK = threading.Lock()
@@ -393,9 +443,14 @@ def _render_direct(camera_id: str, ts_start: datetime, ts_end: datetime,
     # long and only when all GPU_PARALLEL slots are truly busy; the CPU lane is
     # still there as the fallback, so nothing stalls, it just stops paying 7.5x
     # for a clip when the cheap lane was about to open.
-    on_gpu = GPU_PARALLEL > 0 and (
+    cpu_slot = bool(_CPU_SEM and _idle_avg() >= CPU_MIN_IDLE
+                    and _CPU_SEM.acquire(blocking=False))
+    on_gpu = (not cpu_slot) and GPU_PARALLEL > 0 and (
         _GPU_SEM.acquire(timeout=GPU_WAIT_S) if GPU_WAIT_S > 0
         else _GPU_SEM.acquire(blocking=False))
+    if not on_gpu and not cpu_slot and _CPU_SEM:
+        _CPU_SEM.acquire()             # wait for a capped CPU slot, never spill
+        cpu_slot = True
     if on_gpu:
         cmd = [
             FFMPEG_BIN, "-y",
@@ -411,13 +466,17 @@ def _render_direct(camera_id: str, ts_start: datetime, ts_end: datetime,
             "-movflags", "+faststart", "-f", "mp4", tmp,
         ]
     else:
+        # nice 10: a background archive clip always yields the CPU to the camera
+        # recorders, the collectors and the API.
         cmd = [
-            FFMPEG_BIN, "-y",
+            "nice", "-n", "10", FFMPEG_BIN, "-y",
             "-fflags", "+genpts+discardcorrupt", "-err_detect", "ignore_err",
             "-ec", "favor_inter",
+            "-threads", "2",
             "-ss", f"{in_ss:.3f}", "-i", ts_file,
             "-ss", f"{out_ss:.3f}", "-t", f"{trim:.3f}",
             "-c:v", "libx264", "-preset", "ultrafast", "-crf", "27",
+            "-threads", str(CPU_THREADS),
             "-vf", "scale='min(iw,854)':'-2':flags=bicubic,format=yuv420p",
             "-color_range", "tv", "-level", "4.0",
             "-maxrate", "900k", "-bufsize", "1800k", "-an",
@@ -448,6 +507,8 @@ def _render_direct(camera_id: str, ts_start: datetime, ts_end: datetime,
     finally:
         if on_gpu:
             _GPU_SEM.release()
+        if cpu_slot:
+            _CPU_SEM.release()
 _started   = False
 _start_lock = threading.Lock()
 _stats = {"archived": 0, "failed": 0, "skipped": 0, "last_run": None, "last_error": ""}
@@ -1320,7 +1381,7 @@ def _drain(pool, rows, workers: int, load_aware: bool = True):
         if load_aware and feeding and time.time() >= next_check:
             next_check = time.time() + 1.0
             try:
-                if _idle_cores(0.1) < MIN_IDLE_CORES * 0.6:
+                if _idle_avg() < MIN_IDLE_CORES * 0.6:
                     feeding = False
             except Exception:
                 pass
@@ -1335,7 +1396,7 @@ def _newest_loop():
                               thread_name_prefix="clipnew")
     while True:
         try:
-            if _idle_cores() >= MIN_IDLE_CORES:
+            if _idle_avg() >= MIN_IDLE_CORES:
                 rows = _pending_newest(NEWEST_PARALLEL * 3)
                 if rows:
                     # This lane is the latency-critical one and its batch is
@@ -1482,7 +1543,7 @@ def _loop():
     while True:
         try:
             try:
-                idle = _idle_cores()
+                idle = _idle_avg()
             except Exception:
                 idle = 999.0
             if idle < MIN_IDLE_CORES:
@@ -1523,7 +1584,8 @@ def _loop():
                       f"in {_el:.1f}s ({ok / max(_el, .001) * 60:.0f}/min) "
                       f"query={_q_ms:.0f}ms parked={len(_NO_FOOTAGE)} "
                       f"cpu={_stats.get('cpu',0)} gpu={_stats.get('gpu',0)} "
-                      f"nofootage={_stats.get('nofootage_skip',0)}",
+                      f"nofootage={_stats.get('nofootage_skip',0)} "
+                      f"idle={_idle_avg():.0f}",
                       flush=True)
             _stats["last_run"] = time.strftime("%H:%M:%S")
             if time.time() - last_sweep > 3600:
@@ -1548,12 +1610,14 @@ def start() -> None:
         except Exception as exc:
             print(f"[CLIP-ARCHIVE] disabled — cannot create {ARCHIVE_ROOT}: {exc}")
             return
+        threading.Thread(target=_idle_sampler, daemon=True, name="clip-idle").start()
         threading.Thread(target=_loop, daemon=True, name="clip-archive").start()
         threading.Thread(target=_newest_loop, daemon=True,
                          name="clip-archive-newest").start()
         _started = True
         print(f"[CLIP-ARCHIVE] on — root={ARCHIVE_ROOT} parallel={PARALLEL} "
-              f"retain={RETAIN_DAYS}d window={WINDOW_MIN}min")
+              f"retain={RETAIN_DAYS}d window={WINDOW_MIN}min "
+              f"cpu_lane={CPU_PARALLEL}x{CPU_THREADS}t min_idle={CPU_MIN_IDLE:.0f}")
 
 
 def stats() -> dict:

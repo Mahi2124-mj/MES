@@ -3,7 +3,7 @@
 AUTO-GENERATED COLLECTOR — YNC-SA-4WAY
 Line ID    : 36
 Table      : ync_sa_l4_dashboard
-Generated  : 2026-09-10 10:16:07
+Generated  : 2026-09-23 15:57:58
 
 DO NOT EDIT MANUALLY — regenerate via admin panel if config changes.
 """

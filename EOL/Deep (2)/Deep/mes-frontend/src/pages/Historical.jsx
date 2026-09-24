@@ -2084,10 +2084,12 @@ export default function Historical() {
           </div>
         </div>
 
-        {/* Video Archive uses the full width — a grid of clip cards gains a
-            column per ~200px, and at a fixed 1000px a 1920 screen showed four
-            columns with half the page empty ("side me space ki need kyu h"). */}
-        <div className={effTab === "video" ? "hist-body hist-body-wide" : "hist-body"}>
+        {/* Every tab uses the full width.  Video Archive went first (a grid of
+            clip cards gains a column per ~200px; at a fixed 1000px a 1920
+            screen showed four columns with half the page empty); 2026-09-22
+            the operator asked for Hourly Report, Part Traceability and both
+            Breakdown tabs to fill the page the same way. */}
+        <div className="hist-body hist-body-wide">
 
           {/* Tab bar */}
           <div style={{display:"flex",gap:0,marginBottom:24,background:"#fff",borderRadius:"12px 12px 0 0",

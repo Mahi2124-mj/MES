@@ -3,7 +3,7 @@
 AUTO-GENERATED COLLECTOR — NUT WELDING SA
 Line ID    : 41
 Table      : nutwelding_pwm39_dashboard
-Generated  : 2026-09-16 16:26:25
+Generated  : 2026-09-23 15:58:09
 
 DO NOT EDIT MANUALLY — regenerate via admin panel if config changes.
 """

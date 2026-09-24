@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict wIooYy7S1R5VfbY5vUhFkWfbH1cNkPalWrWBUFcHhFGq0V4I2HbcMf8rEvo10ci
+\restrict rJAsdAH1H9QDKa2oKSWnO3DUFUhNEBF25uzEVMSvIpjVTlic4PYePlVutow16aA
 
 -- Dumped from database version 18.6 (Ubuntu 18.6-0ubuntu0.26.04.1)
 -- Dumped by pg_dump version 18.6 (Ubuntu 18.6-0ubuntu0.26.04.1)
@@ -161,6 +161,7 @@ DROP INDEX IF EXISTS public.unique_user_day;
 DROP INDEX IF EXISTS public.unique_bio_log;
 DROP INDEX IF EXISTS public.ua2_recliner_dashboard_ct_log_ts_idx;
 DROP INDEX IF EXISTS public.ua2_recliner_dashboard_ct_log_date_shift;
+DROP INDEX IF EXISTS public.nutwelding_pwm39_dashboard_ct_log_date_shift;
 DROP INDEX IF EXISTS public.nut_lifting_dashboard_ct_log_ts_idx;
 DROP INDEX IF EXISTS public.nut_lifting_dashboard_ct_log_date_shift;
 DROP INDEX IF EXISTS public.mes_submachine_phantom_bkp_sub_plc_id_ts_end_idx;
@@ -470,6 +471,7 @@ ALTER TABLE IF EXISTS ONLY public.plc_hourly_production DROP CONSTRAINT IF EXIST
 ALTER TABLE IF EXISTS ONLY public.plc_dashboard_history DROP CONSTRAINT IF EXISTS plc_dashboard_history_pkey;
 ALTER TABLE IF EXISTS ONLY public.plc_alerts DROP CONSTRAINT IF EXISTS plc_alerts_pkey;
 ALTER TABLE IF EXISTS ONLY public.nutwelding_pwm39_dashboard DROP CONSTRAINT IF EXISTS nutwelding_pwm39_dashboard_pkey;
+ALTER TABLE IF EXISTS ONLY public.nutwelding_pwm39_dashboard_ct_log DROP CONSTRAINT IF EXISTS nutwelding_pwm39_dashboard_ct_log_pkey;
 ALTER TABLE IF EXISTS ONLY public.nut_lifting_dashboard DROP CONSTRAINT IF EXISTS nut_lifting_dashboard_pkey;
 ALTER TABLE IF EXISTS ONLY public.nut_lifting_dashboard_ct_log DROP CONSTRAINT IF EXISTS nut_lifting_dashboard_ct_log_pkey;
 ALTER TABLE IF EXISTS ONLY public.mes_zones DROP CONSTRAINT IF EXISTS mes_zones_plant_id_zone_code_key;
@@ -855,6 +857,7 @@ ALTER TABLE IF EXISTS public.plc_shift_summary ALTER COLUMN id DROP DEFAULT;
 ALTER TABLE IF EXISTS public.plc_hourly_production ALTER COLUMN id DROP DEFAULT;
 ALTER TABLE IF EXISTS public.plc_dashboard_history ALTER COLUMN id DROP DEFAULT;
 ALTER TABLE IF EXISTS public.plc_alerts ALTER COLUMN id DROP DEFAULT;
+ALTER TABLE IF EXISTS public.nutwelding_pwm39_dashboard_ct_log ALTER COLUMN id DROP DEFAULT;
 ALTER TABLE IF EXISTS public.nutwelding_pwm39_dashboard ALTER COLUMN id DROP DEFAULT;
 ALTER TABLE IF EXISTS public.nut_lifting_dashboard_ct_log ALTER COLUMN id DROP DEFAULT;
 ALTER TABLE IF EXISTS public.nut_lifting_dashboard ALTER COLUMN id DROP DEFAULT;
@@ -1180,6 +1183,8 @@ DROP TABLE IF EXISTS public.plc_dashboard_history;
 DROP SEQUENCE IF EXISTS public.plc_alerts_id_seq;
 DROP TABLE IF EXISTS public.plc_alerts;
 DROP SEQUENCE IF EXISTS public.nutwelding_pwm39_dashboard_id_seq;
+DROP SEQUENCE IF EXISTS public.nutwelding_pwm39_dashboard_ct_log_id_seq;
+DROP TABLE IF EXISTS public.nutwelding_pwm39_dashboard_ct_log;
 DROP TABLE IF EXISTS public.nutwelding_pwm39_dashboard;
 DROP SEQUENCE IF EXISTS public.nut_lifting_dashboard_id_seq;
 DROP SEQUENCE IF EXISTS public.nut_lifting_dashboard_ct_log_id_seq;
@@ -1564,6 +1569,11 @@ DROP TABLE IF EXISTS public.daily_hourly_production_backup;
 DROP TABLE IF EXISTS public.daily_hourly_production;
 DROP SEQUENCE IF EXISTS public.biometric_attendance_id_seq;
 DROP TABLE IF EXISTS public.biometric_attendance;
+DROP TABLE IF EXISTS public.bak_ync_sa_6way_phantom_20260923;
+DROP TABLE IF EXISTS public.bak_lp3_b2_fake_ng_20260922;
+DROP TABLE IF EXISTS public.bak_lp2_hourly_20260922;
+DROP TABLE IF EXISTS public.bak_lp2_dup_sub_ct_log_20260921;
+DROP TABLE IF EXISTS public.bak_lp2_dup_main_ct_log_20260921;
 DROP SEQUENCE IF EXISTS public.attendance_final_id_seq;
 DROP TABLE IF EXISTS public.attendance_final;
 DROP SEQUENCE IF EXISTS public.andon_zones_id_seq;
@@ -3320,6 +3330,240 @@ CREATE SEQUENCE public.attendance_final_id_seq
 --
 
 ALTER SEQUENCE public.attendance_final_id_seq OWNED BY public.attendance_final.id;
+
+
+--
+-- Name: bak_lp2_dup_main_ct_log_20260921; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.bak_lp2_dup_main_ct_log_20260921 (
+    id integer CONSTRAINT loop_pipe_dashboard_ct_log_id_not_null NOT NULL,
+    ts timestamp without time zone CONSTRAINT loop_pipe_dashboard_ct_log_ts_not_null NOT NULL,
+    record_date date CONSTRAINT loop_pipe_dashboard_ct_log_record_date_not_null NOT NULL,
+    shift_name character varying(20),
+    ct_value numeric(7,2) CONSTRAINT loop_pipe_dashboard_ct_log_ct_value_not_null NOT NULL,
+    cycle_seq integer,
+    part_code character varying(64),
+    is_ng boolean
+);
+
+
+--
+-- Name: bak_lp2_dup_sub_ct_log_20260921; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.bak_lp2_dup_sub_ct_log_20260921 (
+    id bigint CONSTRAINT mes_submachine_ct_log_new_id_not_null NOT NULL,
+    sub_plc_id integer CONSTRAINT mes_submachine_ct_log_new_sub_plc_id_not_null NOT NULL,
+    line_id integer CONSTRAINT mes_submachine_ct_log_new_line_id_not_null NOT NULL,
+    record_date date CONSTRAINT mes_submachine_ct_log_new_record_date_not_null NOT NULL,
+    shift_name character varying(20) CONSTRAINT mes_submachine_ct_log_new_shift_name_not_null NOT NULL,
+    cycle_seq integer CONSTRAINT mes_submachine_ct_log_new_cycle_seq_not_null NOT NULL,
+    ts_start timestamp with time zone CONSTRAINT mes_submachine_ct_log_new_ts_start_not_null NOT NULL,
+    ts_end timestamp with time zone CONSTRAINT mes_submachine_ct_log_new_ts_end_not_null NOT NULL,
+    ct_seconds numeric CONSTRAINT mes_submachine_ct_log_new_ct_seconds_not_null NOT NULL,
+    model_number integer,
+    model_name character varying(200),
+    part_code character varying(100),
+    is_ng boolean CONSTRAINT mes_submachine_ct_log_new_is_ng_not_null NOT NULL
+);
+
+
+--
+-- Name: bak_lp2_hourly_20260922; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.bak_lp2_hourly_20260922 (
+    id integer,
+    "timestamp" timestamp without time zone,
+    record_date date,
+    shift_name character varying(20),
+    shift_start_time time without time zone,
+    shift_end_time time without time zone,
+    line_name character varying(100),
+    current_model_number integer,
+    current_model_name character varying(100),
+    ok_count integer,
+    ng_count integer,
+    shift_plan integer,
+    shift_plan_remaining integer,
+    shift_plan_completed integer,
+    cycle_time_plan numeric(5,2),
+    cycle_time_actual numeric(5,2),
+    operating_status character varying(30),
+    availability numeric(5,2),
+    performance numeric(5,2),
+    quality_oee numeric(5,2),
+    overall_oee numeric(5,2),
+    oee_grade character varying(20),
+    is_shift_completed boolean,
+    period_type character varying(10),
+    is_gap_time boolean,
+    loss_breakdown_seconds integer,
+    loss_quality_seconds integer,
+    loss_setup_seconds integer,
+    loss_material_seconds integer,
+    loss_others_seconds integer,
+    loss_speed_seconds integer,
+    loss_change_over_seconds integer,
+    loss_breakdown character varying(20),
+    loss_quality character varying(20),
+    loss_setup character varying(20),
+    loss_material character varying(20),
+    loss_others character varying(20),
+    loss_speed character varying(20),
+    loss_change_over character varying(20),
+    total_loss character varying(20),
+    ct1 numeric(7,2),
+    ct2 numeric(7,2),
+    ct3 numeric(7,2),
+    ct4 numeric(7,2),
+    ct5 numeric(7,2),
+    ct6 numeric(7,2),
+    ct7 numeric(7,2),
+    ct8 numeric(7,2),
+    ct9 numeric(7,2),
+    ct10 numeric(7,2),
+    ct11 numeric(7,2),
+    ct12 numeric(7,2),
+    ct13 numeric(7,2),
+    ct14 numeric(7,2),
+    ct15 numeric(7,2),
+    ct16 numeric(7,2),
+    ct17 numeric(7,2),
+    ct18 numeric(7,2),
+    ct19 numeric(7,2),
+    ct20 numeric(7,2),
+    ct_avg_20 numeric(7,2),
+    min_ct numeric(7,2),
+    max_ct numeric(7,2),
+    std_dev_ct numeric(7,2),
+    hour_0830_0930_plan integer,
+    hour_0830_0930_actual integer,
+    hour_0830_0930_variance integer,
+    hour_0830_0930_ok integer,
+    hour_0830_0930_ng integer,
+    hour_0930_1030_plan integer,
+    hour_0930_1030_actual integer,
+    hour_0930_1030_variance integer,
+    hour_0930_1030_ok integer,
+    hour_0930_1030_ng integer,
+    hour_1030_1130_plan integer,
+    hour_1030_1130_actual integer,
+    hour_1030_1130_variance integer,
+    hour_1030_1130_ok integer,
+    hour_1030_1130_ng integer,
+    hour_1130_1305_plan integer,
+    hour_1130_1305_actual integer,
+    hour_1130_1305_variance integer,
+    hour_1130_1305_ok integer,
+    hour_1130_1305_ng integer,
+    hour_1305_1405_plan integer,
+    hour_1305_1405_actual integer,
+    hour_1305_1405_variance integer,
+    hour_1305_1405_ok integer,
+    hour_1305_1405_ng integer,
+    hour_1405_1505_plan integer,
+    hour_1405_1505_actual integer,
+    hour_1405_1505_variance integer,
+    hour_1405_1505_ok integer,
+    hour_1405_1505_ng integer,
+    hour_1505_1605_plan integer,
+    hour_1505_1605_actual integer,
+    hour_1505_1605_variance integer,
+    hour_1505_1605_ok integer,
+    hour_1505_1605_ng integer,
+    hour_1605_1715_plan integer,
+    hour_1605_1715_actual integer,
+    hour_1605_1715_variance integer,
+    hour_1605_1715_ok integer,
+    hour_1605_1715_ng integer,
+    hour_1830_1930_plan integer,
+    hour_1830_1930_actual integer,
+    hour_1830_1930_variance integer,
+    hour_1830_1930_ok integer,
+    hour_1830_1930_ng integer,
+    hour_1930_2030_plan integer,
+    hour_1930_2030_actual integer,
+    hour_1930_2030_variance integer,
+    hour_1930_2030_ok integer,
+    hour_1930_2030_ng integer,
+    hour_2030_2130_plan integer,
+    hour_2030_2130_actual integer,
+    hour_2030_2130_variance integer,
+    hour_2030_2130_ok integer,
+    hour_2030_2130_ng integer,
+    hour_2130_2305_plan integer,
+    hour_2130_2305_actual integer,
+    hour_2130_2305_variance integer,
+    hour_2130_2305_ok integer,
+    hour_2130_2305_ng integer,
+    hour_2305_0005_plan integer,
+    hour_2305_0005_actual integer,
+    hour_2305_0005_variance integer,
+    hour_2305_0005_ok integer,
+    hour_2305_0005_ng integer,
+    hour_0005_0105_plan integer,
+    hour_0005_0105_actual integer,
+    hour_0005_0105_variance integer,
+    hour_0005_0105_ok integer,
+    hour_0005_0105_ng integer,
+    hour_0105_0205_plan integer,
+    hour_0105_0205_actual integer,
+    hour_0105_0205_variance integer,
+    hour_0105_0205_ok integer,
+    hour_0105_0205_ng integer,
+    hour_0205_0315_plan integer,
+    hour_0205_0315_actual integer,
+    hour_0205_0315_variance integer,
+    hour_0205_0315_ok integer,
+    hour_0205_0315_ng integer,
+    hour_1715_1830_actual integer,
+    hour_1715_1830_ok integer,
+    hour_1715_1830_ng integer,
+    hour_0315_0415_actual integer,
+    hour_0315_0415_ok integer,
+    hour_0315_0415_ng integer,
+    created_at timestamp without time zone,
+    updated_at timestamp without time zone
+);
+
+
+--
+-- Name: bak_lp3_b2_fake_ng_20260922; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.bak_lp3_b2_fake_ng_20260922 (
+    id bigint CONSTRAINT mes_submachine_ct_log_new_id_not_null NOT NULL,
+    sub_plc_id integer CONSTRAINT mes_submachine_ct_log_new_sub_plc_id_not_null NOT NULL,
+    line_id integer CONSTRAINT mes_submachine_ct_log_new_line_id_not_null NOT NULL,
+    record_date date CONSTRAINT mes_submachine_ct_log_new_record_date_not_null NOT NULL,
+    shift_name character varying(20) CONSTRAINT mes_submachine_ct_log_new_shift_name_not_null NOT NULL,
+    cycle_seq integer CONSTRAINT mes_submachine_ct_log_new_cycle_seq_not_null NOT NULL,
+    ts_start timestamp with time zone CONSTRAINT mes_submachine_ct_log_new_ts_start_not_null NOT NULL,
+    ts_end timestamp with time zone CONSTRAINT mes_submachine_ct_log_new_ts_end_not_null NOT NULL,
+    ct_seconds numeric CONSTRAINT mes_submachine_ct_log_new_ct_seconds_not_null NOT NULL,
+    model_number integer,
+    model_name character varying(200),
+    part_code character varying(100),
+    is_ng boolean CONSTRAINT mes_submachine_ct_log_new_is_ng_not_null NOT NULL
+);
+
+
+--
+-- Name: bak_ync_sa_6way_phantom_20260923; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.bak_ync_sa_6way_phantom_20260923 (
+    id integer,
+    ts timestamp without time zone,
+    record_date date,
+    shift_name character varying(20),
+    ct_value numeric(7,2),
+    cycle_seq integer,
+    part_code character varying(64),
+    is_ng boolean
+);
 
 
 --
@@ -11755,6 +11999,42 @@ CREATE TABLE public.nutwelding_pwm39_dashboard (
 
 
 --
+-- Name: nutwelding_pwm39_dashboard_ct_log; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.nutwelding_pwm39_dashboard_ct_log (
+    id integer NOT NULL,
+    ts timestamp without time zone NOT NULL,
+    record_date date NOT NULL,
+    shift_name character varying(20),
+    ct_value numeric(7,2) NOT NULL,
+    cycle_seq integer,
+    part_code character varying(64),
+    is_ng boolean DEFAULT false
+);
+
+
+--
+-- Name: nutwelding_pwm39_dashboard_ct_log_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.nutwelding_pwm39_dashboard_ct_log_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: nutwelding_pwm39_dashboard_ct_log_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.nutwelding_pwm39_dashboard_ct_log_id_seq OWNED BY public.nutwelding_pwm39_dashboard_ct_log.id;
+
+
+--
 -- Name: nutwelding_pwm39_dashboard_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
@@ -19731,6 +20011,13 @@ ALTER TABLE ONLY public.nutwelding_pwm39_dashboard ALTER COLUMN id SET DEFAULT n
 
 
 --
+-- Name: nutwelding_pwm39_dashboard_ct_log id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.nutwelding_pwm39_dashboard_ct_log ALTER COLUMN id SET DEFAULT nextval('public.nutwelding_pwm39_dashboard_ct_log_id_seq'::regclass);
+
+
+--
 -- Name: plc_alerts id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -21335,6 +21622,640 @@ COPY public.andon_system (id, esp_id, do_index, department_id, zone_id, line_id,
 --
 
 COPY public.andon_zones (id, name, created_at) FROM stdin;
+\.
+
+
+--
+-- Data for Name: bak_lp2_hourly_20260922; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.bak_lp2_hourly_20260922 (id, "timestamp", record_date, shift_name, shift_start_time, shift_end_time, line_name, current_model_number, current_model_name, ok_count, ng_count, shift_plan, shift_plan_remaining, shift_plan_completed, cycle_time_plan, cycle_time_actual, operating_status, availability, performance, quality_oee, overall_oee, oee_grade, is_shift_completed, period_type, is_gap_time, loss_breakdown_seconds, loss_quality_seconds, loss_setup_seconds, loss_material_seconds, loss_others_seconds, loss_speed_seconds, loss_change_over_seconds, loss_breakdown, loss_quality, loss_setup, loss_material, loss_others, loss_speed, loss_change_over, total_loss, ct1, ct2, ct3, ct4, ct5, ct6, ct7, ct8, ct9, ct10, ct11, ct12, ct13, ct14, ct15, ct16, ct17, ct18, ct19, ct20, ct_avg_20, min_ct, max_ct, std_dev_ct, hour_0830_0930_plan, hour_0830_0930_actual, hour_0830_0930_variance, hour_0830_0930_ok, hour_0830_0930_ng, hour_0930_1030_plan, hour_0930_1030_actual, hour_0930_1030_variance, hour_0930_1030_ok, hour_0930_1030_ng, hour_1030_1130_plan, hour_1030_1130_actual, hour_1030_1130_variance, hour_1030_1130_ok, hour_1030_1130_ng, hour_1130_1305_plan, hour_1130_1305_actual, hour_1130_1305_variance, hour_1130_1305_ok, hour_1130_1305_ng, hour_1305_1405_plan, hour_1305_1405_actual, hour_1305_1405_variance, hour_1305_1405_ok, hour_1305_1405_ng, hour_1405_1505_plan, hour_1405_1505_actual, hour_1405_1505_variance, hour_1405_1505_ok, hour_1405_1505_ng, hour_1505_1605_plan, hour_1505_1605_actual, hour_1505_1605_variance, hour_1505_1605_ok, hour_1505_1605_ng, hour_1605_1715_plan, hour_1605_1715_actual, hour_1605_1715_variance, hour_1605_1715_ok, hour_1605_1715_ng, hour_1830_1930_plan, hour_1830_1930_actual, hour_1830_1930_variance, hour_1830_1930_ok, hour_1830_1930_ng, hour_1930_2030_plan, hour_1930_2030_actual, hour_1930_2030_variance, hour_1930_2030_ok, hour_1930_2030_ng, hour_2030_2130_plan, hour_2030_2130_actual, hour_2030_2130_variance, hour_2030_2130_ok, hour_2030_2130_ng, hour_2130_2305_plan, hour_2130_2305_actual, hour_2130_2305_variance, hour_2130_2305_ok, hour_2130_2305_ng, hour_2305_0005_plan, hour_2305_0005_actual, hour_2305_0005_variance, hour_2305_0005_ok, hour_2305_0005_ng, hour_0005_0105_plan, hour_0005_0105_actual, hour_0005_0105_variance, hour_0005_0105_ok, hour_0005_0105_ng, hour_0105_0205_plan, hour_0105_0205_actual, hour_0105_0205_variance, hour_0105_0205_ok, hour_0105_0205_ng, hour_0205_0315_plan, hour_0205_0315_actual, hour_0205_0315_variance, hour_0205_0315_ok, hour_0205_0315_ng, hour_1715_1830_actual, hour_1715_1830_ok, hour_1715_1830_ng, hour_0315_0415_actual, hour_0315_0415_ok, hour_0315_0415_ng, created_at, updated_at) FROM stdin;
+175	2026-09-11 18:29:59.095485	2026-09-11	GAP_AB	17:15:00	\N	Loop Pipe-Line 2	\N	\N	0	0	0	0	0	9.50	0.00	IDLE	0.00	0.00	0.00	0.00	\N	t	GAP	t	0	0	0	0	0	0	0	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	220	0	-220	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2026-09-11 17:15:01.124784	2026-09-11 18:29:59.095485
+161	2026-09-08 08:30:00.04848	2026-09-08	GAP_BA	03:15:00	\N	Loop Pipe-Line 2	\N	\N	0	0	0	0	0	9.50	0.00	IDLE	0.00	0.00	0.00	0.00	\N	t	GAP	t	0	0	0	0	0	0	0	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	220	0	-220	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2026-09-08 03:15:00.327644	2026-09-08 08:30:00.04848
+190	2026-09-15 08:29:59.518922	2026-09-15	GAP_BA	03:15:00	\N	Loop Pipe-Line 2	\N	\N	0	0	0	0	0	9.50	0.00	IDLE	0.00	0.00	0.00	0.00	\N	t	GAP	t	0	0	0	0	0	0	0	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	220	0	-220	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2026-09-15 03:15:00.340175	2026-09-15 08:29:59.518922
+153	2026-09-06 01:14:42.458755	2026-09-05	B	18:30:00	\N	Loop Pipe-Line 2	1	Unknown	1981	3	1468	1468	1468	9.50	9.50	IDLE	99.99	99.99	99.85	99.85	EXCELLENT	t	SHIFT	f	0	0	0	0	0	0	0	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	9.50	9.50	9.50	0.00	220	614	614	612	2	200	869	869	856	13	240	786	786	784	2	240	848	848	836	12	240	733	733	721	12	200	638	638	630	8	240	831	831	825	6	280	875	875	866	9	220	670	670	656	14	200	637	637	628	9	240	767	527	763	4	240	807	807	797	10	0	725	725	716	9	220	0	-220	0	0	220	0	0	0	0	280	0	0	0	0	0	0	0	0	0	0	2026-09-05 18:30:00.227282	2026-09-06 10:39:04.496867
+216	2026-09-21 18:30:00.243236	2026-09-21	GAP_AB	17:15:00	\N	Loop Pipe-Line 2	\N	\N	0	0	0	0	0	9.50	0.00	IDLE	0.00	0.00	0.00	0.00	\N	t	GAP	t	0	0	0	0	0	0	0	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	220	0	-220	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2026-09-21 17:15:00.328679	2026-09-21 18:30:00.243236
+210	2026-09-20 08:30:00.066888	2026-09-20	GAP_BA	03:15:00	\N	Loop Pipe-Line 2	\N	\N	0	0	0	0	0	9.50	0.00	IDLE	0.00	0.00	0.00	0.00	\N	t	GAP	t	0	0	0	0	0	0	0	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	220	0	-220	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2026-09-20 03:15:00.21594	2026-09-20 08:30:00.066888
+166	2026-09-09 17:14:59.640325	2026-09-09	A	08:30:00	\N	Loop Pipe-Line 2	1	Unknown	3036	9	1468	1468	0	9.50	9.50	BREAK	99.99	99.99	99.70	99.70	EXCELLENT	t	SHIFT	f	0	0	0	0	0	0	0	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	9.50	9.50	9.50	0.00	220	0	0	0	0	200	0	0	0	0	240	0	0	0	0	240	0	0	0	0	240	0	0	0	0	200	0	0	0	0	240	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	220	0	-220	0	0	220	0	0	0	0	280	0	0	0	0	0	0	0	0	0	0	2026-09-09 08:30:00.039273	2026-09-09 17:14:59.640325
+156	2026-09-07 03:14:58.42873	2026-09-06	B	18:30:00	\N	Loop Pipe-Line 2	1	Unknown	0	0	1468	1468	1468	9.50	9.50	BREAK	99.99	99.99	99.99	99.99	EXCELLENT	t	SHIFT	f	0	0	0	0	0	0	0	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	9.50	9.50	9.50	0.00	220	0	0	0	0	200	0	0	0	0	240	0	0	0	0	240	0	0	0	0	240	0	0	0	0	200	0	0	0	0	240	0	0	0	0	280	0	0	0	0	220	0	0	0	0	200	0	0	0	0	240	0	0	0	0	240	0	0	0	0	0	0	0	0	0	220	0	-220	0	0	220	0	0	0	0	280	0	0	0	0	0	0	0	0	0	0	2026-09-06 18:30:00.033291	2026-09-07 03:14:58.42873
+197	2026-09-17 03:14:58.861382	2026-09-16	B	18:30:00	\N	Loop Pipe-Line 2	1	Unknown	2782	17	1468	1468	0	9.50	9.50	BREAK	99.99	99.99	99.39	99.39	EXCELLENT	t	SHIFT	f	0	0	0	0	0	0	0	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	9.50	9.50	9.50	0.00	220	0	0	0	0	200	0	0	0	0	240	0	0	0	0	240	0	0	0	0	240	0	0	0	0	200	0	0	0	0	240	0	0	0	0	280	0	0	0	0	220	0	0	0	0	200	0	0	0	0	240	0	0	0	0	240	0	0	0	0	0	0	0	0	0	220	0	-220	0	0	220	0	-220	0	0	280	0	0	0	0	0	0	0	0	0	0	2026-09-16 18:30:00.063026	2026-09-17 03:14:58.861382
+167	2026-09-09 18:29:59.805751	2026-09-09	GAP_AB	17:15:00	\N	Loop Pipe-Line 2	\N	\N	0	0	0	0	0	9.50	0.00	IDLE	0.00	0.00	0.00	0.00	\N	t	GAP	t	0	0	0	0	0	0	0	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	220	0	-220	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2026-09-09 17:15:00.454633	2026-09-09 18:29:59.805751
+186	2026-09-14 08:29:59.185472	2026-09-14	GAP_BA	03:15:00	\N	Loop Pipe-Line 2	\N	\N	0	0	0	0	0	9.50	0.00	IDLE	0.00	0.00	0.00	0.00	\N	t	GAP	t	0	0	0	0	0	0	0	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	220	0	-220	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2026-09-14 03:15:00.137611	2026-09-14 08:29:59.185472
+182	2026-09-13 08:29:59.370196	2026-09-13	GAP_BA	03:15:00	\N	Loop Pipe-Line 2	\N	\N	0	0	0	0	0	9.50	0.00	IDLE	0.00	0.00	0.00	0.00	\N	t	GAP	t	0	0	0	0	0	0	0	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	220	0	-220	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2026-09-13 03:15:00.096804	2026-09-13 08:29:59.370196
+157	2026-09-07 08:29:59.986619	2026-09-07	GAP_BA	03:15:00	\N	Loop Pipe-Line 2	\N	\N	0	0	0	0	0	9.50	0.00	IDLE	0.00	0.00	0.00	0.00	\N	t	GAP	t	0	0	0	0	0	0	0	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	220	0	-220	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2026-09-07 03:15:00.060167	2026-09-07 08:29:59.986619
+192	2026-09-15 18:29:59.724832	2026-09-15	GAP_AB	17:15:00	\N	Loop Pipe-Line 2	\N	\N	0	0	0	0	0	9.50	0.00	IDLE	0.00	0.00	0.00	0.00	\N	t	GAP	t	0	0	0	0	0	0	0	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	220	0	-220	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2026-09-15 17:15:00.352492	2026-09-15 18:29:59.724832
+195	2026-09-16 17:15:00.749733	2026-09-16	A	08:30:00	\N	Loop Pipe-Line 2	1	Unknown	2540	38	1468	1468	0	9.50	9.50	0	99.99	99.99	98.53	98.53	EXCELLENT	t	SHIFT	f	0	0	0	0	0	0	0	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	9.50	9.50	9.50	0.00	220	0	-220	0	0	200	0	-200	0	0	240	0	-240	0	0	240	0	-240	0	0	240	0	-240	0	0	200	0	-200	0	0	240	0	-240	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	220	0	-220	0	0	220	0	-220	0	0	280	0	-280	0	0	0	0	0	0	0	0	2026-09-16 08:30:00.092286	2026-09-16 17:15:00.749733
+170	2026-09-10 17:15:00.311656	2026-09-10	A	08:30:00	\N	Loop Pipe-Line 2	1	Unknown	9	4	1468	1468	0	9.50	9.50	0	99.99	99.99	0.00	0.00	POOR	t	SHIFT	f	0	0	0	0	0	0	0	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	9.50	9.50	9.50	0.00	220	0	0	0	0	200	0	0	0	0	240	0	0	0	0	240	0	0	0	0	240	0	0	0	0	200	0	0	0	0	240	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	220	0	-220	0	0	220	0	0	0	0	280	0	0	0	0	0	0	0	0	0	0	2026-09-10 08:30:00.081281	2026-09-10 17:15:00.311656
+155	2026-09-06 18:29:59.852682	2026-09-06	GAP_AB	17:15:00	\N	Loop Pipe-Line 2	\N	\N	0	0	0	0	0	9.50	0.00	IDLE	0.00	0.00	0.00	0.00	\N	t	GAP	t	0	0	0	0	0	0	0	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	220	0	-220	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2026-09-06 17:15:00.133186	2026-09-06 18:29:59.852682
+145	2026-09-04 03:14:59.352549	2026-09-03	B	18:30:00	\N	Loop Pipe-Line 2	1	Unknown	3031	5	1468	1468	1468	9.50	9.50	BREAK	99.99	99.99	99.84	99.84	EXCELLENT	t	SHIFT	f	0	0	0	0	0	0	0	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	9.50	9.50	9.50	0.00	220	283	283	281	2	200	315	315	315	0	240	386	386	386	0	240	379	379	377	2	240	383	383	383	0	200	267	267	267	0	240	458	458	458	0	280	698	698	697	1	220	624	404	622	2	200	667	667	661	6	240	790	790	786	4	240	794	794	782	12	0	718	718	716	2	220	0	-220	0	0	220	0	0	0	0	280	0	0	0	0	0	0	0	0	0	0	2026-09-03 18:30:00.073775	2026-09-04 03:14:59.352549
+154	2026-09-06 17:14:58.78597	2026-09-06	A	08:30:00	\N	Loop Pipe-Line 2	1	Unknown	1997	3	1468	684	1468	9.50	9.50	BREAK	99.99	99.99	99.85	99.85	EXCELLENT	t	SHIFT	f	0	0	0	0	0	0	0	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	9.50	9.50	9.50	0.00	220	0	-220	0	0	200	0	-200	0	0	240	0	0	0	0	240	0	0	0	0	240	0	0	0	0	200	0	0	0	0	240	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	220	0	-220	0	0	220	0	-220	0	0	280	0	-280	0	0	0	0	0	0	0	0	2026-09-06 10:39:04.508653	2026-09-06 17:14:58.78597
+214	2026-09-21 08:29:59.757067	2026-09-21	GAP_BA	03:15:00	\N	Loop Pipe-Line 2	\N	\N	0	0	0	0	0	9.50	0.00	IDLE	0.00	0.00	0.00	0.00	\N	t	GAP	t	0	0	0	0	0	0	0	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	220	0	-220	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2026-09-21 03:15:00.007568	2026-09-21 08:29:59.757067
+185	2026-09-14 03:14:59.295733	2026-09-13	B	18:30:00	\N	Loop Pipe-Line 2	1	Unknown	0	0	1468	1468	0	9.50	9.50	BREAK	99.99	99.99	99.99	99.99	EXCELLENT	t	SHIFT	f	0	0	0	0	0	0	0	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	9.50	9.50	9.50	0.00	220	0	0	0	0	200	0	0	0	0	240	0	0	0	0	240	0	0	0	0	240	0	0	0	0	200	0	0	0	0	240	0	0	0	0	280	0	0	0	0	220	0	0	0	0	200	0	0	0	0	240	0	0	0	0	240	0	0	0	0	0	0	0	0	0	220	0	-220	0	0	220	0	0	0	0	280	0	0	0	0	0	0	0	0	0	0	2026-09-13 18:30:00.141091	2026-09-14 03:14:59.295733
+198	2026-09-17 08:29:59.752639	2026-09-17	GAP_BA	03:15:00	\N	Loop Pipe-Line 2	\N	\N	0	0	0	0	0	9.50	0.00	IDLE	0.00	0.00	0.00	0.00	\N	t	GAP	t	0	0	0	0	0	0	0	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	220	0	-220	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2026-09-17 03:15:00.435649	2026-09-17 08:29:59.752639
+199	2026-09-17 17:14:59.822802	2026-09-17	A	08:30:00	\N	Loop Pipe-Line 2	1	Unknown	0	0	1468	1468	0	9.50	9.50	IDLE	99.99	99.99	99.99	99.99	EXCELLENT	t	SHIFT	f	0	0	0	0	0	0	0	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	9.50	9.50	9.50	0.00	220	0	0	0	0	200	0	0	0	0	240	0	0	0	0	240	0	0	0	0	240	0	0	0	0	200	0	0	0	0	240	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	220	0	-220	0	0	220	0	0	0	0	280	0	0	0	0	0	0	0	0	0	0	2026-09-17 08:30:00.98431	2026-09-17 17:14:59.822802
+200	2026-09-17 18:29:58.821299	2026-09-17	GAP_AB	17:15:00	\N	Loop Pipe-Line 2	\N	\N	0	0	0	0	0	9.50	0.00	IDLE	0.00	0.00	0.00	0.00	\N	t	GAP	t	0	0	0	0	0	0	0	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	220	0	-220	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2026-09-17 17:15:01.46533	2026-09-17 18:29:58.821299
+203	2026-09-18 17:15:00.276009	2026-09-18	A	08:30:00	\N	Loop Pipe-Line 2	1	Unknown	2558	15	1468	1468	1468	9.50	9.50	0	99.99	99.99	99.42	99.42	EXCELLENT	t	SHIFT	f	0	0	0	0	0	0	0	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	9.50	9.50	9.50	0.00	220	292	72	290	2	200	546	346	546	0	240	561	321	560	1	240	783	543	781	2	240	749	509	745	4	200	526	326	526	0	240	1549	1549	1545	4	0	867	867	867	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	220	0	-220	0	0	220	0	-220	0	0	280	0	-280	0	0	0	0	0	0	0	0	2026-09-18 08:30:00.157721	2026-09-18 17:15:00.276009
+196	2026-09-16 18:29:59.432036	2026-09-16	GAP_AB	17:15:00	\N	Loop Pipe-Line 2	\N	\N	0	0	0	0	0	9.50	0.00	IDLE	0.00	0.00	0.00	0.00	\N	t	GAP	t	0	0	0	0	0	0	0	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	220	0	-220	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2026-09-16 17:15:00.55427	2026-09-16 18:29:59.432036
+158	2026-09-07 17:14:59.03338	2026-09-07	A	08:30:00	\N	Loop Pipe-Line 2	1	Unknown	2888	17	1468	1468	1468	9.50	9.50	BREAK	99.99	99.99	99.41	99.41	EXCELLENT	t	SHIFT	f	0	0	0	0	0	0	0	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	9.50	9.50	9.50	0.00	220	485	265	478	7	200	799	599	798	1	240	1013	1013	1012	1	240	769	769	766	3	240	731	731	731	0	200	691	691	690	1	240	782	782	782	0	0	770	770	767	3	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	220	0	-220	0	0	220	0	-220	0	0	280	0	-280	0	0	0	0	0	0	0	0	2026-09-07 08:30:00.010433	2026-09-07 17:14:59.03338
+171	2026-09-10 18:30:00.112237	2026-09-10	GAP_AB	17:15:00	\N	Loop Pipe-Line 2	\N	\N	0	0	0	0	0	9.50	0.00	IDLE	0.00	0.00	0.00	0.00	\N	t	GAP	t	0	0	0	0	0	0	0	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	220	0	-220	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2026-09-10 17:15:00.114787	2026-09-10 18:30:00.112237
+207	2026-09-19 17:15:00.099908	2026-09-19	A	08:30:00	\N	Loop Pipe-Line 2	1	Unknown	2161	3	1468	1468	1468	9.50	9.50	0	99.99	99.99	99.86	99.86	EXCELLENT	t	SHIFT	f	0	0	0	0	0	0	0	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	9.50	9.50	9.50	0.00	220	247	27	242	5	200	780	580	780	0	240	662	662	662	0	240	657	657	657	0	240	678	678	677	1	200	434	434	434	0	240	538	538	538	0	0	713	713	711	2	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	220	0	-220	0	0	220	0	-220	0	0	280	0	-280	0	0	0	0	0	0	0	0	2026-09-19 08:30:00.020416	2026-09-19 17:15:00.099908
+208	2026-09-19 18:30:00.014125	2026-09-19	GAP_AB	17:15:00	\N	Loop Pipe-Line 2	\N	\N	0	0	0	0	0	9.50	0.00	IDLE	0.00	0.00	0.00	0.00	\N	t	GAP	t	0	0	0	0	0	0	0	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	220	0	-220	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2026-09-19 17:15:00.121039	2026-09-19 18:30:00.014125
+204	2026-09-18 18:29:59.720638	2026-09-18	GAP_AB	17:15:00	\N	Loop Pipe-Line 2	\N	\N	0	0	0	0	0	9.50	0.00	IDLE	0.00	0.00	0.00	0.00	\N	t	GAP	t	0	0	0	0	0	0	0	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	220	0	-220	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2026-09-18 17:15:00.291609	2026-09-18 18:29:59.720638
+211	2026-09-20 17:15:00.531972	2026-09-20	A	08:30:00	\N	Loop Pipe-Line 2	1	Unknown	2209	14	1468	1468	1468	9.50	9.50	0	99.99	99.99	99.37	99.37	EXCELLENT	t	SHIFT	f	0	0	0	0	0	0	0	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	9.50	9.50	9.50	0.00	220	30	-190	0	30	200	4	-196	0	4	240	265	265	265	0	240	618	618	618	0	240	652	652	652	0	200	534	534	534	0	240	640	640	638	2	0	800	800	786	14	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	220	0	-220	0	0	220	0	-220	0	0	280	0	-280	0	0	0	0	0	0	0	0	2026-09-20 08:30:00.010707	2026-09-20 17:15:00.531972
+183	2026-09-13 17:14:59.265737	2026-09-13	A	08:30:00	\N	Loop Pipe-Line 2	1	Unknown	0	3	1468	1468	0	9.50	9.50	BREAK	99.99	99.99	0.00	0.00	POOR	t	SHIFT	f	0	0	0	0	0	0	0	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	9.50	9.50	9.50	0.00	220	0	0	0	0	200	0	0	0	0	240	0	0	0	0	240	0	0	0	0	240	0	0	0	0	200	0	0	0	0	240	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	220	0	-220	0	0	220	0	0	0	0	280	0	0	0	0	0	0	0	0	0	0	2026-09-13 08:30:00.035176	2026-09-13 17:14:59.265737
+205	2026-09-19 03:14:59.432287	2026-09-18	B	18:30:00	\N	Loop Pipe-Line 2	1	Unknown	2513	9	1468	1468	1468	9.50	9.50	BREAK	99.99	99.99	99.64	99.64	EXCELLENT	t	SHIFT	f	0	0	0	0	0	0	0	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	9.50	9.50	9.50	0.00	220	292	72	290	2	200	546	346	546	0	240	561	321	560	1	240	783	543	781	2	240	749	509	745	4	200	526	326	526	0	240	1549	1309	1545	4	280	867	587	867	0	220	252	32	246	6	200	576	376	564	12	240	981	981	973	8	240	659	659	644	15	0	659	659	659	0	220	0	-220	0	0	220	0	-220	0	0	280	0	-280	0	0	0	0	0	0	0	0	2026-09-18 18:30:00.009869	2026-09-19 03:14:59.432287
+176	2026-09-12 03:14:59.704466	2026-09-11	B	18:30:00	\N	Loop Pipe-Line 2	1	Unknown	2953	8	1468	1468	0	9.50	9.50	BREAK	99.99	99.99	99.73	99.73	EXCELLENT	t	SHIFT	f	0	0	0	0	0	0	0	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	9.50	9.50	9.50	0.00	220	0	0	0	0	200	0	0	0	0	240	0	0	0	0	240	0	0	0	0	240	0	0	0	0	200	0	0	0	0	240	0	0	0	0	280	0	0	0	0	220	0	0	0	0	200	0	0	0	0	240	0	0	0	0	240	0	0	0	0	0	0	0	0	0	220	0	-220	0	0	220	0	0	0	0	280	0	0	0	0	0	0	0	0	0	0	2026-09-11 18:30:00.09374	2026-09-12 03:14:59.704466
+152	2026-09-05 18:29:59.953007	2026-09-05	GAP_AB	17:15:00	\N	Loop Pipe-Line 2	\N	\N	0	0	0	0	0	9.50	0.00	IDLE	0.00	0.00	0.00	0.00	\N	t	GAP	t	0	0	0	0	0	0	0	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	220	0	-220	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2026-09-05 17:15:00.408634	2026-09-05 18:29:59.953007
+165	2026-09-09 08:29:59.808111	2026-09-09	GAP_BA	03:15:00	\N	Loop Pipe-Line 2	\N	\N	0	0	0	0	0	9.50	0.00	IDLE	0.00	0.00	0.00	0.00	\N	t	GAP	t	0	0	0	0	0	0	0	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	220	0	-220	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2026-09-09 03:15:00.080895	2026-09-09 08:29:59.808111
+212	2026-09-20 18:29:59.484412	2026-09-20	GAP_AB	17:15:00	\N	Loop Pipe-Line 2	\N	\N	0	0	0	0	0	9.50	0.00	IDLE	0.00	0.00	0.00	0.00	\N	t	GAP	t	0	0	0	0	0	0	0	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	220	0	-220	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2026-09-20 17:15:00.548169	2026-09-20 18:29:59.484412
+174	2026-09-11 17:14:59.538985	2026-09-11	A	08:30:00	\N	Loop Pipe-Line 2	1	Unknown	2815	16	1468	1468	0	9.50	9.50	IDLE	99.99	99.99	99.43	99.43	EXCELLENT	t	SHIFT	f	0	0	0	0	0	0	0	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	9.50	9.50	9.50	0.00	220	0	-220	0	0	200	0	-200	0	0	240	0	-240	0	0	240	0	-240	0	0	240	0	-240	0	0	200	0	-200	0	0	240	0	-240	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	220	0	-220	0	0	220	0	-220	0	0	280	0	-280	0	0	0	0	0	0	0	0	2026-09-11 08:30:00.03586	2026-09-11 17:14:59.538985
+209	2026-09-20 03:14:59.949983	2026-09-19	B	18:30:00	\N	Loop Pipe-Line 2	1	Unknown	2421	14	1468	1468	1468	9.50	9.50	BREAK	99.99	99.99	99.43	99.43	EXCELLENT	t	SHIFT	f	0	0	0	0	0	0	0	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	9.50	9.50	9.50	0.00	220	247	27	242	5	200	780	580	780	0	240	662	422	662	0	240	657	417	657	0	240	678	438	677	1	200	434	234	434	0	240	538	298	538	0	280	713	433	711	2	220	684	684	674	10	200	605	605	594	11	240	702	702	692	10	240	617	617	603	14	0	619	619	617	2	220	0	-220	0	0	220	0	-220	0	0	280	0	-280	0	0	0	0	0	0	0	0	2026-09-19 18:30:00.035229	2026-09-20 03:14:59.949983
+144	2026-09-03 18:29:59.580729	2026-09-03	GAP_AB	17:15:00	\N	Loop Pipe-Line 2	\N	\N	0	0	0	0	0	9.50	0.00	IDLE	0.00	0.00	0.00	0.00	\N	t	GAP	t	0	0	0	0	0	0	0	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	220	0	-220	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2026-09-03 17:15:00.010234	2026-09-03 18:29:59.580729
+151	2026-09-05 17:14:59.305208	2026-09-05	A	08:30:00	\N	Loop Pipe-Line 2	1	Unknown	2988	3	1468	1468	1468	9.50	9.50	BREAK	99.99	99.99	99.90	99.90	EXCELLENT	t	SHIFT	f	0	0	0	0	0	0	0	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	9.50	9.50	9.50	0.00	220	614	394	612	2	200	869	669	856	13	240	786	546	784	2	240	848	608	836	12	240	733	493	721	12	200	638	438	630	8	240	831	591	825	6	0	875	875	866	9	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	220	0	-220	0	0	220	0	-220	0	0	280	0	-280	0	0	0	0	0	0	0	0	2026-09-05 08:30:00.687213	2026-09-05 17:14:59.305208
+189	2026-09-15 03:14:58.725676	2026-09-14	B	18:30:00	\N	Loop Pipe-Line 2	1	Unknown	0	0	1468	1468	0	9.50	9.50	BREAK	99.99	99.99	99.99	99.99	EXCELLENT	t	SHIFT	f	0	0	0	0	0	0	0	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	9.50	9.50	9.50	0.00	220	0	0	0	0	200	0	0	0	0	240	0	0	0	0	240	0	0	0	0	240	0	0	0	0	200	0	0	0	0	240	0	0	0	0	280	0	0	0	0	220	0	0	0	0	200	0	0	0	0	240	0	0	0	0	240	0	0	0	0	0	0	0	0	0	220	0	-220	0	0	220	0	0	0	0	280	0	0	0	0	0	0	0	0	0	0	2026-09-14 18:30:00.016759	2026-09-15 03:14:58.725676
+193	2026-09-16 03:15:00.660972	2026-09-15	B	18:30:00	\N	Loop Pipe-Line 2	1	Unknown	2699	11	1468	1468	0	9.50	9.50	0	99.99	99.99	99.59	99.59	EXCELLENT	t	SHIFT	f	0	0	0	0	0	0	0	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	9.50	9.50	9.50	0.00	220	0	0	0	0	200	0	0	0	0	240	0	0	0	0	240	0	0	0	0	240	0	0	0	0	200	0	0	0	0	240	0	0	0	0	280	0	0	0	0	220	0	0	0	0	200	0	0	0	0	240	0	0	0	0	240	0	0	0	0	0	0	0	0	0	220	0	-220	0	0	220	0	0	0	0	280	0	0	0	0	0	0	0	0	0	0	2026-09-15 18:30:00.044542	2026-09-16 03:15:00.660972
+213	2026-09-21 03:14:59.042819	2026-09-20	B	18:30:00	\N	Loop Pipe-Line 2	1	Unknown	0	0	1468	1468	1468	9.50	9.50	BREAK	99.99	99.99	99.99	99.99	EXCELLENT	t	SHIFT	f	0	0	0	0	0	0	0	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	9.50	9.50	9.50	0.00	220	30	30	0	30	200	4	4	0	4	240	265	265	265	0	240	618	618	618	0	240	652	652	652	0	200	534	534	534	0	240	640	640	638	2	280	801	801	787	14	220	0	0	0	0	200	0	0	0	0	240	0	0	0	0	240	0	0	0	0	0	0	0	0	0	220	0	-220	0	0	220	0	0	0	0	280	0	0	0	0	0	0	0	0	0	0	2026-09-20 18:30:00.017105	2026-09-21 03:14:59.042819
+206	2026-09-19 08:30:00.240103	2026-09-19	GAP_BA	03:15:00	\N	Loop Pipe-Line 2	\N	\N	0	0	0	0	0	9.50	0.00	IDLE	0.00	0.00	0.00	0.00	\N	t	GAP	t	0	0	0	0	0	0	0	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	220	0	-220	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2026-09-19 03:15:00.22339	2026-09-19 08:30:00.240103
+169	2026-09-10 08:29:59.505837	2026-09-10	GAP_BA	03:15:00	\N	Loop Pipe-Line 2	\N	\N	0	0	0	0	0	9.50	0.00	IDLE	0.00	0.00	0.00	0.00	\N	t	GAP	t	0	0	0	0	0	0	0	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	220	0	-220	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2026-09-10 03:15:00.409844	2026-09-10 08:29:59.505837
+142	2026-09-03 08:29:59.481669	2026-09-03	GAP_BA	03:15:00	\N	Loop Pipe-Line 2	\N	\N	0	0	0	0	0	9.50	0.00	IDLE	0.00	0.00	0.00	0.00	\N	t	GAP	t	0	0	0	0	0	0	0	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	220	0	-220	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2026-09-03 03:15:00.403991	2026-09-03 08:29:59.481669
+179	2026-09-12 18:29:58.542482	2026-09-12	GAP_AB	17:15:00	\N	Loop Pipe-Line 2	\N	\N	0	0	0	0	0	9.50	0.00	IDLE	0.00	0.00	0.00	0.00	\N	t	GAP	t	0	0	0	0	0	0	0	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	220	0	-220	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2026-09-12 17:15:00.701231	2026-09-12 18:29:58.542482
+180	2026-09-12 18:29:59.228429	2026-09-12	GAP_AB	17:15:00	\N	Loop Pipe-Line 2	\N	\N	0	0	0	0	0	9.50	0.00	IDLE	0.00	0.00	0.00	0.00	\N	t	GAP	t	0	0	0	0	0	0	0	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	220	0	-220	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2026-09-12 17:15:00.701974	2026-09-12 18:29:59.228429
+160	2026-09-08 03:15:00.494883	2026-09-07	B	18:30:00	\N	Loop Pipe-Line 2	1	Unknown	2993	33	1468	1468	1468	9.50	9.50	0	99.99	99.99	98.91	98.91	EXCELLENT	t	SHIFT	f	0	0	0	0	0	0	0	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	9.50	9.50	9.50	0.00	220	485	485	478	7	200	799	799	798	1	240	1013	1013	1012	1	240	769	769	766	3	240	731	731	731	0	200	691	691	690	1	240	782	782	782	0	280	770	770	767	3	220	674	674	669	5	200	586	586	575	11	240	800	800	797	3	240	775	775	773	2	0	703	703	703	0	220	0	-220	0	0	220	0	0	0	0	280	0	0	0	0	0	0	0	0	0	0	2026-09-07 18:30:00.04806	2026-09-08 03:15:00.494883
+164	2026-09-09 03:15:00.064051	2026-09-08	B	18:30:00	\N	Loop Pipe-Line 2	1	Unknown	2996	4	1468	1468	0	9.50	9.50	BREAK	99.99	99.99	99.87	99.87	EXCELLENT	t	SHIFT	f	0	0	0	0	0	0	0	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	9.50	9.50	9.50	0.00	220	0	0	0	0	200	0	0	0	0	240	0	0	0	0	240	0	0	0	0	240	0	0	0	0	200	0	0	0	0	240	0	0	0	0	280	0	0	0	0	220	0	0	0	0	200	0	0	0	0	240	0	0	0	0	240	0	0	0	0	0	0	0	0	0	220	0	-220	0	0	220	0	0	0	0	280	0	0	0	0	0	0	0	0	0	0	2026-09-08 18:30:00.10772	2026-09-09 03:15:00.064051
+215	2026-09-21 17:15:00.659932	2026-09-21	A	08:30:00	\N	Loop Pipe-Line 2	1	Unknown	2782	23	1468	1468	1468	9.50	9.50	0	99.99	99.99	99.18	99.18	EXCELLENT	t	SHIFT	f	0	0	0	0	0	0	0	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	9.50	9.50	9.50	0.00	220	528	528	515	13	200	612	612	612	0	240	754	754	754	0	240	673	673	673	0	240	712	712	710	2	200	655	655	649	6	240	773	773	768	5	0	863	863	863	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	220	0	-220	0	0	220	0	0	0	0	280	0	0	0	0	0	0	0	0	0	0	2026-09-21 08:30:00.03786	2026-09-21 17:15:00.659932
+177	2026-09-12 08:29:59.338379	2026-09-12	GAP_BA	03:15:00	\N	Loop Pipe-Line 2	\N	\N	0	0	0	0	0	9.50	0.00	IDLE	0.00	0.00	0.00	0.00	\N	t	GAP	t	0	0	0	0	0	0	0	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	220	0	-220	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2026-09-12 03:15:00.01825	2026-09-12 08:29:59.338379
+143	2026-09-03 17:14:59.056395	2026-09-03	A	08:30:00	\N	Loop Pipe-Line 2	1	Unknown	2763	23	1468	1468	1468	9.50	9.50	BREAK	99.99	99.99	99.17	99.17	EXCELLENT	t	SHIFT	f	0	0	0	0	0	0	0	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	9.50	9.50	9.50	0.00	220	283	63	281	2	200	315	115	315	0	240	386	146	386	0	240	379	139	377	2	240	383	143	383	0	200	267	67	267	0	240	458	218	458	0	0	698	698	697	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	220	0	-220	0	0	220	0	-220	0	0	280	0	-280	0	0	0	0	0	0	0	0	2026-09-03 08:30:01.50426	2026-09-03 17:14:59.056395
+184	2026-09-13 18:29:58.744249	2026-09-13	GAP_AB	17:15:00	\N	Loop Pipe-Line 2	\N	\N	0	0	0	0	0	9.50	0.00	IDLE	0.00	0.00	0.00	0.00	\N	t	GAP	t	0	0	0	0	0	0	0	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	220	0	-220	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2026-09-13 17:15:00.507428	2026-09-13 18:29:58.744249
+163	2026-09-08 18:29:59.233943	2026-09-08	GAP_AB	17:15:00	\N	Loop Pipe-Line 2	\N	\N	0	0	0	0	0	9.50	0.00	IDLE	0.00	0.00	0.00	0.00	\N	t	GAP	t	0	0	0	0	0	0	0	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	220	0	-220	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2026-09-08 17:15:00.038586	2026-09-08 18:29:59.233943
+188	2026-09-14 18:29:58.341785	2026-09-14	GAP_AB	17:15:00	\N	Loop Pipe-Line 2	\N	\N	0	0	0	0	0	9.50	0.00	IDLE	0.00	0.00	0.00	0.00	\N	t	GAP	t	0	0	0	0	0	0	0	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	220	0	-220	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2026-09-14 17:15:00.126785	2026-09-14 18:29:58.341785
+146	2026-09-04 08:29:58.755173	2026-09-04	GAP_BA	03:15:00	\N	Loop Pipe-Line 2	\N	\N	0	0	0	0	0	9.50	0.00	IDLE	0.00	0.00	0.00	0.00	\N	t	GAP	t	0	0	0	0	0	0	0	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	220	0	-220	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2026-09-04 03:15:00.362546	2026-09-04 08:29:58.755173
+173	2026-09-11 08:30:00.014407	2026-09-11	GAP_BA	03:15:00	\N	Loop Pipe-Line 2	\N	\N	0	0	0	0	0	9.50	0.00	IDLE	0.00	0.00	0.00	0.00	\N	t	GAP	t	0	0	0	0	0	0	0	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	220	0	-220	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2026-09-11 03:15:00.057026	2026-09-11 08:30:00.014407
+178	2026-09-12 17:14:56.737266	2026-09-12	A	08:30:00	\N	Loop Pipe-Line 2	1	Unknown	3010	6	1468	1468	0	9.50	9.50	BREAK	99.99	99.99	99.80	99.80	EXCELLENT	t	SHIFT	f	0	0	0	0	0	0	0	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	9.50	9.50	9.50	0.00	220	0	0	0	0	200	0	0	0	0	240	0	0	0	0	240	0	0	0	0	240	0	0	0	0	200	0	0	0	0	240	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	220	0	-220	0	0	220	0	0	0	0	280	0	0	0	0	0	0	0	0	0	0	2026-09-12 08:30:00.150933	2026-09-12 17:14:58.534559
+194	2026-09-16 08:29:59.529588	2026-09-16	GAP_BA	03:15:00	\N	Loop Pipe-Line 2	\N	\N	0	0	0	0	0	9.50	0.00	IDLE	0.00	0.00	0.00	0.00	\N	t	GAP	t	0	0	0	0	0	0	0	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	220	0	-220	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2026-09-16 03:15:00.512518	2026-09-16 08:29:59.529588
+159	2026-09-07 18:29:58.728859	2026-09-07	GAP_AB	17:15:00	\N	Loop Pipe-Line 2	\N	\N	0	0	0	0	0	9.50	0.00	IDLE	0.00	0.00	0.00	0.00	\N	t	GAP	t	0	0	0	0	0	0	0	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	220	0	-220	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2026-09-07 17:15:00.121843	2026-09-07 18:29:58.728859
+149	2026-09-05 03:14:59.174132	2026-09-04	B	18:30:00	\N	Loop Pipe-Line 2	1	Unknown	0	0	1468	1468	1468	9.50	9.50	IDLE	99.99	99.99	99.99	99.99	EXCELLENT	t	SHIFT	f	0	0	0	0	0	0	0	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	9.50	9.50	9.50	0.00	220	0	0	0	0	200	0	0	0	0	240	0	0	0	0	240	0	0	0	0	240	0	0	0	0	200	0	0	0	0	240	0	0	0	0	280	0	0	0	0	220	0	0	0	0	200	0	0	0	0	240	0	0	0	0	240	0	0	0	0	0	0	0	0	0	220	0	-220	0	0	220	0	0	0	0	280	0	0	0	0	0	0	0	0	0	0	2026-09-04 18:30:00.488735	2026-09-05 03:14:59.174132
+201	2026-09-18 03:14:58.708952	2026-09-17	B	18:30:00	\N	Loop Pipe-Line 2	1	Unknown	0	0	1468	1468	0	9.50	9.50	IDLE	99.99	99.99	99.99	99.99	EXCELLENT	t	SHIFT	f	0	0	0	0	0	0	0	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	9.50	9.50	9.50	0.00	220	0	0	0	0	200	0	0	0	0	240	0	0	0	0	240	0	0	0	0	240	0	0	0	0	200	0	0	0	0	240	0	0	0	0	280	0	0	0	0	220	0	0	0	0	200	0	0	0	0	240	0	0	0	0	240	0	0	0	0	0	0	0	0	0	220	0	-220	0	0	220	0	0	0	0	280	0	0	0	0	0	0	0	0	0	0	2026-09-17 18:30:00.285896	2026-09-18 03:14:58.708952
+150	2026-09-05 08:29:59.878408	2026-09-05	GAP_BA	03:15:00	\N	Loop Pipe-Line 2	\N	\N	0	0	0	0	0	9.50	0.00	IDLE	0.00	0.00	0.00	0.00	\N	t	GAP	t	0	0	0	0	0	0	0	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	220	0	-220	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2026-09-05 03:15:00.017406	2026-09-05 08:29:59.878408
+202	2026-09-18 08:29:58.50883	2026-09-18	GAP_BA	03:15:00	\N	Loop Pipe-Line 2	\N	\N	0	0	0	0	0	9.50	0.00	IDLE	0.00	0.00	0.00	0.00	\N	t	GAP	t	0	0	0	0	0	0	0	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	220	0	-220	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2026-09-18 03:15:00.039596	2026-09-18 08:29:58.50883
+147	2026-09-04 17:14:58.536733	2026-09-04	A	08:30:00	\N	Loop Pipe-Line 2	1	Unknown	0	0	1468	1468	1468	9.50	9.50	IDLE	99.99	99.99	99.99	99.99	EXCELLENT	t	SHIFT	f	0	0	0	0	0	0	0	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	9.50	9.50	9.50	0.00	220	0	0	0	0	200	0	0	0	0	240	0	0	0	0	240	0	0	0	0	240	0	0	0	0	200	0	0	0	0	240	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	220	0	-220	0	0	220	0	0	0	0	280	0	0	0	0	0	0	0	0	0	0	2026-09-04 08:30:01.167104	2026-09-04 17:14:58.536733
+162	2026-09-08 17:15:00.580849	2026-09-08	A	08:30:00	\N	Loop Pipe-Line 2	1	Unknown	3020	3	1468	1468	590	9.50	9.50	0	99.99	99.99	0.00	0.00	POOR	t	SHIFT	f	0	0	0	0	0	0	0	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	9.50	9.50	9.50	0.00	220	320	320	298	22	200	324	324	312	12	240	285	285	278	7	240	0	0	0	0	240	0	0	0	0	200	0	0	0	0	240	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	220	0	-220	0	0	220	0	0	0	0	280	0	0	0	0	0	0	0	0	0	0	2026-09-08 08:30:00.048006	2026-09-08 17:15:00.580849
+191	2026-09-15 17:15:00.498497	2026-09-15	A	08:30:00	\N	Loop Pipe-Line 2	1	Unknown	1976	6	1468	1468	0	9.50	9.50	0	99.99	99.99	99.70	99.70	EXCELLENT	t	SHIFT	f	0	0	0	0	0	0	0	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	9.50	9.50	9.50	0.00	220	0	0	0	0	200	0	0	0	0	240	0	0	0	0	240	0	0	0	0	240	0	0	0	0	200	0	0	0	0	240	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	220	0	-220	0	0	220	0	0	0	0	280	0	0	0	0	0	0	0	0	0	0	2026-09-15 08:30:00.127404	2026-09-15 17:15:00.498497
+148	2026-09-04 18:29:57.410616	2026-09-04	GAP_AB	17:15:00	\N	Loop Pipe-Line 2	\N	\N	0	0	0	0	0	9.50	0.00	IDLE	0.00	0.00	0.00	0.00	\N	t	GAP	t	0	0	0	0	0	0	0	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	220	0	-220	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2026-09-04 17:15:00.656831	2026-09-04 18:29:57.410616
+187	2026-09-14 17:14:59.143053	2026-09-14	A	08:30:00	\N	Loop Pipe-Line 2	1	Unknown	1	0	1468	1468	1468	9.50	9.50	BREAK	99.99	99.99	99.99	99.99	EXCELLENT	t	SHIFT	f	0	0	0	0	0	0	0	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	9.50	9.50	9.50	0.00	220	0	-220	0	0	200	5	-195	2	3	240	4	-236	0	4	240	6	-234	0	6	240	6	-234	0	6	200	5	-195	0	5	240	4	-236	0	4	0	7	7	0	7	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	220	0	-220	0	0	220	0	-220	0	0	280	0	-280	0	0	0	0	0	0	0	0	2026-09-14 08:30:00.02765	2026-09-14 17:14:59.970396
+172	2026-09-11 03:14:59.18166	2026-09-10	B	18:30:00	\N	Loop Pipe-Line 2	1	Unknown	3050	2	1468	1468	0	9.50	9.50	BREAK	99.99	99.99	99.93	99.93	EXCELLENT	t	SHIFT	f	0	0	0	0	0	0	0	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	9.50	9.50	9.50	0.00	220	0	-220	0	0	200	0	-200	0	0	240	0	-240	0	0	240	0	-240	0	0	240	0	-240	0	0	200	0	-200	0	0	240	0	-240	0	0	280	0	-280	0	0	220	0	0	0	0	200	0	0	0	0	240	0	0	0	0	240	0	0	0	0	0	0	0	0	0	220	0	-220	0	0	220	0	-220	0	0	280	0	-280	0	0	0	0	0	0	0	0	2026-09-10 18:30:00.130686	2026-09-11 03:14:59.18166
+181	2026-09-13 03:14:59.59602	2026-09-12	B	18:30:00	\N	Loop Pipe-Line 2	1	Unknown	2737	2	1468	1468	0	9.50	9.50	BREAK	99.99	99.99	99.93	99.93	EXCELLENT	t	SHIFT	f	0	0	0	0	0	0	0	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	9.50	9.50	9.50	0.00	220	0	0	0	0	200	0	0	0	0	240	0	0	0	0	240	0	0	0	0	240	0	0	0	0	200	0	0	0	0	240	0	0	0	0	280	0	0	0	0	220	0	0	0	0	200	0	0	0	0	240	0	0	0	0	240	0	0	0	0	0	0	0	0	0	220	0	-220	0	0	220	0	0	0	0	280	0	0	0	0	0	0	0	0	0	0	2026-09-12 18:30:00.13089	2026-09-13 03:14:59.59602
+168	2026-09-10 03:14:59.623595	2026-09-09	B	18:30:00	\N	Loop Pipe-Line 2	1	Unknown	3011	14	1468	1468	0	9.50	9.50	BREAK	99.99	99.99	99.54	99.54	EXCELLENT	t	SHIFT	f	0	0	0	0	0	0	0	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	9.50	9.50	9.50	0.00	220	0	0	0	0	200	0	0	0	0	240	0	0	0	0	240	0	0	0	0	240	0	0	0	0	200	0	0	0	0	240	0	0	0	0	280	0	0	0	0	220	0	0	0	0	200	0	0	0	0	240	0	0	0	0	240	0	0	0	0	0	0	0	0	0	220	0	-220	0	0	220	0	0	0	0	280	0	0	0	0	0	0	0	0	0	0	2026-09-09 18:30:00.098482	2026-09-10 03:14:59.623595
+217	2026-09-22 00:15:44.415491	2026-09-21	B	18:30:00	\N	Loop Pipe-Line 2	1	Unknown	1592	7	1468	1468	1468	9.50	9.50	BREAK	99.99	99.99	99.56	99.56	EXCELLENT	f	SHIFT	f	0	0	0	0	0	0	0	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	9.50	9.50	9.50	0.00	220	269	49	259	10	200	306	106	306	0	240	377	137	377	0	240	337	97	337	0	240	358	118	357	1	200	328	128	325	3	240	388	148	385	3	280	436	156	436	0	220	313	93	310	3	200	264	64	260	4	240	333	93	332	1	240	360	120	360	0	0	268	268	268	0	220	0	-220	0	0	220	0	0	0	0	280	0	0	0	0	0	0	0	0	0	0	2026-09-21 18:30:00.228222	2026-09-22 00:15:44.415491
+\.
+
+
+--
+-- Data for Name: bak_ync_sa_6way_phantom_20260923; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.bak_ync_sa_6way_phantom_20260923 (id, ts, record_date, shift_name, ct_value, cycle_seq, part_code, is_ng) FROM stdin;
+4476	2026-09-23 11:59:46.452877	2026-09-23	A	0.04	1878	\N	f
+4477	2026-09-23 11:59:46.494637	2026-09-23	A	0.04	1879	\N	f
+4478	2026-09-23 11:59:46.536397	2026-09-23	A	0.04	1880	\N	f
+4479	2026-09-23 11:59:46.578157	2026-09-23	A	0.04	1881	\N	f
+4480	2026-09-23 11:59:46.619917	2026-09-23	A	0.04	1882	\N	f
+4481	2026-09-23 11:59:46.661677	2026-09-23	A	0.04	1883	\N	f
+4482	2026-09-23 11:59:46.703437	2026-09-23	A	0.04	1884	\N	f
+4483	2026-09-23 11:59:46.745197	2026-09-23	A	0.04	1885	\N	f
+4484	2026-09-23 11:59:46.786957	2026-09-23	A	0.04	1886	\N	f
+4485	2026-09-23 11:59:46.828717	2026-09-23	A	0.04	1887	\N	f
+4486	2026-09-23 11:59:46.870477	2026-09-23	A	0.04	1888	\N	f
+4487	2026-09-23 11:59:46.912237	2026-09-23	A	0.04	1889	\N	f
+4488	2026-09-23 11:59:46.953997	2026-09-23	A	0.04	1890	\N	f
+4489	2026-09-23 11:59:46.995757	2026-09-23	A	0.04	1891	\N	f
+4490	2026-09-23 11:59:47.037517	2026-09-23	A	0.04	1892	\N	f
+4491	2026-09-23 11:59:47.079277	2026-09-23	A	0.04	1893	\N	f
+4492	2026-09-23 11:59:47.121037	2026-09-23	A	0.04	1894	\N	f
+4493	2026-09-23 11:59:47.162797	2026-09-23	A	0.04	1895	\N	f
+4494	2026-09-23 11:59:47.204557	2026-09-23	A	0.04	1896	\N	f
+4495	2026-09-23 11:59:47.246317	2026-09-23	A	0.04	1897	\N	f
+4496	2026-09-23 11:59:47.288077	2026-09-23	A	0.04	1898	\N	f
+4497	2026-09-23 11:59:47.329837	2026-09-23	A	0.04	1899	\N	f
+4498	2026-09-23 11:59:47.371597	2026-09-23	A	0.04	1900	\N	f
+4499	2026-09-23 11:59:47.413357	2026-09-23	A	0.04	1901	\N	f
+4500	2026-09-23 11:59:47.455117	2026-09-23	A	0.04	1902	\N	f
+4501	2026-09-23 11:59:47.496877	2026-09-23	A	0.04	1903	\N	f
+4502	2026-09-23 11:59:47.538637	2026-09-23	A	0.04	1904	\N	f
+4503	2026-09-23 11:59:47.580397	2026-09-23	A	0.04	1905	\N	f
+4504	2026-09-23 11:59:47.622157	2026-09-23	A	0.04	1906	\N	f
+4505	2026-09-23 11:59:47.663917	2026-09-23	A	0.04	1907	\N	f
+4506	2026-09-23 11:59:47.705677	2026-09-23	A	0.04	1908	\N	f
+4507	2026-09-23 11:59:47.747437	2026-09-23	A	0.04	1909	\N	f
+4508	2026-09-23 11:59:47.789197	2026-09-23	A	0.04	1910	\N	f
+4509	2026-09-23 11:59:47.830957	2026-09-23	A	0.04	1911	\N	f
+4510	2026-09-23 11:59:47.872717	2026-09-23	A	0.04	1912	\N	f
+4511	2026-09-23 11:59:47.914477	2026-09-23	A	0.04	1913	\N	f
+4512	2026-09-23 11:59:47.956237	2026-09-23	A	0.04	1914	\N	f
+4513	2026-09-23 11:59:47.997997	2026-09-23	A	0.04	1915	\N	f
+4514	2026-09-23 11:59:48.039757	2026-09-23	A	0.04	1916	\N	f
+4515	2026-09-23 11:59:48.081517	2026-09-23	A	0.04	1917	\N	f
+4516	2026-09-23 11:59:48.123277	2026-09-23	A	0.04	1918	\N	f
+4517	2026-09-23 11:59:48.165037	2026-09-23	A	0.04	1919	\N	f
+4518	2026-09-23 11:59:48.206797	2026-09-23	A	0.04	1920	\N	f
+4519	2026-09-23 11:59:48.248557	2026-09-23	A	0.04	1921	\N	f
+4520	2026-09-23 11:59:48.290317	2026-09-23	A	0.04	1922	\N	f
+4521	2026-09-23 11:59:48.332077	2026-09-23	A	0.04	1923	\N	f
+4522	2026-09-23 11:59:48.373837	2026-09-23	A	0.04	1924	\N	f
+4523	2026-09-23 11:59:48.415597	2026-09-23	A	0.04	1925	\N	f
+4524	2026-09-23 11:59:48.457357	2026-09-23	A	0.04	1926	\N	f
+4525	2026-09-23 11:59:48.499117	2026-09-23	A	0.04	1927	\N	f
+4526	2026-09-23 11:59:48.540877	2026-09-23	A	0.04	1928	\N	f
+4527	2026-09-23 11:59:48.582637	2026-09-23	A	0.04	1929	\N	f
+4528	2026-09-23 11:59:48.624397	2026-09-23	A	0.04	1930	\N	f
+4529	2026-09-23 11:59:48.666157	2026-09-23	A	0.04	1931	\N	f
+4530	2026-09-23 11:59:48.707917	2026-09-23	A	0.04	1932	\N	f
+4531	2026-09-23 11:59:48.749677	2026-09-23	A	0.04	1933	\N	f
+4532	2026-09-23 11:59:48.791437	2026-09-23	A	0.04	1934	\N	f
+4533	2026-09-23 11:59:48.833197	2026-09-23	A	0.04	1935	\N	f
+4534	2026-09-23 11:59:48.874957	2026-09-23	A	0.04	1936	\N	f
+4535	2026-09-23 11:59:48.916717	2026-09-23	A	0.04	1937	\N	f
+4536	2026-09-23 11:59:48.958477	2026-09-23	A	0.04	1938	\N	f
+4537	2026-09-23 11:59:49.000237	2026-09-23	A	0.04	1939	\N	f
+4538	2026-09-23 11:59:49.041997	2026-09-23	A	0.04	1940	\N	f
+4539	2026-09-23 11:59:49.083757	2026-09-23	A	0.04	1941	\N	f
+4540	2026-09-23 11:59:49.125517	2026-09-23	A	0.04	1942	\N	f
+4541	2026-09-23 11:59:49.167277	2026-09-23	A	0.04	1943	\N	f
+4542	2026-09-23 11:59:49.209037	2026-09-23	A	0.04	1944	\N	f
+4543	2026-09-23 11:59:49.250797	2026-09-23	A	0.04	1945	\N	f
+4544	2026-09-23 11:59:49.292557	2026-09-23	A	0.04	1946	\N	f
+4545	2026-09-23 11:59:49.334317	2026-09-23	A	0.04	1947	\N	f
+4546	2026-09-23 11:59:49.376077	2026-09-23	A	0.04	1948	\N	f
+4547	2026-09-23 11:59:49.417837	2026-09-23	A	0.04	1949	\N	f
+4548	2026-09-23 11:59:49.459597	2026-09-23	A	0.04	1950	\N	f
+4549	2026-09-23 11:59:49.501357	2026-09-23	A	0.04	1951	\N	f
+4550	2026-09-23 11:59:49.543117	2026-09-23	A	0.04	1952	\N	f
+4551	2026-09-23 11:59:49.584877	2026-09-23	A	0.04	1953	\N	f
+4552	2026-09-23 11:59:49.626637	2026-09-23	A	0.04	1954	\N	f
+4553	2026-09-23 11:59:49.668397	2026-09-23	A	0.04	1955	\N	f
+4554	2026-09-23 11:59:49.710157	2026-09-23	A	0.04	1956	\N	f
+4555	2026-09-23 11:59:49.751917	2026-09-23	A	0.04	1957	\N	f
+4556	2026-09-23 11:59:49.793677	2026-09-23	A	0.04	1958	\N	f
+4557	2026-09-23 11:59:49.835437	2026-09-23	A	0.04	1959	\N	f
+4558	2026-09-23 11:59:49.877197	2026-09-23	A	0.04	1960	\N	f
+4559	2026-09-23 11:59:49.918957	2026-09-23	A	0.04	1961	\N	f
+4560	2026-09-23 11:59:49.960717	2026-09-23	A	0.04	1962	\N	f
+4561	2026-09-23 11:59:50.002477	2026-09-23	A	0.04	1963	\N	f
+4562	2026-09-23 11:59:50.044237	2026-09-23	A	0.04	1964	\N	f
+4563	2026-09-23 11:59:50.085997	2026-09-23	A	0.04	1965	\N	f
+4564	2026-09-23 11:59:50.127757	2026-09-23	A	0.04	1966	\N	f
+4565	2026-09-23 11:59:50.169517	2026-09-23	A	0.04	1967	\N	f
+4566	2026-09-23 11:59:50.211277	2026-09-23	A	0.04	1968	\N	f
+4567	2026-09-23 11:59:50.253037	2026-09-23	A	0.04	1969	\N	f
+4568	2026-09-23 11:59:50.294797	2026-09-23	A	0.04	1970	\N	f
+4569	2026-09-23 11:59:50.336557	2026-09-23	A	0.04	1971	\N	f
+4570	2026-09-23 11:59:50.378317	2026-09-23	A	0.04	1972	\N	f
+4571	2026-09-23 11:59:50.420077	2026-09-23	A	0.04	1973	\N	f
+4572	2026-09-23 11:59:50.461837	2026-09-23	A	0.04	1974	\N	f
+4573	2026-09-23 11:59:50.503597	2026-09-23	A	0.04	1975	\N	f
+4574	2026-09-23 11:59:50.545357	2026-09-23	A	0.04	1976	\N	f
+4575	2026-09-23 11:59:50.587117	2026-09-23	A	0.04	1977	\N	f
+4576	2026-09-23 11:59:50.628877	2026-09-23	A	0.04	1978	\N	f
+4577	2026-09-23 11:59:50.670637	2026-09-23	A	0.04	1979	\N	f
+4578	2026-09-23 11:59:50.712397	2026-09-23	A	0.04	1980	\N	f
+4579	2026-09-23 11:59:50.754157	2026-09-23	A	0.04	1981	\N	f
+4580	2026-09-23 11:59:50.795917	2026-09-23	A	0.04	1982	\N	f
+4581	2026-09-23 11:59:50.837677	2026-09-23	A	0.04	1983	\N	f
+4582	2026-09-23 11:59:50.879437	2026-09-23	A	0.04	1984	\N	f
+4583	2026-09-23 11:59:50.921197	2026-09-23	A	0.04	1985	\N	f
+4584	2026-09-23 11:59:50.962957	2026-09-23	A	0.04	1986	\N	f
+4585	2026-09-23 11:59:51.004717	2026-09-23	A	0.04	1987	\N	f
+4586	2026-09-23 11:59:51.046477	2026-09-23	A	0.04	1988	\N	f
+4587	2026-09-23 11:59:51.088237	2026-09-23	A	0.04	1989	\N	f
+4588	2026-09-23 11:59:51.129997	2026-09-23	A	0.04	1990	\N	f
+4589	2026-09-23 11:59:51.171757	2026-09-23	A	0.04	1991	\N	f
+4590	2026-09-23 11:59:51.213517	2026-09-23	A	0.04	1992	\N	f
+4591	2026-09-23 11:59:51.255277	2026-09-23	A	0.04	1993	\N	f
+4592	2026-09-23 11:59:51.297037	2026-09-23	A	0.04	1994	\N	f
+4593	2026-09-23 11:59:51.338797	2026-09-23	A	0.04	1995	\N	f
+4594	2026-09-23 11:59:51.380557	2026-09-23	A	0.04	1996	\N	f
+4595	2026-09-23 11:59:51.422317	2026-09-23	A	0.04	1997	\N	f
+4596	2026-09-23 11:59:51.464077	2026-09-23	A	0.04	1998	\N	f
+4597	2026-09-23 11:59:51.505837	2026-09-23	A	0.04	1999	\N	f
+4598	2026-09-23 11:59:51.547597	2026-09-23	A	0.04	2000	\N	f
+4599	2026-09-23 11:59:51.589357	2026-09-23	A	0.04	2001	\N	f
+4600	2026-09-23 11:59:51.631117	2026-09-23	A	0.04	2002	\N	f
+4601	2026-09-23 11:59:51.672877	2026-09-23	A	0.04	2003	\N	f
+4602	2026-09-23 11:59:51.714637	2026-09-23	A	0.04	2004	\N	f
+4603	2026-09-23 11:59:51.756397	2026-09-23	A	0.04	2005	\N	f
+4604	2026-09-23 11:59:51.798157	2026-09-23	A	0.04	2006	\N	f
+4605	2026-09-23 11:59:51.839917	2026-09-23	A	0.04	2007	\N	f
+4606	2026-09-23 11:59:51.881677	2026-09-23	A	0.04	2008	\N	f
+4607	2026-09-23 11:59:51.923437	2026-09-23	A	0.04	2009	\N	f
+4608	2026-09-23 11:59:51.965197	2026-09-23	A	0.04	2010	\N	f
+4609	2026-09-23 11:59:52.006957	2026-09-23	A	0.04	2011	\N	f
+4610	2026-09-23 11:59:52.048717	2026-09-23	A	0.04	2012	\N	f
+4611	2026-09-23 11:59:52.090477	2026-09-23	A	0.04	2013	\N	f
+4612	2026-09-23 11:59:52.132237	2026-09-23	A	0.04	2014	\N	f
+4613	2026-09-23 11:59:52.173997	2026-09-23	A	0.04	2015	\N	f
+4614	2026-09-23 11:59:52.215757	2026-09-23	A	0.04	2016	\N	f
+4615	2026-09-23 11:59:52.257517	2026-09-23	A	0.04	2017	\N	f
+4616	2026-09-23 11:59:52.299277	2026-09-23	A	0.04	2018	\N	f
+4617	2026-09-23 11:59:52.341037	2026-09-23	A	0.04	2019	\N	f
+4618	2026-09-23 11:59:52.382797	2026-09-23	A	0.04	2020	\N	f
+4619	2026-09-23 11:59:52.424557	2026-09-23	A	0.04	2021	\N	f
+4620	2026-09-23 11:59:52.466317	2026-09-23	A	0.04	2022	\N	f
+4621	2026-09-23 11:59:52.508077	2026-09-23	A	0.04	2023	\N	f
+4622	2026-09-23 11:59:52.549837	2026-09-23	A	0.04	2024	\N	f
+4623	2026-09-23 11:59:52.591597	2026-09-23	A	0.04	2025	\N	f
+4624	2026-09-23 11:59:52.633357	2026-09-23	A	0.04	2026	\N	f
+4625	2026-09-23 11:59:52.675117	2026-09-23	A	0.04	2027	\N	f
+4626	2026-09-23 11:59:52.716877	2026-09-23	A	0.04	2028	\N	f
+4627	2026-09-23 11:59:52.758637	2026-09-23	A	0.04	2029	\N	f
+4628	2026-09-23 11:59:52.800397	2026-09-23	A	0.04	2030	\N	f
+4629	2026-09-23 11:59:52.842157	2026-09-23	A	0.04	2031	\N	f
+4630	2026-09-23 11:59:52.883917	2026-09-23	A	0.04	2032	\N	f
+4631	2026-09-23 11:59:52.925677	2026-09-23	A	0.04	2033	\N	f
+4632	2026-09-23 11:59:52.967437	2026-09-23	A	0.04	2034	\N	f
+4633	2026-09-23 11:59:53.009197	2026-09-23	A	0.04	2035	\N	f
+4634	2026-09-23 11:59:53.050957	2026-09-23	A	0.04	2036	\N	f
+4635	2026-09-23 11:59:53.092717	2026-09-23	A	0.04	2037	\N	f
+4636	2026-09-23 11:59:53.134477	2026-09-23	A	0.04	2038	\N	f
+4637	2026-09-23 11:59:53.176237	2026-09-23	A	0.04	2039	\N	f
+4638	2026-09-23 11:59:53.217997	2026-09-23	A	0.04	2040	\N	f
+4639	2026-09-23 11:59:53.259757	2026-09-23	A	0.04	2041	\N	f
+4640	2026-09-23 11:59:53.301517	2026-09-23	A	0.04	2042	\N	f
+4641	2026-09-23 11:59:53.343277	2026-09-23	A	0.04	2043	\N	f
+4642	2026-09-23 11:59:53.385037	2026-09-23	A	0.04	2044	\N	f
+4643	2026-09-23 11:59:53.426797	2026-09-23	A	0.04	2045	\N	f
+4644	2026-09-23 11:59:53.468557	2026-09-23	A	0.04	2046	\N	f
+4645	2026-09-23 11:59:53.510317	2026-09-23	A	0.04	2047	\N	f
+4646	2026-09-23 11:59:53.552077	2026-09-23	A	0.04	2048	\N	f
+4647	2026-09-23 11:59:53.593837	2026-09-23	A	0.04	2049	\N	f
+4648	2026-09-23 11:59:53.635597	2026-09-23	A	0.04	2050	\N	f
+4649	2026-09-23 11:59:53.677357	2026-09-23	A	0.04	2051	\N	f
+4650	2026-09-23 11:59:53.719117	2026-09-23	A	0.04	2052	\N	f
+4651	2026-09-23 11:59:53.760877	2026-09-23	A	0.04	2053	\N	f
+4652	2026-09-23 11:59:53.802637	2026-09-23	A	0.04	2054	\N	f
+4653	2026-09-23 11:59:53.844397	2026-09-23	A	0.04	2055	\N	f
+4654	2026-09-23 11:59:53.886157	2026-09-23	A	0.04	2056	\N	f
+4655	2026-09-23 11:59:53.927917	2026-09-23	A	0.04	2057	\N	f
+4656	2026-09-23 11:59:53.969677	2026-09-23	A	0.04	2058	\N	f
+4657	2026-09-23 11:59:54.011437	2026-09-23	A	0.04	2059	\N	f
+4658	2026-09-23 11:59:54.053197	2026-09-23	A	0.04	2060	\N	f
+4659	2026-09-23 11:59:54.094957	2026-09-23	A	0.04	2061	\N	f
+4660	2026-09-23 11:59:54.136717	2026-09-23	A	0.04	2062	\N	f
+4661	2026-09-23 11:59:54.178477	2026-09-23	A	0.04	2063	\N	f
+4662	2026-09-23 11:59:54.220237	2026-09-23	A	0.04	2064	\N	f
+4663	2026-09-23 11:59:54.261997	2026-09-23	A	0.04	2065	\N	f
+4664	2026-09-23 11:59:54.303757	2026-09-23	A	0.04	2066	\N	f
+4665	2026-09-23 11:59:54.345517	2026-09-23	A	0.04	2067	\N	f
+4666	2026-09-23 11:59:54.387277	2026-09-23	A	0.04	2068	\N	f
+4667	2026-09-23 11:59:54.429037	2026-09-23	A	0.04	2069	\N	f
+4668	2026-09-23 11:59:54.470797	2026-09-23	A	0.04	2070	\N	f
+4669	2026-09-23 11:59:54.512557	2026-09-23	A	0.04	2071	\N	f
+4670	2026-09-23 11:59:54.554317	2026-09-23	A	0.04	2072	\N	f
+4671	2026-09-23 11:59:54.596077	2026-09-23	A	0.04	2073	\N	f
+4672	2026-09-23 11:59:54.637837	2026-09-23	A	0.04	2074	\N	f
+4673	2026-09-23 11:59:54.679597	2026-09-23	A	0.04	2075	\N	f
+4674	2026-09-23 11:59:54.721357	2026-09-23	A	0.04	2076	\N	f
+4675	2026-09-23 11:59:54.763117	2026-09-23	A	0.04	2077	\N	f
+4676	2026-09-23 11:59:54.804877	2026-09-23	A	0.04	2078	\N	f
+4677	2026-09-23 11:59:54.846637	2026-09-23	A	0.04	2079	\N	f
+4678	2026-09-23 11:59:54.888397	2026-09-23	A	0.04	2080	\N	f
+4679	2026-09-23 11:59:54.930157	2026-09-23	A	0.04	2081	\N	f
+4680	2026-09-23 11:59:54.971917	2026-09-23	A	0.04	2082	\N	f
+4681	2026-09-23 11:59:55.013677	2026-09-23	A	0.04	2083	\N	f
+4682	2026-09-23 11:59:55.055437	2026-09-23	A	0.04	2084	\N	f
+4683	2026-09-23 11:59:55.097197	2026-09-23	A	0.04	2085	\N	f
+4684	2026-09-23 11:59:55.138957	2026-09-23	A	0.04	2086	\N	f
+4685	2026-09-23 11:59:55.180717	2026-09-23	A	0.04	2087	\N	f
+4686	2026-09-23 11:59:55.222477	2026-09-23	A	0.04	2088	\N	f
+4687	2026-09-23 11:59:55.264237	2026-09-23	A	0.04	2089	\N	f
+4688	2026-09-23 11:59:55.305997	2026-09-23	A	0.04	2090	\N	f
+4689	2026-09-23 11:59:55.347757	2026-09-23	A	0.04	2091	\N	f
+4690	2026-09-23 11:59:55.389517	2026-09-23	A	0.04	2092	\N	f
+4691	2026-09-23 11:59:55.431277	2026-09-23	A	0.04	2093	\N	f
+4692	2026-09-23 11:59:55.473037	2026-09-23	A	0.04	2094	\N	f
+4693	2026-09-23 11:59:55.514797	2026-09-23	A	0.04	2095	\N	f
+4694	2026-09-23 11:59:55.556557	2026-09-23	A	0.04	2096	\N	f
+4695	2026-09-23 11:59:55.598317	2026-09-23	A	0.04	2097	\N	f
+4696	2026-09-23 11:59:55.640077	2026-09-23	A	0.04	2098	\N	f
+4697	2026-09-23 11:59:55.681837	2026-09-23	A	0.04	2099	\N	f
+4698	2026-09-23 11:59:55.723597	2026-09-23	A	0.04	2100	\N	f
+4699	2026-09-23 11:59:55.765357	2026-09-23	A	0.04	2101	\N	f
+4700	2026-09-23 11:59:55.807117	2026-09-23	A	0.04	2102	\N	f
+4701	2026-09-23 11:59:55.848877	2026-09-23	A	0.04	2103	\N	f
+4702	2026-09-23 11:59:55.890637	2026-09-23	A	0.04	2104	\N	f
+4703	2026-09-23 11:59:55.932397	2026-09-23	A	0.04	2105	\N	f
+4704	2026-09-23 11:59:55.974157	2026-09-23	A	0.04	2106	\N	f
+4705	2026-09-23 11:59:56.015917	2026-09-23	A	0.04	2107	\N	f
+4706	2026-09-23 11:59:56.057677	2026-09-23	A	0.04	2108	\N	f
+4707	2026-09-23 11:59:56.099437	2026-09-23	A	0.04	2109	\N	f
+4708	2026-09-23 11:59:56.141197	2026-09-23	A	0.04	2110	\N	f
+4709	2026-09-23 11:59:56.182957	2026-09-23	A	0.04	2111	\N	f
+4710	2026-09-23 11:59:56.224717	2026-09-23	A	0.04	2112	\N	f
+4711	2026-09-23 11:59:56.266477	2026-09-23	A	0.04	2113	\N	f
+4712	2026-09-23 11:59:56.308237	2026-09-23	A	0.04	2114	\N	f
+4713	2026-09-23 11:59:56.349997	2026-09-23	A	0.04	2115	\N	f
+4714	2026-09-23 11:59:56.391757	2026-09-23	A	0.04	2116	\N	f
+4715	2026-09-23 11:59:56.433517	2026-09-23	A	0.04	2117	\N	f
+4716	2026-09-23 11:59:56.475277	2026-09-23	A	0.04	2118	\N	f
+4717	2026-09-23 11:59:56.517037	2026-09-23	A	0.04	2119	\N	f
+4718	2026-09-23 11:59:56.558797	2026-09-23	A	0.04	2120	\N	f
+4719	2026-09-23 11:59:56.600557	2026-09-23	A	0.04	2121	\N	f
+4720	2026-09-23 11:59:56.642317	2026-09-23	A	0.04	2122	\N	f
+4721	2026-09-23 11:59:56.684077	2026-09-23	A	0.04	2123	\N	f
+4722	2026-09-23 11:59:56.725837	2026-09-23	A	0.04	2124	\N	f
+4723	2026-09-23 11:59:56.767597	2026-09-23	A	0.04	2125	\N	f
+4724	2026-09-23 11:59:56.809357	2026-09-23	A	0.04	2126	\N	f
+4725	2026-09-23 11:59:56.851117	2026-09-23	A	0.04	2127	\N	f
+4726	2026-09-23 11:59:56.892877	2026-09-23	A	0.04	2128	\N	f
+4727	2026-09-23 11:59:56.934637	2026-09-23	A	0.04	2129	\N	f
+4728	2026-09-23 11:59:56.976397	2026-09-23	A	0.04	2130	\N	f
+4729	2026-09-23 11:59:57.018157	2026-09-23	A	0.04	2131	\N	f
+4730	2026-09-23 11:59:57.059917	2026-09-23	A	0.04	2132	\N	f
+4731	2026-09-23 11:59:57.101677	2026-09-23	A	0.04	2133	\N	f
+4732	2026-09-23 11:59:57.143437	2026-09-23	A	0.04	2134	\N	f
+4733	2026-09-23 11:59:57.185197	2026-09-23	A	0.04	2135	\N	f
+4734	2026-09-23 11:59:57.226957	2026-09-23	A	0.04	2136	\N	f
+4735	2026-09-23 11:59:57.268717	2026-09-23	A	0.04	2137	\N	f
+4736	2026-09-23 11:59:57.310477	2026-09-23	A	0.04	2138	\N	f
+4737	2026-09-23 11:59:57.352237	2026-09-23	A	0.04	2139	\N	f
+4738	2026-09-23 11:59:57.393997	2026-09-23	A	0.04	2140	\N	f
+4739	2026-09-23 11:59:57.435757	2026-09-23	A	0.04	2141	\N	f
+4740	2026-09-23 11:59:57.477517	2026-09-23	A	0.04	2142	\N	f
+4741	2026-09-23 11:59:57.519277	2026-09-23	A	0.04	2143	\N	f
+4742	2026-09-23 11:59:57.561037	2026-09-23	A	0.04	2144	\N	f
+4743	2026-09-23 11:59:57.602797	2026-09-23	A	0.04	2145	\N	f
+4744	2026-09-23 11:59:57.644557	2026-09-23	A	0.04	2146	\N	f
+4745	2026-09-23 11:59:57.686317	2026-09-23	A	0.04	2147	\N	f
+4746	2026-09-23 11:59:57.728077	2026-09-23	A	0.04	2148	\N	f
+4747	2026-09-23 11:59:57.769837	2026-09-23	A	0.04	2149	\N	f
+4748	2026-09-23 11:59:57.811597	2026-09-23	A	0.04	2150	\N	f
+4749	2026-09-23 11:59:57.853357	2026-09-23	A	0.04	2151	\N	f
+4750	2026-09-23 11:59:57.895117	2026-09-23	A	0.04	2152	\N	f
+4751	2026-09-23 11:59:57.936877	2026-09-23	A	0.04	2153	\N	f
+4752	2026-09-23 11:59:57.978637	2026-09-23	A	0.04	2154	\N	f
+4753	2026-09-23 11:59:58.020397	2026-09-23	A	0.04	2155	\N	f
+4754	2026-09-23 11:59:58.062157	2026-09-23	A	0.04	2156	\N	f
+4755	2026-09-23 11:59:58.103917	2026-09-23	A	0.04	2157	\N	f
+4756	2026-09-23 11:59:58.145677	2026-09-23	A	0.04	2158	\N	f
+4757	2026-09-23 11:59:58.187437	2026-09-23	A	0.04	2159	\N	f
+4758	2026-09-23 11:59:58.229197	2026-09-23	A	0.04	2160	\N	f
+4759	2026-09-23 11:59:58.270957	2026-09-23	A	0.04	2161	\N	f
+4760	2026-09-23 11:59:58.312717	2026-09-23	A	0.04	2162	\N	f
+4761	2026-09-23 11:59:58.354477	2026-09-23	A	0.04	2163	\N	f
+4762	2026-09-23 11:59:58.396237	2026-09-23	A	0.04	2164	\N	f
+4763	2026-09-23 11:59:58.437997	2026-09-23	A	0.04	2165	\N	f
+4764	2026-09-23 11:59:58.479757	2026-09-23	A	0.04	2166	\N	f
+4765	2026-09-23 11:59:58.521517	2026-09-23	A	0.04	2167	\N	f
+4766	2026-09-23 11:59:58.563277	2026-09-23	A	0.04	2168	\N	f
+4767	2026-09-23 11:59:58.605037	2026-09-23	A	0.04	2169	\N	f
+4768	2026-09-23 11:59:58.646797	2026-09-23	A	0.04	2170	\N	f
+4769	2026-09-23 11:59:58.688557	2026-09-23	A	0.04	2171	\N	f
+4770	2026-09-23 11:59:58.730317	2026-09-23	A	0.04	2172	\N	f
+4771	2026-09-23 11:59:58.772077	2026-09-23	A	0.04	2173	\N	f
+4772	2026-09-23 11:59:58.813837	2026-09-23	A	0.04	2174	\N	f
+4773	2026-09-23 11:59:58.855597	2026-09-23	A	0.04	2175	\N	f
+4774	2026-09-23 11:59:58.897357	2026-09-23	A	0.04	2176	\N	f
+4775	2026-09-23 11:59:58.939117	2026-09-23	A	0.04	2177	\N	f
+4776	2026-09-23 11:59:58.980877	2026-09-23	A	0.04	2178	\N	f
+4777	2026-09-23 11:59:59.022637	2026-09-23	A	0.04	2179	\N	f
+4778	2026-09-23 11:59:59.064397	2026-09-23	A	0.04	2180	\N	f
+4779	2026-09-23 11:59:59.106157	2026-09-23	A	0.04	2181	\N	f
+4780	2026-09-23 11:59:59.147917	2026-09-23	A	0.04	2182	\N	f
+4781	2026-09-23 11:59:59.189677	2026-09-23	A	0.04	2183	\N	f
+4782	2026-09-23 11:59:59.231437	2026-09-23	A	0.04	2184	\N	f
+4783	2026-09-23 11:59:59.273197	2026-09-23	A	0.04	2185	\N	f
+4784	2026-09-23 11:59:59.314957	2026-09-23	A	0.04	2186	\N	f
+4785	2026-09-23 11:59:59.356717	2026-09-23	A	0.04	2187	\N	f
+4786	2026-09-23 11:59:59.398477	2026-09-23	A	0.04	2188	\N	f
+4787	2026-09-23 11:59:59.440237	2026-09-23	A	0.04	2189	\N	f
+4788	2026-09-23 11:59:59.481997	2026-09-23	A	0.04	2190	\N	f
+4789	2026-09-23 11:59:59.523757	2026-09-23	A	0.04	2191	\N	f
+4790	2026-09-23 11:59:59.565517	2026-09-23	A	0.04	2192	\N	f
+4791	2026-09-23 11:59:59.607277	2026-09-23	A	0.04	2193	\N	f
+4792	2026-09-23 11:59:59.649037	2026-09-23	A	0.04	2194	\N	f
+4793	2026-09-23 11:59:59.690797	2026-09-23	A	0.04	2195	\N	f
+4794	2026-09-23 11:59:59.732557	2026-09-23	A	0.04	2196	\N	f
+4795	2026-09-23 11:59:59.774317	2026-09-23	A	0.04	2197	\N	f
+4796	2026-09-23 11:59:59.816077	2026-09-23	A	0.04	2198	\N	f
+4797	2026-09-23 11:59:59.857837	2026-09-23	A	0.04	2199	\N	f
+4798	2026-09-23 11:59:59.899597	2026-09-23	A	0.04	2200	\N	f
+4799	2026-09-23 11:59:59.941357	2026-09-23	A	0.04	2201	\N	f
+4800	2026-09-23 11:59:59.983117	2026-09-23	A	0.04	2202	\N	f
+4801	2026-09-23 12:00:00.024877	2026-09-23	A	0.04	2203	\N	f
+4802	2026-09-23 12:00:00.066637	2026-09-23	A	0.04	2204	\N	f
+4803	2026-09-23 12:00:00.108397	2026-09-23	A	0.04	2205	\N	f
+4804	2026-09-23 12:00:00.150157	2026-09-23	A	0.04	2206	\N	f
+4805	2026-09-23 12:00:00.191917	2026-09-23	A	0.04	2207	\N	f
+4806	2026-09-23 12:00:00.233677	2026-09-23	A	0.04	2208	\N	f
+4807	2026-09-23 12:00:00.275437	2026-09-23	A	0.04	2209	\N	f
+4808	2026-09-23 12:00:00.317197	2026-09-23	A	0.04	2210	\N	f
+4809	2026-09-23 12:00:00.358957	2026-09-23	A	0.04	2211	\N	f
+4810	2026-09-23 12:00:00.400717	2026-09-23	A	0.04	2212	\N	f
+4811	2026-09-23 12:00:00.442477	2026-09-23	A	0.04	2213	\N	f
+4812	2026-09-23 12:00:00.484237	2026-09-23	A	0.04	2214	\N	f
+4813	2026-09-23 12:00:00.525997	2026-09-23	A	0.04	2215	\N	f
+4814	2026-09-23 12:00:00.567757	2026-09-23	A	0.04	2216	\N	f
+4815	2026-09-23 12:00:00.609517	2026-09-23	A	0.04	2217	\N	f
+4816	2026-09-23 12:00:00.651277	2026-09-23	A	0.04	2218	\N	f
+4817	2026-09-23 12:00:00.693037	2026-09-23	A	0.04	2219	\N	f
+4818	2026-09-23 12:00:00.734797	2026-09-23	A	0.04	2220	\N	f
+4819	2026-09-23 12:00:00.776557	2026-09-23	A	0.04	2221	\N	f
+4820	2026-09-23 12:00:00.818317	2026-09-23	A	0.04	2222	\N	f
+4821	2026-09-23 12:00:00.860077	2026-09-23	A	0.04	2223	\N	f
+4822	2026-09-23 12:00:00.901837	2026-09-23	A	0.04	2224	\N	f
+4823	2026-09-23 12:00:00.943597	2026-09-23	A	0.04	2225	\N	f
+4824	2026-09-23 12:00:00.985357	2026-09-23	A	0.04	2226	\N	f
+4825	2026-09-23 12:00:01.027117	2026-09-23	A	0.04	2227	\N	f
+4826	2026-09-23 12:00:01.068877	2026-09-23	A	0.04	2228	\N	f
+4827	2026-09-23 12:00:01.110637	2026-09-23	A	0.04	2229	\N	f
+4828	2026-09-23 12:00:01.152397	2026-09-23	A	0.04	2230	\N	f
+4829	2026-09-23 12:00:01.194157	2026-09-23	A	0.04	2231	\N	f
+4830	2026-09-23 12:00:01.235917	2026-09-23	A	0.04	2232	\N	f
+4831	2026-09-23 12:00:01.277677	2026-09-23	A	0.04	2233	\N	f
+4832	2026-09-23 12:00:01.319437	2026-09-23	A	0.04	2234	\N	f
+4833	2026-09-23 12:00:01.361197	2026-09-23	A	0.04	2235	\N	f
+4834	2026-09-23 12:00:01.402957	2026-09-23	A	0.04	2236	\N	f
+4835	2026-09-23 12:00:01.444717	2026-09-23	A	0.04	2237	\N	f
+4836	2026-09-23 12:00:01.486477	2026-09-23	A	0.04	2238	\N	f
+4837	2026-09-23 12:00:01.528237	2026-09-23	A	0.04	2239	\N	f
+4838	2026-09-23 12:00:01.569997	2026-09-23	A	0.04	2240	\N	f
+4839	2026-09-23 12:00:01.611757	2026-09-23	A	0.04	2241	\N	f
+4840	2026-09-23 12:00:01.653517	2026-09-23	A	0.04	2242	\N	f
+4841	2026-09-23 12:00:01.695277	2026-09-23	A	0.04	2243	\N	f
+4842	2026-09-23 12:00:01.737037	2026-09-23	A	0.04	2244	\N	f
+4843	2026-09-23 12:00:01.778797	2026-09-23	A	0.04	2245	\N	f
+4844	2026-09-23 12:00:01.820557	2026-09-23	A	0.04	2246	\N	f
+4845	2026-09-23 12:00:01.862317	2026-09-23	A	0.04	2247	\N	f
+4846	2026-09-23 12:00:01.904077	2026-09-23	A	0.04	2248	\N	f
+4847	2026-09-23 12:00:01.945837	2026-09-23	A	0.04	2249	\N	f
+4848	2026-09-23 12:00:01.987597	2026-09-23	A	0.04	2250	\N	f
+4849	2026-09-23 12:00:02.029357	2026-09-23	A	0.04	2251	\N	f
+4850	2026-09-23 12:00:02.071117	2026-09-23	A	0.04	2252	\N	f
+4851	2026-09-23 12:00:02.112877	2026-09-23	A	0.04	2253	\N	f
+4852	2026-09-23 12:00:02.154637	2026-09-23	A	0.04	2254	\N	f
+4853	2026-09-23 12:00:02.196397	2026-09-23	A	0.04	2255	\N	f
+4854	2026-09-23 12:00:02.238157	2026-09-23	A	0.04	2256	\N	f
+4855	2026-09-23 12:00:02.279917	2026-09-23	A	0.04	2257	\N	f
+4856	2026-09-23 12:00:02.321677	2026-09-23	A	0.04	2258	\N	f
+4857	2026-09-23 12:00:02.363437	2026-09-23	A	0.04	2259	\N	f
+4858	2026-09-23 12:00:02.405197	2026-09-23	A	0.04	2260	\N	f
+4859	2026-09-23 12:00:02.446957	2026-09-23	A	0.04	2261	\N	f
+4860	2026-09-23 12:00:02.488717	2026-09-23	A	0.04	2262	\N	f
+4861	2026-09-23 12:00:02.530477	2026-09-23	A	0.04	2263	\N	f
+4862	2026-09-23 12:00:02.572237	2026-09-23	A	0.04	2264	\N	f
+4863	2026-09-23 12:00:02.613997	2026-09-23	A	0.04	2265	\N	f
+4864	2026-09-23 12:00:02.655757	2026-09-23	A	0.04	2266	\N	f
+4865	2026-09-23 12:00:02.697517	2026-09-23	A	0.04	2267	\N	f
+4866	2026-09-23 12:00:02.739277	2026-09-23	A	0.04	2268	\N	f
+4867	2026-09-23 12:00:02.781037	2026-09-23	A	0.04	2269	\N	f
+4868	2026-09-23 12:00:02.822797	2026-09-23	A	0.04	2270	\N	f
+4869	2026-09-23 12:00:02.864557	2026-09-23	A	0.04	2271	\N	f
+4870	2026-09-23 12:00:02.906317	2026-09-23	A	0.04	2272	\N	f
+4871	2026-09-23 12:00:02.948077	2026-09-23	A	0.04	2273	\N	f
+4872	2026-09-23 12:00:02.989837	2026-09-23	A	0.04	2274	\N	f
+4873	2026-09-23 12:00:03.031597	2026-09-23	A	0.04	2275	\N	f
+4874	2026-09-23 12:00:03.073357	2026-09-23	A	0.04	2276	\N	f
+4875	2026-09-23 12:00:03.115117	2026-09-23	A	0.04	2277	\N	f
+4876	2026-09-23 12:00:03.156877	2026-09-23	A	0.04	2278	\N	f
+4877	2026-09-23 12:00:03.198637	2026-09-23	A	0.04	2279	\N	f
+4878	2026-09-23 12:00:03.240397	2026-09-23	A	0.04	2280	\N	f
+4879	2026-09-23 12:00:03.282157	2026-09-23	A	0.04	2281	\N	f
+4880	2026-09-23 12:00:03.323917	2026-09-23	A	0.04	2282	\N	f
+4881	2026-09-23 12:00:03.365677	2026-09-23	A	0.04	2283	\N	f
+4882	2026-09-23 12:00:03.407437	2026-09-23	A	0.04	2284	\N	f
+4883	2026-09-23 12:00:03.449197	2026-09-23	A	0.04	2285	\N	f
+4884	2026-09-23 12:00:03.490957	2026-09-23	A	0.04	2286	\N	f
+4885	2026-09-23 12:00:03.532717	2026-09-23	A	0.04	2287	\N	f
+4886	2026-09-23 12:00:03.574477	2026-09-23	A	0.04	2288	\N	f
+4887	2026-09-23 12:00:03.616237	2026-09-23	A	0.04	2289	\N	f
+4888	2026-09-23 12:00:03.657997	2026-09-23	A	0.04	2290	\N	f
+4889	2026-09-23 12:00:03.699757	2026-09-23	A	0.04	2291	\N	f
+4890	2026-09-23 12:00:03.741517	2026-09-23	A	0.04	2292	\N	f
+4891	2026-09-23 12:00:03.783277	2026-09-23	A	0.04	2293	\N	f
+4892	2026-09-23 12:00:03.825037	2026-09-23	A	0.04	2294	\N	f
+4893	2026-09-23 12:00:03.866797	2026-09-23	A	0.04	2295	\N	f
+4894	2026-09-23 12:00:03.908557	2026-09-23	A	0.04	2296	\N	f
+4895	2026-09-23 12:00:03.950317	2026-09-23	A	0.04	2297	\N	f
+4896	2026-09-23 12:00:03.992077	2026-09-23	A	0.04	2298	\N	f
+4897	2026-09-23 12:00:04.033837	2026-09-23	A	0.04	2299	\N	f
+4898	2026-09-23 12:00:04.075597	2026-09-23	A	0.04	2300	\N	f
+4899	2026-09-23 12:00:04.117357	2026-09-23	A	0.04	2301	\N	f
+4900	2026-09-23 12:00:04.159117	2026-09-23	A	0.04	2302	\N	f
+4901	2026-09-23 12:00:04.200877	2026-09-23	A	0.04	2303	\N	f
+4902	2026-09-23 12:00:04.242637	2026-09-23	A	0.04	2304	\N	f
+4903	2026-09-23 12:00:04.284397	2026-09-23	A	0.04	2305	\N	f
+4904	2026-09-23 12:00:04.326157	2026-09-23	A	0.04	2306	\N	f
+4905	2026-09-23 12:00:04.367917	2026-09-23	A	0.04	2307	\N	f
+4906	2026-09-23 12:00:04.409677	2026-09-23	A	0.04	2308	\N	f
+4907	2026-09-23 12:00:04.451437	2026-09-23	A	0.04	2309	\N	f
+4908	2026-09-23 12:00:04.493197	2026-09-23	A	0.04	2310	\N	f
+4909	2026-09-23 12:00:04.534957	2026-09-23	A	0.04	2311	\N	f
+4910	2026-09-23 12:00:04.576717	2026-09-23	A	0.04	2312	\N	f
+4911	2026-09-23 12:00:04.618477	2026-09-23	A	0.04	2313	\N	f
+4912	2026-09-23 12:00:04.660237	2026-09-23	A	0.04	2314	\N	f
+4913	2026-09-23 12:00:04.701997	2026-09-23	A	0.04	2315	\N	f
+4914	2026-09-23 12:00:04.743757	2026-09-23	A	0.04	2316	\N	f
+4915	2026-09-23 12:00:04.785517	2026-09-23	A	0.04	2317	\N	f
+4916	2026-09-23 12:00:04.827277	2026-09-23	A	0.04	2318	\N	f
+4917	2026-09-23 12:00:04.869037	2026-09-23	A	0.04	2319	\N	f
+4918	2026-09-23 12:00:04.910797	2026-09-23	A	0.04	2320	\N	f
+4919	2026-09-23 12:00:04.952557	2026-09-23	A	0.04	2321	\N	f
+4920	2026-09-23 12:00:04.994317	2026-09-23	A	0.04	2322	\N	f
+4921	2026-09-23 12:00:05.036077	2026-09-23	A	0.04	2323	\N	f
+4922	2026-09-23 12:00:05.077837	2026-09-23	A	0.04	2324	\N	f
+4923	2026-09-23 12:00:05.119597	2026-09-23	A	0.04	2325	\N	f
+4924	2026-09-23 12:00:05.161357	2026-09-23	A	0.04	2326	\N	f
+4925	2026-09-23 12:00:05.203117	2026-09-23	A	0.04	2327	\N	f
+4926	2026-09-23 12:00:05.244877	2026-09-23	A	0.04	2328	\N	f
+4927	2026-09-23 12:00:05.286637	2026-09-23	A	0.04	2329	\N	f
+4928	2026-09-23 12:00:05.328397	2026-09-23	A	0.04	2330	\N	f
+4929	2026-09-23 12:00:05.370157	2026-09-23	A	0.04	2331	\N	f
+4930	2026-09-23 12:00:05.411917	2026-09-23	A	0.04	2332	\N	f
+4931	2026-09-23 12:00:05.453677	2026-09-23	A	0.04	2333	\N	f
+4932	2026-09-23 12:00:05.495437	2026-09-23	A	0.04	2334	\N	f
+4933	2026-09-23 12:00:05.537197	2026-09-23	A	0.04	2335	\N	f
+4934	2026-09-23 12:00:05.578957	2026-09-23	A	0.04	2336	\N	f
+4935	2026-09-23 12:00:05.620717	2026-09-23	A	0.04	2337	\N	f
+4936	2026-09-23 12:00:05.662477	2026-09-23	A	0.04	2338	\N	f
+4937	2026-09-23 12:00:05.704237	2026-09-23	A	0.04	2339	\N	f
+4938	2026-09-23 12:00:05.745997	2026-09-23	A	0.04	2340	\N	f
+4939	2026-09-23 12:00:05.787757	2026-09-23	A	0.04	2341	\N	f
+4940	2026-09-23 12:00:05.829517	2026-09-23	A	0.04	2342	\N	f
+4941	2026-09-23 12:00:05.871277	2026-09-23	A	0.04	2343	\N	f
+4942	2026-09-23 12:00:05.913037	2026-09-23	A	0.04	2344	\N	f
+4943	2026-09-23 12:00:05.954797	2026-09-23	A	0.04	2345	\N	f
+4944	2026-09-23 12:00:05.996557	2026-09-23	A	0.04	2346	\N	f
+4945	2026-09-23 12:00:06.038317	2026-09-23	A	0.04	2347	\N	f
+4946	2026-09-23 12:00:06.080077	2026-09-23	A	0.04	2348	\N	f
+4947	2026-09-23 12:00:06.121837	2026-09-23	A	0.04	2349	\N	f
+4948	2026-09-23 12:00:06.163597	2026-09-23	A	0.04	2350	\N	f
+4949	2026-09-23 12:00:06.205357	2026-09-23	A	0.04	2351	\N	f
+4950	2026-09-23 12:00:06.247117	2026-09-23	A	0.04	2352	\N	f
+4951	2026-09-23 12:00:06.288877	2026-09-23	A	0.04	2353	\N	f
+4952	2026-09-23 12:00:06.330637	2026-09-23	A	0.04	2354	\N	f
+4953	2026-09-23 12:00:06.372397	2026-09-23	A	0.04	2355	\N	f
+4954	2026-09-23 12:00:06.414157	2026-09-23	A	0.04	2356	\N	f
+4955	2026-09-23 12:00:06.455917	2026-09-23	A	0.04	2357	\N	f
+4956	2026-09-23 12:00:06.497677	2026-09-23	A	0.04	2358	\N	f
+4957	2026-09-23 12:00:06.539437	2026-09-23	A	0.04	2359	\N	f
+4958	2026-09-23 12:00:06.581197	2026-09-23	A	0.04	2360	\N	f
+4959	2026-09-23 12:00:06.622957	2026-09-23	A	0.04	2361	\N	f
+4960	2026-09-23 12:00:06.664717	2026-09-23	A	0.04	2362	\N	f
+4961	2026-09-23 12:00:06.706477	2026-09-23	A	0.04	2363	\N	f
+4962	2026-09-23 12:00:06.748237	2026-09-23	A	0.04	2364	\N	f
+4963	2026-09-23 12:00:06.789997	2026-09-23	A	0.04	2365	\N	f
+4964	2026-09-23 12:00:06.831757	2026-09-23	A	0.04	2366	\N	f
+4965	2026-09-23 12:00:06.873517	2026-09-23	A	0.04	2367	\N	f
+4966	2026-09-23 12:00:06.915277	2026-09-23	A	0.04	2368	\N	f
+4967	2026-09-23 12:00:06.957037	2026-09-23	A	0.04	2369	\N	f
+4968	2026-09-23 12:00:06.998797	2026-09-23	A	0.04	2370	\N	f
+4969	2026-09-23 12:00:07.040557	2026-09-23	A	0.04	2371	\N	f
+4970	2026-09-23 12:00:07.082317	2026-09-23	A	0.04	2372	\N	f
+4971	2026-09-23 12:00:07.124077	2026-09-23	A	0.04	2373	\N	f
+4972	2026-09-23 12:00:07.165837	2026-09-23	A	0.04	2374	\N	f
+4973	2026-09-23 12:00:07.207597	2026-09-23	A	0.04	2375	\N	f
+4974	2026-09-23 12:00:07.249357	2026-09-23	A	0.04	2376	\N	f
+4975	2026-09-23 12:00:07.291117	2026-09-23	A	0.04	2377	\N	f
+5001	2026-09-23 12:21:32.524912	2026-09-23	A	0.00	25	\N	f
+5002	2026-09-23 12:21:32.524912	2026-09-23	A	0.00	26	\N	f
+5003	2026-09-23 12:21:32.524912	2026-09-23	A	0.00	27	\N	f
+5004	2026-09-23 12:21:32.524912	2026-09-23	A	0.00	28	\N	f
+5005	2026-09-23 12:21:32.524912	2026-09-23	A	0.00	29	\N	f
+5006	2026-09-23 12:21:32.524912	2026-09-23	A	0.00	30	\N	f
+5007	2026-09-23 12:21:32.524912	2026-09-23	A	0.00	31	\N	f
+5008	2026-09-23 12:21:32.524912	2026-09-23	A	0.00	32	\N	f
+5009	2026-09-23 12:21:32.524912	2026-09-23	A	0.00	33	\N	f
+5010	2026-09-23 12:21:32.524912	2026-09-23	A	0.00	34	\N	f
+5011	2026-09-23 12:21:32.524912	2026-09-23	A	0.00	35	\N	f
+5012	2026-09-23 12:21:32.524912	2026-09-23	A	0.00	36	\N	f
+5013	2026-09-23 12:21:32.524912	2026-09-23	A	0.00	37	\N	f
+5014	2026-09-23 12:21:32.524912	2026-09-23	A	0.00	38	\N	f
+5015	2026-09-23 12:21:32.524912	2026-09-23	A	0.00	39	\N	f
+5016	2026-09-23 12:21:32.524912	2026-09-23	A	0.00	40	\N	f
+5017	2026-09-23 12:21:32.524912	2026-09-23	A	0.00	41	\N	f
+5018	2026-09-23 12:21:32.524912	2026-09-23	A	0.00	42	\N	f
+5019	2026-09-23 12:21:32.524912	2026-09-23	A	0.00	43	\N	f
+5020	2026-09-23 12:21:32.524912	2026-09-23	A	0.00	44	\N	f
+5021	2026-09-23 12:21:32.524912	2026-09-23	A	0.00	45	\N	f
+5022	2026-09-23 12:21:32.524912	2026-09-23	A	0.00	46	\N	f
+5023	2026-09-23 12:21:32.524912	2026-09-23	A	0.00	47	\N	f
+5024	2026-09-23 12:21:32.524912	2026-09-23	A	0.00	48	\N	f
+5025	2026-09-23 12:21:32.524912	2026-09-23	A	0.00	49	\N	f
+5026	2026-09-23 12:21:32.524912	2026-09-23	A	0.00	50	\N	f
+5027	2026-09-23 12:21:32.524912	2026-09-23	A	0.00	51	\N	f
+5028	2026-09-23 12:21:32.524912	2026-09-23	A	0.00	52	\N	f
+5029	2026-09-23 12:21:32.524912	2026-09-23	A	0.00	53	\N	f
+5030	2026-09-23 12:21:32.524912	2026-09-23	A	0.00	54	\N	f
+5031	2026-09-23 12:21:32.524912	2026-09-23	A	0.00	55	\N	f
+5032	2026-09-23 12:21:32.524912	2026-09-23	A	0.00	56	\N	f
+5033	2026-09-23 12:21:32.524912	2026-09-23	A	0.00	57	\N	f
+5034	2026-09-23 12:21:32.524912	2026-09-23	A	0.00	58	\N	f
+5035	2026-09-23 12:21:32.524912	2026-09-23	A	0.00	59	\N	f
+5036	2026-09-23 12:21:32.524912	2026-09-23	A	0.00	60	\N	f
+5037	2026-09-23 12:21:32.524912	2026-09-23	A	0.00	61	\N	f
+5038	2026-09-23 12:21:32.524912	2026-09-23	A	0.00	62	\N	f
+5039	2026-09-23 12:21:32.524912	2026-09-23	A	0.00	63	\N	f
+5040	2026-09-23 12:21:32.524912	2026-09-23	A	0.00	64	\N	f
+5041	2026-09-23 12:21:32.524912	2026-09-23	A	0.00	65	\N	f
+5042	2026-09-23 12:21:32.524912	2026-09-23	A	0.00	66	\N	f
 \.
 
 
@@ -24496,19 +25417,28 @@ COPY public.mes_5s_photos (id, audit_id, pillar, photo_data, photo_url, caption,
 --
 
 COPY public.mes_admin (id, username, password_hash, last_login, created_at, role, department_id, password_plain) FROM stdin;
-17	ywd	$2b$12$yEEbC2a0HOr8fPXydCm/oemmUlfjN9WAfc51LGWQ7K0GkUE.xfPrK	2026-09-21 14:32:17.902641	2026-08-07 16:00:51.564004	operator	\N	ywd123
+30	sanjay	$2b$12$.tgUM4sVjGaQzkKYZ7.v8eLXX72eWszLAKO7NN7jXDSH4waIp6L6S	2026-09-24 08:56:51.121043	2026-08-27 11:49:44.323913	shift_incharge	\N	Sanjay@1990
 59	Jatin Khurana	$2b$12$/dynLUaarR29faYC/weBOeL81zUFqspItbTFfeZgqeSKPTs5Tx/hm	\N	2026-09-19 15:15:20.959862	leader	\N	0332
 9	Quality	$2b$12$oS/dvtXyxf9xmGw7N4czg.4vsySsmHIWyHEXyvE6NkGgWyam/nCkW	2026-06-20 12:09:38.480951	2026-05-01 12:35:48.339698	department	2	\N
 34	ysd	$2b$12$TinuYTW21G.csn/KQlgtCub6uE59sfbNFT9veurXBwIadH77hMzi2	2026-09-13 22:36:08.127571	2026-09-13 17:32:54.799356	operator	\N	ysd
 60	Deepak	$2b$12$8Rw2tYpSL0DDljummLg2IeYPprC6d6zS78nyRvuYbPsep4Cz90qc2	\N	2026-09-19 15:15:38.812639	leader	\N	0397
 32	jitender	$2b$12$xrMU4hcnj0/ip9CGI.IVmu23QG8wuOdteUNZbz2ONX.LzgiaLG7aO	2026-09-10 12:10:07.18684	2026-09-08 14:02:08.864456	section_incharge	\N	jitender@1987
+21	himanshu	$2b$12$L7umW1/AQ9p4i9GCztx45eYxPEfywOU6fOdHYnxScC9gpexd8Hfw.	2026-09-23 11:18:18.441173	2026-08-21 14:04:22.715309	shift_incharge	\N	himanshu123
+67	Jony Singh	$2b$12$pLD9IsKkep/UlL3kfkS4u.FXk5D6r5qn8v84atgk9smDaAg73rj2i	\N	2026-09-23 08:58:35.635909	leader	\N	0194
+66	sa	$2b$12$ZRyvxyWsNOWj//xJq4wgqeoJ6jhWiWpB.zUoDv6QJvJ1FX3.gjP0i	2026-09-22 10:21:49.636538	2026-09-22 10:20:01.855279	production	\N	sa123
 27	jony	$2b$12$PiUkniDyGnHLHCHPRHSHCe1PNaUTXPzV1brmopBnpg2e/U68uy5KW	2026-09-21 17:12:28.297927	2026-08-21 14:25:07.701129	shift_incharge	\N	jony@123
 23	rakesh	$2b$12$oytWyaptEEI7KfIMgBwoY.fsOeyIFA4ygFFoTL.Vnosw3A5hcLapu	\N	2026-08-21 14:12:36.103216	production	\N	rakesh123
+1	admin	$2b$12$h1YEAzXWeMldMWYpo3YaWOc.orY7n1sqTo8MRTV8Yjj9Dc3B3QzKW	2026-09-24 14:22:02.674042	2026-03-23 11:13:37.45489	admin	\N	\N
+65	pradeep	$2b$12$E0G55rZh.ojzBAYRZy.bxOom9rFtElpYf0cR5/sujMrVsLz98YcXS	2026-09-23 09:32:39.837514	2026-09-21 10:26:04.078106	quality_incharge	\N	pradeep146
 61	Dinesh	$2b$12$V4pII8SEXOC8LC3HbjsYwurSr.s5TzSvs2OPBfQyLeVLPdbKy7dLi	\N	2026-09-19 15:16:01.388974	leader	\N	0384
+18	shrawan	$2b$12$xAEM5JX3gRvrNgO5s2hscu7Q0m7R7S/ljpcCj1JrIrc02Ws0jieWq	2026-09-24 14:33:11.880877	2026-08-14 11:03:39.007327	production_incharge	\N	shrawan@123
+11	pankaj	$2b$12$at.JqzSodIl7qDa7UzpzEO5VcIfSM7x8FV0zHh2WH1xavj/QTwETu	2026-09-24 08:39:26.885561	2026-06-16 14:54:06.760368	production	\N	pankaj
 62	Sagar	$2b$12$SZQW/BC8MezLzqpN6dfBJ.eAXV558Xoqt2r8gFR8BWJf1O3BadM4q	\N	2026-09-19 15:16:30.628894	leader	\N	0399
+28	sandeep	$2b$12$t24eh1vTCv392qlIAk/y6.jT.TQfcrcx6e4GNtNdBQ2GjUx/jEMhm	2026-09-02 11:57:36.214822	2026-08-21 14:26:17.802385	shift_incharge	\N	sandeep@123
 39	Chanderma	$2b$12$3wvVIBDzSP7m55XymwccJOxC0CqM0WctTDl.CF9CNDJE7UY3CRaR2	\N	2026-09-15 12:20:06.692597	leader	\N	0337
 41	Arunesh	$2b$12$VwSNBCw.yuEq4Imy3rhGfu7C4ML50Y7TmgZ5bpzNKkC19ao9h0IHO	\N	2026-09-15 13:56:18.805102	leader	\N	0271
-28	sandeep	$2b$12$t24eh1vTCv392qlIAk/y6.jT.TQfcrcx6e4GNtNdBQ2GjUx/jEMhm	2026-09-02 11:57:36.214822	2026-08-21 14:26:17.802385	production	\N	sandeep@123
+38	ss	$2b$12$dfoX4chP0XJ928JvMaVV8OYwPN87VkySEwN/Vs6TJSTRQ1GLjxR9u	2026-09-24 14:36:19.63073	2026-09-15 11:31:50.490713	operator	\N	ss123
+16	rc	$2b$12$wA9DbNxlUgQYM.BVR5/NDO1o2kLsUP6xYk3V00JOhVHWcTmYy1Jzq	2026-09-24 11:46:45.414404	2026-08-07 10:22:11.231535	operator	\N	rc123
 26	lp	$2b$12$5QmHbU5e67vmcNuTT0uP4e8r6sbEL8WCG9b7Hz2SVAQMVeeGxMh9y	2026-09-18 10:43:24.61905	2026-08-21 14:24:11.099501	operator	\N	lp123
 43	Bhagat	$2b$12$R2Mco5/bcqeBGGINp0we/eS5zz2V44JfF.AdhTPdYJduoh4pt6bdK	2026-09-16 22:46:43.738854	2026-09-15 13:58:34.406715	leader	\N	0344
 25	nagender	$2b$12$FwaHwkFHMvumlXQSHMiFEuhi4jP.XYztpqDv9jT9nTBv4Ci09wYna	2026-09-07 13:30:26.299449	2026-08-21 14:20:40.359777	section_incharge	\N	nagender@123
@@ -24521,20 +25451,13 @@ COPY public.mes_admin (id, username, password_hash, last_login, created_at, role
 63	Vishal	$2b$12$4fwkVzUJs4qDcoHHPI3GfOgHsppCy4trnF1O8N2DbQeAFXkpLj0ry	\N	2026-09-19 15:16:46.97165	leader	\N	0372
 24	pawan	$2b$12$iP.Lv4cTmbMG2dRNrn0VIexBVLYzdEbvdjVqyf3GTvyYhBPy/Xfb2	2026-09-15 16:05:39.009256	2026-08-21 14:14:04.02394	production	\N	pawan123
 45	Manu Dev	$2b$12$Iwqyune/K0NIBNBI.hnqKu3lEheX2Hzgh4UZcRz1swQUtxajvcgq2	\N	2026-09-15 13:59:13.218125	leader	\N	0305
-65	pradeep	$2b$12$E0G55rZh.ojzBAYRZy.bxOom9rFtElpYf0cR5/sujMrVsLz98YcXS	2026-09-21 10:44:45.108917	2026-09-21 10:26:04.078106	quality_incharge	\N	pradeep146
+22	naveen	$2b$12$rD/uLA.Fw0ZtJsfE/TWequJ2pbb0GUqUpcHFHfXZU5S/G0EkNfuxW	2026-09-19 17:17:43.781854	2026-08-21 14:06:21.091617	shift_incharge	\N	naveen123
 46	Siddhant	$2b$12$ffrsKot5WKs3TMXI0vAYzeFXWtjSDO7Q0ZPmxg7R0FoJ1.zivHLNm	\N	2026-09-15 13:59:40.540429	leader	\N	0353
+17	ywd	$2b$12$yEEbC2a0HOr8fPXydCm/oemmUlfjN9WAfc51LGWQ7K0GkUE.xfPrK	2026-09-24 09:37:30.959031	2026-08-07 16:00:51.564004	operator	\N	ywd123
+20	sanjeev	$2b$12$0zQA4bTDG0Pl2A9uN8p.jecEGIyMuFfV5OJ0ceAZFshxfUWbuNDrq	2026-09-23 15:57:48.768354	2026-08-21 13:57:24.448184	section_incharge	\N	sanjeev123
 47	Yogesh	$2b$12$1fiM65aDsPh/ya5HDcNusuX7Q24P9M3k5eJEYJgsqGZdeEfPdOP6a	\N	2026-09-15 13:59:56.620371	leader	\N	0285
 64	Kanhaiya	$2b$12$pqbnSOMyxB1r9eWVBSQhn.4I5dCbcJFoeq9B.Nm5dRry7KCUp1rpS	\N	2026-09-19 15:17:12.004586	leader	\N	0436
-11	pankaj	$2b$12$at.JqzSodIl7qDa7UzpzEO5VcIfSM7x8FV0zHh2WH1xavj/QTwETu	2026-09-21 16:03:06.821024	2026-06-16 14:54:06.760368	production	\N	pankaj
 58	Shubham	$2b$12$nNNt3OgAMrZePxt/p60T/ea/Yb6LP0YarbmiaiwjtbJ.cfSA54/y6	\N	2026-09-19 15:12:53.80255	leader	\N	0405
-20	sanjeev	$2b$12$0zQA4bTDG0Pl2A9uN8p.jecEGIyMuFfV5OJ0ceAZFshxfUWbuNDrq	2026-09-20 16:34:11.605636	2026-08-21 13:57:24.448184	section_incharge	\N	sanjeev123
-16	rc	$2b$12$wA9DbNxlUgQYM.BVR5/NDO1o2kLsUP6xYk3V00JOhVHWcTmYy1Jzq	2026-09-21 20:37:22.874216	2026-08-07 10:22:11.231535	operator	\N	rc123
-22	naveen	$2b$12$rD/uLA.Fw0ZtJsfE/TWequJ2pbb0GUqUpcHFHfXZU5S/G0EkNfuxW	2026-09-19 17:17:43.781854	2026-08-21 14:06:21.091617	production	\N	naveen123
-30	sanjay	$2b$12$.tgUM4sVjGaQzkKYZ7.v8eLXX72eWszLAKO7NN7jXDSH4waIp6L6S	2026-09-21 18:37:29.19459	2026-08-27 11:49:44.323913	shift_incharge	\N	Sanjay@1990
-1	admin	$2b$12$h1YEAzXWeMldMWYpo3YaWOc.orY7n1sqTo8MRTV8Yjj9Dc3B3QzKW	2026-09-21 20:59:26.302229	2026-03-23 11:13:37.45489	admin	\N	\N
-18	shrawan	$2b$12$xAEM5JX3gRvrNgO5s2hscu7Q0m7R7S/ljpcCj1JrIrc02Ws0jieWq	2026-09-19 18:23:21.823683	2026-08-14 11:03:39.007327	production_incharge	\N	shrawan@123
-38	ss	$2b$12$dfoX4chP0XJ928JvMaVV8OYwPN87VkySEwN/Vs6TJSTRQ1GLjxR9u	2026-09-21 21:43:29.953292	2026-09-15 11:31:50.490713	operator	\N	ss123
-21	himanshu	$2b$12$L7umW1/AQ9p4i9GCztx45eYxPEfywOU6fOdHYnxScC9gpexd8Hfw.	2026-09-21 14:18:23.790281	2026-08-21 14:04:22.715309	shift_incharge	\N	himanshu123
 \.
 
 
@@ -24854,35 +25777,35 @@ COPY public.mes_clip_priority (id, config, updated_by, updated_at) FROM stdin;
 --
 
 COPY public.mes_collector_locks (line_id, hostname, pid, heartbeat_at) FROM stdin;
-2	server-ThinkSystem-ST650-V3	18998	2026-09-21 22:55:45.26626+05:30
-39	server-ThinkSystem-ST650-V3	4157885	2026-09-21 22:55:48.096554+05:30
-7	server-ThinkSystem-ST650-V3	14361	2026-09-21 22:55:53.282956+05:30
-9	server-ThinkSystem-ST650-V3	16540	2026-09-21 22:55:54.455258+05:30
-41	server-ThinkSystem-ST650-V3	16796	2026-09-21 22:55:45.63881+05:30
-5	server-ThinkSystem-ST650-V3	19160	2026-09-21 22:55:46.372086+05:30
-15	server-ThinkSystem-ST650-V3	2106797	2026-09-21 22:55:50.155698+05:30
-33	server-ThinkSystem-ST650-V3	14455	2026-09-21 22:55:54.596125+05:30
-18	server-ThinkSystem-ST650-V3	19316	2026-09-21 22:55:47.382839+05:30
-8	server-ThinkSystem-ST650-V3	14024	2026-09-21 22:55:52.137724+05:30
-35	server-ThinkSystem-ST650-V3	14728	2026-09-21 22:55:46.694583+05:30
-12	server-ThinkSystem-ST650-V3	17300	2026-09-21 22:55:47.372784+05:30
-4	server-ThinkSystem-ST650-V3	19558	2026-09-21 22:55:48.084727+05:30
-31	server-ThinkSystem-ST650-V3	16306	2026-09-21 22:55:53.377701+05:30
-36	server-ThinkSystem-ST650-V3	14841	2026-09-21 22:55:47.375798+05:30
-14	server-ThinkSystem-ST650-V3	17755	2026-09-21 22:55:48.100189+05:30
-29	server-ThinkSystem-ST650-V3	19706	2026-09-21 22:55:49.864789+05:30
-28	server-ThinkSystem-ST650-V3	18932	2026-09-21 22:55:54.259339+05:30
-34	server-ThinkSystem-ST650-V3	341004	2026-09-21 22:55:46.43184+05:30
-11	server-ThinkSystem-ST650-V3	17961	2026-09-21 22:55:49.744717+05:30
-10	server-ThinkSystem-ST650-V3	19852	2026-09-21 22:55:50.740404+05:30
-38	server-ThinkSystem-ST650-V3	730279	2026-09-21 22:55:46.394971+05:30
-27	server-ThinkSystem-ST650-V3	18292	2026-09-21 22:55:50.532955+05:30
-6	server-ThinkSystem-ST650-V3	20000	2026-09-21 22:55:52.035897+05:30
-13	server-ThinkSystem-ST650-V3	18394	2026-09-21 22:55:51.468317+05:30
-30	server-ThinkSystem-ST650-V3	15428	2026-09-21 22:55:51.472122+05:30
-20	server-ThinkSystem-ST650-V3	18602	2026-09-21 22:55:52.105731+05:30
-21	server-ThinkSystem-ST650-V3	15868	2026-09-21 22:55:52.04516+05:30
-19	server-ThinkSystem-ST650-V3	18753	2026-09-21 22:55:53.278693+05:30
+20	server-ThinkSystem-ST650-V3	2253866	2026-09-24 14:40:20.252109+05:30
+7	server-ThinkSystem-ST650-V3	2247965	2026-09-24 14:40:21.683772+05:30
+2	server-ThinkSystem-ST650-V3	2254978	2026-09-24 14:40:13.277821+05:30
+13	server-ThinkSystem-ST650-V3	1614750	2026-09-24 14:40:13.93352+05:30
+5	server-ThinkSystem-ST650-V3	2255257	2026-09-24 14:40:14.014776+05:30
+35	server-ThinkSystem-ST650-V3	2249061	2026-09-24 14:40:14.749081+05:30
+14	server-ThinkSystem-ST650-V3	2252580	2026-09-24 14:40:16.180019+05:30
+27	server-ThinkSystem-ST650-V3	2253300	2026-09-24 14:40:18.022682+05:30
+8	server-ThinkSystem-ST650-V3	2247341	2026-09-24 14:40:20.836283+05:30
+9	server-ThinkSystem-ST650-V3	2251396	2026-09-24 14:40:22.007488+05:30
+41	server-ThinkSystem-ST650-V3	2251658	2026-09-24 14:40:13.330368+05:30
+12	server-ThinkSystem-ST650-V3	2252314	2026-09-24 14:40:14.97759+05:30
+4	server-ThinkSystem-ST650-V3	2255896	2026-09-24 14:40:16.181374+05:30
+38	server-ThinkSystem-ST650-V3	2249561	2026-09-24 14:40:16.983333+05:30
+10	server-ThinkSystem-ST650-V3	2256748	2026-09-24 14:40:18.054429+05:30
+31	server-ThinkSystem-ST650-V3	2250840	2026-09-24 14:40:20.979153+05:30
+28	server-ThinkSystem-ST650-V3	2254588	2026-09-24 14:40:12.289927+05:30
+34	server-ThinkSystem-ST650-V3	2248670	2026-09-24 14:40:13.686904+05:30
+18	server-ThinkSystem-ST650-V3	2255616	2026-09-24 14:40:15.042565+05:30
+11	server-ThinkSystem-ST650-V3	2252855	2026-09-24 14:40:17.058142+05:30
+39	server-ThinkSystem-ST650-V3	2249898	2026-09-24 14:40:17.679396+05:30
+30	server-ThinkSystem-ST650-V3	2250258	2026-09-24 14:40:18.758269+05:30
+19	server-ThinkSystem-ST650-V3	2254226	2026-09-24 14:40:21.197181+05:30
+33	server-ThinkSystem-ST650-V3	2248404	2026-09-24 14:40:12.737108+05:30
+15	server-ThinkSystem-ST650-V3	2251864	2026-09-24 14:40:13.771754+05:30
+36	server-ThinkSystem-ST650-V3	2249311	2026-09-24 14:40:15.873569+05:30
+29	server-ThinkSystem-ST650-V3	2256512	2026-09-24 14:40:17.330264+05:30
+6	server-ThinkSystem-ST650-V3	2257043	2026-09-24 14:40:19.472145+05:30
+21	server-ThinkSystem-ST650-V3	2250561	2026-09-24 14:40:19.595708+05:30
 \.
 
 
@@ -24911,58 +25834,60 @@ COPY public.mes_departments (id, name, slug, description, created_at, updated_at
 --
 
 COPY public.mes_device_registry (device_id, first_seen, last_seen, checkin_count, app_source, app_version, web_version, user_agent, model, os, screen, last_user, last_ip) FROM stdin;
-5616e070-a146-48b0-9226-622303349c19	2026-09-02 22:56:18.664644+05:30	2026-09-21 22:49:51.292663+05:30	886	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0	\N	Windows	1280x720	admin	2401:4900:5d36:473c:887b:8e12:a36e:bc46
+a5e9b4f2-ff8c-4320-a501-682709398302	2026-09-12 15:15:17.050578+05:30	2026-09-24 14:33:13.043833+05:30	31	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0	\N	Windows	1440x900	shrawan	123.63.167.242
 1789129414265-437110caa828b8	2026-09-11 17:53:35.215597+05:30	2026-09-12 11:51:03.342488+05:30	98	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:155.0) Gecko/20100101 Firefox/155.0	\N	Linux	1920x1080	admin	103.81.15.245
 4ea513c7-03db-47fc-984b-21024bc72a61	2026-09-02 23:27:48.332502+05:30	2026-09-21 19:57:02.925347+05:30	59	pwa	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36	\N	Android 10	1098x686	rc	103.81.15.245
-1788380940391-bb6da457455768	2026-09-03 01:59:12.177191+05:30	2026-09-21 16:56:29.520805+05:30	1791	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36	\N	Android 10	720x1280	ss	192.168.31.241
+045d8941-a789-4f47-b491-1a13aebba0fc	2026-09-16 13:57:24.84568+05:30	2026-09-22 14:28:52.125778+05:30	147	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0	\N	Windows	1280x720	ss	123.63.167.242
 aba993c9-2ff1-4f89-9f00-6fec908c5445	2026-09-08 16:18:34.093182+05:30	2026-09-08 16:58:35.301985+05:30	3	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36 Edg/152.0.0.0	\N	Windows	1366x768	admin	123.63.167.242
-9a79d376-6b8f-4a4b-8650-19c709e9c6b3	2026-09-20 09:54:10.722225+05:30	2026-09-21 09:29:38.958929+05:30	145	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:156.0) Gecko/20100101 Firefox/156.0	\N	Linux	1920x1080	admin	103.81.15.245
+1788380940391-bb6da457455768	2026-09-03 01:59:12.177191+05:30	2026-09-24 14:36:20.838396+05:30	1940	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36	\N	Android 10	720x1280	ss	192.168.31.241
+4a27b041-8009-45b1-96f4-ee39c7250aa9	2026-09-22 10:21:50.27071+05:30	2026-09-22 21:17:55.657056+05:30	12	capacitor	2.0.8	2026-09-02	Mozilla/5.0 (Linux; Android 16; CPH2521 Build/BP2A.250605.015; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/151.0.7922.199 Mobile Safari/537.36	CPH2521	Android 16	793x355	sa	2402:3a80:9f:76e5:807e:88ff:fe46:9702
+7f895d19-42ac-474d-9e6c-40c61794ea4e	2026-09-03 09:12:44.962198+05:30	2026-09-24 13:56:27.358627+05:30	360	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0	\N	Windows	1280x720	pankaj	103.81.15.246
 1788377246216-037f561243ed	2026-09-03 00:57:36.837857+05:30	2026-09-04 03:44:58.493873+05:30	114	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36	\N	Linux	720x1280	ss	127.0.0.1
-a5e9b4f2-ff8c-4320-a501-682709398302	2026-09-12 15:15:17.050578+05:30	2026-09-19 18:33:26.403993+05:30	20	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0	\N	Windows	1440x900	shrawan	42.108.26.9
 4a9e022d-f68d-41fa-ad56-97d58f21805a	2026-09-16 16:13:23.128477+05:30	2026-09-20 19:38:10.42459+05:30	9	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Mobile Safari/537.36	\N	Android 10	432x960	ss	2401:4900:b8f2:cf1d:47b:b6ff:fe94:53a8
 40807d86-b522-4b61-b175-5fd63280667f	2026-09-18 21:23:24.883275+05:30	2026-09-18 21:23:24.883275+05:30	1	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36	\N	Linux	720x1280	ss	103.81.15.245
 1789188325584-5b872302a42a88	2026-09-12 10:15:38.190261+05:30	2026-09-18 09:16:56.435337+05:30	22	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0	\N	Windows	1280x720	ss	192.168.30.68
+45a4dcd6-bb3b-4bae-b908-b9d508f189fc	2026-09-18 15:15:29.911831+05:30	2026-09-24 02:29:12.552194+05:30	148	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0	\N	Windows	1600x900	ss	103.81.15.246
 6278bff5-d379-4f41-9126-895f62381adb	2026-09-02 23:37:49.239369+05:30	2026-09-20 07:53:10.480923+05:30	19	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36	\N	Linux	360x804	admin	2401:4900:5d2e:ae4e:b49b:74ff:fe4d:b967
-045d8941-a789-4f47-b491-1a13aebba0fc	2026-09-16 13:57:24.84568+05:30	2026-09-21 15:34:46.661101+05:30	135	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0	\N	Windows	1280x720	ss	103.81.15.246
+9a79d376-6b8f-4a4b-8650-19c709e9c6b3	2026-09-20 09:54:10.722225+05:30	2026-09-24 14:29:35.935724+05:30	386	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:156.0) Gecko/20100101 Firefox/156.0	\N	Linux	1920x1080	admin	103.81.15.245
 dd3741d1-31b9-4a1e-a479-39c5f1d581fc	2026-09-02 23:59:15.977226+05:30	2026-09-03 06:30:04.276598+05:30	39	apk	1.0.2	2026-09-02	Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Mobile Safari/537.36	Pixel 8	Android 14	375x812	admin	103.81.15.245
 1789578061365-fe6e81cdeabaf8	2026-09-16 22:31:01.389877+05:30	2026-09-16 23:07:35.425485+05:30	3	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Claude/1.46388.2 Chrome/148.0.7778.280 Safari/537.36	\N	Linux	0x0	admin	192.168.30.15
 54fc103e-a149-4612-ae73-9866edd7207c	2026-09-02 22:48:41.909223+05:30	2026-09-08 09:54:13.153966+05:30	7	apk	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36	\N	Linux	393x876	admin	2401:4900:4628:4f60:38f1:63ac:e439:a9c
+7e000d12-f99f-454f-8e70-a03bc2302f7f	2026-09-16 23:40:11.229008+05:30	2026-09-24 13:55:57.690435+05:30	119	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Mobile Safari/537.36	\N	Android 10	393x873	ss	2401:4900:a371:e29e:981c:8aff:fe7c:83f0
+dfc2789c-ad2e-4799-b411-adc18690d176	2026-09-24 13:04:38.049855+05:30	2026-09-24 13:24:38.371429+05:30	7	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.2 Safari/605.1.15	\N	macOS	1180x692	ss	103.81.15.246
 bcb277be-ad55-4bba-a079-3f83c56ca93e	2026-09-12 16:11:40.226567+05:30	2026-09-19 15:55:03.048851+05:30	21	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36 Edg/152.0.0.0	\N	Windows	1314x739	sanjay	103.81.15.246
-3a2c0b6f-0928-45de-8019-ca60b4419fcd	2026-09-03 13:55:01.98875+05:30	2026-09-21 16:06:43.306227+05:30	441	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0	\N	Windows	1280x720	admin	103.81.15.245
 72a04ebd-e98c-4065-89cf-2b8e14058446	2026-09-18 09:25:27.829647+05:30	2026-09-18 22:01:51.205621+05:30	25	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36	\N	Linux	720x1280	ss	103.81.15.245
-3d0dbeec-d547-48e8-9cb1-ef9af7a72280	2026-09-03 11:17:29.482934+05:30	2026-09-21 20:52:52.801762+05:30	78	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36	\N	Linux	393x876	ss	2401:4900:d9e9:794e:ccd9:51ff:fe17:d9c5
 2a940f72-e834-40a9-bb7a-75d0cf712504	2026-09-03 13:16:04.174938+05:30	2026-09-03 14:46:05.311234+05:30	16	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Mobile Safari/537.36	Pixel 8	Android 14	375x812	admin	103.81.15.245
-7f895d19-42ac-474d-9e6c-40c61794ea4e	2026-09-03 09:12:44.962198+05:30	2026-09-21 17:24:57.446098+05:30	292	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0	\N	Windows	1280x720	pankaj	103.81.15.245
-7e000d12-f99f-454f-8e70-a03bc2302f7f	2026-09-16 23:40:11.229008+05:30	2026-09-21 17:17:01.168319+05:30	96	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Mobile Safari/537.36	\N	Android 10	393x873	ss	2401:4900:b8f9:dcd5:d8ed:faff:fe94:c3d8
+488060d7-8b8e-47f8-b9d9-88da78bb9a72	2026-09-23 10:35:46.604289+05:30	2026-09-24 14:32:41.856586+05:30	76	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0	\N	Windows	1280x720	admin	103.81.15.246
 f378a1c3-d988-4b18-982c-1b2d8e0d15ee	2026-09-18 00:48:39.60872+05:30	2026-09-18 00:48:39.60872+05:30	1	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:155.0) Gecko/20100101 Firefox/155.0	\N	Linux	1366x768	admin	127.0.0.1
-956ff837-4f7c-41fc-a34f-91f9ea80f7ae	2026-09-15 16:02:15.788883+05:30	2026-09-21 13:12:42.636589+05:30	129	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0	\N	Windows	1280x800	ss	123.63.167.242
+956ff837-4f7c-41fc-a34f-91f9ea80f7ae	2026-09-15 16:02:15.788883+05:30	2026-09-23 20:14:16.237714+05:30	135	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0	\N	Windows	1280x800	ss	103.81.15.246
 83328fec-78c2-40fa-9490-8ebaa177d4db	2026-09-10 09:07:59.04087+05:30	2026-09-10 12:38:29.585045+05:30	8	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36 Edg/152.0.0.0	\N	Windows	1280x720	ss	123.63.167.242
-94d0824f-36d4-4c4e-8193-d6510dcdc3fd	2026-09-03 23:08:10.117704+05:30	2026-09-21 10:43:09.906034+05:30	35	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0	\N	Windows	1366x768	pradeep	103.81.15.246
+1788379573440-57cbf02645b188	2026-09-03 01:36:13.983293+05:30	2026-09-24 14:40:00.40596+05:30	2348	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36	\N	Android 10	720x1280	ss	192.168.31.237
 0a2b85ff-5d09-4218-bad3-497fdc2b2d2d	2026-09-05 09:27:42.939221+05:30	2026-09-11 09:58:32.244808+05:30	49	capacitor	2.0.8	2026-09-02	Mozilla/5.0 (Linux; Android 16; LXX525 Build/BP2A.250605.031.A3; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/151.0.7922.200 Mobile Safari/537.36	LXX525	Android 16	407x904	admin	117.237.6.55
 1788936004642-4f7bf2f07b2e4	2026-09-09 12:10:10.418276+05:30	2026-09-09 13:32:50.057427+05:30	3	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36 Edg/152.0.0.0	\N	Windows	1280x720	admin	127.0.0.1
 1788431624464-5355c8a0778708	2026-09-03 16:03:47.395423+05:30	2026-09-21 16:56:52.566465+05:30	161	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36	\N	Linux	720x1280	ss	192.168.31.236
 4fd40ef1-409f-493f-8f74-b47c7449ccde	2026-09-05 15:04:31.563674+05:30	2026-09-07 16:07:54.466995+05:30	25	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36 Edg/152.0.0.0	\N	Windows	1280x720	admin	103.81.15.246
 5b467527-691b-404c-bdc8-923f87b202f5	2026-09-16 14:28:08.913661+05:30	2026-09-21 12:24:31.396862+05:30	93	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36	\N	Linux	393x876	ss	111.223.30.35
 15e8aede-cdfe-4378-a5d1-5dea2155e86f	2026-09-03 16:44:52.485725+05:30	2026-09-06 00:58:52.905435+05:30	176	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Mobile Safari/537.36	Pixel 8	Android 14	375x812	admin	103.81.15.245
-1788368547541-b66a53e616afe8	2026-09-02 22:34:49.003625+05:30	2026-09-21 22:48:32.971915+05:30	1529	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36	\N	Android 10	720x1280	ss	192.168.31.248
+1788380891803-8c01fe699ecca	2026-09-03 01:58:30.641747+05:30	2026-09-24 11:17:22.519295+05:30	2077	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36	\N	Android 10	720x1280	ss	192.168.31.232
 56e1991c-11d7-4539-8941-fe3a3c924c69	2026-09-03 17:43:37.561672+05:30	2026-09-07 10:47:35.464019+05:30	2	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36	\N	Linux	407x904	admin	103.81.15.245
 d2893dea-fc76-4ab8-82fa-5ed8ffffa943	2026-09-03 16:31:12.320217+05:30	2026-09-03 16:31:50.157923+05:30	2	capacitor	2.0.0	2026-09-02	Mozilla/5.0 (Linux; Android 16; 2406ERN9CI Build/BP2A.250605.031.A3; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/151.0.7922.199 Mobile Safari/537.36	2406ERN9CI	Android 16	393x895	admin	2402:3a80:9d:594c:3835:a9ff:fe33:73d2
 7fb53728-d6b8-43ee-a701-93cded3f2b06	2026-09-03 16:37:11.647731+05:30	2026-09-03 16:37:11.647731+05:30	1	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Mobile Safari/537.36	Pixel 8	Android 14	375x812	admin	103.81.15.245
-1788380891803-8c01fe699ecca	2026-09-03 01:58:30.641747+05:30	2026-09-21 19:27:34.420585+05:30	1708	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36	\N	Android 10	720x1280	ss	192.168.31.232
+1789035425075-21c7a736444508	2026-09-10 15:47:05.237311+05:30	2026-09-24 14:31:37.521986+05:30	1489	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:156.0) Gecko/20100101 Firefox/156.0	\N	Linux	1920x1080	admin	192.168.30.15
 1788431577281-73c2d9827d8df8	2026-09-03 16:03:06.939197+05:30	2026-09-13 14:02:23.044996+05:30	324	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36	\N	Linux	720x1280	ss	127.0.0.1
 a152aef6-90c5-4d04-bdeb-6b391375f130	2026-09-16 23:48:23.417441+05:30	2026-09-16 23:49:26.681536+05:30	3	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.2 Safari/605.1.15	\N	macOS	1180x692	ss	103.81.15.246
-1788379573440-57cbf02645b188	2026-09-03 01:36:13.983293+05:30	2026-09-21 22:44:47.706496+05:30	2020	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36	\N	Android 10	720x1280	ss	192.168.31.237
 9f429af8-3776-4b36-8bad-ce8172bd77e8	2026-09-05 12:05:41.86911+05:30	2026-09-05 16:16:04.107713+05:30	26	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:154.0) Gecko/20100101 Firefox/154.0	\N	Linux	1920x1080	ss	103.81.15.245
 1788770056284-33c208f8dd6bf	2026-09-07 14:04:16.607369+05:30	2026-09-07 14:24:42.58524+05:30	3	capacitor	2.0.8	2026-09-02	Mozilla/5.0 (Linux; Android 14; sdk_gphone64_x86_64 Build/UE1A.230829.050; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/113.0.5672.136 Mobile Safari/537.36	sdk_gphone64_x86_64	Android 14	393x851	admin	127.0.0.1
 f07cc57f-99de-4e88-81d8-5da3cea7f108	2026-09-17 14:30:24.242619+05:30	2026-09-18 12:16:58.45989+05:30	321	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Claude/1.46388.2 Chrome/148.0.7778.280 Electron/42.10.0 Safari/537.36	\N	Linux	1920x1080	Karan	127.0.0.1
 1788431617075-7b479a6975082	2026-09-03 16:04:10.272611+05:30	2026-09-04 06:55:18.144992+05:30	147	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36	\N	Linux	720x1280	ss	127.0.0.1
 89e941f2-ee92-4dd4-9e28-6266e4aa5a5d	2026-09-18 09:26:28.960036+05:30	2026-09-19 10:35:49.934467+05:30	84	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36	\N	Android 10	720x1280	ss	103.81.15.245
 70d34485-f02e-4e8c-9545-8edd4b0f115c	2026-09-18 01:19:15.504308+05:30	2026-09-18 01:19:15.504308+05:30	1	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:155.0) Gecko/20100101 Firefox/155.0	\N	Linux	1366x768	admin	127.0.0.1
+1788368547541-b66a53e616afe8	2026-09-02 22:34:49.003625+05:30	2026-09-24 14:32:39.610178+05:30	1897	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36	\N	Android 10	720x1280	ss	192.168.31.248
 2f707b0b-4d97-447b-a294-fb42c88ef764	2026-09-18 21:12:01.742812+05:30	2026-09-18 21:12:17.629217+05:30	2	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36	\N	Linux	720x1280	ss	2401:4900:d9d9:ef9a:cdd4:bdee:9413:79b0
 4f7554b8-1e63-4c3d-bc2a-50442c12b203	2026-09-08 12:14:32.525531+05:30	2026-09-21 11:29:22.320434+05:30	9	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36	\N	macOS	1680x1050	admin	2a09:bac1:3680:1b8::2a8:c
+94d0824f-36d4-4c4e-8193-d6510dcdc3fd	2026-09-03 23:08:10.117704+05:30	2026-09-23 09:32:40.279226+05:30	44	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0	\N	Windows	1366x768	pradeep	103.81.15.246
 f84045de-26e2-4c36-b208-c6d74fb7e4a2	2026-09-08 10:56:50.147564+05:30	2026-09-08 12:36:48.445119+05:30	13	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36 Edg/152.0.0.0	\N	Windows	1280x720	ss	123.63.167.242
 1788766127691-aa6d0bb73c28	2026-09-07 12:58:48.030341+05:30	2026-09-07 12:58:48.030341+05:30	1	capacitor	2.0.8	2026-09-02	Mozilla/5.0 (Linux; Android 14; sdk_gphone64_x86_64 Build/UE1A.230829.050; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/113.0.5672.136 Mobile Safari/537.36	sdk_gphone64_x86_64	Android 14	393x851	admin	127.0.0.1
-1789199309961-212cbce8ead128	2026-09-12 13:18:29.792981+05:30	2026-09-12 13:46:48.289297+05:30	6	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36	\N	Linux	720x1280	ss	127.0.0.1
+e08b3bc8-c9fc-4923-8d0d-342bc7da043c	2026-09-18 20:38:28.213227+05:30	2026-09-24 02:15:51.366446+05:30	170	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Mobile Safari/537.36	\N	Android 10	384x851	ss	2401:4900:5f21:dd6e:c488:41ff:feb9:de8a
 f98b2385-4686-461b-9356-4a30e44eb683	2026-09-07 12:59:10.356242+05:30	2026-09-07 14:08:17.049581+05:30	5	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36 Edg/152.0.0.0	\N	Windows	1280x800	admin	103.81.15.246
 1fd8a0de-4f78-4f7e-a011-b8eba4b122bb	2026-09-07 15:00:36.617038+05:30	2026-09-07 15:33:51.234571+05:30	4	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36 Edg/152.0.0.0	\N	Windows	1366x768	ss	103.81.15.246
 405c38e7-9ad5-4c6d-bba4-5a392b782ae7	2026-09-06 10:46:03.093203+05:30	2026-09-06 10:46:40.499382+05:30	2	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Mobile Safari/537.36	\N	Android 10	534x854	admin	2401:4900:5d23:75a:e062:cd19:18c3:4907
@@ -24979,33 +25904,34 @@ e3876058-579b-4715-be59-d5bc64669bf4	2026-09-08 10:04:47.136043+05:30	2026-09-08
 80195e39-e0b8-4bf4-97c6-780ec93435b2	2026-09-07 14:00:09.61786+05:30	2026-09-07 14:01:32.030982+05:30	3	capacitor	2.0.8	2026-09-02	Mozilla/5.0 (Linux; Android 14; CPH2381 Build/UKQ1.230924.001; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/151.0.7922.199 Mobile Safari/537.36	CPH2381	Android 14	360x804	satish	2409:40d6:100e:9a75:8b:e6ff:fe7d:706a
 1788760289070-dfe6424aed0b4	2026-09-07 11:21:29.984842+05:30	2026-09-07 11:21:29.984842+05:30	1	capacitor	2.0.8	2026-09-02	Mozilla/5.0 (Linux; Android 14; sdk_gphone64_x86_64 Build/UE1A.230829.050; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/113.0.5672.136 Mobile Safari/537.36	sdk_gphone64_x86_64	Android 14	393x851	admin	127.0.0.1
 3e8be305-46b5-4aa8-8f7f-9caea50a46d5	2026-09-05 19:33:05.524289+05:30	2026-09-07 13:54:20.27902+05:30	279	capacitor	2.0.8	2026-09-02	Mozilla/5.0 (Linux; Android 14; sdk_gphone64_x86_64 Build/UE1A.230829.050; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/113.0.5672.136 Mobile Safari/537.36	sdk_gphone64_x86_64	Android 14	393x851	admin	103.81.15.245
-1789569916326-5a0f66f71c7788	2026-09-16 20:15:50.153813+05:30	2026-09-21 22:47:42.092164+05:30	331	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36	\N	Android 10	720x1280	ss	192.168.31.243
+756f4723-edc9-4c6f-84c0-3f0c2a7c5b6d	2026-09-24 14:10:15.337976+05:30	2026-09-24 14:10:24.702447+05:30	2	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Mobile Safari/537.36	\N	Android 10	450x1000	admin	2401:4900:5f16:b757:5531:5e18:d17:e481
 1789208059873-9ad52f77aab0d8	2026-09-12 15:44:20.510464+05:30	2026-09-12 15:49:53.808258+05:30	4	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Mobile Safari/537.36	\N	Android 10	360x793	sanjeev	103.81.15.245
+c62d4cec-5572-4b40-b358-6610b654b45d	2026-09-15 16:00:10.671507+05:30	2026-09-22 20:05:28.672461+05:30	43	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Mobile Safari/537.36	\N	Android 10	407x904	admin	2409:40d4:110d:25c6:853f:bc85:bf4f:8524
 1789224240812-70342c3c5b786	2026-09-12 20:14:01.483444+05:30	2026-09-18 18:43:05.813073+05:30	21	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 13; V2055) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/131.0.6778.200 Mobile Safari/537.36 VivoBrowser/16.3.1.0	V2055	Android 13	393x873	pankaj	2401:4900:b86f:8f7e::b1cd:a28
 3494709f-5a5d-4790-b532-afdaf0bd2992	2026-09-20 11:07:32.946899+05:30	2026-09-20 12:04:25.823718+05:30	4	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.2 Safari/605.1.15	\N	macOS	820x1052	ss	103.81.15.246
 1789033970067-286ae2881f42e8	2026-09-10 15:23:07.983078+05:30	2026-09-10 15:23:07.983078+05:30	1	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36 Edg/152.0.0.0	\N	Windows	1280x800	admin	127.0.0.1
 a86516c2-8783-4a33-90e0-345881334ca2	2026-09-18 09:29:16.333979+05:30	2026-09-18 22:48:23.986052+05:30	105	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36	\N	Android 10	720x1280	ss	103.81.15.245
-1788929247248-b4d9d3b5ebcec	2026-09-09 10:17:28.417476+05:30	2026-09-21 17:22:29.36445+05:30	1053	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36	\N	Android 10	720x1280	ss	192.168.31.239
+1788929247248-b4d9d3b5ebcec	2026-09-09 10:17:28.417476+05:30	2026-09-23 20:10:33.478676+05:30	1233	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36	\N	Linux	720x1280	ss	192.168.31.239
+f4f045a4-fcf5-4f6b-b341-6efa4f3fa592	2026-09-11 10:35:10.702109+05:30	2026-09-23 16:14:58.122495+05:30	518	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0	\N	Windows	1280x720	admin	103.81.15.246
 d2d1660c-9bc4-49da-a166-edae37b4d23b	2026-09-18 01:22:51.854674+05:30	2026-09-18 01:22:51.854674+05:30	1	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:155.0) Gecko/20100101 Firefox/155.0	\N	Linux	1366x768	admin	127.0.0.1
+00a14714-7cd8-415d-9ddd-d0625cbdc198	2026-09-22 13:24:08.188526+05:30	2026-09-23 13:44:36.512509+05:30	10	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.2 Safari/605.1.15	\N	macOS	820x1052	ss	123.63.167.242
 1788405619030-a691ae2f1641a8	2026-09-03 08:50:37.77511+05:30	2026-09-16 20:14:21.87372+05:30	1191	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36	\N	Android 10	720x1280	ss	192.168.31.243
-1789009189723-57bd7159a7f838	2026-09-10 08:29:56.17781+05:30	2026-09-17 04:38:01.20584+05:30	149	capacitor	2.0.8	2026-09-02	Mozilla/5.0 (Linux; Android 16; bytello_edla Build/BP2A.250605.031.A3; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/150.0.7871.181 Safari/537.36	bytello_edla	Android 16	720x1280	ss	192.168.31.236
+1788368685428-2fc47e13c4ab18	2026-09-02 22:34:46.255503+05:30	2026-09-24 14:32:38.795969+05:30	1095	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36	\N	Android 10	720x1280	ywd	192.168.31.240
 1788405924742-268a19269c417	2026-09-03 08:55:35.51057+05:30	2026-09-16 23:55:15.747567+05:30	1306	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36	\N	Android 10	720x1280	ss	192.168.31.230
 308b960a-8c31-432a-af6c-3f6fd9cee708	2026-09-12 19:04:30.362612+05:30	2026-09-21 14:18:24.589282+05:30	20	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36	\N	Windows	1366x768	himanshu	103.253.173.150
 f96b63e1-6869-4af8-8af3-dc3540c74549	2026-09-03 14:11:04.552686+05:30	2026-09-18 18:22:07.030492+05:30	93	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0	\N	Windows	1280x720	ss	103.81.15.246
+9320796e-ddf0-47a0-86e9-5dab6ab3ea86	2026-09-23 13:45:33.895922+05:30	2026-09-24 12:54:53.608797+05:30	6	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Mobile Safari/537.36	\N	Android 10	450x1000	admin	2401:4900:5f11:6b98:efe8:f826:a9b4:7b1b
 1789580844922-ba9cf6fdc71cc8	2026-09-16 23:17:24.941111+05:30	2026-09-17 00:28:58.876061+05:30	9	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Claude/1.46388.2 Chrome/148.0.7778.280 Safari/537.36	\N	Linux	1920x1080	ss	192.168.30.15
 c0cab73d-8dac-415d-a796-40fc94fa30b7	2026-09-12 15:58:22.126248+05:30	2026-09-20 21:17:09.583677+05:30	35	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Mobile Safari/537.36	\N	Android 10	360x804	himanshu	117.99.132.244
 18fa3967-05e9-434c-b238-7e8e70e26096	2026-09-19 18:13:30.548655+05:30	2026-09-21 20:15:35.298087+05:30	15	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36	\N	Linux	360x800	ss	2401:4900:4126:91f6:41ac:77b5:5fc:d959
 1086ad0a-74ca-4215-aa41-7daeca622903	2026-09-19 23:39:26.756392+05:30	2026-09-20 03:16:51.046636+05:30	30	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.2 Safari/605.1.15	\N	macOS	820x1094	ss	123.63.167.242
 a04fe722-acd4-4c74-a83b-94cb82466551	2026-09-16 20:34:37.407006+05:30	2026-09-16 20:36:09.973644+05:30	5	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.2 Safari/605.1.15	\N	macOS	1180x692	ss	103.81.15.246
+59d30199-4742-4058-a0f1-9b25aa27b0bf	2026-09-24 09:08:56.621926+05:30	2026-09-24 09:15:47.905163+05:30	8	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36	\N	Linux	720x1280	admin	103.81.15.245
 1789788424198-6f9760052b6bd	2026-09-19 08:57:04.888941+05:30	2026-09-19 08:57:16.127801+05:30	2	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 13; V2055; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/131.0.6778.200 Mobile Safari/537.36 VivoBrowser/16.3.1.0	V2055	Android 13	393x873	pankaj	2401:4900:a1b7:c74b::2152:cccd
 2fa5fca0-b514-41af-bac6-f27688e826a5	2026-09-18 09:26:47.306582+05:30	2026-09-18 09:36:06.856496+05:30	3	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36	\N	Linux	720x1280	ss	103.81.15.245
-a9504c82-e2f1-4922-a4dc-c710f08cd291	2026-09-07 13:19:28.273459+05:30	2026-09-21 15:28:57.636963+05:30	199	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0	\N	Windows	1280x720	admin	103.81.15.246
-f4f045a4-fcf5-4f6b-b341-6efa4f3fa592	2026-09-11 10:35:10.702109+05:30	2026-09-20 17:17:45.992855+05:30	485	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0	\N	Windows	1280x720	admin	2401:4900:d9dd:608f:454:9ed5:6f2:b721
 10573f20-5dc5-45ae-acdd-ca4ae50ca5e5	2026-09-17 14:30:25.056436+05:30	2026-09-18 12:16:53.492746+05:30	314	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Claude/1.46388.2 Chrome/148.0.7778.280 Electron/42.10.0 Safari/537.36	\N	Linux	1920x1080	Bhagat	127.0.0.1
 8f5aadd4-346b-4c1c-88b1-c3f36ef7ad13	2026-09-21 10:44:46.507338+05:30	2026-09-21 10:45:00.804234+05:30	2	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0	\N	Windows	1366x768	pradeep	123.63.167.242
 8b27014c-d5a9-49cc-a9d7-beba06f88f28	2026-09-12 15:50:33.297611+05:30	2026-09-20 16:36:19.303235+05:30	46	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Mobile Safari/537.36	\N	Android 10	360x793	sanjeev	202.141.94.96
-1788368685428-2fc47e13c4ab18	2026-09-02 22:34:46.255503+05:30	2026-09-21 17:13:50.053242+05:30	909	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36	\N	Android 10	720x1280	ywd	192.168.31.240
-c62d4cec-5572-4b40-b358-6610b654b45d	2026-09-15 16:00:10.671507+05:30	2026-09-21 12:05:06.103884+05:30	40	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Mobile Safari/537.36	\N	Android 10	407x904	admin	103.81.15.245
 1789811000226-00be197ce1856	2026-09-19 15:13:20.654204+05:30	2026-09-19 15:13:20.654204+05:30	1	browser	2026-09-02	2026-09-02	Mozilla/5.0 (iPhone; CPU iPhone OS 26_6_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/153.0.8010.24 Mobile/15E148 Safari/604.1	iPhone	iOS	390x844	sanjay	103.81.15.246
 1789300484733-5dfce34a67064	2026-09-13 17:24:44.835663+05:30	2026-09-13 17:56:35.686635+05:30	7	capacitor	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 16; bytello_edla Build/BP2A.250605.031.A3; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/150.0.7871.181 Safari/537.36	bytello_edla	Android 16	720x1280	ysd	192.168.100.70
 1789379408454-53c02ba220b108	2026-09-14 15:20:08.482798+05:30	2026-09-16 22:19:53.249898+05:30	101	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Claude/1.46388.2 Chrome/148.0.7778.280 Safari/537.36	\N	Linux	0x0	admin	192.168.30.15
@@ -25013,7 +25939,7 @@ c62d4cec-5572-4b40-b358-6610b654b45d	2026-09-15 16:00:10.671507+05:30	2026-09-21
 1789320917423-8df1fe936de2f	2026-09-13 23:05:19.132741+05:30	2026-09-14 14:29:52.741017+05:30	142	capacitor	2.0.8	2026-09-02	Mozilla/5.0 (Linux; Android 14; sdk_gphone64_x86_64 Build/UE1A.230829.050; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/113.0.5672.136 Safari/537.36	sdk_gphone64_x86_64	Android 14	720x1280	admin	192.168.30.15
 1789316419129-8a0aebfa821c6	2026-09-13 21:50:20.665493+05:30	2026-09-13 22:00:19.342788+05:30	2	capacitor	2.0.8	2026-09-02	Mozilla/5.0 (Linux; Android 14; sdk_gphone64_x86_64 Build/UE1A.230829.050; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/113.0.5672.136 Mobile Safari/537.36	sdk_gphone64_x86_64	Android 14	393x851	ysd	192.168.30.15
 1789319168202-48076aaed539c	2026-09-13 22:36:08.356951+05:30	2026-09-13 22:37:28.180278+05:30	2	capacitor	2.0.8	2026-09-02	Mozilla/5.0 (Linux; Android 14; sdk_gphone64_x86_64 Build/UE1A.230829.050; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/113.0.5672.136 Safari/537.36	sdk_gphone64_x86_64	Android 14	720x1280	ysd	192.168.30.15
-3e1c8d19-c0a0-4c49-9b77-5b246cae3ff3	2026-09-15 14:48:02.094593+05:30	2026-09-16 17:33:32.237253+05:30	41	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0	\N	Windows	1280x720	sanjeev	103.81.15.246
+1789365505974-8f913be7e589d8	2026-09-14 11:28:26.648975+05:30	2026-09-24 06:06:27.241644+05:30	75	capacitor	2.0.8	2026-09-02	Mozilla/5.0 (Linux; Android 16; bytello_edla Build/BP2A.250605.031.A3; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/151.0.7922.199 Safari/537.36	bytello_edla	Android 16	720x1280	ysd	192.168.31.232
 047f8cca-4b26-4f13-970f-11b461ec4713	2026-09-17 14:30:26.00952+05:30	2026-09-18 12:16:41.40807+05:30	307	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Claude/1.46388.2 Chrome/148.0.7778.280 Electron/42.10.0 Safari/537.36	\N	Linux	1920x1080	Jatin	127.0.0.1
 1789320510987-8638a86bc0589	2026-09-13 22:58:31.575149+05:30	2026-09-13 23:04:17.645211+05:30	5	capacitor	2.0.8	2026-09-02	Mozilla/5.0 (Linux; Android 14; sdk_gphone64_x86_64 Build/UE1A.230829.050; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/113.0.5672.136 Safari/537.36	sdk_gphone64_x86_64	Android 14	720x1280	lp	192.168.30.15
 1789319731330-1e3993c024b48	2026-09-13 22:45:31.567955+05:30	2026-09-13 22:55:31.527594+05:30	2	capacitor	2.0.8	2026-09-02	Mozilla/5.0 (Linux; Android 14; sdk_gphone64_x86_64 Build/UE1A.230829.050; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/113.0.5672.136 Safari/537.36	sdk_gphone64_x86_64	Android 14	720x1280	ysd	192.168.30.15
@@ -25025,17 +25951,19 @@ d3844241-5dd4-48e2-8952-1696139817c1	2026-09-13 07:59:11.864194+05:30	2026-09-15
 cb0ac429-ffa4-4086-9ff5-fbdddb22569b	2026-09-17 00:25:07.49288+05:30	2026-09-17 01:15:46.820838+05:30	10	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.2 Safari/605.1.15	\N	macOS	820x1052	ss	103.81.15.246
 1789304697999-9b3dcb8b200b5	2026-09-13 18:34:58.408452+05:30	2026-09-14 11:20:44.202238+05:30	20	capacitor	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 16; bytello_edla Build/BP2A.250605.031.A3; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/151.0.7922.199 Safari/537.36	bytello_edla	Android 16	1280x720	ysd	192.168.100.70
 3e1171d6-80fd-4c5a-ae46-7449ada58b4a	2026-09-07 13:30:27.433397+05:30	2026-09-18 21:03:42.843297+05:30	52	capacitor	2.0.8	2026-09-02	Mozilla/5.0 (Linux; Android 16; motorola edge 50 fusion Build/W1UUIS36H.110-42-3; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/153.0.8010.36 Mobile Safari/537.36	motorola edge 50 fusion	Android 16	432x960	nagender	2401:4900:d9e9:3f6c:8851:beff:fe33:2e25
-698bc5b5-3b90-4377-8fcc-972bd6e50081	2026-09-03 15:44:05.503026+05:30	2026-09-21 12:07:05.919857+05:30	88	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36	\N	Linux	360x780	admin	2401:4900:b86d:903d::b34b:7ef0
-1789365505974-8f913be7e589d8	2026-09-14 11:28:26.648975+05:30	2026-09-19 00:01:04.919633+05:30	66	capacitor	2.0.8	2026-09-02	Mozilla/5.0 (Linux; Android 16; bytello_edla Build/BP2A.250605.031.A3; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/151.0.7922.199 Safari/537.36	bytello_edla	Android 16	720x1280	ysd	192.168.31.232
+698bc5b5-3b90-4377-8fcc-972bd6e50081	2026-09-03 15:44:05.503026+05:30	2026-09-24 09:18:31.256909+05:30	89	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36	\N	Linux	360x780	admin	2401:4900:a1b3:a2ce::23da:5b7a
 a95d6d83-f4f9-46cd-aaad-f84d780788e4	2026-09-15 15:23:23.903578+05:30	2026-09-15 16:59:54.375578+05:30	17	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0	\N	Windows	1280x800	surender	103.81.15.246
 f07390b7-3a14-4bbb-abb4-2fc96e296ed6	2026-09-16 23:26:28.793613+05:30	2026-09-17 02:35:19.973829+05:30	8	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/30.0 Chrome/143.0.0.0 Safari/537.36	\N	Linux	800x1280	ss	103.81.15.246
 a25c1ce9-4370-4be3-aa2d-a3e3aa56f76a	2026-09-18 23:19:13.166152+05:30	2026-09-19 01:44:18.131199+05:30	15	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.2 Safari/605.1.15	\N	macOS	820x1052	ss	103.81.15.246
+b95eb854-4dd5-4d4c-a477-973e0fae595f	2026-09-24 10:57:15.296038+05:30	2026-09-24 11:50:28.36485+05:30	11	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.2 Safari/605.1.15	\N	macOS	820x1052	ss	123.63.167.242
 6d95145d-dc2c-4d8c-aea7-a1b261c49145	2026-09-20 12:28:19.998309+05:30	2026-09-20 14:34:03.646462+05:30	26	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.2 Safari/605.1.15	\N	macOS	820x1052	ss	103.81.15.246
-3261b99d-1ef5-4900-96f8-405546ce77fd	2026-09-19 18:55:12.990702+05:30	2026-09-21 16:03:46.330496+05:30	10	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 13; V2055) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/131.0.6778.200 Mobile Safari/537.36 VivoBrowser/16.3.6.1	V2055	Android 13	393x873	pankaj	2401:4900:d9e5:df76::b354:63f9
+3261b99d-1ef5-4900-96f8-405546ce77fd	2026-09-19 18:55:12.990702+05:30	2026-09-23 16:22:25.989637+05:30	12	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 13; V2055) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/131.0.6778.200 Mobile Safari/537.36 VivoBrowser/16.3.6.1	V2055	Android 13	393x873	pankaj	2401:4900:a2f7:e8eb::3ffa:2f50
 5e132b32-0cd5-4dd8-98a7-756de619462e	2026-09-19 15:17:04.59329+05:30	2026-09-19 15:18:26.561173+05:30	4	capacitor	2.0.8	2026-09-02	Mozilla/5.0 (Linux; Android 16; motorola edge 50 fusion Build/W1UUIS36H.110-42-3; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/152.0.7977.86 Mobile Safari/537.36	motorola edge 50 fusion	Android 16	432x960	sanjay	2402:8100:2b47:456f:6ccc:ddff:fe0d:c55a
+a4208568-5f65-44b3-9bdf-7ee4c10a72ba	2026-09-03 23:11:15.857383+05:30	2026-09-23 20:06:35.60593+05:30	227	capacitor	2.0.8	2026-09-02	Mozilla/5.0 (Linux; Android 16; RMX3842 Build/BP2A.250605.015; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/154.0.8037.22 Mobile Safari/537.36	RMX3842	Android 16	360x804	admin	2401:4900:5f17:5d19:8cd5:d2ff:fef1:c73b
+2e2bbe35-de40-472c-87eb-2354fe254096	2026-09-21 12:06:04.423443+05:30	2026-09-24 10:56:28.666986+05:30	30	capacitor	2.0.8	2026-09-02	Mozilla/5.0 (Linux; Android 16; LXX525 Build/BP2A.250605.031.A3; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/152.0.7977.88 Mobile Safari/537.36	LXX525	Android 16	407x904	admin	117.234.26.244
 1789487390273-f4a21b1e3303d8	2026-09-15 21:19:51.466194+05:30	2026-09-16 01:13:05.058546+05:30	3	browser	2026-09-02	2026-09-02	Mozilla/5.0 (iPhone; CPU iPhone OS 26_0_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/151.0.7922.112 Mobile/15E148 Safari/604.1	iPhone	iOS	390x844	himanshu	103.81.15.246
-08ed24a9-4a72-42b8-9f0a-672a33a0f5a6	2026-09-15 08:40:18.393647+05:30	2026-09-21 16:01:25.521575+05:30	212	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36 Edg/152.0.0.0	\N	Windows	1280x800	admin	103.81.15.246
-a4208568-5f65-44b3-9bdf-7ee4c10a72ba	2026-09-03 23:11:15.857383+05:30	2026-09-21 20:50:39.706487+05:30	216	capacitor	2.0.8	2026-09-02	Mozilla/5.0 (Linux; Android 16; RMX3842 Build/BP2A.250605.015; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/154.0.8037.22 Mobile Safari/537.36	RMX3842	Android 16	360x804	admin	2401:4900:5d36:473c:eca2:b2ff:fe86:7542
+3d08c17b-c3e9-4d4e-ad2e-217b1c993497	2026-09-03 00:18:17.037778+05:30	2026-09-23 16:48:33.606912+05:30	1067	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0	\N	Windows	1280x720	himanshu	123.63.167.242
+1789569916326-5a0f66f71c7788	2026-09-16 20:15:50.153813+05:30	2026-09-24 14:34:44.316321+05:30	472	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36	\N	Android 10	720x1280	ss	192.168.31.243
 0d47a8a3-dd8d-4577-a10e-388ef9103442	2026-09-17 14:30:22.388375+05:30	2026-09-18 12:42:49.827375+05:30	402	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Claude/1.46388.2 Chrome/148.0.7778.280 Electron/42.10.0 Safari/537.36	\N	Linux	1920x1080	himanshu	127.0.0.1
 df257484-ae4b-4428-9edd-f340721e809e	2026-09-17 14:30:17.912782+05:30	2026-09-18 12:42:53.260374+05:30	461	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Claude/1.46388.2 Chrome/148.0.7778.280 Electron/42.10.0 Safari/537.36	\N	Linux	1920x1080	himanshu	127.0.0.1
 d4720d93-3a50-4892-8d36-1933fe3886b8	2026-09-16 23:29:01.703059+05:30	2026-09-16 23:56:00.050886+05:30	8	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.2 Safari/605.1.15	\N	macOS	820x1180	ss	2401:4900:4154:66e4:79d5:a2be:91a4:5b75
@@ -25044,26 +25972,27 @@ d4720d93-3a50-4892-8d36-1933fe3886b8	2026-09-16 23:29:01.703059+05:30	2026-09-16
 ccebccbd-28d4-4c96-896f-65fb572dcf95	2026-09-16 10:11:51.519551+05:30	2026-09-18 09:53:02.717981+05:30	58	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36	\N	Windows	1280x720	admin	103.81.15.245
 1789577894110-f34440100d7318	2026-09-16 22:28:14.135706+05:30	2026-09-16 22:28:14.135706+05:30	1	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Claude/1.46388.2 Chrome/148.0.7778.280 Safari/537.36	\N	Linux	0x0	zz_logintest	192.168.30.15
 b0bdfd2b-8ef4-4ec9-a044-89b0813ec477	2026-09-18 09:34:34.688095+05:30	2026-09-18 20:46:30.148884+05:30	105	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36	\N	Linux	720x1280	rc	103.81.15.245
-3d08c17b-c3e9-4d4e-ad2e-217b1c993497	2026-09-03 00:18:17.037778+05:30	2026-09-19 02:42:40.542344+05:30	1012	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0	\N	Windows	1280x720	himanshu	103.81.15.246
+08ed24a9-4a72-42b8-9f0a-672a33a0f5a6	2026-09-15 08:40:18.393647+05:30	2026-09-23 15:45:48.854797+05:30	299	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36 Edg/152.0.0.0	\N	Windows	1280x800	admin	103.81.15.246
 0eeeeb93-67f6-45be-96c9-bc28beaeae62	2026-09-20 00:16:06.20285+05:30	2026-09-21 10:20:31.110858+05:30	6	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.2 Safari/605.1.15	\N	macOS	840x692	ss	103.81.15.246
 930d3c6e-ac32-4b55-84c6-62a81f809209	2026-09-18 09:29:31.68269+05:30	2026-09-18 11:53:55.094564+05:30	19	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36	\N	Android 10	720x1280	ss	103.81.15.245
+6027a2fc-7b70-4958-9a93-d005a77e165a	2026-09-23 13:54:13.285594+05:30	2026-09-24 08:17:29.910376+05:30	3	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.2 Safari/605.1.15	\N	macOS	840x692	ss	103.81.15.246
 4e1b20bd-6458-4df7-8be9-bc76e502c299	2026-09-18 09:27:14.52377+05:30	2026-09-18 09:27:14.52377+05:30	1	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36	\N	Linux	720x1280	ywd	103.81.15.245
-1788368614919-a079a51006d4a8	2026-09-02 22:34:48.321353+05:30	2026-09-21 22:46:53.190279+05:30	1319	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36	\N	Android 10	720x1280	rc	192.168.33.244
-65ab4988-695e-44d7-8279-6b2a5a1bad21	2026-09-07 19:27:36.63658+05:30	2026-09-21 14:37:37.435988+05:30	127	capacitor	2.0.8	2026-09-02	Mozilla/5.0 (Linux; Android 16; motorola edge 60 stylus Build/W1VBS36.62-22-17-9; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/151.0.7922.199 Mobile Safari/537.36	motorola edge 60 stylus	Android 16	511x1136	jony	103.81.15.245
-2e2bbe35-de40-472c-87eb-2354fe254096	2026-09-21 12:06:04.423443+05:30	2026-09-21 17:35:37.878607+05:30	10	capacitor	2.0.8	2026-09-02	Mozilla/5.0 (Linux; Android 16; LXX525 Build/BP2A.250605.031.A3; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/151.0.7922.202 Mobile Safari/537.36	LXX525	Android 16	407x904	ss	117.225.1.121
+65ab4988-695e-44d7-8279-6b2a5a1bad21	2026-09-07 19:27:36.63658+05:30	2026-09-24 13:55:50.431506+05:30	141	capacitor	2.0.8	2026-09-02	Mozilla/5.0 (Linux; Android 16; motorola edge 60 stylus Build/W1VBS36.62-22-17-9; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/151.0.7922.199 Mobile Safari/537.36	motorola edge 60 stylus	Android 16	511x1136	jony	103.81.15.245
+38f8b5ab-cf00-4827-bb96-91232e35bea0	2026-09-22 14:14:52.056399+05:30	2026-09-23 16:58:54.50201+05:30	183	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0	\N	Windows	1280x720	ss	2405:201:402c:f822:fcc0:52c6:1cc0:3ca4
+1788368614919-a079a51006d4a8	2026-09-02 22:34:48.321353+05:30	2026-09-24 11:29:22.901158+05:30	1592	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36	\N	Android 10	720x1280	rc	192.168.33.244
 9e1e6613-c785-480c-bec0-e61ae586d833	2026-09-18 09:29:35.759772+05:30	2026-09-18 19:42:48.398055+05:30	32	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36	\N	Linux	720x1280	ss	103.81.15.245
+1790230485150-f0ab06b11fec5	2026-09-24 11:46:45.567634+05:30	2026-09-24 14:35:37.831061+05:30	22	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36	\N	Android 10	720x1280	rc	192.168.33.244
 b42e2001-1b71-45e7-afe8-0e60794e0c2d	2026-09-18 09:41:25.895479+05:30	2026-09-19 11:34:09.922217+05:30	78	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36	\N	Android 10	848x1506	ss	103.81.15.245
 fe975137-1bd5-4960-90bb-443753bfec13	2026-09-18 00:40:13.116721+05:30	2026-09-18 00:40:13.116721+05:30	1	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:155.0) Gecko/20100101 Firefox/155.0	\N	Linux	1366x768	admin	127.0.0.1
 29fa412a-6e50-4c0e-8624-77e483f4f4a3	2026-09-18 00:54:55.36627+05:30	2026-09-18 00:54:55.36627+05:30	1	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:155.0) Gecko/20100101 Firefox/155.0	\N	Linux	1366x768	admin	127.0.0.1
-cb1f9f6c-6903-4989-b349-aa31ea8ba0b8	2026-09-18 16:28:05.772823+05:30	2026-09-18 17:18:05.376662+05:30	16	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0	\N	Windows	1280x720	ss	103.81.15.245
 fc4314e6-3104-4071-8e89-5e29539b092a	2026-09-18 01:02:33.319986+05:30	2026-09-18 01:02:33.319986+05:30	1	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:155.0) Gecko/20100101 Firefox/155.0	\N	Linux	1366x768	admin	127.0.0.1
 851fe0cc-8c40-43a9-83b0-4426d3561ea0	2026-09-18 01:11:27.143002+05:30	2026-09-18 01:11:27.143002+05:30	1	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:155.0) Gecko/20100101 Firefox/155.0	\N	Linux	1366x768	admin	127.0.0.1
 897b2669-a92a-42cd-afc3-dcf5037f1889	2026-09-18 01:21:23.374447+05:30	2026-09-18 01:21:23.374447+05:30	1	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:155.0) Gecko/20100101 Firefox/155.0	\N	Linux	1366x768	admin	127.0.0.1
 1789699917372-2465e656b9f278	2026-09-18 08:21:57.395569+05:30	2026-09-18 08:42:05.048552+05:30	7	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:155.0) Gecko/20100101 Firefox/155.0	\N	Linux	1920x1080	admin	192.168.30.14
 0f1c92c2-2a3e-4d80-977a-c172b9163aad	2026-09-18 19:22:38.438102+05:30	2026-09-18 19:22:45.947629+05:30	2	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.2 Safari/605.1.15	\N	macOS	1180x692	ss	103.81.15.246
-eb7d4d88-3930-4321-861d-caffbd87b180	2026-09-16 23:36:27.163232+05:30	2026-09-21 16:03:16.371355+05:30	39	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.5.2 Safari/605.1.15	\N	macOS	820x1180	ss	103.81.15.246
-45a4dcd6-bb3b-4bae-b908-b9d508f189fc	2026-09-18 15:15:29.911831+05:30	2026-09-21 21:50:17.950093+05:30	37	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0	\N	Windows	1600x900	ss	103.81.15.246
-1789035425075-21c7a736444508	2026-09-10 15:47:05.237311+05:30	2026-09-19 06:43:12.769409+05:30	1435	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:155.0) Gecko/20100101 Firefox/155.0	\N	Linux	1920x1080	admin	192.168.30.15
+a9504c82-e2f1-4922-a4dc-c710f08cd291	2026-09-07 13:19:28.273459+05:30	2026-09-23 10:28:17.038963+05:30	223	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0	\N	Windows	1280x720	admin	103.81.15.246
+eb7d4d88-3930-4321-861d-caffbd87b180	2026-09-16 23:36:27.163232+05:30	2026-09-22 16:42:17.313648+05:30	47	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.5.2 Safari/605.1.15	\N	macOS	820x1180	ss	103.81.15.246
+1789798486596-a6be0992ffcac	2026-09-19 11:44:47.282705+05:30	2026-09-24 14:31:10.210884+05:30	567	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36	\N	Android 10	720x1280	ss	192.168.31.247
 1789577955509-e9a62ea91d3d28	2026-09-16 22:29:15.588429+05:30	2026-09-16 22:29:15.588429+05:30	1	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Claude/1.46388.2 Chrome/148.0.7778.280 Safari/537.36	\N	Linux	0x0	zz_logintest	192.168.30.15
 d30abcf7-bdb0-4143-a2ba-b077d9fe1989	2026-09-17 14:30:21.519856+05:30	2026-09-18 12:42:39.616502+05:30	409	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Claude/1.46388.2 Chrome/148.0.7778.280 Electron/42.10.0 Safari/537.36	\N	Linux	1920x1080	himanshu	127.0.0.1
 72acca84-7a17-44e1-a53e-4936688cc080	2026-09-19 16:34:33.405147+05:30	2026-09-19 16:46:06.429415+05:30	7	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36	\N	Windows	1280x720	ss	103.81.15.246
@@ -25074,14 +26003,19 @@ bab581de-cbff-4090-873b-69fff31ddcbe	2026-09-17 14:30:16.210226+05:30	2026-09-18
 18ee4f53-10c4-42bd-b43a-1ab736c0ddae	2026-09-18 15:03:36.438505+05:30	2026-09-18 15:03:36.438505+05:30	1	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/152.0.0.0 Safari/537.36 Edg/152.0.0.0	\N	Linux	800x600	admin	127.0.0.1
 9aee25eb-ccd4-4ddd-83db-7c9af1ca30db	2026-09-20 01:13:33.066365+05:30	2026-09-20 07:44:11.832529+05:30	40	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Claude/2.2553.1 Chrome/152.0.7977.76 Safari/537.36	\N	Linux	1920x1080	admin	103.81.15.245
 9d2c74ba-b08b-43e9-a501-d7b2cc4b6ddc	2026-09-18 15:03:51.517851+05:30	2026-09-18 15:03:51.517851+05:30	1	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/152.0.0.0 Safari/537.36 Edg/152.0.0.0	\N	Linux	800x600	admin	127.0.0.1
-d82b68da-f626-4bd7-a074-5d40c0cb91c5	2026-09-17 02:59:06.508207+05:30	2026-09-21 18:10:58.604363+05:30	118	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Mobile Safari/537.36	\N	Android 10	360x780	ss	2402:3a80:479c:fee4::a7af:93f6
+cb1f9f6c-6903-4989-b349-aa31ea8ba0b8	2026-09-18 16:28:05.772823+05:30	2026-09-23 09:59:25.863689+05:30	22	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0	\N	Windows	1280x720	admin	103.81.15.246
 a923ac62-921f-44c0-9039-ea7ba1035d99	2026-09-19 22:48:24.881355+05:30	2026-09-19 22:51:17.779723+05:30	2	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Mobile Safari/537.36	Pixel 8	Android 14	375x812	admin	127.0.0.1
-1789798486596-a6be0992ffcac	2026-09-19 11:44:47.282705+05:30	2026-09-21 22:53:57.190925+05:30	196	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36	\N	Android 10	720x1280	ss	192.168.31.247
-0852ef4d-8659-4847-be88-b909f8e1598b	2026-09-18 11:54:28.549743+05:30	2026-09-21 22:53:39.481944+05:30	177	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36	\N	Android 10	720x1280	ss	103.81.15.245
-fb14de3f-80ae-4aac-9cc7-dd51ccc52611	2026-09-20 03:38:13.316934+05:30	2026-09-21 10:26:14.31197+05:30	14	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36	\N	Linux	362x795	admin	2401:4900:b87e:e99f:a412:dfff:fe89:337
-1788405467814-7fc97370df82a	2026-09-03 08:47:50.436592+05:30	2026-09-21 22:52:31.106636+05:30	1917	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36	\N	Android 10	848x1506	ss	192.168.31.246
+d82b68da-f626-4bd7-a074-5d40c0cb91c5	2026-09-17 02:59:06.508207+05:30	2026-09-24 08:30:02.909842+05:30	179	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Mobile Safari/537.36	\N	Android 10	360x780	ss	114.31.182.133
+1de704a8-27ae-404a-b16c-ea53f02cd15b	2026-09-23 14:26:59.979642+05:30	2026-09-23 15:47:43.010109+05:30	4	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0	\N	Windows	1280x720	admin	103.81.15.246
+ff668027-9c2a-49d1-af1a-9db3baa5d831	2026-09-22 20:34:37.383204+05:30	2026-09-24 10:56:00.201156+05:30	35	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Mobile Safari/537.36	\N	Android 10	407x904	admin	117.234.26.244
+aaa9fcf7-d0b0-47f9-8040-e62c6f27a62b	2026-09-23 15:24:40.625838+05:30	2026-09-24 10:00:48.574559+05:30	10	browser	2026-09-02	2026-09-02	Mozilla/5.0 (iPhone; CPU iPhone OS 27_0_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/153.0.8010.24 Mobile/15E148 Safari/604.1	iPhone	iOS	390x844	ss	103.81.15.245
+0852ef4d-8659-4847-be88-b909f8e1598b	2026-09-18 11:54:28.549743+05:30	2026-09-23 08:38:15.410263+05:30	320	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36	\N	Android 10	720x1280	ss	103.81.15.245
+3a2c0b6f-0928-45de-8019-ca60b4419fcd	2026-09-03 13:55:01.98875+05:30	2026-09-24 14:33:22.975164+05:30	573	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0	\N	Windows	1280x720	admin	103.81.15.246
+545c8d6c-b679-496e-b432-f15d405d5c3e	2026-09-19 23:28:46.617033+05:30	2026-09-24 14:19:45.68594+05:30	18	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0	\N	Windows	1280x720	admin	103.81.15.245
+1789199309961-212cbce8ead128	2026-09-12 13:18:29.792981+05:30	2026-09-24 12:02:27.264555+05:30	91	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36	\N	Linux	720x1280	ss	192.168.31.241
 ae88bf0c-ba9c-40a0-bbcb-9978eb03eecd	2026-09-18 19:57:48.664221+05:30	2026-09-21 10:55:49.737652+05:30	30	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36	\N	Android 10	720x1280	ss	103.81.15.245
-1788368654596-0430fca2d05cc8	2026-09-02 22:34:46.506671+05:30	2026-09-21 22:52:50.501307+05:30	2133	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36	\N	Android 10	720x1280	ss	192.168.31.235
+1788405452590-5524a7e2a8c048	2026-09-03 08:47:34.8823+05:30	2026-09-24 14:38:57.161962+05:30	1498	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36	\N	Android 10	720x1280	ss	192.168.31.236
+1788368654596-0430fca2d05cc8	2026-09-02 22:34:46.506671+05:30	2026-09-24 14:36:09.3428+05:30	2471	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36	\N	Android 10	720x1280	ss	192.168.31.235
 83f94c9e-62b7-4b89-9c23-3c519bd6972f	2026-09-18 18:59:14.03143+05:30	2026-09-18 19:03:07.671111+05:30	3	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.2 Safari/605.1.15	\N	macOS	820x1052	ss	103.81.15.246
 2fb53455-ad1f-45ab-817d-344f2b78b938	2026-09-17 14:30:26.862073+05:30	2026-09-18 12:16:41.367678+05:30	301	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Claude/1.46388.2 Chrome/148.0.7778.280 Electron/42.10.0 Safari/537.36	\N	Linux	1920x1080	Manu Dev	127.0.0.1
 42dcc1e5-60be-4427-9452-f5698479b1ba	2026-09-17 14:30:23.244616+05:30	2026-09-18 12:42:37.365862+05:30	391	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Claude/1.46388.2 Chrome/148.0.7778.280 Electron/42.10.0 Safari/537.36	\N	Linux	1920x1080	himanshu	127.0.0.1
@@ -25089,24 +26023,30 @@ ae88bf0c-ba9c-40a0-bbcb-9978eb03eecd	2026-09-18 19:57:48.664221+05:30	2026-09-21
 724419fd-b27d-4e55-a2b6-09a30640e4cb	2026-09-17 14:30:20.61866+05:30	2026-09-18 12:42:47.204476+05:30	423	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Claude/1.46388.2 Chrome/148.0.7778.280 Electron/42.10.0 Safari/537.36	\N	Linux	1920x1080	himanshu	127.0.0.1
 49b029fb-8659-4245-9fd7-fc761de86f31	2026-09-17 14:30:19.719035+05:30	2026-09-18 12:42:52.020292+05:30	435	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Claude/1.46388.2 Chrome/148.0.7778.280 Electron/42.10.0 Safari/537.36	\N	Linux	1920x1080	himanshu	127.0.0.1
 5064e597-c2ea-470f-a90b-8def0cbdd2eb	2026-09-18 15:57:38.173943+05:30	2026-09-18 19:04:04.677248+05:30	30	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36	\N	Linux	720x1280	ss	103.81.15.245
-e08b3bc8-c9fc-4923-8d0d-342bc7da043c	2026-09-18 20:38:28.213227+05:30	2026-09-21 22:46:59.019759+05:30	83	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Mobile Safari/537.36	\N	Android 10	384x851	ss	2401:4900:bf71:b968:9481:59ff:fe69:e474
-545c8d6c-b679-496e-b432-f15d405d5c3e	2026-09-19 23:28:46.617033+05:30	2026-09-19 23:29:39.818681+05:30	2	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0	\N	Windows	1280x720	ss	103.81.15.245
+1788405467814-7fc97370df82a	2026-09-03 08:47:50.436592+05:30	2026-09-24 14:34:19.833267+05:30	2309	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36	\N	Android 10	848x1506	ss	192.168.31.246
+fb14de3f-80ae-4aac-9cc7-dd51ccc52611	2026-09-20 03:38:13.316934+05:30	2026-09-24 09:29:14.345321+05:30	17	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36	\N	Linux	362x795	admin	2401:4900:7ef3:387d:c414:2cff:feeb:f03f
+1789009189723-57bd7159a7f838	2026-09-10 08:29:56.17781+05:30	2026-09-24 01:37:13.671875+05:30	313	capacitor	2.0.8	2026-09-02	Mozilla/5.0 (Linux; Android 16; bytello_edla Build/BP2A.250605.031.A3; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/153.0.8010.36 Safari/537.36	bytello_edla	Android 16	720x1280	ss	192.168.31.236
 893e67b9-4c0c-47ad-86cf-c4d54055b278	2026-09-18 15:03:43.558383+05:30	2026-09-18 15:03:43.558383+05:30	1	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/152.0.0.0 Safari/537.36 Edg/152.0.0.0	\N	Linux	800x600	admin	127.0.0.1
-a01cd099-3a9d-4980-887b-4174ee8662d4	2026-09-18 13:17:28.717452+05:30	2026-09-21 10:56:08.722107+05:30	196	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36	\N	Linux	720x1280	ss	103.81.15.245
+a01cd099-3a9d-4980-887b-4174ee8662d4	2026-09-18 13:17:28.717452+05:30	2026-09-24 11:38:36.798975+05:30	206	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36	\N	Linux	720x1280	ss	103.81.15.245
 fa2d4bf9-fbaa-46bf-9911-62d8d6d66896	2026-09-18 15:09:16.402187+05:30	2026-09-19 16:20:48.062233+05:30	25	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0	\N	Windows	1280x720	ss	103.81.15.246
 30ad466f-290f-47d3-b001-ea03862d2cdb	2026-09-20 14:54:45.741974+05:30	2026-09-21 08:23:23.822924+05:30	38	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.2 Safari/605.1.15	\N	macOS	820x1052	ss	123.63.167.242
 e1446afa-e9d9-4b8a-9fa5-1135032b6de6	2026-09-19 17:17:44.547869+05:30	2026-09-19 17:17:44.547869+05:30	1	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0	\N	Windows	1280x720	naveen	103.81.15.246
 9bdcda11-a319-4424-b0c9-da3c1ff8c1d1	2026-09-17 03:13:46.879459+05:30	2026-09-19 23:52:26.11142+05:30	701	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Claude/2.2553.1 Chrome/152.0.7977.76 Safari/537.36	\N	Linux	1920x1080	admin	127.0.0.1
-1788432566693-53f4ce1cda57a	2026-09-03 16:19:26.674102+05:30	2026-09-19 19:00:19.925232+05:30	75	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36	\N	Linux	720x1280	ss	192.168.31.243
-1788405452590-5524a7e2a8c048	2026-09-03 08:47:34.8823+05:30	2026-09-21 21:25:02.99928+05:30	1336	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36	\N	Android 10	720x1280	ss	192.168.31.236
-a9e74142-7d32-4e2a-9cdb-d0872fda1e01	2026-09-21 15:58:55.131547+05:30	2026-09-21 15:59:44.316722+05:30	4	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Mobile Safari/537.36	\N	Android 10	393x876	ss	2401:4900:d9e6:9263::b35e:4f19
+ae9259dd-482a-4405-ac76-f2a4a5b2e22d	2026-09-22 21:00:24.496644+05:30	2026-09-22 21:00:36.355547+05:30	2	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Mobile Safari/537.36	\N	Android 10	432x960	ss	2409:40d4:110d:25c6:afc3:5202:f518:7514
+1788432566693-53f4ce1cda57a	2026-09-03 16:19:26.674102+05:30	2026-09-24 06:23:45.093093+05:30	307	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36	\N	Linux	720x1280	ss	192.168.31.243
+1790233809260-a4a8132684b87	2026-09-24 12:40:13.481227+05:30	2026-09-24 14:30:46.983489+05:30	18	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36	\N	Android 10	720x1280	ss	192.168.31.251
 c2233c73-1df2-4c5f-bd37-40d9c8b21695	2026-09-21 15:44:06.751306+05:30	2026-09-21 17:19:05.122806+05:30	16	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.2 Safari/605.1.15	\N	macOS	820x1094	ss	103.81.15.246
-765a02cb-46ee-4b41-91c3-27aa9f077256	2026-09-07 16:12:20.060962+05:30	2026-09-21 20:07:23.359151+05:30	209	capacitor	2.0.8	2026-09-02	Mozilla/5.0 (Linux; Android 16; SM-S921B Build/BP4A.251205.006; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/151.0.7922.199 Mobile Safari/537.36	SM-S921B	Android 16	360x780	admin	2401:4900:a1c4:c8c5::2d94:c744
-d85a5e75-9ce0-410d-9ed1-83f20938f71c	2026-09-21 19:57:59.108135+05:30	2026-09-21 20:27:57.914443+05:30	8	pwa	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Mobile Safari/537.36	\N	Android 10	394x853	rc	103.81.15.245
+93c23d76-e538-433e-b802-1b4e93ba11ed	2026-09-23 00:21:22.958559+05:30	2026-09-23 00:21:30.619612+05:30	2	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36	\N	Linux	393x870	ss	2401:4900:5f2b:9167:1d22:8552:2a4f:fbc9
+3d0dbeec-d547-48e8-9cb1-ef9af7a72280	2026-09-03 11:17:29.482934+05:30	2026-09-24 14:36:22.588603+05:30	126	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36	\N	Linux	393x876	ss	2401:4900:bae9:8067:3f:e1ff:fe1c:ab7a
+d85a5e75-9ce0-410d-9ed1-83f20938f71c	2026-09-21 19:57:59.108135+05:30	2026-09-23 01:22:25.075112+05:30	18	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Mobile Safari/537.36	\N	Android 10	394x853	rc	103.81.15.245
+1788855490747-52f3054a41235	2026-09-08 13:48:11.757553+05:30	2026-09-24 14:39:26.565021+05:30	1436	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36	\N	Android 10	720x1280	sanjay	192.168.37.241
 86066110-e176-4b7c-8ec2-173080ac943a	2026-09-21 16:36:24.061111+05:30	2026-09-21 16:38:52.90919+05:30	2	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0	\N	Windows	1280x720	admin	103.81.15.246
-1788855490747-52f3054a41235	2026-09-08 13:48:11.757553+05:30	2026-09-21 22:51:15.016498+05:30	1099	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36	\N	Android 10	720x1280	sanjay	192.168.37.241
-b9be5fdd-05b4-4944-bdba-509c7e3c6da3	2026-09-03 08:30:29.437691+05:30	2026-09-21 22:53:59.67+05:30	8965	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:156.0) Gecko/20100101 Firefox/156.0	\N	Linux	1760x990	admin	127.0.0.1
-d8fa769e-20a4-47f6-b340-511b28fe125f	2026-09-21 20:11:01.977439+05:30	2026-09-21 20:37:24.168306+05:30	6	pwa	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Mobile Safari/537.36	\N	Android 10	384x832	rc	103.81.15.245
+5616e070-a146-48b0-9226-622303349c19	2026-09-02 22:56:18.664644+05:30	2026-09-24 12:03:03.713158+05:30	913	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0	\N	Windows	1280x720	admin	103.81.15.245
+765a02cb-46ee-4b41-91c3-27aa9f077256	2026-09-07 16:12:20.060962+05:30	2026-09-24 10:27:24.366089+05:30	273	capacitor	2.0.8	2026-09-02	Mozilla/5.0 (Linux; Android 16; SM-S921B Build/BP4A.251205.006; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/151.0.7922.199 Mobile Safari/537.36	SM-S921B	Android 16	360x780	admin	2401:4900:a1b3:a2ce::23da:5b7a
+b9be5fdd-05b4-4944-bdba-509c7e3c6da3	2026-09-03 08:30:29.437691+05:30	2026-09-24 14:40:19.61067+05:30	10160	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:156.0) Gecko/20100101 Firefox/156.0	\N	Linux	1920x1080	admin	127.0.0.1
+a9e74142-7d32-4e2a-9cdb-d0872fda1e01	2026-09-21 15:58:55.131547+05:30	2026-09-24 10:54:04.833337+05:30	10	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Mobile Safari/537.36	\N	Android 10	393x876	ss	2401:4900:5f1c:dbbe:f5b7:6b46:20f1:d6c7
+3e1c8d19-c0a0-4c49-9b77-5b246cae3ff3	2026-09-15 14:48:02.094593+05:30	2026-09-23 17:07:59.032396+05:30	47	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0	\N	Windows	1280x720	sanjeev	123.63.167.242
+d8fa769e-20a4-47f6-b340-511b28fe125f	2026-09-21 20:11:01.977439+05:30	2026-09-23 14:24:30.7133+05:30	12	pwa	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Mobile Safari/537.36	\N	Android 10	384x832	rc	144.16.30.77
 \.
 
 
@@ -25735,23 +26675,8 @@ COPY public.mes_hourly_slots (id, line_id, shift_name, slot_label, start_time, e
 498	10	B	02:05-03:15	02:05:00	03:15:00	f	70	214	hour_0205_0315	8
 499	7	A	08:30-09:30	08:30:00	09:30:00	f	55	360	hour_0830_0930	1
 500	7	A	09:30-10:30	09:30:00	10:30:00	f	50	315	hour_0930_1030	2
-555	21	B	18:30-19:30	18:30:00	19:30:00	f	55	220	hour_1830_1930	1
-556	21	B	19:30-20:30	19:30:00	20:30:00	f	50	200	hour_1930_2030	2
-557	21	B	20:30-21:30	20:30:00	21:30:00	f	60	240	hour_2030_2130	3
-558	21	B	21:30-23:05	21:30:00	23:05:00	f	60	240	hour_2130_2305	4
-559	21	B	23:05-00:05	23:05:00	00:05:00	t	60	240	hour_2305_0005	5
-560	21	B	00:05-01:05	00:05:00	01:05:00	f	55	220	hour_0005_0105	6
-561	21	B	01:05-02:05	01:05:00	02:05:00	f	55	220	hour_0105_0205	7
-562	21	B	02:05-03:15	02:05:00	03:15:00	f	70	280	hour_0205_0315	8
-547	21	A	08:30-09:30	08:30:00	09:30:00	f	55	220	hour_0830_0930	1
-548	21	A	09:30-10:30	09:30:00	10:30:00	f	50	200	hour_0930_1030	2
 227	9	A	08:30-09:30	08:30:00	09:30:00	f	55	350	hour_0830_0930	1
 228	9	A	09:30-10:30	09:30:00	10:30:00	f	50	176	hour_0930_1030	2
-549	21	A	10:30-11:30	10:30:00	11:30:00	f	60	240	hour_1030_1130	3
-550	21	A	11:30-13:05	11:30:00	13:05:00	f	60	240	hour_1130_1305	4
-551	21	A	13:05-14:05	13:05:00	14:05:00	f	60	240	hour_1305_1405	5
-552	21	A	14:05-15:05	14:05:00	15:05:00	f	50	200	hour_1405_1505	6
-553	21	A	15:05-16:05	15:05:00	16:05:00	f	60	240	hour_1505_1605	7
 2006	41	A	08:30-09:30	08:30:00	09:30:00	f	60	375	hour_0830_0930	1
 2007	41	A	09:30-10:30	09:30:00	10:30:00	f	50	305	hour_0930_1030	2
 2008	41	A	10:30-11:30	10:30:00	11:30:00	f	60	375	hour_1030_1130	3
@@ -25777,7 +26702,6 @@ COPY public.mes_hourly_slots (id, line_id, shift_name, slot_label, start_time, e
 596	20	B	01:05-02:05	01:05:00	02:05:00	f	55	205	hour_0105_0205	7
 585	20	A	11:30-13:05	11:30:00	13:05:00	f	60	225	hour_1130_1305	4
 597	20	B	02:05-03:15	02:05:00	03:15:00	f	70	255	hour_0205_0315	8
-554	21	A	16:05-17:15	16:05:00	17:15:00	f	70	280	hour_1605_1715	8
 1363	37	B	18:30-19:30	18:30:00	19:30:00	f	60	310	\N	1
 1364	37	B	19:30-20:30	19:30:00	20:30:00	f	50	250	\N	2
 1365	37	B	20:30-21:30	20:30:00	21:30:00	f	60	310	\N	3
@@ -25831,14 +26755,6 @@ COPY public.mes_hourly_slots (id, line_id, shift_name, slot_label, start_time, e
 1930	39	A	13:05-14:05	13:05:00	14:05:00	f	60	290	hour_1305_1405	5
 1931	39	A	14:05-15:05	14:05:00	15:05:00	f	50	240	hour_1405_1505	6
 1932	39	A	15:05-16:05	15:05:00	16:05:00	f	60	290	hour_1505_1605	7
-947	30	A	08:30-09:30	08:30:00	09:30:00	f	55	220	hour_0830_0930	1
-948	30	A	09:30-10:30	09:30:00	10:30:00	f	50	200	hour_0930_1030	2
-949	30	A	10:30-11:30	10:30:00	11:30:00	f	60	240	hour_1030_1130	3
-950	30	A	11:30-13:05	11:30:00	13:05:00	f	60	240	hour_1130_1305	4
-951	30	A	13:05-14:05	13:05:00	14:05:00	f	60	240	hour_1305_1405	5
-952	30	A	14:05-15:05	14:05:00	15:05:00	f	50	200	hour_1405_1505	6
-953	30	A	15:05-16:05	15:05:00	16:05:00	f	60	240	hour_1505_1605	7
-954	30	A	16:05-17:15	16:05:00	17:15:00	f	70	280	hour_1605_1715	8
 1933	39	A	16:05-17:15	16:05:00	17:15:00	f	70	335	hour_1605_1715	8
 1934	39	B	18:30-19:30	18:30:00	19:30:00	f	60	290	hour_1830_1930	1
 1935	39	B	19:30-20:30	19:30:00	20:30:00	f	50	240	hour_1930_2030	2
@@ -25848,14 +26764,6 @@ COPY public.mes_hourly_slots (id, line_id, shift_name, slot_label, start_time, e
 1939	39	B	00:05-01:05	00:05:00	01:05:00	f	50	240	hour_0005_0105	6
 1940	39	B	01:05-02:05	01:05:00	02:05:00	f	60	290	hour_0105_0205	7
 1941	39	B	02:05-03:15	02:05:00	03:15:00	f	70	335	hour_0205_0315	8
-955	30	B	18:30-19:30	18:30:00	19:30:00	f	55	220	hour_1830_1930	1
-956	30	B	19:30-20:30	19:30:00	20:30:00	f	50	200	hour_1930_2030	2
-957	30	B	20:30-21:30	20:30:00	21:30:00	f	60	240	hour_2030_2130	3
-958	30	B	21:30-23:05	21:30:00	23:05:00	f	60	240	hour_2130_2305	4
-959	30	B	23:05-00:05	23:05:00	00:05:00	t	60	240	hour_2305_0005	5
-960	30	B	00:05-01:05	00:05:00	01:05:00	f	55	220	hour_0005_0105	6
-961	30	B	01:05-02:05	01:05:00	02:05:00	f	55	220	hour_0105_0205	7
-962	30	B	02:05-03:15	02:05:00	03:15:00	f	70	280	hour_0205_0315	8
 1011	28	A	08:30-09:30	08:30:00	09:30:00	f	60	225	hour_0830_0930	1
 1012	28	A	09:30-10:30	09:30:00	10:30:00	f	50	185	hour_0930_1030	2
 1013	28	A	10:30-11:30	10:30:00	11:30:00	f	60	225	hour_1030_1130	3
@@ -25949,6 +26857,7 @@ COPY public.mes_hourly_slots (id, line_id, shift_name, slot_label, start_time, e
 1393	40	B	01:05-02:05	01:05:00	02:05:00	f	60	310	\N	7
 1394	40	B	02:05-03:15	02:05:00	03:15:00	f	70	365	\N	8
 2022	12	B	03:30-06:20 OT	03:30:00	06:20:00	f	170	0	hour_0330_0620_ot	999
+2025	30	A	08:30-09:30	08:30:00	09:30:00	f	55	280	hour_0830_0930	1
 1685	33	A	08:30-09:30	08:30:00	09:30:00	f	60	315	hour_0830_0930	1
 1686	33	A	09:30-10:30	09:30:00	10:30:00	f	50	265	hour_0930_1030	2
 1687	33	A	10:30-11:30	10:30:00	11:30:00	f	60	315	hour_1030_1130	3
@@ -25965,6 +26874,19 @@ COPY public.mes_hourly_slots (id, line_id, shift_name, slot_label, start_time, e
 1698	33	B	00:05-01:05	00:05:00	01:05:00	f	50	265	hour_0005_0105	6
 1699	33	B	01:05-02:05	01:05:00	02:05:00	f	60	315	hour_0105_0205	7
 1700	33	B	02:05-03:15	02:05:00	03:15:00	f	70	370	hour_0205_0315	8
+2026	30	A	09:30-10:30	09:30:00	10:30:00	f	50	230	hour_0930_1030	2
+2027	30	A	10:30-11:30	10:30:00	11:30:00	f	60	280	hour_1030_1130	3
+2028	30	A	11:30-13:05	11:30:00	13:05:00	f	60	280	hour_1130_1305	4
+2029	30	A	13:05-14:05	13:05:00	14:05:00	f	60	280	hour_1305_1405	5
+2030	30	A	14:05-15:05	14:05:00	15:05:00	f	50	230	hour_1405_1505	6
+2031	30	A	15:05-16:05	15:05:00	16:05:00	f	60	280	hour_1505_1605	7
+2032	30	A	16:05-17:15	16:05:00	17:15:00	f	70	340	hour_1605_1715	8
+2033	30	B	18:30-19:30	18:30:00	19:30:00	f	55	220	hour_1830_1930	1
+2034	30	B	19:30-20:30	19:30:00	20:30:00	f	50	200	hour_1930_2030	2
+2035	30	B	20:30-21:30	20:30:00	21:30:00	f	60	240	hour_2030_2130	3
+2036	30	B	21:30-23:05	21:30:00	23:05:00	f	60	240	hour_2130_2305	4
+2037	30	B	23:05-00:05	23:05:00	00:05:00	t	60	240	hour_2305_0005	5
+2038	30	B	00:05-01:05	00:05:00	01:05:00	f	55	220	hour_0005_0105	6
 1461	35	B	18:30-19:30	18:30:00	19:30:00	f	60	310	hour_1830_1930	1
 1462	35	B	19:30-20:30	19:30:00	20:30:00	f	50	250	hour_1930_2030	2
 1463	35	B	20:30-21:30	20:30:00	21:30:00	f	60	310	hour_2030_2130	3
@@ -26014,6 +26936,24 @@ COPY public.mes_hourly_slots (id, line_id, shift_name, slot_label, start_time, e
 1321	40	A	15:05-16:05	15:05:00	16:05:00	f	60	310	\N	7
 1322	40	A	16:05-17:15	16:05:00	17:15:00	f	70	365	\N	8
 2023	14	B	03:30-06:20 OT	03:30:00	06:20:00	f	170	0	hour_0330_0620_ot	999
+2039	30	B	01:05-02:05	01:05:00	02:05:00	f	55	220	hour_0105_0205	7
+2040	30	B	02:05-03:15	02:05:00	03:15:00	f	70	280	hour_0205_0315	8
+2057	21	A	08:30-09:30	08:30:00	09:30:00	f	60	380	hour_0830_0930	1
+2058	21	A	09:30-10:30	09:30:00	10:30:00	f	50	330	hour_0930_1030	2
+2059	21	A	10:30-11:30	10:30:00	11:30:00	f	60	380	hour_1030_1130	3
+2060	21	A	11:30-13:05	11:30:00	13:05:00	f	60	380	hour_1130_1305	4
+2061	21	A	13:05-14:05	13:05:00	14:05:00	f	60	380	hour_1305_1405	5
+2062	21	A	14:05-15:05	14:05:00	15:05:00	f	50	330	hour_1405_1505	6
+2063	21	A	15:05-16:05	15:05:00	16:05:00	f	60	380	hour_1505_1605	7
+2064	21	A	16:05-17:15	16:05:00	17:15:00	f	70	440	hour_1605_1715	8
+2065	21	B	18:30-19:30	18:30:00	19:30:00	f	60	380	hour_1830_1930	1
+2066	21	B	19:30-20:30	19:30:00	20:30:00	f	50	330	hour_1930_2030	2
+2067	21	B	20:30-21:30	20:30:00	21:30:00	f	60	380	hour_2030_2130	3
+2068	21	B	21:30-23:05	21:30:00	23:05:00	f	60	380	hour_2130_2305	4
+2069	21	B	23:05-00:05	23:05:00	00:05:00	t	60	380	hour_2305_0005	5
+2070	21	B	00:05-01:05	00:05:00	01:05:00	f	55	330	hour_0005_0105	6
+2071	21	B	01:05-02:05	01:05:00	02:05:00	f	55	380	hour_0105_0205	7
+2072	21	B	02:05-03:15	02:05:00	03:15:00	f	70	440	hour_0205_0315	8
 1761	38	B	23:05-00:05	23:05:00	00:05:00	f	60	170	hour_2305_0005	5
 1762	38	B	00:05-01:05	00:05:00	01:05:00	f	50	140	hour_0005_0105	6
 1763	38	B	01:05-02:05	01:05:00	02:05:00	f	60	170	hour_0105_0205	7
@@ -26278,6 +27218,11 @@ COPY public.mes_kanban_log (id, fg_part_id, line_id, log_date, window_name, cycl
 255	1	2	2026-09-20	SHIFT_A	1100	3	1080	2026-09-20 17:15:53.008307	auto	auto-fired 12:00→17:15
 256	1	2	2026-09-21	12PM	869	2	720	2026-09-21 12:00:35.8956	auto	auto-fired 04:00→12:00
 257	1	2	2026-09-21	SHIFT_A	1064	2	720	2026-09-21 17:15:25.154282	auto	auto-fired 12:00→17:15
+258	1	2	2026-09-22	12PM	845	2	720	2026-09-22 12:00:01.624705	auto	auto-fired 04:00→12:00
+259	1	2	2026-09-22	SHIFT_A	1086	3	1080	2026-09-22 17:15:01.069875	auto	auto-fired 12:00→17:15
+260	1	2	2026-09-23	12PM	1272	3	1080	2026-09-23 12:00:54.25581	auto	auto-fired 04:00→12:00
+261	1	2	2026-09-23	SHIFT_A	1149	3	1080	2026-09-23 17:15:05.508871	auto	auto-fired 12:00→17:15
+262	1	2	2026-09-24	12PM	708	1	360	2026-09-24 12:00:09.519081	auto	auto-fired 04:00→12:00
 \.
 
 
@@ -26312,6 +27257,7 @@ COPY public.mes_leader_meta (admin_id, trained, note, updated_at, employee_code,
 62	f	\N	2026-09-19 15:16:30.628894+05:30	0399	7	\N
 63	f	\N	2026-09-19 15:16:46.97165+05:30	0372	7	\N
 64	f	\N	2026-09-19 15:17:12.004586+05:30	0436	7	\N
+67	f	\N	2026-09-23 08:58:35.635909+05:30	0194	2	\N
 \.
 
 
@@ -26320,12 +27266,30 @@ COPY public.mes_leader_meta (admin_id, trained, note, updated_at, employee_code,
 --
 
 COPY public.mes_leader_shift_alloc (line_id, shift_date, shift_name, leader_id, assigned_by, updated_at) FROM stdin;
+4	2026-09-23	A	45	ss	2026-09-23 13:58:08.577868+05:30
+18	2026-09-23	A	41	ss	2026-09-24 01:03:11.737498+05:30
 14	2026-09-15	A	40	admin	2026-09-15 14:06:53.690459+05:30
 4	2026-09-15	A	43	admin	2026-09-15 16:10:21.356772+05:30
 2	2026-09-16	A	39	admin	2026-09-16 09:05:41.867113+05:30
 35	2026-09-18	A	41	admin	2026-09-18 12:57:28.704385+05:30
 11	2026-09-18	A	43	admin	2026-09-18 14:10:24.34488+05:30
 11	2026-09-20	A	61	admin	2026-09-20 16:59:35.014897+05:30
+15	2026-09-22	A	46	ss	2026-09-22 08:39:01.355454+05:30
+12	2026-09-22	A	46	ss	2026-09-22 08:46:06.549395+05:30
+19	2026-09-22	A	47	ss	2026-09-22 13:45:12.763778+05:30
+13	2026-09-22	A	44	ss	2026-09-22 13:48:43.465503+05:30
+18	2026-09-22	A	46	admin	2026-09-22 15:01:44.978866+05:30
+11	2026-09-22	B	43	ss	2026-09-22 19:24:05.4114+05:30
+11	2026-09-23	A	45	ss	2026-09-23 08:40:54.69629+05:30
+12	2026-09-23	A	46	ss	2026-09-23 08:45:55.880932+05:30
+13	2026-09-23	A	44	ss	2026-09-23 08:47:08.239413+05:30
+20	2026-09-23	A	67	rc	2026-09-23 08:59:31.396589+05:30
+2	2026-09-23	A	44	ss	2026-09-23 09:16:08.009187+05:30
+19	2026-09-23	A	42	ss	2026-09-23 10:35:03.914855+05:30
+12	2026-09-24	A	46	ss	2026-09-24 03:44:29.36207+05:30
+18	2026-09-24	A	46	ss	2026-09-24 03:44:47.458721+05:30
+4	2026-09-24	A	45	ss	2026-09-24 03:46:40.135926+05:30
+19	2026-09-24	A	42	ss	2026-09-24 10:58:38.412591+05:30
 \.
 
 
@@ -26407,6 +27371,7 @@ COPY public.mes_loss_remarks (id, line_id, record_date, shift_name, slot_label, 
 73	2	2026-08-19		08:30-09:30	setup	PY check & Line setup	production	[]	2026-08-19 10:21:07.015039+05:30	2026-08-19 10:21:07.015039+05:30
 74	2	2026-08-31		11:30-13:05	breakdown	Rivet stacking gun not working properly	production	[]	2026-08-31 14:23:32.176024+05:30	2026-08-31 14:23:32.176024+05:30
 75	2	2026-09-01		08:30-09:30	breakdown	Matrix code ng alarm	production	[]	2026-09-01 10:46:54.16304+05:30	2026-09-01 10:46:54.16304+05:30
+76	13	2026-09-23		08:30-09:30	breakdown	SS05 breakdown (part present sensor not work )	production	[]	2026-09-23 09:03:11.775132+05:30	2026-09-23 09:03:11.775132+05:30
 \.
 
 
@@ -26887,7 +27852,6 @@ COPY public.mes_machines (id, source_id, zone_name, line_name, machine_no, machi
 1325	\N	SEAT_SLIDER	YFG_SS	YFG_SS_08	Final Inspection M/c	t	2026-07-07 14:39:29.840743	2026-07-07 14:39:29.840743	243
 1326	\N	THIN_RECLINER	T_REC	T_REC_01	Thin Recliner  Machine#01	t	2026-07-07 14:39:29.840743	2026-07-07 14:39:29.840743	244
 1327	\N	THIN_RECLINER	T_REC	T_REC_02	Thin Recliner  Machine#02	t	2026-07-07 14:39:29.840743	2026-07-07 14:39:29.840743	245
-1328	\N	RECLINER	YWD_RC	YWD_SS_MS_0109	STICKER PRINT & PASTING M/C	t	2026-07-07 14:39:29.840743	2026-07-07 14:39:29.840743	246
 1329	\N	RECLINER	YWD_RC	YWD_RC_MS_0110	STICKER PRINT & PASTING M/C	t	2026-07-07 14:39:29.840743	2026-07-07 14:39:29.840743	247
 1330	\N	TOOL_ROOM	TOOL_ROOM_	TR_EOT_01	Electric Overhead Crane	t	2026-07-07 14:39:29.840743	2026-07-07 14:39:29.840743	248
 1331	\N	SEAT_SLIDER	Y17_SS	Y17_SS_01	Upper Rail Greasing m/c	t	2026-07-07 14:39:29.840743	2026-07-07 14:39:29.840743	249
@@ -26925,6 +27889,7 @@ COPY public.mes_machines (id, source_id, zone_name, line_name, machine_no, machi
 1363	\N	SUB_ASSEMBLY	SA_LPS	SA_LPS _05	STACKING MACHINE_05	t	2026-07-07 14:39:29.840743	2026-07-07 14:39:29.840743	281
 1364	\N	SUB_ASSEMBLY	SA_6W_YNC	SA_6W_YNC_SS_03	Mag WELD Upr Brkt With T-Nut ＆Bolt M/C	t	2026-07-07 14:39:29.840743	2026-07-07 14:39:29.840743	282
 1365	\N	THIN_RECLINER	T_REC	LWR_01	LOWER WASHING MACHINE	t	2026-07-07 14:39:29.840743	2026-07-07 14:39:29.840743	283
+1328	\N	RECLINER	YWD_RC	YWD_SS_MS_0109	STICKER PRINT & PASTING M/C	f	2026-07-07 14:39:29.840743	2026-09-22 17:57:49.664113	246
 \.
 
 
@@ -26933,8 +27898,6 @@ COPY public.mes_machines (id, source_id, zone_name, line_name, machine_no, machi
 --
 
 COPY public.mes_mail_config (key, value, description, updated_at, updated_by) FROM stdin;
-guardian_to	\N	Guardian hourly report — email address (blank = no email)	2026-09-17 16:04:32.091067+05:30	\N
-guardian_alert_to	\N	Bot alerts — comma-separated usernames. Blank = admin + plant/production/section/shift incharge	2026-09-17 22:08:22.71416+05:30	\N
 bypass_to	\N	Poka-Yoke Bypass alerts — To addresses (comma-separated)	2026-04-24 15:27:36.249131+05:30	\N
 bypass_cc	\N	Poka-Yoke Bypass alerts — Cc addresses	2026-04-24 15:27:36.249131+05:30	\N
 deviation_to	\N	Online Deviation approval mail — To addresses (Quality approver; blank = use Bypass To)	2026-09-06 14:51:54.806772+05:30	\N
@@ -26947,6 +27910,8 @@ hourly_zone_to	\N	Hourly slot report — Zone head To addresses	2026-08-15 07:56
 hourly_zone_cc	\N	Hourly slot report — Zone head Cc addresses	2026-08-15 07:56:05.395016+05:30	\N
 hourly_section_to	\N	Hourly slot report — Section head To addresses	2026-08-15 07:56:05.395016+05:30	\N
 hourly_section_cc	\N	Hourly slot report — Section head Cc addresses	2026-08-15 07:56:05.395016+05:30	\N
+guardian_to	\N	Guardian hourly report — email address (blank = no email)	2026-09-17 16:04:32.091067+05:30	\N
+guardian_alert_to	\N	Bot alerts — comma-separated usernames. Blank = admin + plant/production/section/shift incharge	2026-09-17 22:08:22.71416+05:30	\N
 \.
 
 
@@ -27114,6 +28079,189 @@ COPY public.mes_manpower_allocations (id, line_id, shift_date, shift_name, proce
 133	12	2026-09-21	A	134	84	t	2	2	ss	2026-09-21 08:51:50.715908	\N	\N	\N
 134	12	2026-09-21	A	61	85	t	2	2	ss	2026-09-21 08:51:50.715908	\N	\N	\N
 135	7	2026-09-21	A	123	89	f	2	3	ywd	2026-09-21 16:25:55.790308	\N	\N	\N
+136	12	2026-09-22	A	64	95	t	2	2	ss	2026-09-22 08:45:49.844471	\N	\N	\N
+137	12	2026-09-22	A	62	129	t	2	1	ss	2026-09-22 08:45:49.844471	\N	\N	\N
+138	12	2026-09-22	A	60	85	t	2	2	ss	2026-09-22 08:45:49.844471	\N	\N	\N
+139	12	2026-09-22	A	65	129	t	2	1	ss	2026-09-22 08:45:49.844471	\N	\N	\N
+140	12	2026-09-22	A	63	95	t	2	2	ss	2026-09-22 08:45:49.844471	\N	\N	\N
+141	12	2026-09-22	A	67	140	t	3	3	ss	2026-09-22 08:45:49.844471	\N	\N	\N
+142	12	2026-09-22	A	66	140	t	3	1	ss	2026-09-22 08:45:49.844471	\N	\N	\N
+143	12	2026-09-22	A	68	137	t	1	1	ss	2026-09-22 08:45:49.844471	\N	\N	\N
+144	12	2026-09-22	A	134	84	t	2	2	ss	2026-09-22 08:45:49.844471	\N	\N	\N
+145	12	2026-09-22	A	61	85	t	2	2	ss	2026-09-22 08:45:49.844471	\N	\N	\N
+146	7	2026-09-22	A	123	89	t	2	2	ywd	2026-09-22 11:27:28.606622	\N	\N	\N
+147	19	2026-09-22	A	138	104	t	2	2	ss	2026-09-22 13:49:29.452093	\N	\N	\N
+148	19	2026-09-22	A	96	136	f	1	2	ss	2026-09-22 13:49:29.452093	\N	\N	\N
+149	19	2026-09-22	A	97	136	f	1	2	ss	2026-09-22 13:49:29.452093	\N	\N	\N
+150	19	2026-09-22	A	94	132	t	2	2	ss	2026-09-22 13:49:29.452093	\N	\N	\N
+151	19	2026-09-22	A	95	74	t	2	1	ss	2026-09-22 13:49:29.452093	\N	\N	\N
+152	19	2026-09-22	A	98	74	t	2	1	ss	2026-09-22 13:49:29.452093	\N	\N	\N
+153	19	2026-09-22	A	100	125	f	2	3	ss	2026-09-22 13:49:29.452093	\N	\N	\N
+154	19	2026-09-22	A	93	132	t	2	2	ss	2026-09-22 13:49:29.452093	\N	\N	\N
+155	19	2026-09-22	A	99	75	t	1	1	ss	2026-09-22 13:49:29.452093	\N	\N	\N
+156	15	2026-09-22	A	59	87	f	2	3	ss	2026-09-22 14:52:17.658405	\N	\N	\N
+157	15	2026-09-22	A	52	94	t	2	2	ss	2026-09-22 14:52:17.658405	\N	\N	\N
+158	15	2026-09-22	A	56	81	t	2	2	ss	2026-09-22 14:52:17.658405	\N	\N	\N
+159	15	2026-09-22	A	54	90	t	2	1	ss	2026-09-22 14:52:17.658405	\N	\N	\N
+160	15	2026-09-22	A	53	94	t	2	2	ss	2026-09-22 14:52:17.658405	\N	\N	\N
+161	15	2026-09-22	A	57	90	t	2	1	ss	2026-09-22 14:52:17.658405	\N	\N	\N
+162	15	2026-09-22	A	55	81	t	2	2	ss	2026-09-22 14:52:17.658405	\N	\N	\N
+163	15	2026-09-22	A	58	93	t	2	1	ss	2026-09-22 14:52:17.658405	\N	\N	\N
+164	15	2026-09-22	A	137	82	t	2	2	ss	2026-09-22 14:52:17.658405	\N	\N	\N
+165	18	2026-09-22	A	113	87	f	2	3	admin	2026-09-22 15:01:49.302156	\N	\N	\N
+166	18	2026-09-22	A	104	81	t	2	2	admin	2026-09-22 15:01:49.302156	\N	\N	\N
+167	18	2026-09-22	A	101	94	t	2	2	admin	2026-09-22 15:01:49.302156	\N	\N	\N
+168	18	2026-09-22	A	108	90	t	2	2	admin	2026-09-22 15:01:49.302156	\N	\N	\N
+169	18	2026-09-22	A	105	81	t	2	2	admin	2026-09-22 15:01:49.302156	\N	\N	\N
+170	18	2026-09-22	A	102	94	t	2	2	admin	2026-09-22 15:01:49.302156	\N	\N	\N
+171	18	2026-09-22	A	111	93	t	2	1	admin	2026-09-22 15:01:49.302156	\N	\N	\N
+172	18	2026-09-22	A	103	94	t	2	2	admin	2026-09-22 15:01:49.302156	\N	\N	\N
+173	18	2026-09-22	A	109	93	t	2	2	admin	2026-09-22 15:01:49.302156	\N	\N	\N
+174	18	2026-09-22	A	112	87	t	2	2	admin	2026-09-22 15:01:49.302156	\N	\N	\N
+175	18	2026-09-22	A	106	90	t	2	1	admin	2026-09-22 15:01:49.302156	\N	\N	\N
+176	18	2026-09-22	A	107	90	t	2	2	admin	2026-09-22 15:01:49.302156	\N	\N	\N
+177	18	2026-09-22	A	110	93	t	2	1	admin	2026-09-22 15:01:49.302156	\N	\N	\N
+178	18	2026-09-22	A	139	82	t	2	2	admin	2026-09-22 15:01:49.302156	\N	\N	\N
+179	11	2026-09-22	B	79	24	t	2	1	ss	2026-09-22 19:26:55.308237	\N	\N	\N
+180	11	2026-09-22	B	81	21	t	2	2	ss	2026-09-22 19:26:55.308237	\N	\N	\N
+181	11	2026-09-22	B	83	49	t	2	1	ss	2026-09-22 19:26:55.308237	\N	\N	\N
+182	11	2026-09-22	B	133	53	t	2	2	ss	2026-09-22 19:26:55.308237	\N	\N	\N
+183	11	2026-09-22	B	78	54	t	2	2	ss	2026-09-22 19:26:55.308237	\N	\N	\N
+184	11	2026-09-22	B	84	22	f	2	3	ss	2026-09-22 19:26:55.308237	\N	\N	\N
+185	11	2026-09-22	B	82	24	t	2	1	ss	2026-09-22 19:26:55.308237	\N	\N	\N
+186	11	2026-09-22	B	77	54	t	2	2	ss	2026-09-22 19:26:55.308237	\N	\N	\N
+187	11	2026-09-22	B	80	21	t	2	2	ss	2026-09-22 19:26:55.308237	\N	\N	\N
+188	18	2026-09-23	A	113	87	f	2	3	admin	2026-09-23 08:32:55.016233	\N	\N	\N
+189	18	2026-09-23	A	104	81	t	2	2	admin	2026-09-23 08:32:55.016233	\N	\N	\N
+190	18	2026-09-23	A	101	94	t	2	2	admin	2026-09-23 08:32:55.016233	\N	\N	\N
+191	18	2026-09-23	A	108	90	t	2	2	admin	2026-09-23 08:32:55.016233	\N	\N	\N
+192	18	2026-09-23	A	105	81	t	2	2	admin	2026-09-23 08:32:55.016233	\N	\N	\N
+193	18	2026-09-23	A	102	94	t	2	2	admin	2026-09-23 08:32:55.016233	\N	\N	\N
+194	18	2026-09-23	A	111	93	t	2	1	admin	2026-09-23 08:32:55.016233	\N	\N	\N
+195	18	2026-09-23	A	103	94	t	2	2	admin	2026-09-23 08:32:55.016233	\N	\N	\N
+196	18	2026-09-23	A	109	93	t	2	2	admin	2026-09-23 08:32:55.016233	\N	\N	\N
+197	18	2026-09-23	A	112	87	t	2	2	admin	2026-09-23 08:32:55.016233	\N	\N	\N
+198	18	2026-09-23	A	106	90	t	2	1	admin	2026-09-23 08:32:55.016233	\N	\N	\N
+199	18	2026-09-23	A	107	90	t	2	2	admin	2026-09-23 08:32:55.016233	\N	\N	\N
+200	18	2026-09-23	A	110	93	t	2	1	admin	2026-09-23 08:32:55.016233	\N	\N	\N
+201	18	2026-09-23	A	139	82	t	2	2	admin	2026-09-23 08:32:55.016233	\N	\N	\N
+202	12	2026-09-23	A	64	95	t	2	2	admin	2026-09-23 08:35:39.430079	\N	\N	\N
+203	12	2026-09-23	A	62	129	t	2	1	admin	2026-09-23 08:35:39.430079	\N	\N	\N
+204	12	2026-09-23	A	60	85	t	2	2	admin	2026-09-23 08:35:39.430079	\N	\N	\N
+205	12	2026-09-23	A	65	129	t	2	1	admin	2026-09-23 08:35:39.430079	\N	\N	\N
+206	12	2026-09-23	A	63	95	t	2	2	admin	2026-09-23 08:35:39.430079	\N	\N	\N
+207	12	2026-09-23	A	67	140	t	3	3	admin	2026-09-23 08:35:39.430079	\N	\N	\N
+208	12	2026-09-23	A	66	140	t	3	1	admin	2026-09-23 08:35:39.430079	\N	\N	\N
+209	12	2026-09-23	A	68	137	t	1	1	admin	2026-09-23 08:35:39.430079	\N	\N	\N
+210	12	2026-09-23	A	134	84	t	2	2	admin	2026-09-23 08:35:39.430079	\N	\N	\N
+211	12	2026-09-23	A	61	85	t	2	2	admin	2026-09-23 08:35:39.430079	\N	\N	\N
+212	15	2026-09-23	A	59	87	f	2	3	admin	2026-09-23 08:35:48.099997	\N	\N	\N
+213	15	2026-09-23	A	52	94	t	2	2	admin	2026-09-23 08:35:48.099997	\N	\N	\N
+214	15	2026-09-23	A	56	81	t	2	2	admin	2026-09-23 08:35:48.099997	\N	\N	\N
+215	15	2026-09-23	A	54	90	t	2	1	admin	2026-09-23 08:35:48.099997	\N	\N	\N
+216	15	2026-09-23	A	53	94	t	2	2	admin	2026-09-23 08:35:48.099997	\N	\N	\N
+217	15	2026-09-23	A	57	90	t	2	1	admin	2026-09-23 08:35:48.099997	\N	\N	\N
+218	15	2026-09-23	A	55	81	t	2	2	admin	2026-09-23 08:35:48.099997	\N	\N	\N
+219	15	2026-09-23	A	58	93	t	2	1	admin	2026-09-23 08:35:48.099997	\N	\N	\N
+220	15	2026-09-23	A	137	82	t	2	2	admin	2026-09-23 08:35:48.099997	\N	\N	\N
+221	20	2026-09-23	A	39	147	t	2	2	rc	2026-09-23 09:02:54.302603	\N	\N	\N
+222	20	2026-09-23	A	148	69	t	2	1	rc	2026-09-23 09:02:54.302603	\N	\N	\N
+223	20	2026-09-23	A	43	149	t	2	2	rc	2026-09-23 09:02:54.302603	\N	\N	\N
+224	20	2026-09-23	A	38	148	t	2	2	rc	2026-09-23 09:02:54.302603	\N	\N	\N
+225	20	2026-09-23	A	44	148	t	2	2	rc	2026-09-23 09:02:54.302603	\N	\N	\N
+226	20	2026-09-23	A	42	146	t	2	2	rc	2026-09-23 09:02:54.302603	\N	\N	\N
+227	20	2026-09-23	A	40	147	t	2	2	rc	2026-09-23 09:02:54.302603	\N	\N	\N
+228	20	2026-09-23	A	41	146	t	2	2	rc	2026-09-23 09:02:54.302603	\N	\N	\N
+229	13	2026-09-23	A	135	127	t	2	2	ss	2026-09-23 09:13:47.454135	\N	\N	\N
+230	13	2026-09-23	A	87	109	t	2	1	ss	2026-09-23 09:13:47.454135	\N	\N	\N
+231	13	2026-09-23	A	92	73	t	2	2	ss	2026-09-23 09:13:47.454135	\N	\N	\N
+232	13	2026-09-23	A	85	96	t	2	2	ss	2026-09-23 09:13:47.454135	\N	\N	\N
+233	13	2026-09-23	A	89	105	t	2	2	ss	2026-09-23 09:13:47.454135	\N	\N	\N
+234	13	2026-09-23	A	90	109	t	2	1	ss	2026-09-23 09:13:47.454135	\N	\N	\N
+235	13	2026-09-23	A	86	96	t	2	2	ss	2026-09-23 09:13:47.454135	\N	\N	\N
+236	13	2026-09-23	A	88	105	t	2	2	ss	2026-09-23 09:13:47.454135	\N	\N	\N
+237	13	2026-09-23	A	91	121	t	2	1	ss	2026-09-23 09:13:47.454135	\N	\N	\N
+239	19	2026-09-23	A	96	136	f	1	2	ss	2026-09-23 10:31:29.852083	\N	\N	\N
+240	19	2026-09-23	A	97	136	f	1	2	ss	2026-09-23 10:31:29.852083	\N	\N	\N
+241	19	2026-09-23	A	94	132	t	2	2	ss	2026-09-23 10:31:29.852083	\N	\N	\N
+244	19	2026-09-23	A	100	125	t	2	2	ss	2026-09-23 10:31:29.852083	\N	\N	\N
+245	19	2026-09-23	A	93	132	t	2	2	ss	2026-09-23 10:31:29.852083	\N	\N	\N
+246	19	2026-09-23	A	99	75	t	1	1	ss	2026-09-23 10:31:29.852083	\N	\N	\N
+238	19	2026-09-23	A	138	104	t	2	2	ss	2026-09-23 10:31:29.852083	2026-09-23 10:35:08.367874	ss	\N
+242	19	2026-09-23	A	95	74	t	2	1	ss	2026-09-23 10:31:29.852083	2026-09-23 10:35:08.367874	ss	\N
+243	19	2026-09-23	A	98	74	t	2	1	ss	2026-09-23 10:31:29.852083	2026-09-23 10:35:08.367874	ss	\N
+247	19	2026-09-23	A	95	130	t	2	1	ss	2026-09-23 10:35:08.367874	\N	\N	\N
+248	19	2026-09-23	A	138	142	t	3	2	ss	2026-09-23 10:35:08.367874	\N	\N	\N
+249	19	2026-09-23	A	98	130	t	2	1	ss	2026-09-23 10:35:08.367874	\N	\N	\N
+250	4	2026-09-23	A	115	77	t	2	2	ss	2026-09-23 13:58:37.097801	\N	\N	\N
+251	4	2026-09-23	A	116	116	t	2	1	ss	2026-09-23 13:58:37.097801	\N	\N	\N
+252	4	2026-09-23	A	120	80	t	2	1	ss	2026-09-23 13:58:37.097801	\N	\N	\N
+253	4	2026-09-23	A	132	115	t	2	2	ss	2026-09-23 13:58:37.097801	\N	\N	\N
+254	4	2026-09-23	A	119	116	t	2	1	ss	2026-09-23 13:58:37.097801	\N	\N	\N
+255	4	2026-09-23	A	114	77	t	2	2	ss	2026-09-23 13:58:37.097801	\N	\N	\N
+256	4	2026-09-23	A	121	92	t	2	2	ss	2026-09-23 13:58:37.097801	\N	\N	\N
+257	4	2026-09-23	A	117	102	t	2	2	ss	2026-09-23 13:58:37.097801	\N	\N	\N
+258	4	2026-09-23	A	118	102	t	2	2	ss	2026-09-23 13:58:37.097801	\N	\N	\N
+259	11	2026-09-23	A	133	114	t	2	2	ss	2026-09-23 14:03:32.059185	\N	\N	\N
+260	11	2026-09-23	A	84	110	t	2	2	ss	2026-09-23 14:03:32.059185	\N	\N	\N
+261	11	2026-09-23	A	80	120	t	2	2	ss	2026-09-23 14:03:32.059185	\N	\N	\N
+262	11	2026-09-23	A	81	120	t	2	2	ss	2026-09-23 14:03:32.059185	\N	\N	\N
+263	11	2026-09-23	A	78	100	t	2	2	ss	2026-09-23 14:03:32.059185	\N	\N	\N
+264	11	2026-09-23	A	82	25	t	2	1	ss	2026-09-23 14:03:32.059185	\N	\N	\N
+265	11	2026-09-23	A	77	100	t	2	2	ss	2026-09-23 14:03:32.059185	\N	\N	\N
+266	11	2026-09-23	A	79	25	t	2	1	ss	2026-09-23 14:03:32.059185	\N	\N	\N
+267	11	2026-09-23	A	83	104	t	2	1	ss	2026-09-23 14:03:32.059185	\N	\N	\N
+268	12	2026-09-24	A	64	95	t	2	2	ss	2026-09-24 03:44:38.061114	\N	\N	\N
+269	12	2026-09-24	A	62	129	t	2	1	ss	2026-09-24 03:44:38.061114	\N	\N	\N
+270	12	2026-09-24	A	60	85	t	2	2	ss	2026-09-24 03:44:38.061114	\N	\N	\N
+271	12	2026-09-24	A	65	129	t	2	1	ss	2026-09-24 03:44:38.061114	\N	\N	\N
+272	12	2026-09-24	A	63	95	t	2	2	ss	2026-09-24 03:44:38.061114	\N	\N	\N
+273	12	2026-09-24	A	67	140	t	3	2	ss	2026-09-24 03:44:38.061114	\N	\N	\N
+274	12	2026-09-24	A	66	140	t	3	1	ss	2026-09-24 03:44:38.061114	\N	\N	\N
+275	12	2026-09-24	A	68	137	t	1	1	ss	2026-09-24 03:44:38.061114	\N	\N	\N
+276	12	2026-09-24	A	134	84	t	2	2	ss	2026-09-24 03:44:38.061114	\N	\N	\N
+277	12	2026-09-24	A	61	85	t	2	2	ss	2026-09-24 03:44:38.061114	\N	\N	\N
+278	18	2026-09-24	A	113	87	t	2	2	ss	2026-09-24 03:44:54.350352	\N	\N	\N
+279	18	2026-09-24	A	104	81	t	2	2	ss	2026-09-24 03:44:54.350352	\N	\N	\N
+280	18	2026-09-24	A	101	94	t	2	2	ss	2026-09-24 03:44:54.350352	\N	\N	\N
+281	18	2026-09-24	A	108	90	t	2	2	ss	2026-09-24 03:44:54.350352	\N	\N	\N
+282	18	2026-09-24	A	105	81	t	2	2	ss	2026-09-24 03:44:54.350352	\N	\N	\N
+283	18	2026-09-24	A	102	94	t	2	2	ss	2026-09-24 03:44:54.350352	\N	\N	\N
+284	18	2026-09-24	A	111	93	t	2	1	ss	2026-09-24 03:44:54.350352	\N	\N	\N
+285	18	2026-09-24	A	103	94	t	2	2	ss	2026-09-24 03:44:54.350352	\N	\N	\N
+286	18	2026-09-24	A	109	93	t	2	2	ss	2026-09-24 03:44:54.350352	\N	\N	\N
+287	18	2026-09-24	A	112	87	t	2	2	ss	2026-09-24 03:44:54.350352	\N	\N	\N
+288	18	2026-09-24	A	106	90	t	2	1	ss	2026-09-24 03:44:54.350352	\N	\N	\N
+289	18	2026-09-24	A	107	90	t	2	2	ss	2026-09-24 03:44:54.350352	\N	\N	\N
+290	18	2026-09-24	A	110	93	t	2	1	ss	2026-09-24 03:44:54.350352	\N	\N	\N
+291	18	2026-09-24	A	139	82	t	2	2	ss	2026-09-24 03:44:54.350352	\N	\N	\N
+292	4	2026-09-24	A	115	77	t	2	2	ss	2026-09-24 03:46:41.155483	\N	\N	\N
+293	4	2026-09-24	A	116	116	t	2	1	ss	2026-09-24 03:46:41.155483	\N	\N	\N
+294	4	2026-09-24	A	120	80	t	2	1	ss	2026-09-24 03:46:41.155483	\N	\N	\N
+295	4	2026-09-24	A	132	115	t	2	2	ss	2026-09-24 03:46:41.155483	\N	\N	\N
+296	4	2026-09-24	A	119	116	t	2	1	ss	2026-09-24 03:46:41.155483	\N	\N	\N
+297	4	2026-09-24	A	114	77	t	2	2	ss	2026-09-24 03:46:41.155483	\N	\N	\N
+298	4	2026-09-24	A	121	92	t	2	2	ss	2026-09-24 03:46:41.155483	\N	\N	\N
+299	4	2026-09-24	A	117	102	t	2	2	ss	2026-09-24 03:46:41.155483	\N	\N	\N
+300	4	2026-09-24	A	118	102	t	2	2	ss	2026-09-24 03:46:41.155483	\N	\N	\N
+301	19	2026-09-24	A	96	136	f	1	2	ss	2026-09-24 10:58:14.978197	\N	\N	\N
+302	19	2026-09-24	A	97	136	f	1	2	ss	2026-09-24 10:58:14.978197	\N	\N	\N
+303	19	2026-09-24	A	94	132	t	2	2	ss	2026-09-24 10:58:14.978197	\N	\N	\N
+304	19	2026-09-24	A	98	130	t	2	1	ss	2026-09-24 10:58:14.978197	\N	\N	\N
+305	19	2026-09-24	A	138	142	t	3	2	ss	2026-09-24 10:58:14.978197	\N	\N	\N
+306	19	2026-09-24	A	100	125	t	2	2	ss	2026-09-24 10:58:14.978197	\N	\N	\N
+307	19	2026-09-24	A	93	132	t	2	2	ss	2026-09-24 10:58:14.978197	\N	\N	\N
+308	19	2026-09-24	A	99	75	t	1	1	ss	2026-09-24 10:58:14.978197	\N	\N	\N
+309	19	2026-09-24	A	95	130	t	2	1	ss	2026-09-24 10:58:14.978197	\N	\N	\N
+310	15	2026-09-24	A	59	87	t	2	2	ss	2026-09-24 12:02:28.445961	\N	\N	\N
+311	15	2026-09-24	A	52	94	t	2	2	ss	2026-09-24 12:02:28.445961	\N	\N	\N
+312	15	2026-09-24	A	56	81	t	2	2	ss	2026-09-24 12:02:28.445961	\N	\N	\N
+313	15	2026-09-24	A	54	90	t	2	1	ss	2026-09-24 12:02:28.445961	\N	\N	\N
+314	15	2026-09-24	A	53	94	t	2	2	ss	2026-09-24 12:02:28.445961	\N	\N	\N
+315	15	2026-09-24	A	57	90	t	2	1	ss	2026-09-24 12:02:28.445961	\N	\N	\N
+316	15	2026-09-24	A	55	81	t	2	2	ss	2026-09-24 12:02:28.445961	\N	\N	\N
+317	15	2026-09-24	A	58	93	t	2	1	ss	2026-09-24 12:02:28.445961	\N	\N	\N
+318	15	2026-09-24	A	137	82	t	2	2	ss	2026-09-24 12:02:28.445961	\N	\N	\N
 \.
 
 
@@ -27661,7 +28809,7 @@ COPY public.mes_non_production_days (id, line_id, date, reason, created_by, crea
 --
 
 COPY public.mes_oee_alarm_config (line_id, threshold_pct, sustain_minutes, cooldown_minutes, to_addresses, cc_addresses, is_active, last_fired_at) FROM stdin;
-2	80	20	60	tbdi_dx@toyota-breakdown.com		t	2026-09-21 18:50:18.229302
+2	80	20	60	tbdi_dx@toyota-breakdown.com		t	2026-09-24 14:20:56.46738
 \.
 
 
@@ -27829,17 +28977,6 @@ COPY public.mes_operator_lines (id, admin_id, line_id, created_at) FROM stdin;
 391	20	2	2026-09-10 15:15:45.623729
 392	20	18	2026-09-10 15:15:45.623729
 393	20	4	2026-09-10 15:15:45.623729
-513	38	2	2026-09-16 23:18:19.624125
-514	38	4	2026-09-16 23:18:19.624125
-515	38	5	2026-09-16 23:18:19.624125
-516	38	11	2026-09-16 23:18:19.624125
-517	38	12	2026-09-16 23:18:19.624125
-518	38	13	2026-09-16 23:18:19.624125
-519	38	14	2026-09-16 23:18:19.624125
-520	38	15	2026-09-16 23:18:19.624125
-521	38	18	2026-09-16 23:18:19.624125
-522	38	19	2026-09-16 23:18:19.624125
-523	38	27	2026-09-16 23:18:19.624125
 546	65	19	2026-09-21 10:27:29.558172
 547	65	2	2026-09-21 10:27:29.558172
 548	65	18	2026-09-21 10:27:29.558172
@@ -27882,6 +29019,24 @@ COPY public.mes_operator_lines (id, admin_id, line_id, created_at) FROM stdin;
 552	65	28	2026-09-21 10:27:29.558172
 553	65	5	2026-09-21 10:27:29.558172
 554	65	29	2026-09-21 10:27:29.558172
+555	66	33	2026-09-22 10:20:28.33916
+556	66	34	2026-09-22 10:20:28.33916
+557	66	35	2026-09-22 10:20:28.33916
+558	66	36	2026-09-22 10:20:28.33916
+559	66	37	2026-09-22 10:20:28.33916
+560	66	38	2026-09-22 10:20:28.33916
+561	66	39	2026-09-22 10:20:28.33916
+562	66	40	2026-09-22 10:20:28.33916
+563	66	41	2026-09-22 10:20:28.33916
+564	38	2	2026-09-22 11:10:08.129019
+565	38	4	2026-09-22 11:10:08.129019
+566	38	11	2026-09-22 11:10:08.129019
+567	38	12	2026-09-22 11:10:08.129019
+568	38	13	2026-09-22 11:10:08.129019
+569	38	14	2026-09-22 11:10:08.129019
+570	38	15	2026-09-22 11:10:08.129019
+571	38	18	2026-09-22 11:10:08.129019
+572	38	19	2026-09-22 11:10:08.129019
 \.
 
 
@@ -27994,6 +29149,92 @@ COPY public.mes_operator_punches (id, operator_id, line_id, shift_date, shift_na
 108	89	7	2026-09-21	A	2026-09-21 16:25:26.687802
 109	112	8	2026-09-21	A	2026-09-21 16:26:31.388423
 110	108	10	2026-09-21	A	2026-09-21 16:27:08.247826
+111	94	15	2026-09-22	A	2026-09-22 08:40:01.149996
+113	90	15	2026-09-22	A	2026-09-22 08:40:41.347862
+114	93	15	2026-09-22	A	2026-09-22 08:40:53.877412
+117	85	12	2026-09-22	A	2026-09-22 08:46:37.521197
+118	84	12	2026-09-22	A	2026-09-22 08:46:47.954494
+119	137	12	2026-09-22	A	2026-09-22 08:46:54.367505
+120	140	12	2026-09-22	A	2026-09-22 08:47:02.360367
+121	129	12	2026-09-22	A	2026-09-22 08:47:13.810965
+122	95	12	2026-09-22	A	2026-09-22 08:47:20.572059
+123	132	19	2026-09-22	A	2026-09-22 13:45:27.98293
+124	74	19	2026-09-22	A	2026-09-22 13:45:37.818141
+125	136	19	2026-09-22	A	2026-09-22 13:45:44.293524
+126	75	19	2026-09-22	A	2026-09-22 13:45:53.086105
+127	104	19	2026-09-22	A	2026-09-22 13:46:00.142257
+128	125	19	2026-09-22	A	2026-09-22 13:46:25.625008
+129	96	13	2026-09-22	A	2026-09-22 13:49:01.107015
+130	109	13	2026-09-22	A	2026-09-22 13:49:14.945835
+131	67	13	2026-09-22	A	2026-09-22 13:50:10.685514
+132	127	13	2026-09-22	A	2026-09-22 13:50:33.284044
+133	133	13	2026-09-22	A	2026-09-22 13:51:01.515605
+134	81	15	2026-09-22	A	2026-09-22 14:48:13.351262
+135	87	15	2026-09-22	A	2026-09-22 14:48:40.456435
+136	82	15	2026-09-22	A	2026-09-22 14:50:51.352707
+137	94	18	2026-09-22	A	2026-09-22 14:54:26.638846
+138	90	18	2026-09-22	A	2026-09-22 14:54:34.859331
+139	93	18	2026-09-22	A	2026-09-22 14:54:47.483627
+140	82	18	2026-09-22	A	2026-09-22 14:54:56.15747
+141	87	18	2026-09-22	A	2026-09-22 14:55:04.86406
+142	81	18	2026-09-22	A	2026-09-22 14:55:31.658628
+143	54	11	2026-09-22	B	2026-09-22 19:24:30.26258
+144	24	11	2026-09-22	B	2026-09-22 19:24:44.63436
+145	21	11	2026-09-22	B	2026-09-22 19:24:56.597478
+146	49	11	2026-09-22	B	2026-09-22 19:25:07.747737
+147	53	11	2026-09-22	B	2026-09-22 19:25:28.318122
+148	22	11	2026-09-22	B	2026-09-22 19:25:40.01653
+149	151	20	2026-09-23	A	2026-09-23 09:00:05.212362
+150	147	20	2026-09-23	A	2026-09-23 09:00:17.387704
+151	146	20	2026-09-23	A	2026-09-23 09:00:25.894815
+152	149	20	2026-09-23	A	2026-09-23 09:00:33.005115
+153	69	20	2026-09-23	A	2026-09-23 09:00:41.409662
+154	148	20	2026-09-23	A	2026-09-23 09:01:59.983402
+155	96	13	2026-09-23	A	2026-09-23 09:11:03.380337
+156	109	13	2026-09-23	A	2026-09-23 09:11:12.790831
+157	105	13	2026-09-23	A	2026-09-23 09:11:39.722437
+158	121	13	2026-09-23	A	2026-09-23 09:11:49.944505
+159	127	13	2026-09-23	A	2026-09-23 09:12:21.539659
+160	73	13	2026-09-23	A	2026-09-23 09:12:29.729031
+161	132	19	2026-09-23	A	2026-09-23 10:33:25.767832
+162	130	19	2026-09-23	A	2026-09-23 10:33:37.139249
+163	136	19	2026-09-23	A	2026-09-23 10:33:44.321232
+164	75	19	2026-09-23	A	2026-09-23 10:33:55.358683
+165	142	19	2026-09-23	A	2026-09-23 10:34:03.351478
+166	125	19	2026-09-23	A	2026-09-23 10:34:12.891392
+167	77	4	2026-09-23	A	2026-09-23 13:55:03.280251
+168	116	4	2026-09-23	A	2026-09-23 13:55:36.567775
+169	102	4	2026-09-23	A	2026-09-23 13:55:56.536488
+170	80	4	2026-09-23	A	2026-09-23 13:56:03.272722
+171	115	4	2026-09-23	A	2026-09-23 13:56:10.876965
+172	92	4	2026-09-23	A	2026-09-23 13:56:28.481404
+173	92	4	2026-09-23	A	2026-09-23 13:56:29.294422
+174	92	4	2026-09-23	A	2026-09-23 13:56:30.901218
+175	92	4	2026-09-23	A	2026-09-23 13:56:33.097388
+176	100	11	2026-09-23	A	2026-09-23 13:59:54.521971
+177	25	11	2026-09-23	A	2026-09-23 14:00:02.595941
+178	120	11	2026-09-23	A	2026-09-23 14:01:15.108292
+179	114	11	2026-09-23	A	2026-09-23 14:01:22.347901
+180	110	11	2026-09-23	A	2026-09-23 14:01:26.983114
+181	104	11	2026-09-23	A	2026-09-23 14:01:45.503119
+182	85	12	2026-09-23	A	2026-09-23 14:59:14.032944
+183	95	12	2026-09-23	A	2026-09-23 14:59:19.907293
+184	129	12	2026-09-23	A	2026-09-23 14:59:39.219651
+185	137	12	2026-09-23	A	2026-09-23 14:59:47.869212
+186	84	12	2026-09-23	A	2026-09-23 14:59:57.353838
+187	140	12	2026-09-23	A	2026-09-23 15:00:26.745687
+188	94	18	2026-09-23	A	2026-09-23 15:01:29.213881
+189	81	18	2026-09-23	A	2026-09-23 15:01:37.047227
+190	90	18	2026-09-23	A	2026-09-23 15:01:44.400526
+191	93	18	2026-09-23	A	2026-09-23 15:01:52.601657
+192	82	18	2026-09-23	A	2026-09-23 15:01:58.798077
+193	87	18	2026-09-23	A	2026-09-23 15:02:06.483618
+194	95	12	2026-09-24	A	2026-09-24 10:57:47.708341
+195	85	12	2026-09-24	A	2026-09-24 10:58:01.999195
+196	129	12	2026-09-24	A	2026-09-24 10:58:10.019859
+197	137	12	2026-09-24	A	2026-09-24 10:58:17.977805
+198	84	12	2026-09-24	A	2026-09-24 10:58:25.271327
+199	140	12	2026-09-24	A	2026-09-24 10:58:31.670378
 \.
 
 
@@ -28012,6 +29253,11 @@ COPY public.mes_operator_sessions (id, operator_id, line_id, started_at, ended_a
 COPY public.mes_operators (id, badge_code, full_name, employee_id, department, is_active, created_at, skill_level, zone_id) FROM stdin;
 1	16554	babu-lal	16554	Production	t	2026-08-13 14:59:31.819729	3	\N
 25	23070	SANJAY KUMAR	23070	Production	t	2026-09-02 15:42:26.544069	2	1
+152	25077	RAVI	25077	Production	t	2026-09-23 10:39:10.861487	2	2
+154	15712	NEERAJ	15712	Production	t	2026-09-23 10:40:55.205184	2	2
+156	15719	DEEPAK KUMAR	15719	Production	t	2026-09-23 10:42:03.71902	3	2
+158	18690	SUJEET KUMAR	18690	Production	t	2026-09-23 10:44:32.606572	3	2
+164	18865	ANSHU PAL	18865	Production	t	2026-09-23 10:55:41.34498	2	2
 74	7107	KIRTI	7107	Production	t	2026-09-07 15:06:34.619409	2	1
 73	23166	AASHEESH SHARMA	23166	Production	t	2026-09-07 15:05:21.871207	2	1
 33	18888	ABHISHEK	18888	Production	t	2026-09-02 15:50:33.346424	2	1
@@ -28095,6 +29341,8 @@ COPY public.mes_operators (id, badge_code, full_name, employee_id, department, i
 3	9862	SONU KUMAR	9862	Production	t	2026-09-02 14:37:18.147942	3	6
 6	23102	SONU KUMAR RAM	23102	Production	t	2026-09-02 14:39:07.375967	2	6
 124	23195	SANJAY KUMAR YADAV	23195	Production	t	2026-09-07 16:33:13.631423	2	1
+153	15559	SUNIL KUMAR GAUTAM	15559	Production	t	2026-09-23 10:40:15.327592	2	2
+155	15711	ANKIT	15711	Production	t	2026-09-23 10:41:32.596978	2	2
 107	25033	ALISHA TETE	25033	Production	t	2026-09-07 16:07:35.757191	2	1
 105	23094	ANIL	23094	Production	t	2026-09-07 16:06:33.798143	2	1
 79	15751	ANIL KUMAR	15751	Production	t	2026-09-07 15:10:46.43573	2	1
@@ -28142,7 +29390,7 @@ COPY public.mes_operators (id, badge_code, full_name, employee_id, department, i
 138	17652	SUMIT SINGH	17652	Production	t	2026-09-07 16:41:03.199675	1	1
 96	23036	SUNDER LAL	23036	Production	t	2026-09-07 15:58:49.413603	2	1
 128	20220	SUNNY KUMAR KUSHWAHA	20220	Production	t	2026-09-07 16:35:05.760655	2	1
-69	18942	SURENDER	18942	Production	t	2026-09-02 16:40:29.724728	1	1
+157	18764	BHUPENDRA KUMAR	18764	Production	t	2026-09-23 10:42:40.879074	3	2
 57	9931	SURENDRA KUMAR PRAJAPATI	9931	Production	t	2026-09-02 16:24:53.159203	1	1
 108	9895	TANIYA KHATOON	9895	Production	t	2026-09-07 16:08:06.821136	2	1
 125	10720	TEJVIR SINGH	10720	Production	t	2026-09-07 16:33:41.43525	2	1
@@ -28150,6 +29398,44 @@ COPY public.mes_operators (id, badge_code, full_name, employee_id, department, i
 59	20225	VIKASH KUMAR	20225	Production	t	2026-09-02 16:25:54.336199	2	1
 30	23084	VIKASH KUMAR	23084	Production	t	2026-09-02 15:46:52.668834	2	1
 145	10725	VIKRAM	10725	Production	t	2026-09-19 17:04:30.522792	2	1
+146	21209	MD KAIF	21209	Production	t	2026-09-22 17:28:56.916345	2	2
+147	21173	MAHESH CHAND SAINI	21173	Production	t	2026-09-22 17:29:36.672503	2	2
+148	21208	RANJEET	21208	Production	t	2026-09-22 17:30:28.185792	2	2
+149	25075	AARIF ANSHARI	25075	Production	t	2026-09-22 17:31:07.753501	2	2
+69	18942	SURENDRA	18942	Production	t	2026-09-02 16:40:29.724728	2	2
+151	7143	VIVEK	7143	Production	t	2026-09-22 17:32:28.787197	1	2
+159	15960	GOURAV KUMAR	15960	Production	t	2026-09-23 10:45:07.872702	2	2
+160	20155	DOOB CHAND	20155	Production	t	2026-09-23 10:45:43.567921	2	2
+162	20165	ARPIT PANDEY	20165	Production	t	2026-09-23 10:50:39.100684	2	2
+165	18852	AMIT KUMAR	18852	Production	t	2026-09-23 10:56:14.510673	2	2
+166	20166	SANJAY YADAV	20166	Production	t	2026-09-23 10:57:33.609756	2	2
+167	17633	ABID SHAH	17633	Production	t	2026-09-23 11:16:16.338741	2	2
+178	17639	BAIJANATH PRASAD	17639	Production	t	2026-09-23 16:08:53.194212	2	2
+168	25021	GULSHAN KUMAR	25021	Production	t	2026-09-23 11:27:35.845225	2	2
+171	9881	VIPUL KUMAR	9881	Production	t	2026-09-23 11:28:59.234206	2	2
+172	20188	MANJEESH KUMAR	20188	Production	t	2026-09-23 11:29:34.125875	3	2
+173	23134	RANJAN	23134	Production	t	2026-09-23 15:49:01.426359	2	2
+174	6994	PAWAN KUMAR	6994	Production	t	2026-09-23 15:51:23.058811	2	2
+175	6995	RISHAV	6995	Production	t	2026-09-23 16:06:45.629757	2	2
+176	9911	SANJAY SINGH MURARIYA	9911	Production	t	2026-09-23 16:07:41.318454	2	2
+177	7111	ANKIT	7111	Production	t	2026-09-23 16:08:07.967865	2	2
+179	21187	ABHAY SINGH	21187	Production	t	2026-09-23 16:10:22.899446	2	2
+180	20213	RAVI	20213	Production	t	2026-09-23 16:11:10.641592	2	2
+181	18918	AKASH YADAV	18918	Production	t	2026-09-23 16:11:38.837534	2	2
+182	7127	SHIVAM YADAV	7127	Production	t	2026-09-23 16:12:13.640623	2	2
+183	10717	GAURAV KUMAR	10717	Production	t	2026-09-23 16:12:42.612978	2	2
+184	10719	RAHUL BAIRWA	10719	Production	t	2026-09-23 16:13:05.205582	2	2
+185	23198	ANIKET	23198	Production	t	2026-09-23 16:16:13.546989	3	2
+186	25073	TARUN KUMAR	25073	Production	t	2026-09-23 16:16:50.011778	2	2
+187	20221	SHAILENDRA KUMAR	20221	Production	t	2026-09-23 16:17:35.042605	2	2
+188	7129	DIVANSHU KUMAR	7129	Production	t	2026-09-23 16:17:59.02606	2	2
+189	23203	MITHLESH KUMAR	23203	Production	t	2026-09-23 16:18:19.3954	2	2
+190	21199	SATISH SAINI	21199	Production	t	2026-09-23 16:19:02.649674	2	2
+191	25079	VIKASH	25079	Production	t	2026-09-23 16:20:02.588271	2	2
+192	20227	RAMACHAL	20227	Production	t	2026-09-23 16:21:29.866565	2	2
+193	18934	BHAGIRATH	18934	Production	t	2026-09-23 16:21:56.723725	2	2
+194	9939	PRANJUL	9939	Production	t	2026-09-23 16:22:30.122115	2	2
+195	20232	ABHISHEK KUNWAR	20232	Production	t	2026-09-23 16:23:28.488105	2	2
 \.
 
 
@@ -28226,16 +29512,16 @@ COPY public.mes_plc_configs (id, line_id, plc_ip, plc_port, protocol, ok_bit_add
 81	18	192.168.30.33	502	MC4E	D6001	D6002	D6005	D6048				15.00	16.00	0.50	2026-07-04 14:50:05.446516	2026-08-05 15:31:52.335911	Guide S/Ab Insert #1 M/c	78	cam_machine_3_4_yra_1785489042	3	f			\N		\N		\N	[]	[]	f	register	D6001	D6002	L110	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 80	18	192.168.30.32	5002	MC4E	D101	D102	D6005	D6048				15.00	16.00	0.50	2026-07-04 14:48:03.999008	2026-07-31 14:39:55.832726	Upr Rail x Lock Mecha Assy M/c	78	cam_machine_1_2_yra_1785488968	2	f			\N		\N		\N	[]	[]	f	register	D101	D102	L110	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 78	18	192.168.30.39	5002	MC4E	D101	D102	D7999	D1016				15.00	16.00	0.50	2026-07-04 14:44:18.087705	2026-09-01 18:17:37.115232	Final Inspection M/c	\N	cam_machine_8_9_1785489256	\N	f			\N		\N		\N	[]	[]	f	register	D101	D102	L110	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
-213	38	192.168.34.43	5002	MC4E	D6001	D6002	D6005	D6048				20.88	21.00	0.50	2026-09-10 11:39:30.363943	2026-09-10 11:39:30.363943	Mag WELD Upr Brkt With T-Nut ＆Bolt M/C	209		4	f			\N		\N		\N	[]	[]	f	register	D6001	D6002	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
-107	21	192.168.36.31	504	MC4E	D105	D106	D6005	D6048				15.00	16.00	0.50	2026-08-06 11:47:39.717594	2026-09-03 09:59:00.934658	Both Karakuri Middle Shelf	100		4	f			\N		\N		\N	[]	[]	f	register	D105	D106	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
+149	31	192.168.36.75	5002	MC4E	D101	D102	D6005	D6048				19.00	19.00	0.50	2026-08-19 12:25:32.461612	2026-09-23 16:36:31.357477	Slit Cut Machine	\N	cam_slit_cut_machine_1787549672	6	f			\N		\N		\N	[]	[]	f	register	D101	D102	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 65	14	192.168.30.152	5002	MC4E	D601	D602	D6005	D6048				15.00	16.00	0.50	2026-07-02 16:34:01.49433	2026-07-03 16:51:16.760257	Lower Rail Greasing & Bar Coding M/c	62	cam_lower_rail_cam_yfg_1783077757	3	f			\N		\N		\N	[]	[]	f	register	D601	D602	L110	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 90	19	192.168.30.194	5002	MC4E	D101	D102	D6005	D1016				30.00	30.00	0.50	2026-07-04 17:18:22.89018	2026-09-05 18:49:40.271534	Rail Assy M/c #02	76	cam_ymc_rail_assy_02_1784952690	5	f			\N		\N		\N	[]	[]	f	register	D101	D102	L110	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 87	19	192.168.30.191	5002	MC4E	D101	D102	D6005	D1016				15.00	16.00	0.50	2026-07-04 17:07:49.547219	2026-08-05 15:25:42.345888	Lock Bar Insert M/c	76	cam_lower_rail_grease_bar_coding_m_c_1782554828	2	f			\N		\N		\N	[]	[]	f	register	D101	D102	L110	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 67	14	192.168.30.154	5002	MC4E	D101	D102	D6005	D6048				30.00	30.00	0.50	2026-07-02 16:56:26.143853	2026-08-05 15:18:12.744242	Rail Assy M/c #02	62	cam_rail_assy_02_cam_yfg_1783077882	5	f			\N		\N		\N	[]	[]	f	register	D101	D102	L110	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
+213	38	192.168.34.43	5002	MC4E	D6001	D6002	D6005	D6048				20.88	21.00	0.50	2026-09-10 11:39:30.363943	2026-09-22 13:29:59.863037	Mag WELD Upr Brkt With T-Nut ＆Bolt M/C	209	cam_mag_weld_upr_brkt_with_t_nut_bolt_m_c_1790063983	4	f			\N		\N		\N	[]	[]	f	register	D6001	D6002	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 2	2	192.168.30.136	5002	MC4E	L108	L109	D6005	D6048				15.00	16.00	0.50	2026-03-23 11:46:34.945677	2026-08-25 23:50:36.295407	Final Inspection	\N	cam_final_inspection_1784645338	\N	f			\N		\N		\N	[]	[]	f	register	D101	D102	L110	\N	\N	\N	\N	\N	\N	\N	1	2	L230	5.00	\N	\N	\N	M100
 62	14	192.168.30.156	5002	MC4E	D101	D102	D6005	D1016				15.00	16.00	0.50	2026-07-02 16:27:56.467768	2026-08-24 22:53:01.861381	Final Inspection M/c	\N	cam_final_inspection_cam_yfg_1783078029	\N	f			\N		\N		\N	[]	[]	f	register	D101	D102	L110	\N	\N	\N	\N	\N	\N	\N	1	2	L230	5.00	\N	\N	\N	M100
 73	15	192.168.30.173	5002	MC4E	D101	D102	D6005	D6048				30.00	30.00	0.50	2026-07-02 17:28:55.550861	2026-08-05 15:12:03.920535	Rail Assy M/c #01	69	cam_rail_assy_01_cam_1783077364	4	f			\N		\N		\N	[]	[]	f	register	D101	D102	L110	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
-149	31	192.168.36.75	5002	MC4E	D101	D102	D6005	D6048				10.07	11.00	0.50	2026-08-19 12:25:32.461612	2026-08-26 09:42:10.141456	Slit Cut Machine	\N	cam_slit_cut_machine_1787549672	6	f			\N		\N		\N	[]	[]	f	register	D101	D102	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
+107	21	192.168.36.31	504	MC4E	D105	D106	D6005	D6048				19.00	19.00	0.50	2026-08-06 11:47:39.717594	2026-09-23 16:35:58.966514	Both Karakuri Middle Shelf	100		4	f			\N		\N		\N	[]	[]	f	register	D105	D106	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 72	15	192.168.30.172	5002	MC4E	D601	D602	D6005	D6048				15.00	16.00	0.50	2026-07-02 17:27:20.856764	2026-07-25 09:35:31.110589	Lower Rail Grease & Bar Coding M/c	69	cam_lock_bar_y17_1784952289	3	f			\N		\N		\N	[]	[]	f	register	D601	D602	L110	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 86	18	192.168.30.38	5002	MC3E	D101	D102	D6005	D6048				15.00	16.00	0.50	2026-07-04 15:04:53.329141	2026-08-05 15:32:46.698228	Slide Force Inspection M/c	78	cam_machine_8_9_1785489256	8	f			\N		\N		\N	[]	[]	f	register	D101	D102	L110	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 79	18	192.168.30.30	502	MC4E	D5201	D5202	D6005	D6048				15.00	16.00	0.50	2026-07-04 14:45:58.031399	2026-08-05 15:31:28.236282	Upper Rail Greasing	78	cam_machine_1_2_yra_1785488968	1	f			\N		\N		\N	[]	[]	f	register	D5201	D5202	L110	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
@@ -28247,7 +29533,6 @@ COPY public.mes_plc_configs (id, line_id, plc_ip, plc_port, protocol, ok_bit_add
 85	18	192.168.30.37	502	MC4E	D5201	D5202	D6005	D6048				15.00	16.00	0.50	2026-07-04 15:03:12.088186	2026-07-31 14:43:32.765413	Stopper Bending Fr & TAB Bending Fr M/c	78	cam_machine_5_6_7_yra_1785489171	7	f			\N		\N		\N	[]	[]	f	register	D5201	D5202	L110	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 24	7	192.168.30.210	502	MC4E	D101	D102	D6005	D6048		M157		9.80	10.80	0.50	2026-06-25 11:55:50.401029	2026-08-05 15:37:32.627678	Gear Lifter	\N	cam_gear_lifter_1782385729	\N	f			\N		\N		\N	[]	[]	f	register	D101	D102	L110	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 77	19	192.168.30.190	5002	MC4E	D101	D102	D6005	D1016				15.00	16.00	0.50	2026-07-03 17:14:06.473124	2026-08-05 15:25:15.447505	Upper Rail Greasing M/c	76	cam_ymc_upper_rail_1784952496	1	f			\N		\N		\N	[]	[]	f	register	D101	D102	L110	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
-199	34	192.168.34.60	502	MC4E	D6001	D6002	D6005	D6048				11.60	12.00	0.50	2026-09-08 15:59:03.902141	2026-09-08 16:05:17.555208	Rainforce Bolt PJW M/C	198		1	f			\N		\N		\N	[]	[]	f	register	D6001	D6002	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 84	18	192.168.30.36	502	MC3E	D5201	D5202	D6005	D6048				15.00	16.00	0.50	2026-07-04 15:00:28.037183	2026-08-01 09:35:38.776053	Stopper Bending Rr & TAB Bending Rr M/c	78	cam_machine_5_6_7_yra_1785489171	6	f			\N		\N		\N	[]	[]	f	register	D5201	D5202	L110	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 63	14	192.168.30.150	5002	MC4E	D101	D102	D6005	D6048				15.00	16.00	0.50	2026-07-02 16:29:32.221817	2026-08-05 15:17:07.364172	Upper Rail Greasing M/c	62	cam_upper_rail_cam_yfg_1783077696	1	f			\N		\N		\N	[]	[]	f	register	D101	D102	L110	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 27	6	192.168.30.213	502	MC4E	D101	D102	D6005	D6048				14.42	15.42	0.50	2026-06-25 12:11:37.85169	2026-07-29 15:38:15.338715	YWD SS	\N	cam_ywd_ss_1782385690	\N	f			\N		\N		\N	[]	[]	f	register	D101	D102	L110	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
@@ -28266,46 +29551,46 @@ COPY public.mes_plc_configs (id, line_id, plc_ip, plc_port, protocol, ok_bit_add
 123	5	192.168.32.36	5002	MC4E	D6001	D6002	D6005	D6048				16.00	17.00	0.50	2026-08-11 12:01:47.91383	2026-08-13 10:15:10.130294	SP Insert Fixture with Machine	116	cam_sp_insert_fixture_with_machine_1786596307	7	f			\N		\N		\N	[]	[]	f	register	D6001	D6002	L110	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 141	29	192.168.32.91	5002	MC4E	D6001	D6002	D6005	D6048				16.00	17.00	0.50	2026-08-17 13:32:18.27341	2026-08-18 11:06:13.36797	MAG Welding of Arm x Recliner ST #2	134	cam_mag_welding_of_arm_x_recliner_st_2_1787031369	3	f			\N		\N		\N	[]	[]	f	register	D6001	D6002	L110	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 146	29	192.168.32.96	5002	MC4E	D6001	D6002	D6005	D6048				16.00	17.00	0.50	2026-08-17 13:41:52.914756	2026-08-18 11:09:33.603782	SP Insert Fixture with Machine	134	cam_sp_insert_fixture_with_machine_1787031568	7	f			\N		\N		\N	[]	[]	f	register	D6001	D6002	L110	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
-150	31	192.168.36.70	5002	MC4E	D101	D102	D6005	D6048				8.50	8.60	0.50	2026-08-19 12:27:49.42547	2026-08-19 12:27:49.42547	Squeezing Machine	149		1	f			\N		\N		\N	[]	[]	f	register	D101	D102	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 69	15	192.168.30.176	5002	MC4E	D101	D102	D6005	D1016				15.00	16.00	0.50	2026-07-02 17:13:31.260226	2026-08-25 23:50:36.295407	Final Inspection M/c	\N	cam_final_inspection_y17_1783077497	\N	f			\N		\N		\N	[]	[]	f	register	D101	D102	L110	\N	\N	D5004	L200	\N	\N	\N	1	2	L230	5.00	\N	\N	\N	M100
 48	12	192.168.30.96	5002	MC4E	D101	D102	D6005	D1016				15.00	16.00	0.50	2026-06-27 12:15:44.862798	2026-08-25 23:50:36.295407	Final Inspection M/c	\N	cam_final_inspection_m_c_1782556572	\N	f			\N		\N		\N	[]	[]	f	register	D101	D102	L110	\N	\N	\N	\N	\N	\N	\N	1	2	L230	5.00	\N	\N	\N	M100
-200	34	192.168.34.61	502	MC4E	D6001	D6002	D6005	D6048				11.60	12.00	0.50	2026-09-08 16:01:55.904232	2026-09-21 11:28:59.623829	"Rinforce×Bolt PJW M/C Upr BKT Rail ×Bolt PJW M/C Upr Rail Rr）"	198		2	f			\N		\N		\N	[]	[]	f	register	D6001	D6002	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
+214	39	192.168.34.92	502	MC4E	D6001	D6002	D6005	D6048				11.60	12.00	0.50	2026-09-10 15:35:17.948978	2026-09-22 13:24:02.318215	BOLT STRENGTH CHECKING (4WAY)	\N	cam_bolt_strength_checking_4way_1790063636	3	f			\N		\N		\N	[]	[]	f	register	D6001	D6002	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 194	36	192.168.34.80	502	MC4E	D6001	D6002	D6005	D6048				11.39	12.00	0.50	2026-09-08 14:45:45.593246	2026-09-09 10:39:23.198293	Rainforce Bolt PJW M/C	193	cam_rainforce_bolt_pjw_m_c_1788930501	1	f			\N		\N		\N	[]	[]	f	register	D6001	D6002	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
-217	41	192.168.34.100	502	MC4E	D6001	D6002	D6005	D6048				9.72	10.00	0.50	2026-09-16 16:18:09.028213	2026-09-19 09:25:04.361363	Upr ×Rinforce S/A×UprINRBKT PJW　M/C (6 Way)	\N		1	f			\N		\N		\N	[]	[]	f	register	D6001	D6002	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 156	35	192.168.34.74	502	MC4E	D6001	D6002	D6005	D6048				11.67	12.00	0.50	2026-09-03 14:28:14.702224	2026-09-10 11:18:16.109791	BOLT STRENGTH CHECKING (4WAY)	\N	cam_bolt_strength_checking_4way_1789019293	5	f			\N		\N		\N	[]	[]	f	register	D6001	D6002	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
-205	33	192.168.34.51	502	MC4E	D6001	D6002	D6005	D6048				11.60	12.00	0.50	2026-09-08 16:44:37.209467	2026-09-08 16:46:01.930175	"Rinforce×Bolt PJW M/C Upr BKT Rail ×Bolt PJW M/C Upr Rail Rr）(4 Way)"	203		2	f			\N		\N		\N	[]	[]	f	register	D6001	D6002	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
-214	39	192.168.34.92	502	MC4E	D6001	D6002	D6005	D6048				11.60	12.00	0.50	2026-09-10 15:35:17.948978	2026-09-10 15:35:17.948978	BOLT STRENGTH CHECKING (4WAY)	\N		3	f			\N		\N		\N	[]	[]	f	register	D6001	D6002	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
+199	34	192.168.34.60	502	MC4E	D6001	D6002	D6005	D6048				11.60	12.00	0.50	2026-09-08 15:59:03.902141	2026-09-22 13:19:03.534012	Rainforce Bolt PJW M/C	198	cam_rainforce_bolt_pjw_m_c_1790063338	1	f			\N		\N		\N	[]	[]	f	register	D6001	D6002	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
+217	41	192.168.34.100	502	MC4E	D6001	D6002	D6005	D6048				9.72	10.00	0.50	2026-09-16 16:18:09.028213	2026-09-23 16:53:02.666742	Upr ×Rinforce S/A×UprINRBKT PJW　M/C (6 Way)	\N	cam_upr_rinforce_s_a_uprinrbkt_pjw_m_c_6_way_1790063841	1	f			\N		\N		\N	[]	[]	f	register	D6001	D6002	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 208	36	192.168.34.81	502	MC4E	D6001	D6002	D6005	D6048				11.60	12.00	0.50	2026-09-10 10:37:44.608996	2026-09-10 10:41:13.748268	"Rinforce×Bolt PJW M/C Upr BKT Rail ×Bolt PJW M/C Upr Rail Rr） "	193	cam_rainforce_bolt_pjw_m_c_1788930501	2	f			\N		\N		\N	[]	[]	f	register	D6001	D6002	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 68	14	192.168.30.155	5002	MC4E	M5700	L109	D6005	D6048				15.00	16.00	0.50	2026-07-02 16:59:02.028229	2026-08-24 18:46:26.794886	Semi-Automatic & Bending M/c	62	cam_semi_auto_cam_1783077949	6	t	M5700	D530	13	D5801	20	D1600	6	["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20"]	[0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]	f	register	D5201	D5202	L110	\N	\N	\N	\N	\N	\N	D5812	1	2	\N	2.00	M5115	M5116	M1151	\N
 193	36	192.168.34.84	502	MC4E	D6001	D6002	D6005	D6048				11.39	12.00	0.50	2026-09-08 14:42:46.658919	2026-09-10 10:43:56.829276	BOLT STRENGTH CHECKING (4WAY)	\N	cam_bolt_strength_checking_4way_1789017196	5	f			\N		\N		\N	[]	[]	f	register	D6001	D6002	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
+205	33	192.168.34.51	502	MC4E	D6001	D6002	D6005	D6048				11.60	12.00	0.50	2026-09-08 16:44:37.209467	2026-09-22 13:25:02.483282	"Rinforce×Bolt PJW M/C Upr BKT Rail ×Bolt PJW M/C Upr Rail Rr）(4 Way)"	203	cam_rainforce_bolt_pjw_m_c_4_way_1790063679	2	f			\N		\N		\N	[]	[]	f	register	D6001	D6002	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
+200	34	192.168.34.61	502	MC4E	D6001	D6002	D6005	D6048				11.60	12.00	0.50	2026-09-08 16:01:55.904232	2026-09-22 13:20:26.92619	"Rinforce×Bolt PJW M/C Upr BKT Rail ×Bolt PJW M/C Upr Rail Rr）"	198	cam_rainforce_bolt_pjw_m_c_1790063338	2	f			\N		\N		\N	[]	[]	f	register	D6001	D6002	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
+150	31	192.168.36.70	5002	MC4E	D101	D102	D6005	D6048				19.00	19.00	0.50	2026-08-19 12:27:49.42547	2026-09-23 16:23:27.312098	Squeezing Machine	149		1	f			\N		\N		\N	[]	[]	f	register	D101	D102	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 157	35	192.168.34.70	502	MC4E	D6001	D6002	D6005	D6048				11.67	12.00	0.50	2026-09-03 14:38:02.663203	2026-09-19 12:10:49.980899	Rainforce Bolt PJW M/C	156	cam_rainforce_bolt_pjw_m_c_1789013623	1	f			\N		\N		\N	[]	[]	f	register	D6001	D6002	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 30	11	192.168.30.71	5002	MC4E	D101	D102	D6005	D6048				15.00	16.00	0.50	2026-06-25 15:49:55.819169	2026-08-05 15:19:50.665431	Lock Bar Insert M/c	35	cam_lower_rail_grease_bar_coding_m_c_1782449890	2	f			\N		\N		\N	[]	[]	f	register	D101	D102	L110	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 32	11	192.168.30.73	5002	MC4E	D101	D102	D6005	D6048				30.00	30.00	0.50	2026-06-25 15:53:02.892874	2026-08-05 15:20:11.300531	Rail Assy M/c # 01	35	cam_rail_assy_m_c_01_1782449920	4	f			\N		\N		\N	[]	[]	f	register	D101	D102	L110	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 33	11	192.168.30.74	5002	MC4E	D101	D102	D6005	D6048				30.00	30.00	0.50	2026-06-25 15:54:00.930528	2026-08-05 15:20:39.925533	Rail Assy M/c # 02	35	cam_rail_assy_m_c_02_1782449949	5	f			\N		\N		\N	[]	[]	f	register	D101	D102	L110	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 119	5	192.168.32.31	5002	MC4E	D6003	D6004	D6005	D6048				16.00	17.00	0.50	2026-08-11 11:53:25.641187	2026-08-13 10:11:32.277108	MAG Welding of Arm x Recliner ST #2	116	cam_mag_welding_of_arm_x_recliner_st_2_1786596090	2	f			\N		\N		\N	[]	[]	f	register	D6001	D6002	L110	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
-105	20	192.168.32.51	5002	MC4E	D6003	D6004	D6005	D6048				16.00	17.00	0.50	2026-07-29 15:16:00.026798	2026-08-31 10:36:52.870803	MAG Welding of Arm x Recliner Station 2	92	cam_station_2_1785318728	2	f			\N		\N		\N	[]	[]	f	register	D6003	D6004		\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 25	9	192.168.30.212	5002	MC4E								15.00	16.00	0.50	2026-06-25 12:03:41.703295	2026-07-29 15:37:56.227451	Nut Lifting	\N	cam_nut_lifting_1782385759	\N	f			\N		\N		\N	[]	[]	f	register			L110	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 36	4	192.168.30.50	5002	MC4E	D101	D102	D6005	D6048				15.00	16.00	0.50	2026-06-26 10:13:39.506061	2026-08-05 15:33:11.890198	Upper Rail Greasing m/c	42	cam_upper_rail_greasing_m_c_1782385166	1	f			\N		\N		\N	[]	[]	f	register	D101	D102	L110	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 31	11	192.168.30.72	5002	MC3E	D601	D602	D6005	D6048				15.00	16.00	0.50	2026-06-25 15:51:55.82357	2026-08-01 09:07:05.224656	Lower Rail Grease & Bar Coding M/c	35	cam_lower_rail_grease_bar_coding_m_c_1782449890	3	f			\N		\N		\N	[]	[]	f	register	D601	D602	L110	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
+201	34	192.168.34.62	502	MC4E	D6001	D6002	D6005	D6048				11.60	12.00	0.50	2026-09-08 16:04:34.756355	2026-09-22 13:21:04.938542	Upr Rail ×Bolt Fr PJW M/C  ( 4 Way )	198	cam_upr_rail_bolt_fr_pjw_m_c_4_way_1790063461	3	f			\N		\N		\N	[]	[]	f	register	D6001	D6002	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 29	11	192.168.30.70	5002	MC4E	D101	D102	D6005	D6048				15.00	16.00	0.50	2026-06-25 15:41:40.114909	2026-07-25 09:22:09.769282	Upper Rail Greasing m/c	35	cam_upper_rail_greasing_m_c_1782449757	1	f			\N		\N		\N	[]	[]	f	register	D101	D102	L110	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
+215	39	192.168.34.90	502	MC4E	D6001	D6002	D6005	D6048				11.60	12.00	0.50	2026-09-10 15:37:23.384385	2026-09-22 13:23:05.892	Rainforce Bolt PJW M/C (4 Way)	214	cam_rainforce_bolt_pjw_m_c_4_way_1790063575	1	f			\N		\N		\N	[]	[]	f	register	D6001	D6002	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
+206	33	192.168.34.52	502	MC4E	D6001	D6002	D6005	D6048				11.60	12.00	0.50	2026-09-08 16:47:26.055673	2026-09-22 13:25:42.844512	Upr Rail ×Bolt Fr PJW M/C  ( 4 Way )	203	cam_upr_rail_bolt_fr_pjw_m_c_4_way_1790063741	3	f			\N		\N		\N	[]	[]	f	register	D6001	D6002	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 112	27	192.168.32.73	5002	MC4E	D6001	D6002	D6005	D6048				16.00	17.00	0.50	2026-08-10 13:35:45.252172	2026-08-10 14:28:31.647623	MAG Welding of  Lwr Hook with Lwr Arrm	108	cam_mag_welding_of_lwr_hook_with_lwr_arrm_1786350363	4	f			\N		\N		\N	[]	[]	f	register	D6001	D6002	L110	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
-209	38	192.168.34.44	502	MC4E	D6001	D6002	D6005	D6048				20.88	21.00	0.50	2026-09-10 11:32:18.146489	2026-09-10 11:32:18.146489	Upr Rail Inspection M/C	\N		5	f			\N		\N		\N	[]	[]	f	register	D6001	D6002	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
-137	30	192.168.36.51	502	MC4E	D103	D104	D6005	D6048				15.50	15.60	0.50	2026-08-17 12:25:03.597899	2026-09-03 08:57:01.272657	YLM Bending Machine-01	135	cam_ylm_bending_machine_01_1787031747	2	f			\N		\N		\N	[]	[]	f	register	D103	D104	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
+105	20	192.168.32.51	5002	MC4E	D6003	D6004	D6005	D6048				32.00	33.00	0.50	2026-07-29 15:16:00.026798	2026-09-23 16:33:14.757461	MAG Welding of Arm x Recliner Station 2	92	cam_station_2_1785318728	2	f			\N		\N		\N	[]	[]	f	register	D6003	D6004		\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 44	12	192.168.30.91	5002	MC4E	D101	D102	D6005	D6048				15.00	16.00	0.50	2026-06-27 11:53:58.739335	2026-08-05 15:14:43.355956	Lock Bar Insert M/c	48	cam_lower_rail_grease_bar_coding_m_c_1782554629	2	f			\N		\N		\N	[]	[]	f	register	D101	D102	L110	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 47	12	192.168.30.94	5002	MC4E	D101	D102	D6005	D6048				30.00	30.00	0.50	2026-06-27 12:11:25.81506	2026-08-05 15:15:35.129544	Rail Assy M/c # 02	48	cam_rail_assy_m_c_02_1782556448	5	f			\N		\N		\N	[]	[]	f	register	D101	D102	L110	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 129	28	192.168.32.111	5002	MC4E	D6003	D6004	D6005	D6048				16.00	17.00	0.50	2026-08-13 14:50:00.651791	2026-08-18 11:00:45.509807	MAG Welding of Arm x Recliner ST #2	126	cam_mag_welding_of_arm_x_recliner_st_2_1787031042	3	f			\N		\N		\N	[]	[]	f	register	D6001	D6002	L110	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 142	29	192.168.32.93	5002	MC4E	D6001	D6002	D6005	D6048				16.00	17.00	0.50	2026-08-17 13:33:34.31093	2026-08-18 11:06:56.487193	MAG Welding of  Lwr Hook with Lwr Arrm	134	cam_mag_welding_of_lwr_hook_with_lwr_arrm_1787031413	4	f			\N		\N		\N	[]	[]	f	register	D6001	D6002	L110	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
-151	31	192.168.36.71	502	MC4E	D103	D104	D6005	D6048				15.50	15.60	0.50	2026-08-19 12:30:50.041794	2026-09-03 08:58:39.727423	YLM Bending Machine-01	149	cam_ylm_bending_machine_01_1787550875	2	f			\N		\N		\N	[]	[]	f	register	D103	D104	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
-147	30	192.168.36.54	5002	MC4E	D101	D102	D6005	D6048				3.90	4.00	0.50	2026-08-17 14:21:59.457762	2026-08-18 11:10:01.787057	Squaring Machine	135	cam_slit_cut_machine_1787031530	5	f			\N		\N		\N	[]	[]	f	register	D101	D102	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
-201	34	192.168.34.62	502	MC4E	D6001	D6002	D6005	D6048				11.60	12.00	0.50	2026-09-08 16:04:34.756355	2026-09-08 16:06:07.272427	Upr Rail ×Bolt Fr PJW M/C  ( 4 Way )	198		3	f			\N		\N		\N	[]	[]	f	register	D6001	D6002	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
-206	33	192.168.34.52	502	MC4E	D6001	D6002	D6005	D6048				11.60	12.00	0.50	2026-09-08 16:47:26.055673	2026-09-08 16:47:26.055673	Upr Rail ×Bolt Fr PJW M/C  ( 4 Way )	203		3	f			\N		\N		\N	[]	[]	f	register	D6001	D6002	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
+151	31	192.168.36.71	502	MC4E	D103	D104	D6005	D6048				19.00	19.00	0.50	2026-08-19 12:30:50.041794	2026-09-23 16:37:12.309347	YLM Bending Machine-01	149	cam_ylm_bending_machine_01_1787550875	2	f			\N		\N		\N	[]	[]	f	register	D103	D104	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
+209	38	192.168.34.44	502	MC4E	D6001	D6002	D6005	D6048				20.88	21.00	0.50	2026-09-10 11:32:18.146489	2026-09-22 13:30:17.106477	Upr Rail Inspection M/C	\N	cam_mag_weld_upr_brkt_with_t_nut_bolt_m_c_1790063983	5	f			\N		\N		\N	[]	[]	f	register	D6001	D6002	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
+137	30	192.168.36.51	502	MC4E	D103	D104	D6005	D6048				25.00	25.00	0.50	2026-08-17 12:25:03.597899	2026-09-23 16:32:19.718275	YLM Bending Machine-01	135	cam_ylm_bending_machine_01_1787031747	2	f			\N		\N		\N	[]	[]	f	register	D103	D104	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 50	12	192.168.30.95	5002	MC4E	D5201	D5202	D6005	D6048				15.00	16.00	0.50	2026-06-27 12:27:23.64059	2026-08-25 23:50:36.295407	Semi Automatic & Bending M/c	48	cam_semi_auto_bending_1782901018	6	t	M5700	D530	13	D5801	20	D1600	6	["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20"]	[0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]	f	register	D5201	D5202	L110	\N	\N	\N	\N	\N	\N	D5812	1	2	\N	2.00	M5115	M5116	M1151	\N
-215	39	192.168.34.90	502	MC4E	D6001	D6002	D6005	D6048				11.60	12.00	0.50	2026-09-10 15:37:23.384385	2026-09-10 15:37:23.384385	Rainforce Bolt PJW M/C (4 Way)	214		1	f			\N		\N		\N	[]	[]	f	register	D6001	D6002	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
+147	30	192.168.36.54	5002	MC4E	D101	D102	D6005	D6048				25.00	25.00	0.50	2026-08-17 14:21:59.457762	2026-09-23 16:33:06.485913	Squaring Machine	135	cam_slit_cut_machine_1787031530	5	f			\N		\N		\N	[]	[]	f	register	D101	D102	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 120	5	192.168.32.33	5002	MC4E	D6001	D6002	D6005	D6048				16.00	17.00	0.50	2026-08-11 11:57:49.709298	2026-08-13 10:12:36.718951	MAG Welding of  Lwr Hook with Lwr Arrm	116	cam_mag_welding_of_lwr_hook_with_lwr_arrm_1786596153	4	f			\N		\N		\N	[]	[]	f	register	D6001	D6002	L110	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 158	35	192.168.34.71	502	MC4E	D6001	D6002	D6005	D6048				11.67	12.00	0.50	2026-09-03 14:40:57.956207	2026-09-19 12:11:07.833259	"Rinforce×Bolt PJW M/C Upr BKT Rail ×Bolt PJW M/C Upr Rail Rr）"	156	cam_rainforce_bolt_pjw_m_c_1789013623	2	f			\N		\N		\N	[]	[]	f	register	D6001	D6002	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
-210	38	192.168.34.40	502	MC4E	D6001	D6002	D6005	D6048				20.88	21.00	0.50	2026-09-10 11:33:31.951375	2026-09-10 11:33:31.951375	Upr ×Rinforce S/A×UprINRBKT PJW　M/C (6 Way)	209		1	f			\N		\N		\N	[]	[]	f	register	D6001	D6002	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 45	12	192.168.30.92	5002	MC4E	D601	D602	D6005	D6048				15.00	16.00	0.50	2026-06-27 12:00:37.022225	2026-07-01 14:53:57.497477	Lower Rail Grease & Bar Coding M/c	48	cam_lower_rail_grease_bar_coding_m_c_1782554629	3	f			\N		\N		\N	[]	[]	f	register	D601	D602	L110	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
-152	31	192.168.36.71	503	MC4E	D101	D102	D6005	D6048				15.50	15.60	0.50	2026-08-19 12:32:28.815908	2026-09-03 09:57:10.588323	YLM Bending Machine-02	149	cam_ylm_bending_machine_02_1787550932	3	f			\N		\N		\N	[]	[]	f	register	D102	D102	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
+202	34	192.168.34.63	502	MC4E	D6001	D6002	D6005	D6048				11.60	12.00	0.50	2026-09-08 16:07:55.951992	2026-09-22 13:21:26.236727	Upr ×Rinforce S/A×UprINRBKT PJW M/c	198	cam_upr_rail_bolt_fr_pjw_m_c_4_way_1790063461	4	f			\N		\N		\N	[]	[]	f	register	D6001	D6002	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 148	30	192.168.36.51	504	MC4E	D105	D106	D6005	D6048				15.00	16.00	0.50	2026-08-17 14:26:01.443154	2026-09-03 10:02:44.299707	Both Karakuri Middle Shelf	135	cam_both_karakuri_middle_shelf_1787031646	4	f			\N		\N		\N	[]	[]	f	register	D105	D106	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 113	27	192.168.32.74	5002	MC4E	D6001	D6002	D6005	D6048				16.00	17.00	0.50	2026-08-10 13:39:48.390692	2026-08-10 13:56:42.335985	Press in REC with PIN Hinge & Date Code Stamping	108	cam_press_in_rec_with_pin_hinge_date_code_stamping_1786350398	5	f			\N		\N		\N	[]	[]	f	register	D6001	D6002	L110	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 14	2	192.168.30.134	5002	MC4E	L108	L109	D6005	D6048				30.00	31.00	0.50	2026-05-16 19:08:42.226485	2026-08-18 13:29:00.698966	Ball Guide Insert Machine 2	2	cam_ball_guide_machine_05_1784269398	5	f			\N		\N		\N	[]	[]	f	register	D101		L110	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
@@ -28315,8 +29600,6 @@ COPY public.mes_plc_configs (id, line_id, plc_ip, plc_port, protocol, ok_bit_add
 17	2	192.168.30.132	5002	MC3E	D601	D602	D6005	D6048		L108		15.00	16.00	0.50	2026-05-24 13:29:02.502983	2026-07-24 15:55:12.286808	LOWER RAIL GREASING	2	cam_lock_bar_1779043510	3	f			\N		\N		\N	[]	[]	t	register	D601	D602	L110	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 38	4	192.168.30.52	5002	MC4E	D601	D602	D6005	D6048				15.00	16.00	0.50	2026-06-26 10:15:21.211425	2026-07-24 16:18:33.699537	Lower Rail Grease & Bar Coding M/c	42	cam_lower_rail_grease_bar_coding_m_c_1782385250	3	f			\N		\N		\N	[]	[]	f	register	D601	D602	L110	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 64	14	192.168.30.151	5002	MC4E	D101	D102	D6005	D6048				15.00	16.00	0.50	2026-07-02 16:31:45.430043	2026-08-05 15:17:28.176101	Lock Bar Insert M/c	62	cam_lower_rail_cam_yfg_1783077757	2	f			\N		\N		\N	[]	[]	f	register	D101	D102	L110	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
-202	34	192.168.34.63	502	MC4E	D6001	D6002	D6005	D6048				11.60	12.00	0.50	2026-09-08 16:07:55.951992	2026-09-08 16:07:55.951992	Upr ×Rinforce S/A×UprINRBKT PJW M/c	198		4	f			\N		\N		\N	[]	[]	f	register	D6001	D6002	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
-207	33	192.168.34.53	502	MC4E	D6001	D6002	D6005	D6048				11.60	12.00	0.50	2026-09-08 16:49:41.170112	2026-09-08 16:49:41.170112	Upr ×Rinforce S/A×UprINRBKT PJW M/C (4 Way)	203		4	f			\N		\N		\N	[]	[]	f	register	D6001	D6002	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 143	29	192.168.32.94	5002	MC4E	D6001	D6002	D6005	D6048				16.00	17.00	0.50	2026-08-17 13:37:28.662694	2026-08-18 11:07:49.990447	Press in REC with PIN Hinge & Date Code Stamping	134	cam_press_in_rec_with_pin_hinge_date_code_stamping_1787031466	5	f			\N		\N		\N	[]	[]	f	register	D6001	D6002	L110	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 23	8	192.168.30.211	502	MC4E	D601	D602	D6005	D6048				17.00	18.00	0.50	2026-06-25 11:53:21.514974	2026-08-05 15:37:56.590236	2UA	\N	cam_2ua_1782385638	\N	f			\N		\N		\N	[]	[]	f	register	D601	D602	L110	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 8	2	192.168.30.130	5002	MC4E	L108	L10	D6005	D6048		M100		15.00	16.00	0.50	2026-04-22 12:31:18.679361	2026-08-05 15:28:12.795368	Upper Rail Greasing Machine	2	cam_upper_rail_greasing_1784645280	1	f			\N		\N		\N	[]	[]	f	register	D101	D102	L110	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
@@ -28324,13 +29607,16 @@ COPY public.mes_plc_configs (id, line_id, plc_ip, plc_port, protocol, ok_bit_add
 196	36	192.168.34.82	502	MC4E	D6001	D6002	D6005	D6048				11.30	12.00	0.50	2026-09-08 14:48:53.282558	2026-09-09 10:43:54.416221	Upr Rail ×Bolt Fr PJW M/C  ( 4 Way )	193	cam_upr_rail_bolt_fr_pjw_m_c_4_way_1788930828	3	f			\N		\N		\N	[]	[]	f	register	D6001	D6002	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 37	4	192.168.30.51	5002	MC4E	D101	D102	D6005	D6048				15.00	16.00	0.50	2026-06-26 10:14:28.211006	2026-08-05 15:33:41.620849	Lock Bar Insert M/c	42	cam_lower_rail_grease_bar_coding_m_c_1782385250	2	f			\N		\N		\N	[]	[]	f	register	D101	D102	L110	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 13	2	192.168.30.133	5002	MC4E	D101	D102	D6005	D6048				30.00	31.00	0.50	2026-05-16 18:46:14.514159	2026-08-18 13:28:34.276018	Ball Guide Insert Machine 1	2	cam_ball_guide_machine_04_1784269309	4	f			\N		\N		\N	[]	[]	f	register	D101	D102	L110	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
-216	39	192.168.34.91	502	MC4E	D6001	D6002	D6005	D6048				11.60	12.00	0.50	2026-09-10 15:38:44.071192	2026-09-21 09:28:25.25656	"Rinforce×Bolt PJW M/C Upr  Rail ×Reinforce x Bolt PJW M/C"	214		2	f			\N		\N		\N	[]	[]	f	register	D6001	D6002	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
+207	33	192.168.34.53	502	MC4E	D6001	D6002	D6005	D6048				11.60	12.00	0.50	2026-09-08 16:49:41.170112	2026-09-22 13:26:03.425715	Upr ×Rinforce S/A×UprINRBKT PJW M/C (4 Way)	203	cam_upr_rail_bolt_fr_pjw_m_c_4_way_1790063741	4	f			\N		\N		\N	[]	[]	f	register	D6001	D6002	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
+216	39	192.168.34.91	502	MC4E	D6001	D6002	D6005	D6048				11.60	12.00	0.50	2026-09-10 15:38:44.071192	2026-09-22 13:23:23.697363	"Rinforce×Bolt PJW M/C Upr  Rail ×Reinforce x Bolt PJW M/C"	214	cam_rainforce_bolt_pjw_m_c_4_way_1790063575	2	f			\N		\N		\N	[]	[]	f	register	D6001	D6002	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 39	4	192.168.30.53	5002	MC4E	D101	D102	D6005	D6048				30.00	30.00	0.50	2026-06-26 10:16:13.997559	2026-08-05 15:34:10.925727	Rail Assy M/c # 01	42	cam_rail_assy_m_c_01_1782385278	4	f			\N		\N		\N	[]	[]	f	register	D101	D102	L110	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
+210	38	192.168.34.40	502	MC4E	D6001	D6002	D6005	D6048				20.88	21.00	0.50	2026-09-10 11:33:31.951375	2026-09-22 13:28:37.144709	Upr ×Rinforce S/A×UprINRBKT PJW　M/C (6 Way)	209	cam_upr_rinforce_s_a_uprinrbkt_pjw_m_c_6_way_1790063911	1	f			\N		\N		\N	[]	[]	f	register	D6001	D6002	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 49	12	192.168.30.90	5002	MC4E	D101	D102	D6005	D6048				15.00	16.00	0.50	2026-06-27 12:23:06.478693	2026-08-05 15:14:04.658317	Upper Rail Grease Machine	48	cam_upper_rail_grease_machine_1782554566	1	f			\N		\N		\N	[]	[]	f	register	D101	D102	L110	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 46	12	192.168.30.93	5002	MC4E	D101	D102	D6005	D6048				30.00	30.00	0.50	2026-06-27 12:05:03.723573	2026-08-05 15:15:10.092745	Rail Assy M/c # 01	48	cam_rail_assy_m_c_01_1782554655	4	f			\N		\N		\N	[]	[]	f	register	D101	D102	L110	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
-92	20	192.168.32.57	5002	MC4E	D6001	D6002	D6005	D6048				15.94	17.00	0.50	2026-07-15 15:14:59.632212	2026-09-03 13:55:51.542477	Final Inspection	\N	cam_final_inspection_machine_1784264923	7	f			\N		\N		\N	[]	[]	f	register	D6001	D6002	L6001	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
-139	30	192.168.36.51	503	MC4E	D101	D102	D6005	D6048				15.50	15.60	0.50	2026-08-17 12:28:50.463418	2026-09-03 10:02:36.008869	YLM Bending Machine-02	135	cam_ylm_bending_machine_02_1787031702	3	f			\N		\N		\N	[]	[]	f	register	D102	D102	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
+152	31	192.168.36.71	503	MC4E	D101	D102	D6005	D6048				19.00	19.00	0.50	2026-08-19 12:32:28.815908	2026-09-23 16:37:45.982912	YLM Bending Machine-02	149	cam_ylm_bending_machine_02_1787550932	3	f			\N		\N		\N	[]	[]	f	register	D102		L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
+211	38	192.168.34.41	502	MC4E	D6001	D6002	D6005	D6048				20.88	21.00	0.50	2026-09-10 11:34:27.593688	2026-09-22 13:29:07.554724	Riser Bkt. Staking Inner M/C	209	cam_upr_rinforce_s_a_uprinrbkt_pjw_m_c_6_way_1790063911	2	f			\N		\N		\N	[]	[]	f	register	D6001	D6002	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 96	20	192.168.32.54	502	MC4E	D6001	D6002	D6005	D6048				16.00	17.00	0.50	2026-07-15 16:00:53.018521	2026-08-06 09:21:15.519308	Press in REC with PIN Hinge & Date Code Stamping	92	cam_hook_spring_magw_hinge_pin_insert_1784264335	4	f			\N		\N		\N	[]	[]	f	register	D6001	D6002	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
+153	31	192.168.36.74	5002	MC4E	D101	D102	D6005	D6048				19.00	19.50	0.50	2026-08-19 12:34:06.307533	2026-09-23 16:28:42.038411	Squaring Machine	149	cam_slit_cut_machine_1787549672	5	f			\N		\N		\N	[]	[]	f	register	D101	D102	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 159	35	192.168.34.72	502	MC4E	D6001	D6002	D6005	D6048				11.67	12.00	0.50	2026-09-03 14:43:02.235628	2026-09-19 12:11:20.963812	Upr Rail ×Bolt Fr PJW M/C  ( 4 Way )	156	cam_upr_rail_bolt_fr_pjw_m_c_4_way_1789019215	3	f			\N		\N		\N	[]	[]	f	register	D6001	D6002	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 131	28	192.168.32.114	5002	MC4E	D6001	D6002	D6005	D6048				16.00	17.00	0.50	2026-08-13 14:55:16.871189	2026-08-18 11:01:24.766306	Press in REC with PIN Hinge & Date Code Stamping	126	cam_press_in_rec_with_pin_hinge_date_code_stamping_1787031081	5	f			\N		\N		\N	[]	[]	f	register	D6001	D6002	L110	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 114	27	192.168.32.75	5002	MC4E	D6001	D6002	D6005	D6048				16.00	17.00	0.50	2026-08-10 13:43:00.191206	2026-08-10 14:29:26.098271	Mag Welding Relese x Hinge Pin	108	cam_mag_welding_relese_x_hinge_pin_1786350445	6	f			\N		\N		\N	[]	[]	f	register	D6001	D6002	L110	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
@@ -28341,42 +29627,42 @@ COPY public.mes_plc_configs (id, line_id, plc_ip, plc_port, protocol, ok_bit_add
 125	2	192.168.30.137	502	MC4E	D101	D102	D6005	D6048				15.00	16.00	0.50	2026-08-12 12:32:50.126192	2026-08-13 12:55:39.192407	Advance Bending Machine 	2	cam_final_inspection_1784645338	7	f			\N		\N		\N	[]	[]	f	register	D101	D102	L110	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 134	29	192.168.32.97	5002	MC4E	D6001	D6002	D6005	D6048				16.00	17.00	0.50	2026-08-17 11:28:36.142913	2026-08-18 11:10:10.18297	Final Inspection Machine	\N	cam_final_inspection_machine_1787031607	8	f			\N		\N		\N	[]	[]	f	register	D6001	D6002	L110	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 54	13	192.168.30.112	5002	MC4E	D601	D602	D6005	D1016				15.00	16.00	0.50	2026-06-27 15:06:34.525608	2026-07-24 16:37:03.367283	Lower Rail Grease & Bar Coding M/c	59	cam_upper_rail_greasing_1778650524	3	f			\N		\N		\N	[]	[]	f	register	D601	D602	L110	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
-153	31	192.168.36.74	5002	MC4E	D101	D102	D6005	D6048				3.90	4.00	0.50	2026-08-19 12:34:06.307533	2026-08-24 11:36:55.320905	Squaring Machine	149	cam_slit_cut_machine_1787549672	5	f			\N		\N		\N	[]	[]	f	register	D101	D102	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
+92	20	192.168.32.57	5002	MC4E	D6001	D6002	D6005	D6048				16.20	17.00	0.50	2026-07-15 15:14:59.632212	2026-09-24 11:59:51.352914	Final Inspection	\N	cam_final_inspection_machine_1784264923	7	f			\N		\N		\N	[]	[]	f	register	D6001	D6002	L6001	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 74	15	192.168.30.174	5002	MC4E	D101	D102	D6005	D6048				30.00	30.00	0.50	2026-07-02 17:29:58.680526	2026-08-05 15:12:28.057976	Rail Assy M/c #02	69	cam_rail_assy_02_cam_1783077400	5	f			\N		\N		\N	[]	[]	f	register	D101	D102	L110	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 57	13	192.168.30.110	5002	MC4E	D101	D102	D6005	D1016				15.00	16.00	0.50	2026-06-27 15:10:37.975303	2026-08-05 15:22:12.463517	Upper Rail Greasing m/c	59	cam_upper_rail_greasing_m_c_1782556804	1	f			\N		\N		\N	[]	[]	f	register	D101	D102	L110	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 53	13	192.168.30.111	5002	MC4E	D101	D102	D6005	D1016				15.00	16.00	0.50	2026-06-27 15:05:40.41751	2026-08-05 15:22:31.905562	Lock Bar Insert M/c	59	cam_upper_rail_greasing_1778650524	2	f			\N		\N		\N	[]	[]	f	register	D101	D102	L110	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 55	13	192.168.30.113	5002	MC4E	D101	D102	D6005	D1016				30.00	30.00	0.50	2026-06-27 15:08:17.330055	2026-08-05 15:22:59.975077	Rail Assy M/c # 01	59	cam_rail_assy_m_c_01_1782554872	4	f			\N		\N		\N	[]	[]	f	register	D101	D102	L110	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
+203	33	192.168.34.54	502	MC4E	D6001	D6002	D6005	D6048				11.60	12.00	0.50	2026-09-08 16:40:25.535249	2026-09-22 13:26:30.729392	BOLT STRENGTH CHECKING (4WAY)	\N	cam_bolt_strength_checking_4way_1790063788	5	f			\N		\N		\N	[]	[]	f	register	D6001	D6002	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 56	13	192.168.30.114	5002	MC4E	D101	D102	D6005	D1016				30.00	30.00	0.50	2026-06-27 15:09:04.21169	2026-08-05 15:23:27.297775	Rail Assy M/c # 02	59	cam_rail_assy_m_c_02_1782554915	5	f			\N		\N		\N	[]	[]	f	register	D101	D102	L110	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
+139	30	192.168.36.51	503	MC4E	D101	D102	D6005	D6048				25.00	25.00	0.50	2026-08-17 12:28:50.463418	2026-09-23 16:32:46.829122	YLM Bending Machine-02	135	cam_ylm_bending_machine_02_1787031702	3	f			\N		\N		\N	[]	[]	f	register	D101	D102	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 59	13	192.168.30.116	5002	MC4E	D101	D102	D6005	D1016				15.00	16.00	0.50	2026-06-27 15:13:14.884017	2026-08-25 23:50:36.295407	Final Inspection M/c	\N	cam_final_inspection_m_c_1782556863	\N	f			\N		\N		\N	[]	[]	f	register	D601	D602	L110	\N	\N	\N	\N	\N	\N	\N	1	2	L230	5.00	\N	\N	\N	M100
-211	38	192.168.34.41	502	MC4E	D6001	D6002	D6005	D6048				20.88	21.00	0.50	2026-09-10 11:34:27.593688	2026-09-10 11:34:27.593688	Riser Bkt. Staking Inner M/C	209		2	f			\N		\N		\N	[]	[]	f	register	D6001	D6002	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
-203	33	192.168.34.54	502	MC4E	D6001	D6002	D6005	D6048				11.60	12.00	0.50	2026-09-08 16:40:25.535249	2026-09-08 16:40:25.535249	BOLT STRENGTH CHECKING (4WAY)	\N		5	f			\N		\N		\N	[]	[]	f	register	D6001	D6002	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 12	2	192.168.30.135	5002	MC4E	M5700	L109	D6005	D6048		M157		15.00	16.00	0.50	2026-05-14 11:08:55.362498	2026-08-25 23:50:36.295407	Semi-Auto	2	cam_semi_auto_1784269536	6	t	M5700	D530	13	D5801	20	D1600	6	["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20"]	[0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]	f	register	D5201	D5202	L110	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	M5115	M5116	M1151	\N
 197	36	192.168.34.83	502	MC4E	L108	L109	D6005	D6048				11.39	12.00	0.50	2026-09-08 14:51:48.724139	2026-09-10 10:42:28.418251	Upr ×Rinforce S/A×UprINRBKT PJW M/C 	193	cam_upr_rail_bolt_fr_pjw_m_c_4_way_1788930828	4	f			\N		\N		\N	[]	[]	f	register	D6001	D6002	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 95	20	192.168.32.53	5002	MC4E	D6001	D6002	D6005	D6048				16.00	17.00	0.50	2026-07-15 15:55:05.827164	2026-08-06 09:19:19.006551	MAG Welding of  Lwr Hook with Lwr Arrm	92	cam_hook_spring_mag_welding_inside_1784264267	3	f			\N		\N		\N	[]	[]	f	register	D6001	D6002	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 97	20	192.168.32.55	5002	MC4E	D6001	D6002	D6005	D6048				16.00	17.00	0.50	2026-07-15 16:07:55.712017	2026-08-06 09:25:32.520393	Mag Welding Relese x Hinge Pin	92	cam_release_arm_mag_welding_inside_1784264562	5	f			\N		\N		\N	[]	[]	f	register	D6001	D6002	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
-104	21	192.168.36.34	5002	MC4E	D101	D102	D6005	D6048				3.90	4.00	0.50	2026-07-20 14:52:12.852388	2026-08-17 15:18:33.874884	Squaring Machine	100	cam_ylm_bending_01_1785943035	5	f			\N		\N		\N	[]	[]	f	register	D101	D102	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
+94	20	192.168.32.51	5002	MC4E	D6001	D6002	D6005	D6048				32.00	33.00	0.50	2026-07-15 15:45:23.417933	2026-09-23 16:32:55.068541	MAG Welding of Arm x Recliner Station 1	92	cam_round_rec_st_1_1784263578	2	f			\N		\N		\N	[]	[]	f	register	D6001	D6002	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 93	20	192.168.32.50	502	MC4E	D6001	D6002	D6005	D6048				16.00	17.00	0.50	2026-07-15 15:37:29.252763	2026-08-07 09:19:32.000514	Projection Welding of Washer with Lwr Arm UprBKTｘNut PJW M/C	92	cam_pwm_38_round_rec_1784264068	1	f			\N		\N		\N	[]	[]	f	register	D6001	D6002	L110	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 98	20	192.168.32.56	5002	MC4E	D6001	D6002	D6005	D6048				16.00	17.00	0.50	2026-07-15 16:12:10.954546	2026-08-07 09:20:19.785366	SP Insert Fixture with Machine	92	cam_release_arm_magw_torsion_spring_fitment_1784264713	6	f			\N		\N		\N	[]	[]	f	register	D6001	D6002	L6001	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
-102	21	192.168.36.31	502	MC4E	D103	D104	D6005	D6048				15.50	15.60	0.37	2026-07-20 14:47:57.049619	2026-08-18 08:59:42.443215	YLM Bending Machine-01	100	cam_ylm_bending_02_1785943069	2	f			\N		\N		\N	[]	[]	f	register	D103	D104	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
+198	34	192.168.34.64	502	MC4E	D6001	D6002	D6005	D6048				11.60	12.00	0.50	2026-09-08 15:54:21.91061	2026-09-22 13:21:56.46127	BOLT STRENGTH CHECKING (4WAY)	\N	cam_bolt_strength_checking_4way_1790063513	5	f			\N		\N		\N	[]	[]	f	register	D6001	D6002	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
+103	21	192.168.36.31	503	MC4E	D101	D102	D6005	D6048				19.00	19.00	0.50	2026-07-20 14:50:36.491594	2026-09-23 16:35:22.12895	YLM Bending Machine-02	100	cam_squaring_machine_1785943176	3	f			\N		\N		\N	[]	[]	f	register	D101	D102	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 160	35	192.168.34.73	502	MC4E	D6001	D6002	D6005	D6048				11.67	12.00	0.50	2026-09-03 14:45:17.093658	2026-09-19 12:11:50.583934	Upr ×Rinforce S/A×UprINRBKT PJW M/C	156	cam_upr_rail_bolt_fr_pjw_m_c_4_way_1789019215	4	f			\N		\N		\N	[]	[]	f	register	D6001	D6002	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 115	27	192.168.32.76	5002	MC4E	D6001	D6002	D6005	D6048				16.00	17.00	0.50	2026-08-10 13:44:57.492546	2026-08-10 14:29:35.342686	SP Insert Fixture with Machine	108	cam_sp_insert_fixture_with_machine_1786350490	7	f			\N		\N		\N	[]	[]	f	register	D6001	D6002	L110	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
-154	31	192.168.36.71	504	MC4E	D105	D106	D6005	D6048				15.00	16.00	0.50	2026-08-19 12:35:42.20359	2026-09-03 09:57:34.012665	Both Karakuri Middle Shelf	149	cam_both_karakuri_middle_shelf_1787551012	4	f			\N		\N		\N	[]	[]	f	register	D105	D106	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
+154	31	192.168.36.71	504	MC4E	D105	D106	D6005	D6048				15.00	16.00	0.50	2026-08-19 12:35:42.20359	2026-09-22 09:37:51.814147	Both Karakuri Middle Shelf	149	cam_both_karakuri_middle_shelf_1787551012	4	f			\N		\N		\N	[]	[]	f	register	D105	D106	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 117	5	192.168.32.30	5002	MC4E	D6001	D6002	D6005	D6048				16.00	17.00	0.50	2026-08-11 11:49:32.445779	2026-08-13 10:09:22.586879	Projection Welding of Washer with Lwr Arm UprBKTｘNut PJW M/C	116	cam_projection_welding_of_washer_with_lwr_arm_uprbkt_nut_pjw_m_c_1786595957	1	f			\N		\N		\N	[]	[]	f	register	D6001	D6002	L110	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 122	5	192.168.32.35	5002	MC4E	D6001	D6002	D6005	D6048				16.00	17.00	0.50	2026-08-11 12:00:20.151847	2026-08-13 10:14:15.119933	Mag Welding Relese x Hinge Pin	116	cam_mag_welding_relese_x_hinge_pin_1786596253	6	f			\N		\N		\N	[]	[]	f	register	D6001	D6002	L110	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
-103	21	192.168.36.31	503	MC4E	D101	D102	D6005	D6048				15.50	15.60	0.50	2026-07-20 14:50:36.491594	2026-09-03 09:57:55.735264	YLM Bending Machine-02	100	cam_squaring_machine_1785943176	3	f			\N		\N		\N	[]	[]	f	register	D101	D102	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
-100	21	192.168.36.35	5002	MC4E	D101	D102	D6005	D6048				9.50	10.00	0.50	2026-07-20 14:09:16.661862	2026-08-18 10:19:24.264019	Slit Cut Machine	\N	cam_ylm_bending_01_1785943035	6	f			\N		\N		\N	[]	[]	f	register	D101	D102	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
+101	21	192.168.36.30	5002	MC4E	D101	D102	D6005	D6048				19.00	19.00	0.50	2026-07-20 14:45:52.734834	2026-09-23 16:41:17.475068	Squeezing Machine	100		1	f			\N		\N		\N	[]	[]	f	register	D101	D102	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
+135	30	192.168.36.55	5002	MC4E	D101	D102	D6005	D6048				25.00	26.00	0.50	2026-08-17 12:20:16.637195	2026-09-23 16:21:36.286739	Slit Cut Machine	\N	cam_slit_cut_machine_1787031530	6	f			\N		\N		\N	[]	[]	f	register	D101	D102	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 127	28	192.168.32.110	5002	MC4E	D6001	D6002	D6005	D6048				16.00	17.00	0.50	2026-08-13 14:39:45.174781	2026-08-18 10:58:02.871971	Projection Welding of Washer with Lwr Arm UprBKTｘNut PJW	126	cam_projection_welding_of_washer_with_lwr_arm_uprbkt_nut_pjw_1787030875	1	f			\N		\N		\N	[]	[]	f	register	D6001	D6002	L110	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 132	28	192.168.32.115	5002	MC4E	D6001	D6002	D6005	D6048				16.00	17.00	0.50	2026-08-13 14:58:01.377446	2026-08-18 11:02:04.44583	Mag Welding Relese x Hinge Pin	126	cam_mag_welding_relese_x_hinge_pin_1787031121	6	f			\N		\N		\N	[]	[]	f	register	D6001	D6002	L110	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 140	29	192.168.32.90	5002	MC4E	D6001	D6002	D6005	D6048				16.00	17.00	0.50	2026-08-17 13:30:09.737502	2026-08-18 11:04:50.300877	Projection Welding of Washer with Lwr Arm UprBKTｘNut PJW M/C	134	cam_projection_welding_of_washer_with_lwr_arm_uprbkt_nut_pjw_m_c_1787031287	1	f			\N		\N		\N	[]	[]	f	register	D6001	D6002	L110	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
-101	21	192.168.36.30	5002	MC4E	D101	D102	D6005	D6048				8.50	8.60	0.50	2026-07-20 14:45:52.734834	2026-08-05 20:46:16.641576	Squeezing Machine	100		1	f			\N		\N		\N	[]	[]	f	register	D101	D102	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 145	29	192.168.32.95	5002	MC4E	D6001	D6002	D6005	D6048				16.00	17.00	0.50	2026-08-17 13:40:55.045991	2026-08-18 11:08:42.819003	Mag Welding Relese x Hinge Pin	134	cam_mag_welding_relese_x_hinge_pin_1787031517	6	f			\N		\N		\N	[]	[]	f	register	D6001	D6002	L110	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
-94	20	192.168.32.51	5002	MC4E	D6001	D6002	D6005	D6048				16.00	17.00	0.50	2026-07-15 15:45:23.417933	2026-08-06 09:18:23.649127	MAG Welding of Arm x Recliner Station 1	92	cam_round_rec_st_1_1784263578	2	f			\N		\N		\N	[]	[]	f	register	D6001	D6002	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
-135	30	192.168.36.55	5002	MC4E	D101	D102	D6005	D6048				19.00	19.10	0.50	2026-08-17 12:20:16.637195	2026-08-18 11:08:55.956331	Slit Cut Machine	\N	cam_slit_cut_machine_1787031530	6	f			\N		\N		\N	[]	[]	f	register	D101	D102	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
-198	34	192.168.34.64	502	MC4E	D6001	D6002	D6005	D6048				11.60	12.00	0.50	2026-09-08 15:54:21.91061	2026-09-08 15:54:21.91061	BOLT STRENGTH CHECKING (4WAY)	\N		5	f			\N		\N		\N	[]	[]	f	register	D6001	D6002	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
+102	21	192.168.36.31	502	MC4E	D103	D104	D6005	D6048				19.00	19.00	0.37	2026-07-20 14:47:57.049619	2026-09-23 16:34:56.915616	YLM Bending Machine-01	100	cam_ylm_bending_02_1785943069	2	f			\N		\N		\N	[]	[]	f	register	D103	D104	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
+104	21	192.168.36.34	5002	MC4E	D101	D102	D6005	D6048				19.00	19.00	0.50	2026-07-20 14:52:12.852388	2026-09-23 16:30:00.883318	Squaring Machine	100	cam_ylm_bending_01_1785943035	5	f			\N		\N		\N	[]	[]	f	register	D101	D102	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
+204	33	192.168.34.50	502	MC4E	D6001	D6002	D6005	D6048				11.60	12.00	0.50	2026-09-08 16:42:10.788388	2026-09-22 13:24:42.733815	Rainforce Bolt PJW M/C (4 Way)	203	cam_rainforce_bolt_pjw_m_c_4_way_1790063679	1	f			\N		\N		\N	[]	[]	f	register	D6001	D6002	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 76	19	192.168.30.196	5002	MC4E	D101	D102	D6005	D1016				15.00	16.00	0.50	2026-07-03 17:12:58.630136	2026-08-25 23:50:36.295407	Final Inspection M/c	\N	cam_ymc_final_inspec_1784952790	\N	f			\N		\N		\N	[]	[]	f	register	D101	D102	L110	\N	\N	\N	\N	\N	\N	\N	1	2	L230	5.00	\N	\N	\N	M100
-204	33	192.168.34.50	502	MC4E	D6001	D6002	D6005	D6048				11.60	12.00	0.50	2026-09-08 16:42:10.788388	2026-09-08 16:42:10.788388	Rainforce Bolt PJW M/C (4 Way)	203		1	f			\N		\N		\N	[]	[]	f	register	D6001	D6002	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
-212	38	192.168.34.42	5002	MC4E	D6001	D6002	D6005	D6048				20.88	20.98	0.50	2026-09-10 11:38:31.44864	2026-09-10 11:38:31.44864	Mag WELD Upr Brkt With T-Nut ＆Bolt M/C	209		3	f			\N		\N		\N	[]	[]	f	register	D6001	D6002	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
+212	38	192.168.34.42	5002	MC4E	D6001	D6002	D6005	D6048				20.88	20.98	0.50	2026-09-10 11:38:31.44864	2026-09-22 13:29:45.161918	Mag WELD Upr Brkt With T-Nut ＆Bolt M/C	209	cam_mag_weld_upr_brkt_with_t_nut_bolt_m_c_1790063983	3	f			\N		\N		\N	[]	[]	f	register	D6001	D6002	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 75	15	192.168.30.175	5002	MC4E	D5201	D5202	D6005	D6048				15.00	16.00	0.50	2026-07-02 17:32:46.048449	2026-08-25 23:50:36.295407	Semi-Automatic & Bending M/c	69	cam_semi_auto_cam_1783077457	6	t	M5700	D530	13	D5801	20	D1600	6	["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20"]	[0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]	f	register	D5201	D5202	L110	D505	\N	\N	\N	\N	\N	D5812	1	2	\N	2.00	M5115	M5116	M1151	\N
+100	21	192.168.36.35	5002	MC4E	D101	D102	D6005	D6048				19.00	19.50	0.50	2026-07-20 14:09:16.661862	2026-09-23 16:19:51.041102	Slit Cut Machine	\N	cam_ylm_bending_01_1785943035	6	f			\N		\N		\N	[]	[]	f	register	D101	D102	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 34	11	192.168.30.75	5002	MC4E	M5700	L109	D6005	D6048				15.00	16.00	0.50	2026-06-25 15:54:54.412575	2026-08-25 23:50:36.295407	Semi Automatic & Bending M/c	35	cam_semi_automatic_bending_m_c_1782450100	6	t	M5700	D530	13	D5801	20	D1600	6	["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20"]	[0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]	f	register	D5201	D5202	L110	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	M5115	M5116	M1151	\N
 41	4	192.168.30.55	5002	MC4E	M5700	L109	D6005	D6048				15.00	16.00	0.50	2026-06-26 10:18:07.0066	2026-08-25 23:50:36.295407	Semi Automatic & Bending M/c	42	cam_semi_automatic_bending_m_c_1782385341	6	t	M5700	D530	13	D5801	20	D1600	6	["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20"]	[0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]	f	register	D5201	D5202	L110	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	M5115	M5116	M1151	\N
 58	13	192.168.30.115	5002	MC4E	D5201	D5202	D6005	D1016				15.00	16.00	0.50	2026-06-27 15:11:51.707453	2026-08-25 23:50:36.295407	Semi Automatic & Bending M/c	59	cam_semi_automatic_bending_m_c_1782554942	6	t	M5700	D530	13	D5801	20	D1600	6	["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20"]	[0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]	f	register	D5201	D5202		\N	\N	\N	\N	\N	\N	D5812	1	2	\N	2.00	M5115	M5116	M1151	\N
@@ -28425,11 +29711,9 @@ COPY public.mes_processes (id, line_id, process_name, required_skill_level, requ
 39	20	MAG Welding of  Lwr Hook with Lwr Arrm	2	1	1	30	t	2026-08-13 16:14:28.485902	2026-09-19 15:36:17.701635	1349
 40	20	Press in REC with PIN Hinge & Date Code Stamping	2	1	1	40	t	2026-08-13 16:14:28.485902	2026-09-19 15:36:17.835281	1350
 42	20	SP Insert Fixture with Machine	2	1	1	60	t	2026-08-13 16:14:28.485902	2026-09-19 15:36:18.189192	1352
-43	20	Final Inspection Machine	3	1	1	70	t	2026-08-13 16:14:28.485902	2026-09-19 15:36:18.335583	1353
 44	20	Projection Welding of Washer with Lwr Arm UprBKTｘNut PJW M/C	2	1	1	10	t	2026-08-13 16:14:28.485902	2026-09-19 15:36:18.579487	1347
 24	28	MAG Welding of Arm x Recliner	2	1	1	20	t	2026-08-13 14:36:50.619753	2026-09-19 15:36:39.199476	1266
 25	28	MAG Welding of  Lwr Hook with Lwr Arrm	2	1	1	30	t	2026-08-13 14:36:50.619753	2026-09-19 15:36:39.341557	1267
-67	12	Final Inspection M/c	3	1	1	100	t	2026-08-15 08:18:15.006634	2026-09-07 17:04:27.647157	1247
 26	28	Press in REC with PIN Hinge & Date Code Stamping	2	1	1	40	t	2026-08-13 14:36:50.619753	2026-09-19 15:36:39.452002	1268
 27	28	Mag Welding Relese x Hinge Pin	2	1	1	50	t	2026-08-13 14:36:50.619753	2026-09-19 15:36:39.575908	1269
 28	28	SP Insert Fixture with Machine	2	1	1	60	t	2026-08-13 14:36:50.619753	2026-09-19 15:36:39.709639	1270
@@ -28450,12 +29734,19 @@ COPY public.mes_processes (id, line_id, process_name, required_skill_level, requ
 22	5	Final Inspection Machine	3	1	1	60	f	2026-06-25 10:42:52.31037	2026-09-19 15:51:12.676177	371
 23	5	Projection Welding of Washer with Lwr Arm UprBKTｘNut PJW M/C	3	1	1	70	f	2026-06-25 10:42:52.31037	2026-09-19 15:51:12.796788	365
 49	5	SP Insert Fixture with Machine	3	1	1	60	t	2026-08-13 16:14:35.193002	2026-09-19 15:52:59.810304	1121
-50	5	Final Inspection Machine	3	1	1	70	t	2026-08-13 16:14:35.193002	2026-09-19 15:52:59.929619	1122
-51	5	Projection Welding of Washer with Lwr Arm UprBKTｘNut PJW M/C	3	1	1	10	t	2026-08-13 16:14:35.193002	2026-09-19 15:53:00.025552	1123
+43	20	Final Inspection Machine	2	1	1	70	t	2026-08-13 16:14:28.485902	2026-09-23 09:01:54.114456	1353
 46	5	MAG Welding of  Lwr Hook with Lwr Arrm	3	1	1	30	t	2026-08-13 16:14:35.193002	2026-09-19 15:52:55.686739	1118
 45	5	MAG Welding of Arm x Recliner	3	1	1	20	t	2026-08-13 16:14:35.193002	2026-09-19 15:53:16.028484	1117
 47	5	Press in REC with PIN Hinge & Date Code Stamping	3	1	1	40	t	2026-08-13 16:14:35.193002	2026-09-19 15:52:56.269263	1119
+67	12	Final Inspection M/c	2	1	1	100	t	2026-08-15 08:18:15.006634	2026-09-23 09:11:18.973222	1247
 48	5	Mag Welding Relese x Hinge Pin	3	1	1	50	t	2026-08-13 16:14:35.193002	2026-09-19 15:52:57.000006	1120
+50	5	Final Inspection Machine	2	1	1	70	t	2026-08-13 16:14:35.193002	2026-09-23 09:13:31.9049	1122
+51	5	Projection Welding of Washer with Lwr Arm UprBKTｘNut PJW M/C	2	1	1	10	t	2026-08-13 16:14:35.193002	2026-09-23 09:14:25.167946	1123
+147	5	Oiling	1	1	1	80	t	2026-09-22 17:57:49.664113	2026-09-22 17:57:49.664113	\N
+148	20	Oiling	1	1	1	80	t	2026-09-22 17:57:49.664113	2026-09-22 17:57:49.664113	\N
+149	27	Oiling	1	1	1	80	t	2026-09-22 17:57:49.664113	2026-09-22 17:57:49.664113	\N
+150	28	Oiling	1	1	1	80	t	2026-09-22 17:57:49.664113	2026-09-22 17:57:49.664113	\N
+151	29	Oiling	1	1	1	80	t	2026-09-22 17:57:49.664113	2026-09-22 17:57:49.664113	\N
 3	2	Lower Rail Grease & Bar Coding M/c	1	1	2	30	t	2026-05-12 00:31:58.654237	2026-09-19 15:24:38.292982	162
 6	2	Semi Automatic & Bending M/c	1	1	2	40	t	2026-05-12 00:31:58.654237	2026-09-19 15:24:38.57238	165
 7	2	E_Ring,Lighter protector Assy & Pop Gun Riveter	1	1	2	70	t	2026-05-12 00:31:58.654237	2026-09-19 15:24:38.917952	166
@@ -28477,8 +29768,9 @@ COPY public.mes_processes (id, line_id, process_name, required_skill_level, requ
 122	8	Hinge Pin Push Nut In Recliner 2UA M/c	2	1	1	10	t	2026-08-15 08:29:40.660692	2026-09-21 16:42:35.006383	1249
 123	7	Gear Lifter Bush Pressing	2	1	1	10	t	2026-08-15 08:29:40.670874	2026-09-21 16:42:42.839837	1250
 129	10	STICKER PRINT & PASTING M/C	2	1	1	10	t	2026-08-15 08:29:40.745229	2026-09-21 16:44:03.986659	1329
-130	10	STICKER PRINT & PASTING M/C	2	1	1	20	t	2026-08-15 08:29:40.745229	2026-09-21 16:44:04.006884	1328
-113	18	Final Inspection  M/C	3	1	1	130	t	2026-08-15 08:18:15.080007	2026-08-15 08:18:15.080007	1116
+8	2	Final Inspection M/c	2	1	1	100	t	2026-05-12 00:31:58.654237	2026-09-23 09:12:14.764327	167
+113	18	Final Inspection  M/C	2	1	1	130	t	2026-08-15 08:18:15.080007	2026-09-23 09:12:27.784355	1116
+130	10	STICKER PRINT & PASTING M/C	2	1	1	20	f	2026-08-15 08:29:40.745229	2026-09-22 17:57:49.664113	1328
 124	21	Pipe Knoching/Squeezing  SPM	3	1	1	10	t	2026-08-15 08:29:40.674829	2026-08-15 08:29:40.674829	1313
 125	21	YLM Pipe Bending (CNC20F)	3	1	1	20	t	2026-08-15 08:29:40.674829	2026-08-15 08:29:40.674829	1314
 126	21	YLM Pipe Bending (CNC20F)	3	1	1	30	t	2026-08-15 08:29:40.674829	2026-08-15 08:29:40.674829	1315
@@ -28488,12 +29780,6 @@ COPY public.mes_processes (id, line_id, process_name, required_skill_level, requ
 2	2	Lock Bar Insert M/c	2	1	2	20	t	2026-05-12 00:31:58.654237	2026-09-07 16:56:31.818243	161
 4	2	Rail Assy M/c # 01	2	1	2	50	t	2026-05-12 00:31:58.654237	2026-09-07 16:56:31.818243	163
 5	2	Rail Assy M/c # 02	2	1	2	60	t	2026-05-12 00:31:58.654237	2026-09-07 16:56:31.818243	164
-8	2	Final Inspection M/c	3	1	1	100	t	2026-05-12 00:31:58.654237	2026-09-07 16:56:31.818243	167
-121	4	Final Inspection M/c	3	1	1	100	t	2026-08-15 08:18:15.092914	2026-09-07 17:04:27.647157	1207
-84	11	Final Inspection M/c	3	1	1	100	t	2026-08-15 08:18:15.026691	2026-09-07 17:04:27.647157	1239
-92	13	Final Inspection M/c	3	1	1	100	t	2026-08-15 08:18:15.04051	2026-09-07 17:04:27.647157	1165
-76	14	Final Inspection M/c	3	1	1	100	t	2026-08-15 08:18:15.018993	2026-09-07 17:04:27.647157	1325
-100	19	Final Inspection M/c	3	1	1	100	t	2026-08-15 08:18:15.057511	2026-09-07 17:04:27.647157	1361
 140	29	MAG Welding of Arm x Recliner	1	1	1	20	t	2026-09-07 17:20:59.048299	2026-09-07 17:23:00.533514	1208
 141	29	MAG Welding of  Lwr Hook with Lwr Arrm	1	1	1	30	t	2026-09-07 17:20:59.048299	2026-09-07 17:23:00.57975	1209
 142	29	Press in REC with PIN Hinge & Date Code Stamping	1	1	1	40	t	2026-09-07 17:20:59.048299	2026-09-07 17:23:00.649693	1210
@@ -28515,7 +29801,7 @@ COPY public.mes_processes (id, line_id, process_name, required_skill_level, requ
 75	14	E_Ring,Lighter protector Assy & Pop Gun Riveter	1	1	1	70	t	2026-08-15 08:18:15.018993	2026-09-19 15:21:24.852883	1324
 57	15	Semi Automatic & Bending M/c	1	1	1	40	t	2026-08-15 08:18:14.99637	2026-09-08 17:17:07.97225	1336
 58	15	E_Ring,Lighter protector Assy & Pop Gun Riveter	1	1	1	70	t	2026-08-15 08:18:14.99637	2026-09-08 17:17:08.288605	1337
-59	15	Final Inspection M/c	3	1	1	100	t	2026-08-15 08:18:14.99637	2026-09-08 17:17:08.813021	1338
+84	11	Final Inspection M/c	2	1	1	100	t	2026-08-15 08:18:15.026691	2026-09-23 09:11:49.641819	1239
 53	15	Lock Bar Insert M/c	2	1	1	20	t	2026-08-15 08:18:14.99637	2026-09-19 15:19:51.440133	1332
 55	15	Rail Assy M/c # 01	2	1	1	50	t	2026-08-15 08:18:14.99637	2026-09-19 15:19:51.619303	1334
 56	15	Rail Assy M/c # 02	2	1	1	60	t	2026-08-15 08:18:14.99637	2026-09-19 15:19:51.732428	1335
@@ -28551,6 +29837,11 @@ COPY public.mes_processes (id, line_id, process_name, required_skill_level, requ
 119	4	Semi Automatic & Bending M/c	1	1	1	40	t	2026-08-15 08:18:15.092914	2026-09-19 15:33:07.780356	1205
 120	4	E_Ring,Lighter protector Assy & Pop Gun Riveter	1	1	1	70	t	2026-08-15 08:18:15.092914	2026-09-19 15:33:07.899839	1206
 132	4	Manual Movement	2	1	1	90	t	2026-09-07 17:04:27.647157	2026-09-19 15:33:08.026922	\N
+92	13	Final Inspection M/c	2	1	1	100	t	2026-08-15 08:18:15.04051	2026-09-23 09:10:26.675606	1165
+59	15	Final Inspection M/c	2	1	1	100	t	2026-08-15 08:18:14.99637	2026-09-23 09:10:50.906559	1338
+76	14	Final Inspection M/c	2	1	1	100	t	2026-08-15 08:18:15.018993	2026-09-23 09:11:32.914951	1325
+100	19	Final Inspection M/c	2	1	1	100	t	2026-08-15 08:18:15.057511	2026-09-23 09:12:01.594342	1361
+121	4	Final Inspection M/c	2	1	1	100	t	2026-08-15 08:18:15.092914	2026-09-23 09:13:02.084475	1207
 \.
 
 
@@ -28559,9 +29850,9 @@ COPY public.mes_processes (id, line_id, process_name, required_skill_level, requ
 --
 
 COPY public.mes_push_subscriptions (id, user_id, endpoint, p256dh, auth, user_agent, created_at, last_ok, fail_count) FROM stdin;
-497	1	https://wns2-pn1p.notify.windows.com/w/?token=BQYAAACNjR0Ie%2f0Xc6DMrITtdVK2skzW%2bYenjDEPjvQmMIHAjInYEAf9Ki8jw1Jm0ftyZzmrhEJUIA11PzNwGHJiWiCPJq5uvfA0M32efzm%2bnmvRoT4MrAwr6Rqt3UnNY0sSohgzAYXu46dx8YZaG6esBIdQKKt1YYVg3aksuE7SUhyxOTAZCxlAZ25GWa0BAgkBjG0jErAsd6CPd0KMM83Q6cdnRHZkCxcOaH%2fsmvPlpY1covDf0xQsoTYtbJD33%2fJGKIexFIM%2fLcjEfztqmXhGOzde%2brkduwmQEbjnH7r1sK1Qxlxl%2b%2fo7BPybB5WxzyvvXdg%3d	BHzBIlu5hYAhT7BI_QJ_IhGn72A36v86fijR649ljrWxV5lkeSH0N_funyJHI1OtIfJ3pzelCY9RM4HGrWVRd4Q	0ivxGr12505pj87j7QzICA	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0	2026-09-19 19:24:27.094176+05:30	2026-09-21 22:45:06.367614+05:30	0
-521	1	https://fcm.googleapis.com/fcm/send/fpdVCNpvxm8:APA91bHnZTYqF5lBLANr6xqQw1HkeB5XyLCMY1Swil5f8m5-zmkrGriDEAnlF0yt8J0-Yuetd_0mznk24G2DRT26zkM8jtWoj6aOx3Y9vjSvR6adPWQBmndfFcT2eJ402brOJJzo2K0Y	BPzaeyLDbMPYhSb4_oZcPSomyf6a3SX0SunJFCbYGgRinvv7vjQwzMixxhLT4ceqXZUT8pUk1U9cXJuM9siKSsU	VbgJfiG4ioLCFRwV56K-SA	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36	2026-09-20 07:53:10.740536+05:30	2026-09-21 22:45:07.056973+05:30	0
-17	1	https://updates.push.services.mozilla.com/wpush/v2/gAAAAABqn-zmpmhLUVLG1KHXsKY-3RvhERB75tLzDFjz1cwuYoZPSx2pD0E26sEQgnZelbuFI369m3XvtE_6_HDLJuBU260uq-gsHFbdMM0fXP1j5fU0yrYZhmGp7zYGQm7kgd4YL3qwRv_IeNR0yZTZgtWQUTwBS1Ma_w1EwChV2N_pcWg1cZY	BNVmXZOFEcMlyKvKQbsAtW-0NNItzeZg1WpOx1bmsM0BOPCibWhzBkmocA0rjCaoYWawLSkdBOirpb0DHxQAdLI	z_5fXlAeEB0GhO9tq0RYVw	Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:156.0) Gecko/20100101 Firefox/156.0	2026-09-08 16:39:30.503837+05:30	2026-09-21 22:45:04.822216+05:30	0
+521	1	https://fcm.googleapis.com/fcm/send/fpdVCNpvxm8:APA91bHnZTYqF5lBLANr6xqQw1HkeB5XyLCMY1Swil5f8m5-zmkrGriDEAnlF0yt8J0-Yuetd_0mznk24G2DRT26zkM8jtWoj6aOx3Y9vjSvR6adPWQBmndfFcT2eJ402brOJJzo2K0Y	BPzaeyLDbMPYhSb4_oZcPSomyf6a3SX0SunJFCbYGgRinvv7vjQwzMixxhLT4ceqXZUT8pUk1U9cXJuM9siKSsU	VbgJfiG4ioLCFRwV56K-SA	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36	2026-09-20 07:53:10.740536+05:30	2026-09-24 13:45:04.862551+05:30	0
+497	1	https://wns2-pn1p.notify.windows.com/w/?token=BQYAAACNjR0Ie%2f0Xc6DMrITtdVK2skzW%2bYenjDEPjvQmMIHAjInYEAf9Ki8jw1Jm0ftyZzmrhEJUIA11PzNwGHJiWiCPJq5uvfA0M32efzm%2bnmvRoT4MrAwr6Rqt3UnNY0sSohgzAYXu46dx8YZaG6esBIdQKKt1YYVg3aksuE7SUhyxOTAZCxlAZ25GWa0BAgkBjG0jErAsd6CPd0KMM83Q6cdnRHZkCxcOaH%2fsmvPlpY1covDf0xQsoTYtbJD33%2fJGKIexFIM%2fLcjEfztqmXhGOzde%2brkduwmQEbjnH7r1sK1Qxlxl%2b%2fo7BPybB5WxzyvvXdg%3d	BHzBIlu5hYAhT7BI_QJ_IhGn72A36v86fijR649ljrWxV5lkeSH0N_funyJHI1OtIfJ3pzelCY9RM4HGrWVRd4Q	0ivxGr12505pj87j7QzICA	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0	2026-09-19 19:24:27.094176+05:30	2026-09-24 13:45:05.937125+05:30	0
+17	1	https://updates.push.services.mozilla.com/wpush/v2/gAAAAABqn-zmpmhLUVLG1KHXsKY-3RvhERB75tLzDFjz1cwuYoZPSx2pD0E26sEQgnZelbuFI369m3XvtE_6_HDLJuBU260uq-gsHFbdMM0fXP1j5fU0yrYZhmGp7zYGQm7kgd4YL3qwRv_IeNR0yZTZgtWQUTwBS1Ma_w1EwChV2N_pcWg1cZY	BNVmXZOFEcMlyKvKQbsAtW-0NNItzeZg1WpOx1bmsM0BOPCibWhzBkmocA0rjCaoYWawLSkdBOirpb0DHxQAdLI	z_5fXlAeEB0GhO9tq0RYVw	Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:156.0) Gecko/20100101 Firefox/156.0	2026-09-08 16:39:30.503837+05:30	2026-09-24 10:15:05.75557+05:30	0
 \.
 
 
@@ -28627,6 +29918,8 @@ COPY public.mes_py_bypass_bits (line_id, machine_key, bit_addr, active, note, up
 --
 
 COPY public.mes_py_bypass_cases (id, event_id, line_id, line_name, zone_id, zone_name, py_no, py_name, register_addr, model_bit, shift_name, actual_value, expected_value, detected_at, status, decided_by, decided_at, decision_source, deviation_id, deviation_no, bit_addr, bit_state, mail_sent_at, reminder_at, escalated_at, closed_at, close_reason, created_at, updated_at) FROM stdin;
+34767	19067	12	YCA-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	11	A	ON	OFF	2026-09-22 14:28:09.52103+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 14:30:49.974135+05:30	PY OK again	2026-09-22 14:28:09.534734+05:30	2026-09-22 14:30:49.974135+05:30
+19849	18877	19	YMC-SS	1	SEAT SLIDER	D424	UPPER RAIL HOLE DETECTION	D424	9	A	PASS	OFF	2026-09-21 08:34:33.67267+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 09:54:22.092253+05:30	PY OK again	2026-09-21 08:34:51.152892+05:30	2026-09-22 09:54:22.092253+05:30
 22	18785	15	Y17-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	9	A	ON,ON	OFF,OFF	2026-09-20 11:05:14.588271+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-20 11:22:54.221616+05:30	PY OK again	2026-09-20 11:05:34.169706+05:30	2026-09-20 11:22:54.221616+05:30
 1	18773	11	YHB-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	9	A	ON	OFF	2026-09-20 11:04:56.766086+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-20 11:22:54.221616+05:30	PY OK again	2026-09-20 11:05:14.13964+05:30	2026-09-20 11:22:54.221616+05:30
 3	18775	11	YHB-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	9	A	ON,ON	OFF,OFF	2026-09-20 11:04:56.94965+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-20 11:22:54.221616+05:30	PY OK again	2026-09-20 11:05:14.13964+05:30	2026-09-20 11:22:54.221616+05:30
@@ -28662,7 +29955,6 @@ COPY public.mes_py_bypass_cases (id, event_id, line_id, line_name, zone_id, zone
 711	18790	12	YCA-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	10	A	ON	OFF	2026-09-20 12:50:38.789759+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-20 15:05:42.09282+05:30	PY OK again	2026-09-20 12:50:40.766683+05:30	2026-09-20 15:05:42.09282+05:30
 712	18791	12	YCA-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	10	A	ON,ON	OFF,OFF	2026-09-20 12:50:38.937285+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-20 15:05:42.09282+05:30	PY OK again	2026-09-20 12:50:40.766683+05:30	2026-09-20 15:05:42.09282+05:30
 713	18792	12	YCA-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	10	A	ON,ON	OFF,OFF	2026-09-20 12:50:38.995792+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-20 15:05:42.09282+05:30	PY OK again	2026-09-20 12:50:40.766683+05:30	2026-09-20 15:05:42.09282+05:30
-19849	18877	19	YMC-SS	1	SEAT SLIDER	D424	UPPER RAIL HOLE DETECTION	D424	9	A	PASS	OFF	2026-09-21 08:34:33.67267+05:30	WAITING	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	\N	\N	2026-09-21 08:34:51.152892+05:30	2026-09-21 08:34:51.152892+05:30
 20058	18878	11	YHB-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	9	A	ON	OFF	2026-09-21 08:43:23.018168+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 08:51:32.459931+05:30	PY OK again	2026-09-21 08:43:31.822814+05:30	2026-09-21 08:51:32.459931+05:30
 20059	18879	11	YHB-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	9	A	ON,ON	OFF,OFF	2026-09-21 08:43:23.192803+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 08:51:32.459931+05:30	PY OK again	2026-09-21 08:43:31.822814+05:30	2026-09-21 08:51:32.459931+05:30
 20060	18880	11	YHB-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	9	A	ON,ON	OFF,OFF	2026-09-21 08:43:23.322705+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 08:51:32.459931+05:30	PY OK again	2026-09-21 08:43:31.822814+05:30	2026-09-21 08:51:32.459931+05:30
@@ -28676,6 +29968,8 @@ COPY public.mes_py_bypass_cases (id, event_id, line_id, line_name, zone_id, zone
 22843	18913	4	YSD-SS	1	SEAT SLIDER	D416	Rr.LIGHTER PROTECTOR-1	D416	14	A	code12336	ON	2026-09-21 10:55:02.98762+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 10:55:28.328407+05:30	PY OK again	2026-09-21 10:55:08.299875+05:30	2026-09-21 10:55:28.328407+05:30
 22319	18909	15	Y17-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	14	A	ON	OFF	2026-09-21 10:33:15.355804+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 11:29:32.410382+05:30	PY OK again	2026-09-21 10:33:24.789963+05:30	2026-09-21 11:29:32.410382+05:30
 22320	18910	15	Y17-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	14	A	ON,ON	OFF,OFF	2026-09-21 10:33:16.452554+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 11:29:32.410382+05:30	PY OK again	2026-09-21 10:33:24.789963+05:30	2026-09-21 11:29:32.410382+05:30
+61595	19260	2	YNC-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	14	A	OFF,OFF	ON,ON	2026-09-24 11:50:03.583912+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 11:50:26.188718+05:30	PY OK again	2026-09-24 11:50:06.15275+05:30	2026-09-24 11:50:26.188718+05:30
+5165	18856	14	YFG-SS	1	SEAT SLIDER	D417	Rr.LIGHTER PROTECTOR-2	D417	9	A	PASS	ON	2026-09-20 17:14:02.986465+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 15:19:35.048481+05:30	PY OK again	2026-09-20 17:14:21.875609+05:30	2026-09-22 15:19:35.048481+05:30
 3998	18833	15	Y17-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	15	A	ON	OFF	2026-09-20 15:14:43.058891+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-20 15:17:02.987841+05:30	PY OK again	2026-09-20 15:15:02.818999+05:30	2026-09-20 15:17:02.987841+05:30
 3999	18835	15	Y17-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	15	A	ON,ON	OFF,OFF	2026-09-20 15:14:44.424266+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-20 15:17:02.987841+05:30	PY OK again	2026-09-20 15:15:02.818999+05:30	2026-09-20 15:17:02.987841+05:30
 4000	18836	15	Y17-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	15	A	ON,ON	OFF,OFF	2026-09-20 15:14:44.925383+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-20 15:17:02.987841+05:30	PY OK again	2026-09-20 15:15:02.818999+05:30	2026-09-20 15:17:02.987841+05:30
@@ -28685,15 +29979,13 @@ COPY public.mes_py_bypass_cases (id, event_id, line_id, line_name, zone_id, zone
 4004	18840	15	Y17-SS	1	SEAT SLIDER	D415	FR.LIGHTER PROTECTOR-3	D415	15	A	ON	OFF	2026-09-20 15:14:46.436297+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-20 15:17:02.987841+05:30	PY OK again	2026-09-20 15:15:02.818999+05:30	2026-09-20 15:17:02.987841+05:30
 4040	18841	11	YHB-SS	1	SEAT SLIDER	D411	PoP RIVET-1	D411	9	A	PASS	OFF	2026-09-20 15:19:03.539231+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-20 15:20:03.221028+05:30	PY OK again	2026-09-20 15:19:23.187573+05:30	2026-09-20 15:20:03.221028+05:30
 4041	18842	11	YHB-SS	1	SEAT SLIDER	D412	PoP RIVET-2	D412	9	A	PASS	OFF	2026-09-20 15:19:03.713085+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-20 15:20:03.221028+05:30	PY OK again	2026-09-20 15:19:23.187573+05:30	2026-09-20 15:20:03.221028+05:30
+34883	19084	2	YNC-SS	1	SEAT SLIDER	D402	RH.HARNESS-1	D402	15	A	code10	ON	2026-09-22 16:20:03.716179+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 16:20:44.132387+05:30	PY OK again	2026-09-22 16:20:03.8433+05:30	2026-09-22 16:20:44.132387+05:30
 4044	18843	4	YSD-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	15	A	code12336	ON,ON	2026-09-20 15:53:02.958193+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-20 15:53:26.045675+05:30	PY OK again	2026-09-20 15:53:06.025197+05:30	2026-09-20 15:53:26.045675+05:30
+34800	19077	12	YCA-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	12	A	ON,ON	OFF,OFF	2026-09-22 16:13:29.417975+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 21:00:58.057725+05:30	PY OK again	2026-09-22 16:13:43.093774+05:30	2026-09-22 21:00:58.057725+05:30
+5164	18855	14	YFG-SS	1	SEAT SLIDER	D416	Rr.LIGHTER PROTECTOR-1	D416	9	A	PASS	ON	2026-09-20 17:14:02.908358+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-23 09:14:35.877002+05:30	PY OK again	2026-09-20 17:14:21.875609+05:30	2026-09-23 09:14:35.877002+05:30
 4047	18846	2	YNC-SS	1	SEAT SLIDER	D422	4W INR/OTR BOLT MIXING.X41	D422	9	A	ON	OFF	2026-09-20 15:58:08.836597+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-20 16:00:26.760469+05:30	PY OK again	2026-09-20 15:58:26.277407+05:30	2026-09-20 16:00:26.760469+05:30
+5161	18852	14	YFG-SS	1	SEAT SLIDER	D413	FR.LIGHTER PROTECTOR-1	D413	9	A	code1902	ON	2026-09-20 17:14:02.581392+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 01:52:23.238048+05:30	PY OK again	2026-09-20 17:14:21.875609+05:30	2026-09-24 01:52:23.238048+05:30
 4290	18851	15	Y17-SS	1	SEAT SLIDER	D218	E-RING NG X12/X13	D418	15	A	code5	ON,OFF	2026-09-20 16:16:03.528768+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-20 16:16:30.197038+05:30	PY OK again	2026-09-20 16:16:10.166214+05:30	2026-09-20 16:16:30.197038+05:30
-5161	18852	14	YFG-SS	1	SEAT SLIDER	D413	FR.LIGHTER PROTECTOR-1	D413	9	A	code1902	ON	2026-09-20 17:14:02.581392+05:30	WAITING	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	\N	\N	2026-09-20 17:14:21.875609+05:30	2026-09-20 17:14:21.875609+05:30
-5162	18853	14	YFG-SS	1	SEAT SLIDER	D414	FR.LIGHTER PROTECTOR-2	D414	9	A	code10	ON	2026-09-20 17:14:02.695184+05:30	WAITING	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	\N	\N	2026-09-20 17:14:21.875609+05:30	2026-09-20 17:14:21.875609+05:30
-5163	18854	14	YFG-SS	1	SEAT SLIDER	D415	FR.LIGHTER PROTECTOR-3	D415	9	A	code22	ON	2026-09-20 17:14:02.782319+05:30	WAITING	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	\N	\N	2026-09-20 17:14:21.875609+05:30	2026-09-20 17:14:21.875609+05:30
-5164	18855	14	YFG-SS	1	SEAT SLIDER	D416	Rr.LIGHTER PROTECTOR-1	D416	9	A	PASS	ON	2026-09-20 17:14:02.908358+05:30	WAITING	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	\N	\N	2026-09-20 17:14:21.875609+05:30	2026-09-20 17:14:21.875609+05:30
-5165	18856	14	YFG-SS	1	SEAT SLIDER	D417	Rr.LIGHTER PROTECTOR-2	D417	9	A	PASS	ON	2026-09-20 17:14:02.986465+05:30	WAITING	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	\N	\N	2026-09-20 17:14:21.875609+05:30	2026-09-20 17:14:21.875609+05:30
-5166	18857	14	YFG-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	9	A	code10	ON	2026-09-20 17:14:03.198954+05:30	WAITING	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	\N	\N	2026-09-20 17:14:21.875609+05:30	2026-09-20 17:14:21.875609+05:30
 4061	18847	12	YCA-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	12	A	ON	OFF	2026-09-20 16:01:05.555544+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-20 19:38:24.543922+05:30	PY OK again	2026-09-20 16:01:06.863928+05:30	2026-09-20 19:38:24.543922+05:30
 4062	18848	12	YCA-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	12	A	ON,ON	OFF,OFF	2026-09-20 16:01:05.801892+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-20 19:38:24.543922+05:30	PY OK again	2026-09-20 16:01:06.863928+05:30	2026-09-20 19:38:24.543922+05:30
 4063	18849	12	YCA-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	12	A	ON,ON	OFF,OFF	2026-09-20 16:01:05.902437+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-20 19:38:24.543922+05:30	PY OK again	2026-09-20 16:01:06.863928+05:30	2026-09-20 19:38:24.543922+05:30
@@ -28705,9 +29997,6 @@ COPY public.mes_py_bypass_cases (id, event_id, line_id, line_name, zone_id, zone
 14195	18867	2	YNC-SS	1	SEAT SLIDER	D411	PoP RIVET-1	D411	9	B	PASS	OFF	2026-09-21 03:05:04.143983+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 08:23:10.279241+05:30	PY OK again	2026-09-21 03:05:17.249242+05:30	2026-09-21 08:23:10.279241+05:30
 14196	18868	2	YNC-SS	1	SEAT SLIDER	D412	PoP RIVET-2	D412	9	B	PASS	OFF	2026-09-21 03:05:04.240824+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 08:23:10.279241+05:30	PY OK again	2026-09-21 03:05:17.249242+05:30	2026-09-21 08:23:10.279241+05:30
 19784	18873	2	YNC-SS	1	SEAT SLIDER	D422	4W INR/OTR BOLT MIXING.X41	D422	9	A	ON	OFF	2026-09-21 08:30:00.754464+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 08:32:10.897348+05:30	PY OK again	2026-09-21 08:30:10.789817+05:30	2026-09-21 08:32:10.897348+05:30
-19846	18874	19	YMC-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	9	A	ON,ON	OFF,OFF	2026-09-21 08:34:33.298986+05:30	WAITING	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	\N	\N	2026-09-21 08:34:51.152892+05:30	2026-09-21 08:34:51.152892+05:30
-19847	18875	19	YMC-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	9	A	ON,ON	OFF,OFF	2026-09-21 08:34:33.402221+05:30	WAITING	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	\N	\N	2026-09-21 08:34:51.152892+05:30	2026-09-21 08:34:51.152892+05:30
-19848	18876	19	YMC-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	9	A	ON,ON	OFF,OFF	2026-09-21 08:34:33.568602+05:30	WAITING	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	\N	\N	2026-09-21 08:34:51.152892+05:30	2026-09-21 08:34:51.152892+05:30
 4045	18844	4	YSD-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	14	A	PASS	ON,ON	2026-09-20 15:57:55.278956+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 08:54:32.694052+05:30	PY OK again	2026-09-20 15:58:06.242859+05:30	2026-09-21 08:54:32.694052+05:30
 19780	18869	12	YCA-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	12	A	ON	OFF	2026-09-21 08:30:00.13727+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 08:45:31.995593+05:30	PY OK again	2026-09-21 08:30:10.789817+05:30	2026-09-21 08:45:31.995593+05:30
 19781	18870	12	YCA-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	12	A	ON,ON	OFF,OFF	2026-09-21 08:30:00.276829+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 08:45:31.995593+05:30	PY OK again	2026-09-21 08:30:10.789817+05:30	2026-09-21 08:45:31.995593+05:30
@@ -28717,7 +30006,10 @@ COPY public.mes_py_bypass_cases (id, event_id, line_id, line_name, zone_id, zone
 22844	18914	4	YSD-SS	1	SEAT SLIDER	D417	Rr.LIGHTER PROTECTOR-2	D417	14	A	code14	ON	2026-09-21 10:55:03.117597+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 10:55:28.328407+05:30	PY OK again	2026-09-21 10:55:08.299875+05:30	2026-09-21 10:55:28.328407+05:30
 22321	18911	15	Y17-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	14	A	ON,ON	OFF,OFF	2026-09-21 10:33:16.757558+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 11:29:32.410382+05:30	PY OK again	2026-09-21 10:33:24.789963+05:30	2026-09-21 11:29:32.410382+05:30
 22322	18912	15	Y17-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	14	A	ON,ON	OFF,OFF	2026-09-21 10:33:17.07881+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 11:29:32.410382+05:30	PY OK again	2026-09-21 10:33:24.789963+05:30	2026-09-21 11:29:32.410382+05:30
+34769	19068	12	YCA-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	11	A	ON,ON	OFF,OFF	2026-09-22 14:28:09.697669+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 14:30:49.974135+05:30	PY OK again	2026-09-22 14:28:29.62722+05:30	2026-09-22 14:30:49.974135+05:30
 24729	18926	12	YCA-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	10	A	ON,ON	OFF,OFF	2026-09-21 12:58:16.372913+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 13:02:02.583297+05:30	PY OK again	2026-09-21 12:58:22.191958+05:30	2026-09-21 13:02:02.583297+05:30
+34770	19069	12	YCA-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	11	A	ON,ON	OFF,OFF	2026-09-22 14:28:09.769508+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 14:30:49.974135+05:30	PY OK again	2026-09-22 14:28:29.62722+05:30	2026-09-22 14:30:49.974135+05:30
+34771	19070	12	YCA-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	11	A	ON,ON	OFF,OFF	2026-09-22 14:28:09.822825+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 14:30:49.974135+05:30	PY OK again	2026-09-22 14:28:29.62722+05:30	2026-09-22 14:30:49.974135+05:30
 24988	18930	15	Y17-SS	1	SEAT SLIDER	D218	E-RING NG X12/X13	D418	14	A	code14	ON,OFF	2026-09-21 13:19:02.763998+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 13:19:24.278022+05:30	PY OK again	2026-09-21 13:19:04.072018+05:30	2026-09-21 13:19:24.278022+05:30
 24989	18931	15	Y17-SS	1	SEAT SLIDER	D402	RH.HARNESS-1	D402	14	A	PASS	OFF	2026-09-21 13:19:03.392313+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 13:19:24.278022+05:30	PY OK again	2026-09-21 13:19:04.072018+05:30	2026-09-21 13:19:24.278022+05:30
 24990	18932	15	Y17-SS	1	SEAT SLIDER	D404	LH.HARNESS-2	D404	14	A	PASS	OFF	2026-09-21 13:19:03.695919+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 13:19:24.278022+05:30	PY OK again	2026-09-21 13:19:04.072018+05:30	2026-09-21 13:19:24.278022+05:30
@@ -28745,10 +30037,8 @@ COPY public.mes_py_bypass_cases (id, event_id, line_id, line_name, zone_id, zone
 26014	18945	15	Y17-SS	1	SEAT SLIDER	D404	LH.HARNESS-2	D404	14	A	code25	OFF	2026-09-21 14:02:03.423778+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 14:02:28.618763+05:30	PY OK again	2026-09-21 14:02:08.530327+05:30	2026-09-21 14:02:28.618763+05:30
 26543	18946	15	Y17-SS	1	SEAT SLIDER	D402	RH.HARNESS-1	D402	14	A	PASS	OFF	2026-09-21 14:24:02.902432+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 14:24:31.413041+05:30	PY OK again	2026-09-21 14:24:11.375763+05:30	2026-09-21 14:24:31.413041+05:30
 26544	18947	15	Y17-SS	1	SEAT SLIDER	D404	LH.HARNESS-2	D404	14	A	PASS	OFF	2026-09-21 14:24:03.214583+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 14:24:31.413041+05:30	PY OK again	2026-09-21 14:24:11.375763+05:30	2026-09-21 14:24:31.413041+05:30
-26977	18951	15	Y17-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	9	A	ON	OFF	2026-09-21 14:49:43.442228+05:30	WAITING	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	\N	\N	2026-09-21 14:49:54.664872+05:30	2026-09-21 14:49:54.664872+05:30
-26978	18952	15	Y17-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	9	A	ON,ON	OFF,OFF	2026-09-21 14:49:43.818703+05:30	WAITING	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	\N	\N	2026-09-21 14:49:54.664872+05:30	2026-09-21 14:49:54.664872+05:30
-26979	18953	15	Y17-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	9	A	ON,ON	OFF,OFF	2026-09-21 14:49:43.960424+05:30	WAITING	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	\N	\N	2026-09-21 14:49:54.664872+05:30	2026-09-21 14:49:54.664872+05:30
-26980	18954	15	Y17-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	9	A	ON,ON	OFF,OFF	2026-09-21 14:49:44.193839+05:30	WAITING	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	\N	\N	2026-09-21 14:49:54.664872+05:30	2026-09-21 14:49:54.664872+05:30
+61592	19257	2	YNC-SS	1	SEAT SLIDER	D218	E-RING NG X12/X13	D418	14	A	code8	OFF,ON	2026-09-24 11:50:02.931009+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 11:50:26.188718+05:30	PY OK again	2026-09-24 11:50:06.15275+05:30	2026-09-24 11:50:26.188718+05:30
+61593	19258	2	YNC-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	14	A	code14	ON	2026-09-24 11:50:03.138873+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 11:50:26.188718+05:30	PY OK again	2026-09-24 11:50:06.15275+05:30	2026-09-24 11:50:26.188718+05:30
 28189	18958	11	YHB-SS	1	SEAT SLIDER	D411	PoP RIVET-1	D411	9	A	code1490	OFF	2026-09-21 15:40:03.306228+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 15:41:02.075999+05:30	PY OK again	2026-09-21 15:40:22.022238+05:30	2026-09-21 15:41:02.075999+05:30
 28190	18959	11	YHB-SS	1	SEAT SLIDER	D412	PoP RIVET-2	D412	9	A	code9	OFF	2026-09-21 15:40:03.465309+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 15:41:02.075999+05:30	PY OK again	2026-09-21 15:40:22.022238+05:30	2026-09-21 15:41:02.075999+05:30
 28835	18963	11	YHB-SS	1	SEAT SLIDER	D411	PoP RIVET-1	D411	9	A	PASS	OFF	2026-09-21 16:07:03.157475+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 16:07:25.187231+05:30	PY OK again	2026-09-21 16:07:05.159132+05:30	2026-09-21 16:07:25.187231+05:30
@@ -28781,6 +30071,176 @@ COPY public.mes_py_bypass_cases (id, event_id, line_id, line_name, zone_id, zone
 32916	18994	4	YSD-SS	1	SEAT SLIDER	D413	FR.LIGHTER PROTECTOR-1	D413	15	B	code12336	ON	2026-09-21 22:46:03.238714+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 22:46:29.76836+05:30	PY OK again	2026-09-21 22:46:09.738927+05:30	2026-09-21 22:46:29.76836+05:30
 32917	18995	4	YSD-SS	1	SEAT SLIDER	D414	FR.LIGHTER PROTECTOR-2	D414	15	B	OFF	ON	2026-09-21 22:46:03.398652+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 22:46:29.76836+05:30	PY OK again	2026-09-21 22:46:09.738927+05:30	2026-09-21 22:46:29.76836+05:30
 32918	18996	4	YSD-SS	1	SEAT SLIDER	D415	FR.LIGHTER PROTECTOR-3	D415	15	B	code15	ON	2026-09-21 22:46:03.566913+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 22:46:29.76836+05:30	PY OK again	2026-09-21 22:46:09.738927+05:30	2026-09-21 22:46:29.76836+05:30
+32919	18998	2	YNC-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	15	B	code12336	ON,ON	2026-09-22 00:38:02.747876+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 00:38:24.716569+05:30	PY OK again	2026-09-22 00:38:04.699824+05:30	2026-09-22 00:38:24.716569+05:30
+32920	18999	2	YNC-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	15	B	code12336	ON,ON	2026-09-22 00:57:02.716672+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 00:57:26.444605+05:30	PY OK again	2026-09-22 00:57:06.424924+05:30	2026-09-22 00:57:26.444605+05:30
+32921	19000	2	YNC-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	15	B	PASS	ON,ON	2026-09-22 00:57:02.860918+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 00:57:26.444605+05:30	PY OK again	2026-09-22 00:57:06.424924+05:30	2026-09-22 00:57:26.444605+05:30
+32922	19001	15	Y17-SS	1	SEAT SLIDER	D402	RH.HARNESS-1	D402	14	B	code4	OFF	2026-09-22 01:23:02.726754+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 01:23:29.185818+05:30	PY OK again	2026-09-22 01:23:09.164243+05:30	2026-09-22 01:23:29.185818+05:30
+32923	19002	15	Y17-SS	1	SEAT SLIDER	D404	LH.HARNESS-2	D404	14	B	code14	OFF	2026-09-22 01:23:03.022298+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 01:23:29.185818+05:30	PY OK again	2026-09-22 01:23:09.164243+05:30	2026-09-22 01:23:29.185818+05:30
+32930	19005	4	YSD-SS	1	SEAT SLIDER	D414	FR.LIGHTER PROTECTOR-2	D414	14	B	PASS	ON	2026-09-22 01:24:02.910777+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 01:24:29.250372+05:30	PY OK again	2026-09-22 01:24:09.2163+05:30	2026-09-22 01:24:29.250372+05:30
+33063	19006	2	YNC-SS	1	SEAT SLIDER	D218	E-RING NG X12/X13	D418	14	B	PASS	OFF,ON	2026-09-22 01:46:02.557285+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 01:46:31.734741+05:30	PY OK again	2026-09-22 01:46:11.707477+05:30	2026-09-22 01:46:31.734741+05:30
+32924	19003	2	YNC-SS	1	SEAT SLIDER	D402	RH.HARNESS-1	D402	14	B	PASS	ON	2026-09-22 01:23:17.926986+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 01:46:51.74947+05:30	PY OK again	2026-09-22 01:23:29.177713+05:30	2026-09-22 01:46:51.74947+05:30
+32925	19004	2	YNC-SS	1	SEAT SLIDER	D423	RH HARNES BKT NG.X44	D423	14	B	PASS	OFF	2026-09-22 01:23:18.598695+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 01:46:51.74947+05:30	PY OK again	2026-09-22 01:23:29.177713+05:30	2026-09-22 01:46:51.74947+05:30
+33064	19007	2	YNC-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	14	B	PASS	ON	2026-09-22 01:46:02.690186+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 01:46:31.734741+05:30	PY OK again	2026-09-22 01:46:11.707477+05:30	2026-09-22 01:46:31.734741+05:30
+34796	19071	2	YNC-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	15	A	code10	ON,ON	2026-09-22 14:54:02.631332+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 14:54:32.188616+05:30	PY OK again	2026-09-22 14:54:12.171838+05:30	2026-09-22 14:54:32.188616+05:30
+61594	19259	2	YNC-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	14	A	PASS	ON,ON	2026-09-24 11:50:03.437319+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 11:50:26.188718+05:30	PY OK again	2026-09-24 11:50:06.15275+05:30	2026-09-24 11:50:26.188718+05:30
+33067	19010	15	Y17-SS	1	SEAT SLIDER	D404	LH.HARNESS-2	D404	9	B	code9	OFF	2026-09-22 03:01:02.784868+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 03:01:39.674361+05:30	PY OK again	2026-09-22 03:01:19.633911+05:30	2026-09-22 03:01:39.674361+05:30
+33068	19011	15	Y17-SS	1	SEAT SLIDER	D411	PoP RIVET-1	D411	9	B	code1798	OFF	2026-09-22 03:01:04.220734+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 03:01:39.674361+05:30	PY OK again	2026-09-22 03:01:19.633911+05:30	2026-09-22 03:01:39.674361+05:30
+33069	19012	15	Y17-SS	1	SEAT SLIDER	D412	PoP RIVET-2	D412	9	B	code4	OFF	2026-09-22 03:01:04.52092+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 03:01:39.674361+05:30	PY OK again	2026-09-22 03:01:19.633911+05:30	2026-09-22 03:01:39.674361+05:30
+34879	19080	2	YNC-SS	1	SEAT SLIDER	D218	E-RING NG X12/X13	D418	15	A	OFF,OFF	OFF,ON	2026-09-22 16:20:03.430378+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 16:20:44.132387+05:30	PY OK again	2026-09-22 16:20:03.8433+05:30	2026-09-22 16:20:44.132387+05:30
+33076	19018	2	YNC-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	9	A	code12336	ON	2026-09-22 08:41:02.93255+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 08:41:35.7327+05:30	PY OK again	2026-09-22 08:41:15.702063+05:30	2026-09-22 08:41:35.7327+05:30
+33077	19019	2	YNC-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	9	A	code6	ON,ON	2026-09-22 08:41:03.102573+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 08:41:35.7327+05:30	PY OK again	2026-09-22 08:41:15.702063+05:30	2026-09-22 08:41:35.7327+05:30
+33078	19020	2	YNC-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	9	A	code9	ON,ON	2026-09-22 08:41:03.33113+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 08:41:35.7327+05:30	PY OK again	2026-09-22 08:41:15.702063+05:30	2026-09-22 08:41:35.7327+05:30
+33079	19021	2	YNC-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	9	A	PASS	ON,ON	2026-09-22 08:41:03.519732+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 08:41:35.7327+05:30	PY OK again	2026-09-22 08:41:15.702063+05:30	2026-09-22 08:41:35.7327+05:30
+33080	19022	2	YNC-SS	1	SEAT SLIDER	D411	PoP RIVET-1	D411	9	A	PASS	OFF	2026-09-22 08:41:03.664998+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 08:41:35.7327+05:30	PY OK again	2026-09-22 08:41:15.702063+05:30	2026-09-22 08:41:35.7327+05:30
+33087	19023	4	YSD-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	14	A	PASS	ON,ON	2026-09-22 08:43:02.159959+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 08:44:15.886146+05:30	PY OK again	2026-09-22 08:43:15.833524+05:30	2026-09-22 08:44:15.886146+05:30
+33092	19024	12	YCA-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	10	A	ON	OFF	2026-09-22 08:43:47.699998+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 08:45:56.032988+05:30	PY OK again	2026-09-22 08:43:55.866709+05:30	2026-09-22 08:45:56.032988+05:30
+33093	19025	12	YCA-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	10	A	ON,ON	OFF,OFF	2026-09-22 08:43:47.810252+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 08:45:56.032988+05:30	PY OK again	2026-09-22 08:43:55.866709+05:30	2026-09-22 08:45:56.032988+05:30
+33094	19026	12	YCA-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	10	A	ON,ON	OFF,OFF	2026-09-22 08:43:47.890755+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 08:45:56.032988+05:30	PY OK again	2026-09-22 08:43:55.866709+05:30	2026-09-22 08:45:56.032988+05:30
+33095	19027	12	YCA-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	10	A	ON,ON	OFF,OFF	2026-09-22 08:43:47.940649+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 08:45:56.032988+05:30	PY OK again	2026-09-22 08:43:55.866709+05:30	2026-09-22 08:45:56.032988+05:30
+33070	19017	2	YNC-SS	1	SEAT SLIDER	D422	4W INR/OTR BOLT MIXING.X41	D422	9	A	ON	OFF	2026-09-22 08:39:26.061987+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 08:48:36.150879+05:30	PY OK again	2026-09-22 08:39:35.600885+05:30	2026-09-22 08:48:36.150879+05:30
+33205	19038	4	YSD-SS	1	SEAT SLIDER	D416	Rr.LIGHTER PROTECTOR-1	D416	14	A	code28	ON	2026-09-22 08:50:02.966703+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 08:50:36.326181+05:30	PY OK again	2026-09-22 08:50:16.233296+05:30	2026-09-22 08:50:36.326181+05:30
+33206	19039	4	YSD-SS	1	SEAT SLIDER	D417	Rr.LIGHTER PROTECTOR-2	D417	14	A	OFF	ON	2026-09-22 08:50:03.093944+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 08:50:36.326181+05:30	PY OK again	2026-09-22 08:50:16.233296+05:30	2026-09-22 08:50:36.326181+05:30
+33207	19040	4	YSD-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	14	A	code14	ON	2026-09-22 08:50:03.239816+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 08:50:36.326181+05:30	PY OK again	2026-09-22 08:50:16.233296+05:30	2026-09-22 08:50:36.326181+05:30
+33111	19028	11	YHB-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	9	A	ON	OFF	2026-09-22 08:44:37.16037+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 08:55:57.025865+05:30	PY OK again	2026-09-22 08:44:55.941582+05:30	2026-09-22 08:55:57.025865+05:30
+33112	19029	11	YHB-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	9	A	ON,ON	OFF,OFF	2026-09-22 08:44:37.363063+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 08:55:57.025865+05:30	PY OK again	2026-09-22 08:44:55.941582+05:30	2026-09-22 08:55:57.025865+05:30
+33113	19030	11	YHB-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	9	A	ON,ON	OFF,OFF	2026-09-22 08:44:37.530154+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 08:55:57.025865+05:30	PY OK again	2026-09-22 08:44:55.941582+05:30	2026-09-22 08:55:57.025865+05:30
+33114	19031	11	YHB-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	9	A	ON,ON	OFF,OFF	2026-09-22 08:44:37.691366+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 08:55:57.025865+05:30	PY OK again	2026-09-22 08:44:55.941582+05:30	2026-09-22 08:55:57.025865+05:30
+33843	19042	12	YCA-SS	1	SEAT SLIDER	D403	LH.HARNESS-1	D403	10	A	code12336	OFF	2026-09-22 09:28:02.594486+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 09:28:39.953538+05:30	PY OK again	2026-09-22 09:28:19.607948+05:30	2026-09-22 09:28:39.953538+05:30
+19846	18874	19	YMC-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	9	A	ON,ON	OFF,OFF	2026-09-21 08:34:33.298986+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 09:54:22.092253+05:30	PY OK again	2026-09-21 08:34:51.152892+05:30	2026-09-22 09:54:22.092253+05:30
+19847	18875	19	YMC-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	9	A	ON,ON	OFF,OFF	2026-09-21 08:34:33.402221+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 09:54:22.092253+05:30	PY OK again	2026-09-21 08:34:51.152892+05:30	2026-09-22 09:54:22.092253+05:30
+19848	18876	19	YMC-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	9	A	ON,ON	OFF,OFF	2026-09-21 08:34:33.568602+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 09:54:22.092253+05:30	PY OK again	2026-09-21 08:34:51.152892+05:30	2026-09-22 09:54:22.092253+05:30
+34376	19044	12	YCA-SS	1	SEAT SLIDER	D403	LH.HARNESS-1	D403	10	A	code436	OFF	2026-09-22 10:43:02.886393+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 10:43:26.28653+05:30	PY OK again	2026-09-22 10:43:06.260445+05:30	2026-09-22 10:43:26.28653+05:30
+34377	19045	12	YCA-SS	1	SEAT SLIDER	D412	PoP RIVET-2	D412	10	A	code4	OFF	2026-09-22 10:43:03.110958+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 10:43:26.28653+05:30	PY OK again	2026-09-22 10:43:06.260445+05:30	2026-09-22 10:43:26.28653+05:30
+34414	19047	2	YNC-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	9	A	code4	ON	2026-09-22 10:49:03.454494+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 10:49:26.656214+05:30	PY OK again	2026-09-22 10:49:06.616358+05:30	2026-09-22 10:49:26.656214+05:30
+34415	19048	2	YNC-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	9	A	code9	ON,ON	2026-09-22 10:49:03.599993+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 10:49:26.656214+05:30	PY OK again	2026-09-22 10:49:06.616358+05:30	2026-09-22 10:49:26.656214+05:30
+34524	19049	4	YSD-SS	1	SEAT SLIDER	D417	Rr.LIGHTER PROTECTOR-2	D417	14	A	OFF	ON	2026-09-22 11:07:02.96955+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 11:07:27.963549+05:30	PY OK again	2026-09-22 11:07:07.942871+05:30	2026-09-22 11:07:27.963549+05:30
+34525	19050	4	YSD-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	14	A	code14	ON	2026-09-22 11:07:03.135758+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 11:07:27.963549+05:30	PY OK again	2026-09-22 11:07:07.942871+05:30	2026-09-22 11:07:27.963549+05:30
+34652	19051	2	YNC-SS	1	SEAT SLIDER	D411	PoP RIVET-1	D411	9	A	code12336	OFF	2026-09-22 11:28:02.59956+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 11:28:29.425262+05:30	PY OK again	2026-09-22 11:28:09.403758+05:30	2026-09-22 11:28:29.425262+05:30
+34653	19052	2	YNC-SS	1	SEAT SLIDER	D412	PoP RIVET-2	D412	9	A	code4	OFF	2026-09-22 11:28:02.725807+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 11:28:29.425262+05:30	PY OK again	2026-09-22 11:28:09.403758+05:30	2026-09-22 11:28:29.425262+05:30
+33208	19041	12	YCA-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	10	A	ON,ON	OFF,OFF	2026-09-22 08:50:10.399433+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 11:46:51.224866+05:30	PY OK again	2026-09-22 08:50:16.233296+05:30	2026-09-22 11:46:51.224866+05:30
+34379	19046	12	YCA-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	10	A	ON	OFF	2026-09-22 10:43:14.57493+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 11:46:51.224866+05:30	PY OK again	2026-09-22 10:43:26.276203+05:30	2026-09-22 11:46:51.224866+05:30
+34764	19057	4	YSD-SS	1	SEAT SLIDER	D413	FR.LIGHTER PROTECTOR-1	D413	14	A	code12336	ON	2026-09-22 11:58:03.171368+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 11:58:32.602102+05:30	PY OK again	2026-09-22 11:58:12.578965+05:30	2026-09-22 11:58:32.602102+05:30
+34765	19065	11	YHB-SS	1	SEAT SLIDER	D411	PoP RIVET-1	D411	9	A	code9	OFF	2026-09-22 14:00:02.668779+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 14:00:25.273765+05:30	PY OK again	2026-09-22 14:00:05.257067+05:30	2026-09-22 14:00:25.273765+05:30
+34766	19066	11	YHB-SS	1	SEAT SLIDER	D412	PoP RIVET-2	D412	9	A	PASS	OFF	2026-09-22 14:00:02.83033+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 14:00:25.273765+05:30	PY OK again	2026-09-22 14:00:05.257067+05:30	2026-09-22 14:00:25.273765+05:30
+61596	19261	2	YNC-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	14	A	code663	ON,ON	2026-09-24 11:50:03.725251+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 11:50:26.188718+05:30	PY OK again	2026-09-24 11:50:06.15275+05:30	2026-09-24 11:50:26.188718+05:30
+34882	19083	4	YSD-SS	1	SEAT SLIDER	D415	FR.LIGHTER PROTECTOR-3	D415	15	A	code1620	ON	2026-09-22 16:20:03.611554+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 16:20:23.921835+05:30	PY OK again	2026-09-22 16:20:03.8433+05:30	2026-09-22 16:20:23.921835+05:30
+34877	19078	4	YSD-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	15	A	code15	ON,ON	2026-09-22 16:20:03.034217+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 16:20:23.921835+05:30	PY OK again	2026-09-22 16:20:03.8433+05:30	2026-09-22 16:20:23.921835+05:30
+34878	19079	4	YSD-SS	1	SEAT SLIDER	D413	FR.LIGHTER PROTECTOR-1	D413	15	A	code16	ON	2026-09-22 16:20:03.207445+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 16:20:23.921835+05:30	PY OK again	2026-09-22 16:20:03.8433+05:30	2026-09-22 16:20:23.921835+05:30
+34880	19081	4	YSD-SS	1	SEAT SLIDER	D414	FR.LIGHTER PROTECTOR-2	D414	15	A	PASS	ON	2026-09-22 16:20:03.43074+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 16:20:23.921835+05:30	PY OK again	2026-09-22 16:20:03.8433+05:30	2026-09-22 16:20:23.921835+05:30
+34881	19082	2	YNC-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	15	A	code1691	ON	2026-09-22 16:20:03.596931+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 16:20:44.132387+05:30	PY OK again	2026-09-22 16:20:03.8433+05:30	2026-09-22 16:20:44.132387+05:30
+34891	19085	2	YNC-SS	1	SEAT SLIDER	D403	LH.HARNESS-1	D403	15	A	code15	OFF	2026-09-22 16:20:03.886869+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 16:20:44.132387+05:30	PY OK again	2026-09-22 16:20:23.863633+05:30	2026-09-22 16:20:44.132387+05:30
+65483	19274	15	Y17-SS	1	SEAT SLIDER	D218	E-RING NG X12/X13	D418	14	A	PASS	ON,OFF	2026-09-24 14:25:04.055749+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 14:25:27.156029+05:30	PY OK again	2026-09-24 14:25:07.13044+05:30	2026-09-24 14:25:27.156029+05:30
+35428	19088	11	YHB-SS	1	SEAT SLIDER	D412	PoP RIVET-2	D412	9	A	code1652	OFF	2026-09-22 17:05:03.276593+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 17:05:31.314593+05:30	PY OK again	2026-09-22 17:05:11.28871+05:30	2026-09-22 17:05:31.314593+05:30
+34797	19074	12	YCA-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	12	A	ON	OFF	2026-09-22 16:13:28.564097+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 21:00:58.057725+05:30	PY OK again	2026-09-22 16:13:43.093774+05:30	2026-09-22 21:00:58.057725+05:30
+34798	19075	12	YCA-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	12	A	ON,ON	OFF,OFF	2026-09-22 16:13:28.869786+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 21:00:58.057725+05:30	PY OK again	2026-09-22 16:13:43.093774+05:30	2026-09-22 21:00:58.057725+05:30
+34799	19076	12	YCA-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	12	A	ON,ON	OFF,OFF	2026-09-22 16:13:29.347151+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 21:00:58.057725+05:30	PY OK again	2026-09-22 16:13:43.093774+05:30	2026-09-22 21:00:58.057725+05:30
+65484	19275	15	Y17-SS	1	SEAT SLIDER	D402	RH.HARNESS-1	D402	14	A	ON	OFF	2026-09-24 14:25:04.523935+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 14:25:27.156029+05:30	PY OK again	2026-09-24 14:25:07.13044+05:30	2026-09-24 14:25:27.156029+05:30
+65485	19276	15	Y17-SS	1	SEAT SLIDER	D404	LH.HARNESS-2	D404	14	A	code1238	OFF	2026-09-24 14:25:04.840002+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 14:25:27.156029+05:30	PY OK again	2026-09-24 14:25:07.13044+05:30	2026-09-24 14:25:27.156029+05:30
+38249	19090	2	YNC-SS	1	SEAT SLIDER	D402	RH.HARNESS-1	D402	14	B	PASS	ON	2026-09-22 21:57:23.585781+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-23 01:23:47.000831+05:30	PY OK again	2026-09-22 21:57:43.352995+05:30	2026-09-23 01:23:47.000831+05:30
+38250	19091	2	YNC-SS	1	SEAT SLIDER	D423	RH HARNES BKT NG.X44	D423	14	B	PASS	OFF	2026-09-22 21:57:24.148681+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-23 01:23:47.000831+05:30	PY OK again	2026-09-22 21:57:43.352995+05:30	2026-09-23 01:23:47.000831+05:30
+39483	19096	12	YCA-SS	1	SEAT SLIDER	D403	LH.HARNESS-1	D403	10	B	code12336	OFF	2026-09-23 01:58:02.611464+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-23 01:58:30.380477+05:30	PY OK again	2026-09-23 01:58:10.348196+05:30	2026-09-23 01:58:30.380477+05:30
+39484	19097	2	YNC-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	9	B	code12336	ON,ON	2026-09-23 02:03:02.87387+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-23 02:03:30.644984+05:30	PY OK again	2026-09-23 02:03:10.632283+05:30	2026-09-23 02:03:30.644984+05:30
+39485	19098	12	YCA-SS	1	SEAT SLIDER	D402	RH.HARNESS-1	D402	11	B	code12336	OFF	2026-09-23 02:27:02.909034+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-23 02:27:34.518152+05:30	PY OK again	2026-09-23 02:27:14.341513+05:30	2026-09-23 02:27:34.518152+05:30
+40541	19105	14	YFG-SS	1	SEAT SLIDER	D417	Rr.LIGHTER PROTECTOR-2	D417	15	A	PASS	ON	2026-09-23 08:44:07.83474+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-23 09:14:15.823892+05:30	PY OK again	2026-09-23 08:44:13.960612+05:30	2026-09-23 09:14:15.823892+05:30
+5162	18853	14	YFG-SS	1	SEAT SLIDER	D414	FR.LIGHTER PROTECTOR-2	D414	9	A	code10	ON	2026-09-20 17:14:02.695184+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-23 09:58:19.913304+05:30	PY OK again	2026-09-20 17:14:21.875609+05:30	2026-09-23 09:58:19.913304+05:30
+5163	18854	14	YFG-SS	1	SEAT SLIDER	D415	FR.LIGHTER PROTECTOR-3	D415	9	A	code22	ON	2026-09-20 17:14:02.782319+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-23 09:58:19.913304+05:30	PY OK again	2026-09-20 17:14:21.875609+05:30	2026-09-23 09:58:19.913304+05:30
+5166	18857	14	YFG-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	9	A	code10	ON	2026-09-20 17:14:03.198954+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-23 09:58:19.913304+05:30	PY OK again	2026-09-20 17:14:21.875609+05:30	2026-09-23 09:58:19.913304+05:30
+40876	19114	12	YCA-SS	1	SEAT SLIDER	D402	RH.HARNESS-1	D402	11	A	ON	OFF	2026-09-23 10:28:02.657708+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-23 10:28:23.100712+05:30	PY OK again	2026-09-23 10:28:03.075574+05:30	2026-09-23 10:28:23.100712+05:30
+40877	19115	12	YCA-SS	1	SEAT SLIDER	D405	RH.HARNESS-2	D405	11	A	code11	OFF	2026-09-23 10:28:02.720054+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-23 10:28:23.100712+05:30	PY OK again	2026-09-23 10:28:03.075574+05:30	2026-09-23 10:28:23.100712+05:30
+41147	19117	2	YNC-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	14	A	code16	ON,ON	2026-09-23 11:14:02.544556+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-23 11:14:28.043954+05:30	PY OK again	2026-09-23 11:14:08.019672+05:30	2026-09-23 11:14:28.043954+05:30
+40886	19116	11	YHB-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	9	A	ON	OFF	2026-09-23 10:30:43.288645+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-23 11:30:45.124192+05:30	PY OK again	2026-09-23 10:30:43.354856+05:30	2026-09-23 11:30:45.124192+05:30
+41517	19118	11	YHB-SS	1	SEAT SLIDER	D412	PoP RIVET-2	D412	9	A	code12336	OFF	2026-09-23 13:02:02.489447+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-23 13:02:37.214736+05:30	PY OK again	2026-09-23 13:02:17.179373+05:30	2026-09-23 13:02:37.214736+05:30
+41679	19120	4	YSD-SS	1	SEAT SLIDER	D414	FR.LIGHTER PROTECTOR-2	D414	14	A	code1077	ON	2026-09-23 13:56:03.155513+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-23 13:56:23.592104+05:30	PY OK again	2026-09-23 13:56:03.539491+05:30	2026-09-23 13:56:23.592104+05:30
+41680	19121	4	YSD-SS	1	SEAT SLIDER	D416	Rr.LIGHTER PROTECTOR-1	D416	14	A	code14	ON	2026-09-23 13:56:03.463212+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-23 13:56:23.592104+05:30	PY OK again	2026-09-23 13:56:03.539491+05:30	2026-09-23 13:56:23.592104+05:30
+41744	19122	12	YCA-SS	1	SEAT SLIDER	D403	LH.HARNESS-1	D403	10	A	code10	OFF	2026-09-23 14:17:02.856868+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-23 14:17:27.052573+05:30	PY OK again	2026-09-23 14:17:07.029222+05:30	2026-09-23 14:17:27.052573+05:30
+41814	19123	2	YNC-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	15	A	code1334	ON,ON	2026-09-23 14:40:02.709525+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-23 14:41:31.180282+05:30	PY OK again	2026-09-23 14:40:11.044222+05:30	2026-09-23 14:41:31.180282+05:30
+41815	19124	2	YNC-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	15	A	code16	ON,ON	2026-09-23 14:40:02.87442+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-23 14:41:31.180282+05:30	PY OK again	2026-09-23 14:40:11.044222+05:30	2026-09-23 14:41:31.180282+05:30
+41816	19125	2	YNC-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	15	A	code15	ON,ON	2026-09-23 14:40:03.003297+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-23 14:41:31.180282+05:30	PY OK again	2026-09-23 14:40:11.044222+05:30	2026-09-23 14:41:31.180282+05:30
+41929	19137	12	YCA-SS	1	SEAT SLIDER	D405	RH.HARNESS-2	D405	12	B	PASS	OFF	2026-09-23 18:30:02.597409+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-23 18:37:10.382363+05:30	PY OK again	2026-09-23 18:30:09.574088+05:30	2026-09-23 18:37:10.382363+05:30
+39486	19104	12	YCA-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	11	B	ON	OFF	2026-09-23 02:52:14.183725+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-23 19:30:57.485058+05:30	PY OK again	2026-09-23 02:52:17.586582+05:30	2026-09-23 19:30:57.485058+05:30
+42008	19141	2	YNC-SS	1	SEAT SLIDER	D422	4W INR/OTR BOLT MIXING.X41	D422	9	B	ON	OFF	2026-09-23 18:35:05.871133+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-23 20:13:42.448372+05:30	PY OK again	2026-09-23 18:35:10.146189+05:30	2026-09-23 20:13:42.448372+05:30
+42039	19143	19	YMC-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	9	B	ON,ON	OFF,OFF	2026-09-23 18:36:41.184481+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 08:51:06.758978+05:30	PY OK again	2026-09-23 18:36:50.302536+05:30	2026-09-24 08:51:06.758978+05:30
+42040	19144	19	YMC-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	9	B	ON,ON	OFF,OFF	2026-09-23 18:36:41.265532+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 08:51:06.758978+05:30	PY OK again	2026-09-23 18:36:50.302536+05:30	2026-09-24 08:51:06.758978+05:30
+42041	19145	19	YMC-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	9	B	ON,ON	OFF,OFF	2026-09-23 18:36:41.375935+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 08:51:06.758978+05:30	PY OK again	2026-09-23 18:36:50.302536+05:30	2026-09-24 08:51:06.758978+05:30
+42042	19146	19	YMC-SS	1	SEAT SLIDER	D424	UPPER RAIL HOLE DETECTION	D424	9	B	PASS	OFF	2026-09-23 18:36:41.473455+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 08:51:06.758978+05:30	PY OK again	2026-09-23 18:36:50.302536+05:30	2026-09-24 08:51:06.758978+05:30
+40655	19109	14	YFG-SS	1	SEAT SLIDER	D417	Rr.LIGHTER PROTECTOR-2	D417	15	A	PASS	ON	2026-09-23 09:14:17.477858+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 10:18:25.090342+05:30	PY OK again	2026-09-23 09:14:35.854759+05:30	2026-09-24 10:18:25.090342+05:30
+42081	19149	11	YHB-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	9	B	ON,ON	OFF,OFF	2026-09-23 18:37:55.397778+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-23 19:17:15.669958+05:30	PY OK again	2026-09-23 18:38:10.444104+05:30	2026-09-23 19:17:15.669958+05:30
+64157	19267	15	Y17-SS	1	SEAT SLIDER	D411	PoP RIVET-1	D411	9	A	ON	OFF	2026-09-24 13:17:51.016104+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 13:35:40.363978+05:30	PY OK again	2026-09-24 13:17:57.135421+05:30	2026-09-24 13:35:40.363978+05:30
+43603	19151	11	YHB-SS	1	SEAT SLIDER	D411	PoP RIVET-1	D411	9	B	PASS	OFF	2026-09-23 19:17:03.257712+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-23 19:17:35.719093+05:30	PY OK again	2026-09-23 19:17:15.613648+05:30	2026-09-23 19:17:35.719093+05:30
+41930	19138	12	YCA-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	12	B	PASS	OFF,OFF	2026-09-23 18:30:02.677196+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-23 19:30:57.485058+05:30	PY OK again	2026-09-23 18:30:09.574088+05:30	2026-09-23 19:30:57.485058+05:30
+41931	19139	12	YCA-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	12	B	code12	OFF,OFF	2026-09-23 18:30:02.710398+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-23 19:30:57.485058+05:30	PY OK again	2026-09-23 18:30:09.574088+05:30	2026-09-23 19:30:57.485058+05:30
+41932	19140	12	YCA-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	12	B	PASS	OFF,OFF	2026-09-23 18:30:02.764377+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-23 19:30:57.485058+05:30	PY OK again	2026-09-23 18:30:09.574088+05:30	2026-09-23 19:30:57.485058+05:30
+42079	19147	11	YHB-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	9	B	ON	OFF	2026-09-23 18:37:54.924117+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-23 19:31:57.640165+05:30	PY OK again	2026-09-23 18:38:10.444104+05:30	2026-09-23 19:31:57.640165+05:30
+42080	19148	11	YHB-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	9	B	ON,ON	OFF,OFF	2026-09-23 18:37:55.12465+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-23 19:31:57.640165+05:30	PY OK again	2026-09-23 18:38:10.444104+05:30	2026-09-23 19:31:57.640165+05:30
+42082	19150	11	YHB-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	9	B	ON,ON	OFF,OFF	2026-09-23 18:37:55.5585+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-23 19:31:57.640165+05:30	PY OK again	2026-09-23 18:38:10.444104+05:30	2026-09-23 19:31:57.640165+05:30
+43616	19152	11	YHB-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	9	B	ON,ON	OFF,OFF	2026-09-23 19:17:17.193248+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-23 19:31:57.640165+05:30	PY OK again	2026-09-23 19:17:35.695666+05:30	2026-09-23 19:31:57.640165+05:30
+64158	19268	15	Y17-SS	1	SEAT SLIDER	D412	PoP RIVET-2	D412	9	A	ON	OFF	2026-09-24 13:17:51.312056+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 13:35:40.363978+05:30	PY OK again	2026-09-24 13:17:57.135421+05:30	2026-09-24 13:35:40.363978+05:30
+45228	19157	12	YCA-SS	1	SEAT SLIDER	D402	RH.HARNESS-1	D402	12	B	code545	OFF	2026-09-23 20:51:02.632998+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-23 20:51:26.066422+05:30	PY OK again	2026-09-23 20:51:06.027431+05:30	2026-09-23 20:51:26.066422+05:30
+46051	19163	4	YSD-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	14	B	code14	ON	2026-09-23 21:41:02.776195+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-23 21:41:31.714837+05:30	PY OK again	2026-09-23 21:41:11.551212+05:30	2026-09-23 21:41:31.714837+05:30
+50120	19167	2	YNC-SS	1	SEAT SLIDER	D218	E-RING NG X12/X13	D418	15	B	code1257	OFF,ON	2026-09-24 00:12:02.477548+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 00:12:30.605621+05:30	PY OK again	2026-09-24 00:12:10.56408+05:30	2026-09-24 00:12:30.605621+05:30
+50121	19168	2	YNC-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	15	B	code9	ON	2026-09-24 00:12:02.693375+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 00:12:30.605621+05:30	PY OK again	2026-09-24 00:12:10.56408+05:30	2026-09-24 00:12:30.605621+05:30
+50122	19169	2	YNC-SS	1	SEAT SLIDER	D402	RH.HARNESS-1	D402	15	B	code15	ON	2026-09-24 00:12:02.839795+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 00:12:30.605621+05:30	PY OK again	2026-09-24 00:12:10.56408+05:30	2026-09-24 00:12:30.605621+05:30
+50123	19172	2	YNC-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	15	B	OFF,OFF	ON,ON	2026-09-24 00:12:03.298172+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 00:12:30.605621+05:30	PY OK again	2026-09-24 00:12:10.56408+05:30	2026-09-24 00:12:30.605621+05:30
+50124	19173	2	YNC-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	15	B	code1257	ON,ON	2026-09-24 00:12:03.438742+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 00:12:30.605621+05:30	PY OK again	2026-09-24 00:12:10.56408+05:30	2026-09-24 00:12:30.605621+05:30
+50422	19174	11	YHB-SS	1	SEAT SLIDER	D411	PoP RIVET-1	D411	9	B	code12336	OFF	2026-09-24 00:23:02.881427+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 00:23:31.553751+05:30	PY OK again	2026-09-24 00:23:11.503479+05:30	2026-09-24 00:23:31.553751+05:30
+51653	19180	2	YNC-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	15	B	OFF,OFF	ON,ON	2026-09-24 01:34:38.214694+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 01:35:00.756754+05:30	PY OK again	2026-09-24 01:34:40.734506+05:30	2026-09-24 01:35:00.756754+05:30
+51914	19181	14	YFG-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	14	B	code14	ON,ON	2026-09-24 01:52:02.533233+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 01:52:23.238048+05:30	PY OK again	2026-09-24 01:52:03.212947+05:30	2026-09-24 01:52:23.238048+05:30
+51915	19182	14	YFG-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	14	B	PASS	ON,ON	2026-09-24 01:52:02.60403+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 01:52:23.238048+05:30	PY OK again	2026-09-24 01:52:03.212947+05:30	2026-09-24 01:52:23.238048+05:30
+51916	19183	14	YFG-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	14	B	PASS	ON,ON	2026-09-24 01:52:02.725126+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 01:52:23.238048+05:30	PY OK again	2026-09-24 01:52:03.212947+05:30	2026-09-24 01:52:23.238048+05:30
+51918	19185	14	YFG-SS	1	SEAT SLIDER	D414	FR.LIGHTER PROTECTOR-2	D414	14	B	code10	ON	2026-09-24 01:52:02.980649+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 01:52:23.238048+05:30	PY OK again	2026-09-24 01:52:03.212947+05:30	2026-09-24 01:52:23.238048+05:30
+51919	19186	14	YFG-SS	1	SEAT SLIDER	D415	FR.LIGHTER PROTECTOR-3	D415	14	B	code14	ON	2026-09-24 01:52:03.101124+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 01:52:23.238048+05:30	PY OK again	2026-09-24 01:52:03.212947+05:30	2026-09-24 01:52:23.238048+05:30
+52580	19187	4	YSD-SS	1	SEAT SLIDER	D413	FR.LIGHTER PROTECTOR-1	D413	15	B	code12336	ON	2026-09-24 02:36:02.640829+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 02:36:30.787855+05:30	PY OK again	2026-09-24 02:36:10.760745+05:30	2026-09-24 02:36:30.787855+05:30
+45233	19158	12	YCA-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	12	B	ON	OFF	2026-09-23 20:51:19.825485+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 02:43:51.867347+05:30	PY OK again	2026-09-23 20:51:26.059719+05:30	2026-09-24 02:43:51.867347+05:30
+45895	19160	12	YCA-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	10	B	ON,ON	OFF,OFF	2026-09-23 21:35:16.446523+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 02:43:51.867347+05:30	PY OK again	2026-09-23 21:35:30.999745+05:30	2026-09-24 02:43:51.867347+05:30
+45896	19161	12	YCA-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	10	B	ON,ON	OFF,OFF	2026-09-23 21:35:16.506888+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 02:43:51.867347+05:30	PY OK again	2026-09-23 21:35:30.999745+05:30	2026-09-24 02:43:51.867347+05:30
+45897	19162	12	YCA-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	10	B	ON,ON	OFF,OFF	2026-09-23 21:35:16.549045+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 02:43:51.867347+05:30	PY OK again	2026-09-23 21:35:30.999745+05:30	2026-09-24 02:43:51.867347+05:30
+57956	19207	2	YNC-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	15	A	OFF,OFF	ON,ON	2026-09-24 09:10:02.614007+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 09:10:28.902163+05:30	PY OK again	2026-09-24 09:10:08.841+05:30	2026-09-24 09:10:28.902163+05:30
+57957	19208	2	YNC-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	15	A	code15	ON,ON	2026-09-24 09:10:02.745358+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 09:10:28.902163+05:30	PY OK again	2026-09-24 09:10:08.841+05:30	2026-09-24 09:10:28.902163+05:30
+57958	19209	2	YNC-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	15	A	code16	ON,ON	2026-09-24 09:10:02.882552+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 09:10:28.902163+05:30	PY OK again	2026-09-24 09:10:08.841+05:30	2026-09-24 09:10:28.902163+05:30
+57193	19206	4	YSD-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	15	A	PASS	ON,ON	2026-09-24 08:45:15.533542+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 09:43:01.079581+05:30	PY OK again	2026-09-24 08:45:25.392539+05:30	2026-09-24 09:43:01.079581+05:30
+52691	19188	12	YCA-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	11	B	ON	OFF	2026-09-24 02:48:20.115354+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 09:52:02.031674+05:30	PY OK again	2026-09-24 02:48:32.473994+05:30	2026-09-24 09:52:02.031674+05:30
+52692	19189	12	YCA-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	11	B	ON,ON	OFF,OFF	2026-09-24 02:48:20.518358+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 09:52:02.031674+05:30	PY OK again	2026-09-24 02:48:32.473994+05:30	2026-09-24 09:52:02.031674+05:30
+52693	19190	12	YCA-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	11	B	ON,ON	OFF,OFF	2026-09-24 02:48:20.619506+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 09:52:02.031674+05:30	PY OK again	2026-09-24 02:48:32.473994+05:30	2026-09-24 09:52:02.031674+05:30
+56701	19194	11	YHB-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	9	A	ON	OFF	2026-09-24 08:30:00.691639+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 10:20:25.283943+05:30	PY OK again	2026-09-24 08:30:03.887048+05:30	2026-09-24 10:20:25.283943+05:30
+56702	19195	11	YHB-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	9	A	ON,ON	OFF,OFF	2026-09-24 08:30:00.773245+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 10:20:25.283943+05:30	PY OK again	2026-09-24 08:30:03.887048+05:30	2026-09-24 10:20:25.283943+05:30
+56703	19196	11	YHB-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	9	A	ON,ON	OFF,OFF	2026-09-24 08:30:00.836635+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 10:20:25.283943+05:30	PY OK again	2026-09-24 08:30:03.887048+05:30	2026-09-24 10:20:25.283943+05:30
+52694	19191	12	YCA-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	11	B	ON,ON	OFF,OFF	2026-09-24 02:48:20.684344+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 09:52:02.031674+05:30	PY OK again	2026-09-24 02:48:32.473994+05:30	2026-09-24 09:52:02.031674+05:30
+60710	19244	12	YCA-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	10	A	ON	OFF	2026-09-24 11:23:24.953655+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 11:44:05.507195+05:30	PY OK again	2026-09-24 11:23:42.607326+05:30	2026-09-24 11:44:05.507195+05:30
+60711	19245	12	YCA-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	10	A	ON,ON	OFF,OFF	2026-09-24 11:23:25.061163+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 11:44:05.507195+05:30	PY OK again	2026-09-24 11:23:42.607326+05:30	2026-09-24 11:44:05.507195+05:30
+60712	19246	12	YCA-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	10	A	ON,ON	OFF,OFF	2026-09-24 11:23:25.105238+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 11:44:05.507195+05:30	PY OK again	2026-09-24 11:23:42.607326+05:30	2026-09-24 11:44:05.507195+05:30
+60713	19247	12	YCA-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	10	A	ON,ON	OFF,OFF	2026-09-24 11:23:25.207424+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 11:44:05.507195+05:30	PY OK again	2026-09-24 11:23:42.607326+05:30	2026-09-24 11:44:05.507195+05:30
+26977	18951	15	Y17-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	9	A	ON	OFF	2026-09-21 14:49:43.442228+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 13:35:40.363978+05:30	PY OK again	2026-09-21 14:49:54.664872+05:30	2026-09-24 13:35:40.363978+05:30
+59280	19211	14	YFG-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	14	A	code12336	ON,ON	2026-09-24 10:16:03.140205+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 10:16:24.77321+05:30	PY OK again	2026-09-24 10:16:04.732229+05:30	2026-09-24 10:16:24.77321+05:30
+59281	19213	4	YSD-SS	1	SEAT SLIDER	D413	FR.LIGHTER PROTECTOR-1	D413	15	A	PASS	ON	2026-09-24 10:16:03.488557+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 10:16:24.77321+05:30	PY OK again	2026-09-24 10:16:04.732229+05:30	2026-09-24 10:16:24.77321+05:30
+59282	19214	4	YSD-SS	1	SEAT SLIDER	D414	FR.LIGHTER PROTECTOR-2	D414	15	A	code243	ON	2026-09-24 10:16:03.733828+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 10:16:44.798351+05:30	PY OK again	2026-09-24 10:16:04.732229+05:30	2026-09-24 10:16:44.798351+05:30
+59283	19215	4	YSD-SS	1	SEAT SLIDER	D415	FR.LIGHTER PROTECTOR-3	D415	15	A	OFF	ON	2026-09-24 10:16:03.89962+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 10:16:44.798351+05:30	PY OK again	2026-09-24 10:16:04.732229+05:30	2026-09-24 10:16:44.798351+05:30
+59284	19216	4	YSD-SS	1	SEAT SLIDER	D416	Rr.LIGHTER PROTECTOR-1	D416	15	A	code15	ON	2026-09-24 10:16:04.019379+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 10:16:44.798351+05:30	PY OK again	2026-09-24 10:16:04.732229+05:30	2026-09-24 10:16:44.798351+05:30
+56704	19197	11	YHB-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	9	A	ON,ON	OFF,OFF	2026-09-24 08:30:00.879179+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 10:20:25.283943+05:30	PY OK again	2026-09-24 08:30:03.887048+05:30	2026-09-24 10:20:25.283943+05:30
+26978	18952	15	Y17-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	9	A	ON,ON	OFF,OFF	2026-09-21 14:49:43.818703+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 13:35:40.363978+05:30	PY OK again	2026-09-21 14:49:54.664872+05:30	2026-09-24 13:35:40.363978+05:30
+59342	19217	2	YNC-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	15	A	code12336	ON,ON	2026-09-24 10:25:02.861444+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 10:25:45.637746+05:30	PY OK again	2026-09-24 10:25:05.607258+05:30	2026-09-24 10:25:45.637746+05:30
+26979	18953	15	Y17-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	9	A	ON,ON	OFF,OFF	2026-09-21 14:49:43.960424+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 13:35:40.363978+05:30	PY OK again	2026-09-21 14:49:54.664872+05:30	2026-09-24 13:35:40.363978+05:30
+26980	18954	15	Y17-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	9	A	ON,ON	OFF,OFF	2026-09-21 14:49:44.193839+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 13:35:40.363978+05:30	PY OK again	2026-09-21 14:49:54.664872+05:30	2026-09-24 13:35:40.363978+05:30
+59362	19228	19	YMC-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	9	A	ON,ON	OFF,OFF	2026-09-24 10:31:39.065337+05:30	WAITING	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	\N	\N	2026-09-24 10:31:56.343596+05:30	2026-09-24 10:31:56.343596+05:30
+59363	19229	19	YMC-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	9	A	ON,ON	OFF,OFF	2026-09-24 10:31:39.206704+05:30	WAITING	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	\N	\N	2026-09-24 10:31:56.343596+05:30	2026-09-24 10:31:56.343596+05:30
+59365	19231	19	YMC-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	9	A	ON,ON	OFF,OFF	2026-09-24 10:31:39.336922+05:30	WAITING	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	\N	\N	2026-09-24 10:31:56.343596+05:30	2026-09-24 10:31:56.343596+05:30
+59366	19232	19	YMC-SS	1	SEAT SLIDER	D424	UPPER RAIL HOLE DETECTION	D424	9	A	PASS	OFF	2026-09-24 10:31:39.420003+05:30	WAITING	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	\N	\N	2026-09-24 10:31:56.343596+05:30	2026-09-24 10:31:56.343596+05:30
+59344	19218	12	YCA-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	12	A	ON	OFF	2026-09-24 10:31:30.62697+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 10:33:36.587304+05:30	PY OK again	2026-09-24 10:31:36.296239+05:30	2026-09-24 10:33:36.587304+05:30
+59345	19219	12	YCA-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	12	A	ON,ON	OFF,OFF	2026-09-24 10:31:30.78465+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 10:33:36.587304+05:30	PY OK again	2026-09-24 10:31:36.296239+05:30	2026-09-24 10:33:36.587304+05:30
+59346	19220	12	YCA-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	12	A	ON,ON	OFF,OFF	2026-09-24 10:31:30.86708+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 10:33:36.587304+05:30	PY OK again	2026-09-24 10:31:36.296239+05:30	2026-09-24 10:33:36.587304+05:30
+59347	19221	12	YCA-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	12	A	ON,ON	OFF,OFF	2026-09-24 10:31:30.938183+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 10:33:36.587304+05:30	PY OK again	2026-09-24 10:31:36.296239+05:30	2026-09-24 10:33:36.587304+05:30
+59348	19222	11	YHB-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	9	A	ON	OFF	2026-09-24 10:31:32.325428+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 10:35:56.787548+05:30	PY OK again	2026-09-24 10:31:36.296239+05:30	2026-09-24 10:35:56.787548+05:30
+59349	19223	11	YHB-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	9	A	ON,ON	OFF,OFF	2026-09-24 10:31:32.383449+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 10:35:56.787548+05:30	PY OK again	2026-09-24 10:31:36.296239+05:30	2026-09-24 10:35:56.787548+05:30
+59350	19224	11	YHB-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	9	A	ON,ON	OFF,OFF	2026-09-24 10:31:32.645903+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 10:35:56.787548+05:30	PY OK again	2026-09-24 10:31:36.296239+05:30	2026-09-24 10:35:56.787548+05:30
+59351	19225	11	YHB-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	9	A	ON,ON	OFF,OFF	2026-09-24 10:31:32.786837+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 10:35:56.787548+05:30	PY OK again	2026-09-24 10:31:36.296239+05:30	2026-09-24 10:35:56.787548+05:30
+59400	19234	4	YSD-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	15	A	PASS	ON,ON	2026-09-24 10:32:21.299695+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 10:45:57.8782+05:30	PY OK again	2026-09-24 10:32:36.45103+05:30	2026-09-24 10:45:57.8782+05:30
+60340	19240	2	YNC-SS	1	SEAT SLIDER	D402	RH.HARNESS-1	D402	14	A	PASS	ON	2026-09-24 11:08:17.457239+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 11:08:40.993608+05:30	PY OK again	2026-09-24 11:08:20.938539+05:30	2026-09-24 11:08:40.993608+05:30
+60341	19241	2	YNC-SS	1	SEAT SLIDER	D423	RH HARNES BKT NG.X44	D423	14	A	PASS	OFF	2026-09-24 11:08:18.078521+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 11:08:40.993608+05:30	PY OK again	2026-09-24 11:08:20.938539+05:30	2026-09-24 11:08:40.993608+05:30
+60906	19248	2	YNC-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	14	A	code14	ON	2026-09-24 11:29:02.867829+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 11:29:23.31711+05:30	PY OK again	2026-09-24 11:29:03.267614+05:30	2026-09-24 11:29:23.31711+05:30
+60907	19249	4	YSD-SS	1	SEAT SLIDER	D414	FR.LIGHTER PROTECTOR-2	D414	15	A	code15	ON	2026-09-24 11:29:02.940224+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 11:29:23.31711+05:30	PY OK again	2026-09-24 11:29:03.267614+05:30	2026-09-24 11:29:23.31711+05:30
+60908	19250	15	Y17-SS	1	SEAT SLIDER	D404	LH.HARNESS-2	D404	9	A	ON	OFF	2026-09-24 11:29:03.039763+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 11:29:23.31711+05:30	PY OK again	2026-09-24 11:29:03.267614+05:30	2026-09-24 11:29:23.31711+05:30
+60909	19251	4	YSD-SS	1	SEAT SLIDER	D415	FR.LIGHTER PROTECTOR-3	D415	15	A	PASS	ON	2026-09-24 11:29:03.082639+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 11:29:23.31711+05:30	PY OK again	2026-09-24 11:29:03.267614+05:30	2026-09-24 11:29:23.31711+05:30
+60910	19252	4	YSD-SS	1	SEAT SLIDER	D416	Rr.LIGHTER PROTECTOR-1	D416	15	A	PASS	ON	2026-09-24 11:29:03.248723+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 11:29:23.31711+05:30	PY OK again	2026-09-24 11:29:03.267614+05:30	2026-09-24 11:29:23.31711+05:30
+60911	19253	2	YNC-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	14	A	PASS	ON,ON	2026-09-24 11:29:03.249881+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 11:29:23.31711+05:30	PY OK again	2026-09-24 11:29:03.267614+05:30	2026-09-24 11:29:23.31711+05:30
 \.
 
 
@@ -29381,6 +30841,26 @@ COPY public.mes_shift_compile (id, line_id, record_date, shift_name, closed_at, 
 90	15	2026-09-21	A	2026-09-21 17:21:13.04456+05:30	ss	2026-09-21 17:15:00+05:30	t	\N
 91	14	2026-09-21	A	2026-09-21 17:21:20.130327+05:30	ss	2026-09-21 17:15:00+05:30	t	\N
 92	2	2026-09-21	A	2026-09-21 17:22:14.41738+05:30	ss	2026-09-21 17:15:00+05:30	t	\N
+93	18	2026-09-22	A	2026-09-22 17:17:54.316663+05:30	ss	2026-09-22 17:15:00+05:30	t	\N
+94	12	2026-09-22	A	2026-09-22 17:18:15.30192+05:30	ss	2026-09-22 17:15:00+05:30	t	\N
+95	11	2026-09-22	A	2026-09-22 17:18:23.12566+05:30	ss	2026-09-22 17:15:00+05:30	t	\N
+96	4	2026-09-22	A	2026-09-22 17:18:28.018709+05:30	ss	2026-09-22 17:15:00+05:30	t	\N
+97	2	2026-09-22	A	2026-09-22 17:18:33.199045+05:30	ss	2026-09-22 17:15:00+05:30	t	\N
+98	19	2026-09-22	A	2026-09-22 17:18:37.638932+05:30	ss	2026-09-22 17:15:00+05:30	t	\N
+99	13	2026-09-22	A	2026-09-22 17:18:44.451429+05:30	ss	2026-09-22 17:15:00+05:30	t	\N
+100	14	2026-09-22	A	2026-09-22 17:18:51.807802+05:30	ss	2026-09-22 17:15:00+05:30	t	\N
+101	15	2026-09-22	A	2026-09-22 17:18:56.707713+05:30	ss	2026-09-22 17:15:00+05:30	t	\N
+102	15	2026-09-23	A	2026-09-23 17:22:01.745337+05:30	ss	2026-09-23 17:15:00+05:30	t	\N
+103	14	2026-09-23	A	2026-09-23 17:22:07.990403+05:30	ss	2026-09-23 17:15:00+05:30	t	\N
+104	12	2026-09-23	A	2026-09-23 19:55:06.067721+05:30	ss	2026-09-23 17:15:00+05:30	f	\N
+105	18	2026-09-23	A	2026-09-23 19:55:23.164794+05:30	ss	2026-09-23 17:15:00+05:30	f	\N
+106	11	2026-09-23	A	2026-09-23 19:55:28.703255+05:30	ss	2026-09-23 17:15:00+05:30	f	\N
+107	4	2026-09-23	A	2026-09-23 19:55:38.942001+05:30	ss	2026-09-23 17:15:00+05:30	f	\N
+108	12	2026-09-23	B	2026-09-24 03:40:55.243369+05:30	ss	2026-09-24 03:15:00+05:30	t	\N
+109	18	2026-09-23	B	2026-09-24 03:41:07.490843+05:30	ss	2026-09-24 03:15:00+05:30	t	\N
+110	11	2026-09-23	B	2026-09-24 03:41:19.473913+05:30	ss	2026-09-24 03:15:00+05:30	t	\N
+111	4	2026-09-23	B	2026-09-24 03:41:33.224152+05:30	ss	2026-09-24 03:15:00+05:30	t	\N
+112	19	2026-09-23	B	2026-09-24 03:43:10.926683+05:30	ss	2026-09-24 03:15:00+05:30	t	\N
 \.
 
 
@@ -29452,8 +30932,8 @@ COPY public.mes_shift_configs (id, line_id, shift_name, start_time, end_time, cr
 96	20	B	18:30:00	03:15:00	t	1860	465	5	t	f	\N	\N	03:30:00	\N
 93	20	GAP_AB	17:15:00	18:30:00	f	0	0	0	f	f	\N	\N	\N	\N
 94	20	GAP_BA	03:15:00	08:30:00	f	0	0	0	f	f	\N	\N	\N	\N
-115	30	A	08:30:00	17:15:00	f	1468	465	5	t	f	18:15:00	\N	17:15:00	\N
-116	30	B	18:30:00	03:15:00	t	1468	465	5	t	f	06:30:00	\N	03:30:00	\N
+115	30	A	08:30:00	17:15:00	f	2200	465	5	t	f	18:15:00	\N	17:15:00	\N
+116	30	B	18:30:00	03:15:00	t	2200	465	5	t	f	06:30:00	\N	03:30:00	\N
 27	5	GAP_AB	17:15:00	18:30:00	f	0	0	0	f	f	\N	\N	\N	\N
 28	5	GAP_BA	03:15:00	08:30:00	f	0	0	0	f	f	\N	\N	\N	\N
 25	5	A	08:30:00	17:15:00	f	1750	465	5	t	f	\N	\N	\N	\N
@@ -29470,14 +30950,14 @@ COPY public.mes_shift_configs (id, line_id, shift_name, start_time, end_time, cr
 124	29	B	18:30:00	03:15:00	t	1750	465	5	t	f	06:30:00	\N	03:30:00	\N
 113	30	GAP_AB	17:15:00	18:30:00	f	0	0	5	f	f	\N	\N	\N	\N
 114	30	GAP_BA	03:15:00	08:30:00	f	0	0	5	f	f	\N	\N	\N	\N
-99	21	A	08:30:00	17:15:00	f	1468	465	5	t	f	18:15:00	\N	17:15:00	\N
-100	21	B	18:30:00	03:15:00	t	1468	465	5	t	f	06:30:00	\N	03:30:00	\N
 97	21	GAP_AB	17:15:00	18:30:00	f	0	0	5	f	f	\N	\N	\N	\N
 98	21	GAP_BA	03:15:00	08:30:00	f	0	0	5	f	f	\N	\N	\N	\N
 135	31	GAP_AB	17:15:00	18:30:00	f	0	0	5	f	f	\N	\N	\N	\N
 136	31	GAP_BA	03:15:00	08:30:00	f	0	0	5	f	f	\N	\N	\N	\N
 133	31	A	08:30:00	17:15:00	f	2850	465	5	t	f	18:15:00	\N	\N	\N
 134	31	B	18:30:00	03:15:00	t	2850	465	5	t	f	06:30:00	\N	\N	\N
+99	21	A	08:30:00	17:15:00	f	3000	465	5	t	f	18:15:00	\N	17:15:00	\N
+100	21	B	18:30:00	03:15:00	t	3000	465	5	t	f	06:30:00	\N	03:30:00	\N
 175	39	GAP_AB	17:15:00	18:30:00	f	0	0	5	f	f	\N	\N	\N	\N
 176	39	GAP_BA	03:15:00	08:30:00	f	0	0	5	f	f	\N	\N	\N	\N
 150	33	B	18:30:00	03:15:00	t	2475	465	5	t	f	\N	\N	\N	\N
@@ -29563,6 +31043,11 @@ COPY public.mes_shift_escalation (id, line_id, zone_id, record_date, shift_name,
 51774	2	1	2026-09-20	A	1	open	2 alarms on YNC-SS in shift A (2026-09-20); 0 with remark, 2 pending review.	[{"ct": 208.12, "time": "08:33:28", "remark": null, "line_id": 2, "cycle_seq": 1, "part_code": null}, {"ct": 60.27, "time": "10:21:29", "remark": null, "line_id": 2, "cycle_seq": 402, "part_code": "00146D60920-0393606220042"}]	2026-09-20 17:17:12.188765+05:30	2026-09-20 17:17:12.188765+05:30
 51772	14	1	2026-09-18	A	1	open	8 alarms on YFG-SS in shift A (2026-09-18); 0 with remark, 8 pending review.	[{"ct": 271.28, "time": "08:34:31", "remark": null, "line_id": 14, "cycle_seq": 1, "part_code": null}, {"ct": 15.67, "time": "08:49:26", "remark": null, "line_id": 14, "cycle_seq": 40, "part_code": "00207D60918-0037606150116"}, {"ct": 13.74, "time": "09:19:59", "remark": null, "line_id": 14, "cycle_seq": 149, "part_code": "00207D60918-0147606150019"}, {"ct": 10.21, "time": "09:21:40", "remark": null, "line_id": 14, "cycle_seq": 155, "part_code": "00207D60918-0154606150019"}, {"ct": 66.2, "time": "09:22:46", "remark": null, "line_id": 14, "cycle_seq": 156, "part_code": "00207D60918-0155606150019"}, {"ct": 9.36, "time": "11:47:17", "remark": null, "line_id": 14, "cycle_seq": 655, "part_code": "00207D60918-0644606220004"}, {"ct": 11.91, "time": "13:50:55", "remark": null, "line_id": 14, "cycle_seq": 1005, "part_code": "00207D60918-0996606220005"}, {"ct": 13.28, "time": "14:09:48", "remark": null, "line_id": 14, "cycle_seq": 1065, "part_code": "00227D60918-1051606220005"}]	2026-09-18 17:16:40.609162+05:30	2026-09-18 17:16:40.609162+05:30
 51773	4	1	2026-09-18	A	1	open	9 alarms on YSD-SS in shift A (2026-09-18); 0 with remark, 9 pending review.	[{"ct": 433.67, "time": "08:37:13", "remark": null, "line_id": 4, "cycle_seq": 1, "part_code": null}, {"ct": 138.63, "time": "08:39:32", "remark": null, "line_id": 4, "cycle_seq": 2, "part_code": "00153N60916-1766606100061"}, {"ct": 47.12, "time": "08:40:19", "remark": null, "line_id": 4, "cycle_seq": 3, "part_code": "ERROR"}, {"ct": 132.04, "time": "08:42:31", "remark": null, "line_id": 4, "cycle_seq": 4, "part_code": "ERROR"}, {"ct": 16.83, "time": "08:44:27", "remark": null, "line_id": 4, "cycle_seq": 5, "part_code": "00153N60916-1767606100061"}, {"ct": 30.3, "time": "12:38:46", "remark": null, "line_id": 4, "cycle_seq": 707, "part_code": "00153D60918-0697606100108"}, {"ct": 11.93, "time": "13:49:51", "remark": null, "line_id": 4, "cycle_seq": 942, "part_code": "00143D60918-0933606220016"}, {"ct": 11.88, "time": "13:59:32", "remark": null, "line_id": 4, "cycle_seq": 978, "part_code": "00143D60918-0973606220016"}, {"ct": 10.87, "time": "14:29:56", "remark": null, "line_id": 4, "cycle_seq": 1099, "part_code": "00143D60918-1090606220016"}]	2026-09-18 17:16:40.609162+05:30	2026-09-18 17:16:40.609162+05:30
+51804	20	2	2026-09-23	A	1	open	33 alarms on YMC Recliner in shift A (2026-09-23); 0 with remark, 33 pending review.	[{"ct": 832.23, "time": "08:43:52", "remark": null, "line_id": 20, "cycle_seq": 1, "part_code": null}, {"ct": 10.61, "time": "09:08:03", "remark": null, "line_id": 20, "cycle_seq": 43, "part_code": null}, {"ct": 8.49, "time": "09:14:02", "remark": null, "line_id": 20, "cycle_seq": 66, "part_code": null}, {"ct": 123.89, "time": "09:30:03", "remark": null, "line_id": 20, "cycle_seq": 117, "part_code": null}, {"ct": 10.3, "time": "09:35:03", "remark": null, "line_id": 20, "cycle_seq": 134, "part_code": null}, {"ct": 4.81, "time": "10:04:03", "remark": null, "line_id": 20, "cycle_seq": 236, "part_code": null}, {"ct": 10.33, "time": "10:23:03", "remark": null, "line_id": 20, "cycle_seq": 288, "part_code": null}, {"ct": 115.96, "time": "10:54:02", "remark": null, "line_id": 20, "cycle_seq": 398, "part_code": null}, {"ct": 0.0, "time": "11:16:03", "remark": null, "line_id": 20, "cycle_seq": 459, "part_code": null}, {"ct": 5.8, "time": "11:37:03", "remark": null, "line_id": 20, "cycle_seq": 544, "part_code": null}, {"ct": 11.04, "time": "11:52:03", "remark": null, "line_id": 20, "cycle_seq": 582, "part_code": null}, {"ct": 0.68, "time": "12:08:03", "remark": null, "line_id": 20, "cycle_seq": 615, "part_code": null}, {"ct": 59.94, "time": "12:09:03", "remark": null, "line_id": 20, "cycle_seq": 616, "part_code": null}, {"ct": 0.0, "time": "12:44:02", "remark": null, "line_id": 20, "cycle_seq": 647, "part_code": null}, {"ct": 155.03, "time": "12:52:02", "remark": null, "line_id": 20, "cycle_seq": 660, "part_code": null}, {"ct": 44.66, "time": "13:50:03", "remark": null, "line_id": 20, "cycle_seq": 874, "part_code": null}, {"ct": 7.38, "time": "13:59:03", "remark": null, "line_id": 20, "cycle_seq": 900, "part_code": null}, {"ct": 149.76, "time": "14:08:03", "remark": null, "line_id": 20, "cycle_seq": 915, "part_code": null}, {"ct": 0.0, "time": "14:15:03", "remark": null, "line_id": 20, "cycle_seq": 941, "part_code": null}, {"ct": 16.16, "time": "14:52:03", "remark": null, "line_id": 20, "cycle_seq": 1033, "part_code": null}, {"ct": 268.05, "time": "15:02:02", "remark": null, "line_id": 20, "cycle_seq": 1053, "part_code": null}, {"ct": 5.24, "time": "15:13:03", "remark": null, "line_id": 20, "cycle_seq": 1075, "part_code": null}, {"ct": 9.69, "time": "15:21:03", "remark": null, "line_id": 20, "cycle_seq": 1106, "part_code": null}, {"ct": 10.46, "time": "15:38:02", "remark": null, "line_id": 20, "cycle_seq": 1168, "part_code": null}, {"ct": 270.03, "time": "15:45:03", "remark": null, "line_id": 20, "cycle_seq": 1176, "part_code": null}, {"ct": 59.27, "time": "15:46:02", "remark": null, "line_id": 20, "cycle_seq": 1177, "part_code": null}, {"ct": 420.0, "time": "15:53:02", "remark": null, "line_id": 20, "cycle_seq": 1178, "part_code": null}, {"ct": 20.64, "time": "16:20:03", "remark": null, "line_id": 20, "cycle_seq": 1217, "part_code": null}, {"ct": 8.19, "time": "16:24:03", "remark": null, "line_id": 20, "cycle_seq": 1232, "part_code": null}, {"ct": 12.98, "time": "16:32:02", "remark": null, "line_id": 20, "cycle_seq": 1245, "part_code": null}, {"ct": 20.61, "time": "16:37:02", "remark": null, "line_id": 20, "cycle_seq": 1259, "part_code": null}, {"ct": 12.35, "time": "16:59:03", "remark": null, "line_id": 20, "cycle_seq": 1328, "part_code": null}, {"ct": 12.56, "time": "17:02:14", "remark": null, "line_id": 20, "cycle_seq": 1341, "part_code": null}]	2026-09-23 17:17:14.64922+05:30	2026-09-23 17:17:14.64922+05:30
+51805	4	1	2026-09-23	A	1	open	1 alarm on YSD-SS in shift A (2026-09-23); 0 with remark, 1 pending review.	[{"ct": 182.55, "time": "08:33:02", "remark": null, "line_id": 4, "cycle_seq": 1, "part_code": "00143N60922-2420606290104"}]	2026-09-23 17:17:14.64922+05:30	2026-09-23 17:17:14.64922+05:30
+51806	11	1	2026-09-23	A	1	open	5 alarms on YHB-SS in shift A (2026-09-23); 0 with remark, 5 pending review.	[{"ct": 425.55, "time": "08:37:05", "remark": null, "line_id": 11, "cycle_seq": 1, "part_code": "00094N60922-2584606290029"}, {"ct": 16.21, "time": "11:02:11", "remark": null, "line_id": 11, "cycle_seq": 523, "part_code": "00094D60923-0520606260078"}, {"ct": 7.45, "time": "12:19:17", "remark": null, "line_id": 11, "cycle_seq": 781, "part_code": "00094D60923-0777606290081"}, {"ct": 7.01, "time": "12:26:32", "remark": null, "line_id": 11, "cycle_seq": 797, "part_code": "00094D60923-0783606290081"}, {"ct": 28.23, "time": "14:06:56", "remark": null, "line_id": 11, "cycle_seq": 1148, "part_code": "00094D60923-1148606290108"}]	2026-09-23 17:17:14.64922+05:30	2026-09-23 17:17:14.64922+05:30
+51807	15	1	2026-09-23	A	1	open	7 alarms on Y17-SS in shift A (2026-09-23); 0 with remark, 7 pending review.	[{"ct": 279.71, "time": "08:34:39", "remark": null, "line_id": 15, "cycle_seq": 1, "part_code": null}, {"ct": 8.49, "time": "08:43:39", "remark": null, "line_id": 15, "cycle_seq": 14, "part_code": "00097D60923-0013606290014"}, {"ct": 38.97, "time": "08:53:03", "remark": null, "line_id": 15, "cycle_seq": 52, "part_code": "00097N60922-0004606250102"}, {"ct": 78.83, "time": "08:54:22", "remark": null, "line_id": 15, "cycle_seq": 53, "part_code": "ERROR"}, {"ct": 77.61, "time": "08:55:40", "remark": null, "line_id": 15, "cycle_seq": 54, "part_code": "ERROR"}, {"ct": 32.99, "time": "11:37:52", "remark": null, "line_id": 15, "cycle_seq": 674, "part_code": "00157D60923-0670606260007"}, {"ct": 28.01, "time": "13:51:56", "remark": null, "line_id": 15, "cycle_seq": 1085, "part_code": "00147D60923-1082606290105"}]	2026-09-23 17:17:14.64922+05:30	2026-09-23 17:17:14.64922+05:30
+51808	18	1	2026-09-23	A	1	open	6 alarms on YRA-SS in shift A (2026-09-23); 0 with remark, 6 pending review.	[{"ct": 299.36, "time": "08:34:59", "remark": null, "line_id": 18, "cycle_seq": 1, "part_code": "922-1733606260101"}, {"ct": 629.94, "time": "08:45:29", "remark": null, "line_id": 18, "cycle_seq": 2, "part_code": "922-1738606260101"}, {"ct": 141.02, "time": "11:42:12", "remark": null, "line_id": 18, "cycle_seq": 647, "part_code": "923-0001607090038"}, {"ct": 9.84, "time": "13:56:58", "remark": null, "line_id": 18, "cycle_seq": 954, "part_code": "923-0907606290006"}, {"ct": 11.34, "time": "13:58:20", "remark": null, "line_id": 18, "cycle_seq": 956, "part_code": "704-1721602190118"}, {"ct": 6.04, "time": "17:13:46", "remark": null, "line_id": 18, "cycle_seq": 1608, "part_code": "923-1311606290003"}]	2026-09-23 17:17:14.64922+05:30	2026-09-23 17:17:14.64922+05:30
 51775	20	2	2026-09-20	A	1	open	38 alarms on YMC Recliner in shift A (2026-09-20); 0 with remark, 38 pending review.	[{"ct": 237.52, "time": "08:33:57", "remark": null, "line_id": 20, "cycle_seq": 1, "part_code": null}, {"ct": 7.38, "time": "08:46:43", "remark": null, "line_id": 20, "cycle_seq": 35, "part_code": null}, {"ct": 8.57, "time": "09:50:50", "remark": null, "line_id": 20, "cycle_seq": 282, "part_code": null}, {"ct": 7.65, "time": "09:50:57", "remark": null, "line_id": 20, "cycle_seq": 283, "part_code": null}, {"ct": 0.0, "time": "10:09:03", "remark": null, "line_id": 20, "cycle_seq": 329, "part_code": null}, {"ct": 11.02, "time": "10:13:54", "remark": null, "line_id": 20, "cycle_seq": 335, "part_code": null}, {"ct": 9.58, "time": "10:19:51", "remark": null, "line_id": 20, "cycle_seq": 357, "part_code": null}, {"ct": 9.93, "time": "10:34:22", "remark": null, "line_id": 20, "cycle_seq": 420, "part_code": null}, {"ct": 13.03, "time": "10:37:40", "remark": null, "line_id": 20, "cycle_seq": 434, "part_code": null}, {"ct": 14.77, "time": "10:37:55", "remark": null, "line_id": 20, "cycle_seq": 435, "part_code": null}, {"ct": 8.92, "time": "10:50:35", "remark": null, "line_id": 20, "cycle_seq": 491, "part_code": null}, {"ct": 8.94, "time": "10:52:43", "remark": null, "line_id": 20, "cycle_seq": 500, "part_code": null}, {"ct": 6.35, "time": "10:52:49", "remark": null, "line_id": 20, "cycle_seq": 501, "part_code": null}, {"ct": 9.2, "time": "10:53:21", "remark": null, "line_id": 20, "cycle_seq": 502, "part_code": null}, {"ct": 9.59, "time": "10:53:43", "remark": null, "line_id": 20, "cycle_seq": 503, "part_code": null}, {"ct": 10.77, "time": "10:55:14", "remark": null, "line_id": 20, "cycle_seq": 509, "part_code": null}, {"ct": 104.59, "time": "10:56:58", "remark": null, "line_id": 20, "cycle_seq": 510, "part_code": null}, {"ct": 26.25, "time": "10:57:25", "remark": null, "line_id": 20, "cycle_seq": 511, "part_code": null}, {"ct": 33.1, "time": "10:57:58", "remark": null, "line_id": 20, "cycle_seq": 512, "part_code": null}, {"ct": 68.54, "time": "10:59:06", "remark": null, "line_id": 20, "cycle_seq": 513, "part_code": null}, {"ct": 17.48, "time": "10:59:24", "remark": null, "line_id": 20, "cycle_seq": 514, "part_code": null}, {"ct": 128.95, "time": "11:02:42", "remark": null, "line_id": 20, "cycle_seq": 515, "part_code": null}, {"ct": 63.33, "time": "11:03:45", "remark": null, "line_id": 20, "cycle_seq": 516, "part_code": null}, {"ct": 295.71, "time": "11:07:42", "remark": null, "line_id": 20, "cycle_seq": 517, "part_code": null}, {"ct": 9.08, "time": "11:17:27", "remark": null, "line_id": 20, "cycle_seq": 552, "part_code": null}, {"ct": 8.32, "time": "11:18:47", "remark": null, "line_id": 20, "cycle_seq": 558, "part_code": null}, {"ct": 9.17, "time": "11:25:33", "remark": null, "line_id": 20, "cycle_seq": 591, "part_code": null}, {"ct": 8.85, "time": "11:36:59", "remark": null, "line_id": 20, "cycle_seq": 645, "part_code": null}, {"ct": 8.37, "time": "11:38:42", "remark": null, "line_id": 20, "cycle_seq": 652, "part_code": null}, {"ct": 8.41, "time": "11:47:51", "remark": null, "line_id": 20, "cycle_seq": 695, "part_code": null}, {"ct": 10.15, "time": "11:48:01", "remark": null, "line_id": 20, "cycle_seq": 696, "part_code": null}, {"ct": 21.14, "time": "11:48:22", "remark": null, "line_id": 20, "cycle_seq": 697, "part_code": null}, {"ct": 9.36, "time": "11:53:02", "remark": null, "line_id": 20, "cycle_seq": 715, "part_code": null}, {"ct": 8.99, "time": "11:55:27", "remark": null, "line_id": 20, "cycle_seq": 726, "part_code": null}, {"ct": 8.48, "time": "11:55:35", "remark": null, "line_id": 20, "cycle_seq": 727, "part_code": null}, {"ct": 10.24, "time": "12:00:14", "remark": null, "line_id": 20, "cycle_seq": 745, "part_code": null}, {"ct": 0.0, "time": "12:02:05", "remark": null, "line_id": 20, "cycle_seq": 746, "part_code": null}, {"ct": 66.15, "time": "12:03:11", "remark": null, "line_id": 20, "cycle_seq": 747, "part_code": null}]	2026-09-20 17:17:12.188765+05:30	2026-09-20 17:17:12.188765+05:30
 51776	18	1	2026-09-20	A	1	open	7 alarms on YRA-SS in shift A (2026-09-20); 0 with remark, 7 pending review.	[{"ct": 384.1, "time": "08:36:24", "remark": null, "line_id": 18, "cycle_seq": 1, "part_code": null}, {"ct": 39.41, "time": "08:37:03", "remark": null, "line_id": 18, "cycle_seq": 2, "part_code": null}, {"ct": 9.11, "time": "12:51:49", "remark": null, "line_id": 18, "cycle_seq": 626, "part_code": "920-0002606220097"}, {"ct": 6.48, "time": "13:03:14", "remark": null, "line_id": 18, "cycle_seq": 664, "part_code": "920-0630606160102"}, {"ct": 62.08, "time": "13:53:28", "remark": null, "line_id": 18, "cycle_seq": 839, "part_code": "920-0670606160102"}, {"ct": 9.98, "time": "15:24:50", "remark": null, "line_id": 18, "cycle_seq": 1051, "part_code": "920-0841606170018"}, {"ct": 24.37, "time": "16:53:31", "remark": null, "line_id": 18, "cycle_seq": 1313, "part_code": "920-1065606180001"}]	2026-09-20 17:17:12.188765+05:30	2026-09-20 17:17:12.188765+05:30
 51777	12	1	2026-09-20	A	1	open	3 alarms on YCA-SS in shift A (2026-09-20); 0 with remark, 3 pending review.	[{"ct": 18.55, "time": "08:30:18", "remark": null, "line_id": 12, "cycle_seq": 1, "part_code": null}, {"ct": 14.05, "time": "08:39:09", "remark": null, "line_id": 12, "cycle_seq": 6, "part_code": "00125N60919-2467606180012"}, {"ct": 54.15, "time": "16:33:10", "remark": null, "line_id": 12, "cycle_seq": 1729, "part_code": null}]	2026-09-20 17:17:12.188765+05:30	2026-09-20 17:17:12.188765+05:30
@@ -29581,6 +31066,21 @@ COPY public.mes_shift_escalation (id, line_id, zone_id, record_date, shift_name,
 51791	2	1	2026-09-21	A	1	open	18 alarms on YNC-SS in shift A (2026-09-21); 4 with remark, 14 pending review.	[{"ct": 110.82, "time": "08:31:50", "remark": null, "line_id": 2, "cycle_seq": 1, "part_code": "00096D60920-1901606180016"}, {"ct": 35.49, "time": "08:55:28", "remark": null, "line_id": 2, "cycle_seq": 83, "part_code": "00096D60921-0075606180006"}, {"ct": 43.1, "time": "08:59:55", "remark": null, "line_id": 2, "cycle_seq": 102, "part_code": "00096D60921-0091606180006"}, {"ct": 36.11, "time": "09:00:31", "remark": "Power cut", "line_id": 2, "cycle_seq": 103, "part_code": "ERROR"}, {"ct": 9.65, "time": "09:00:40", "remark": null, "line_id": 2, "cycle_seq": 104, "part_code": null}, {"ct": 17.98, "time": "09:56:21", "remark": null, "line_id": 2, "cycle_seq": 352, "part_code": "00186D60921-0344606180006"}, {"ct": 33.19, "time": "13:24:39", "remark": null, "line_id": 2, "cycle_seq": 1052, "part_code": "00096D60921-1045606180006"}, {"ct": 14.49, "time": "14:27:50", "remark": null, "line_id": 2, "cycle_seq": 1316, "part_code": "00156D60921-1314606180006"}, {"ct": 13.5, "time": "16:06:44", "remark": null, "line_id": 2, "cycle_seq": 1693, "part_code": "00156D60921-1689606180006"}, {"ct": 8.12, "time": "16:11:12", "remark": null, "line_id": 2, "cycle_seq": 1712, "part_code": "00156D60921-1706606180006"}, {"ct": 43.32, "time": "16:11:56", "remark": null, "line_id": 2, "cycle_seq": 1713, "part_code": "00156D60921-1709606180006"}, {"ct": 745.65, "time": "16:50:18", "remark": null, "line_id": 2, "cycle_seq": 1834, "part_code": null}, {"ct": 207.84, "time": "17:01:01", "remark": null, "line_id": 2, "cycle_seq": 1864, "part_code": null}, {"ct": 30.61, "time": "17:01:32", "remark": "Power cut", "line_id": 2, "cycle_seq": 1865, "part_code": "ERROR"}, {"ct": 38.53, "time": "17:02:10", "remark": "Power cut", "line_id": 2, "cycle_seq": 1866, "part_code": "ERROR"}, {"ct": 52.99, "time": "17:03:03", "remark": "Power cut", "line_id": 2, "cycle_seq": 1867, "part_code": "ERROR"}, {"ct": 193.12, "time": "17:06:16", "remark": null, "line_id": 2, "cycle_seq": 1868, "part_code": "\\u000f"}, {"ct": 8.08, "time": "17:07:08", "remark": null, "line_id": 2, "cycle_seq": 1869, "part_code": "00156D60921-1861606180006"}]	2026-09-21 17:17:11.944262+05:30	2026-09-21 17:17:11.944262+05:30
 51792	11	1	2026-09-21	A	1	open	15 alarms on YHB-SS in shift A (2026-09-21); 0 with remark, 15 pending review.	[{"ct": 273.01, "time": "08:34:33", "remark": null, "line_id": 11, "cycle_seq": 1, "part_code": "00094D60920-0001606220044"}, {"ct": 336.25, "time": "08:40:09", "remark": null, "line_id": 11, "cycle_seq": 2, "part_code": "ERROR"}, {"ct": 60.99, "time": "08:41:10", "remark": null, "line_id": 11, "cycle_seq": 3, "part_code": "ERROR"}, {"ct": 8.42, "time": "11:01:29", "remark": null, "line_id": 11, "cycle_seq": 538, "part_code": "00094D60921-0532606170111"}, {"ct": 8.36, "time": "11:13:42", "remark": null, "line_id": 11, "cycle_seq": 589, "part_code": "00094D60921-0582606170111"}, {"ct": 5.81, "time": "11:30:59", "remark": null, "line_id": 11, "cycle_seq": 663, "part_code": null}, {"ct": 8.12, "time": "15:05:17", "remark": null, "line_id": 11, "cycle_seq": 1344, "part_code": "00094D60921-1340606300112"}, {"ct": 11.85, "time": "16:27:26", "remark": null, "line_id": 11, "cycle_seq": 1661, "part_code": "00094D60921-1649606300112"}, {"ct": 698.94, "time": "16:49:22", "remark": null, "line_id": 11, "cycle_seq": 1706, "part_code": "00094D60921-1693606300112"}, {"ct": 52.62, "time": "16:50:15", "remark": null, "line_id": 11, "cycle_seq": 1707, "part_code": null}, {"ct": 29.83, "time": "16:55:03", "remark": null, "line_id": 11, "cycle_seq": 1716, "part_code": "00094D60921-1713606300112"}, {"ct": 206.65, "time": "17:01:04", "remark": null, "line_id": 11, "cycle_seq": 1724, "part_code": "00094D60921-1724606300112"}, {"ct": 85.86, "time": "17:02:30", "remark": null, "line_id": 11, "cycle_seq": 1725, "part_code": "ERROR"}, {"ct": 22.88, "time": "17:05:42", "remark": null, "line_id": 11, "cycle_seq": 1732, "part_code": null}, {"ct": 40.59, "time": "17:06:23", "remark": null, "line_id": 11, "cycle_seq": 1733, "part_code": "00094D60921-1731606300112"}]	2026-09-21 17:17:11.944262+05:30	2026-09-21 17:17:11.944262+05:30
 51793	20	2	2026-09-21	A	1	open	20 alarms on YMC Recliner in shift A (2026-09-21); 0 with remark, 20 pending review.	[{"ct": 694.01, "time": "08:41:34", "remark": null, "line_id": 20, "cycle_seq": 1, "part_code": null}, {"ct": 630.38, "time": "08:52:04", "remark": null, "line_id": 20, "cycle_seq": 2, "part_code": null}, {"ct": 0.0, "time": "09:25:03", "remark": null, "line_id": 20, "cycle_seq": 117, "part_code": null}, {"ct": 8.27, "time": "09:58:03", "remark": null, "line_id": 20, "cycle_seq": 252, "part_code": null}, {"ct": 239.79, "time": "10:12:03", "remark": null, "line_id": 20, "cycle_seq": 253, "part_code": null}, {"ct": 8.8, "time": "10:18:02", "remark": null, "line_id": 20, "cycle_seq": 260, "part_code": null}, {"ct": 5.91, "time": "10:52:02", "remark": null, "line_id": 20, "cycle_seq": 400, "part_code": null}, {"ct": 11.2, "time": "11:08:02", "remark": null, "line_id": 20, "cycle_seq": 461, "part_code": null}, {"ct": 5.56, "time": "11:31:02", "remark": null, "line_id": 20, "cycle_seq": 546, "part_code": null}, {"ct": 11.9, "time": "11:54:03", "remark": null, "line_id": 20, "cycle_seq": 622, "part_code": null}, {"ct": 9.04, "time": "11:57:03", "remark": null, "line_id": 20, "cycle_seq": 632, "part_code": null}, {"ct": 8.13, "time": "11:58:03", "remark": null, "line_id": 20, "cycle_seq": 636, "part_code": null}, {"ct": 9.67, "time": "12:00:05", "remark": null, "line_id": 20, "cycle_seq": 644, "part_code": null}, {"ct": 0.0, "time": "12:25:03", "remark": null, "line_id": 20, "cycle_seq": 645, "part_code": null}, {"ct": 13.27, "time": "12:36:29", "remark": null, "line_id": 20, "cycle_seq": 646, "part_code": null}, {"ct": 8.03, "time": "12:39:03", "remark": null, "line_id": 20, "cycle_seq": 655, "part_code": null}, {"ct": 8.62, "time": "12:58:03", "remark": null, "line_id": 20, "cycle_seq": 732, "part_code": null}, {"ct": 8.26, "time": "13:06:02", "remark": null, "line_id": 20, "cycle_seq": 759, "part_code": null}, {"ct": 10.72, "time": "13:08:03", "remark": null, "line_id": 20, "cycle_seq": 766, "part_code": null}, {"ct": 13.4, "time": "14:24:00", "remark": null, "line_id": 20, "cycle_seq": 1018, "part_code": null}]	2026-09-21 17:17:11.944262+05:30	2026-09-21 17:17:11.944262+05:30
+51794	12	1	2026-09-22	A	1	open	3 alarms on YCA-SS in shift A (2026-09-22); 0 with remark, 3 pending review.	[{"ct": 10.41, "time": "11:41:35", "remark": null, "line_id": 12, "cycle_seq": 679, "part_code": "00105D60922-0670606300054"}, {"ct": 8.94, "time": "15:17:25", "remark": null, "line_id": 12, "cycle_seq": 1342, "part_code": "00115D60922-1341606250098"}, {"ct": 27.97, "time": "16:11:47", "remark": null, "line_id": 12, "cycle_seq": 1562, "part_code": "00115D60922-1554606250086"}]	2026-09-22 17:17:13.594809+05:30	2026-09-22 17:17:13.594809+05:30
+51795	14	1	2026-09-22	A	1	open	17 alarms on YFG-SS in shift A (2026-09-22); 0 with remark, 17 pending review.	[{"ct": 314.56, "time": "08:35:14", "remark": null, "line_id": 14, "cycle_seq": 1, "part_code": null}, {"ct": 8.64, "time": "09:02:07", "remark": null, "line_id": 14, "cycle_seq": 91, "part_code": null}, {"ct": 89.72, "time": "09:04:24", "remark": null, "line_id": 14, "cycle_seq": 94, "part_code": "00097D60922-0086606290083"}, {"ct": 91.82, "time": "10:12:15", "remark": null, "line_id": 14, "cycle_seq": 335, "part_code": "00157D60922-0315606250088"}, {"ct": 8.72, "time": "11:50:09", "remark": null, "line_id": 14, "cycle_seq": 736, "part_code": "00257D60922-0729606250091"}, {"ct": 78.98, "time": "12:47:03", "remark": null, "line_id": 14, "cycle_seq": 815, "part_code": "00257D60922-0807606300043"}, {"ct": 61.59, "time": "13:17:08", "remark": null, "line_id": 14, "cycle_seq": 931, "part_code": "00247D60922-0925606300043"}, {"ct": 9.8, "time": "13:38:16", "remark": null, "line_id": 14, "cycle_seq": 1012, "part_code": "00247D60922-1006606300043"}, {"ct": 73.31, "time": "13:51:39", "remark": null, "line_id": 14, "cycle_seq": 1056, "part_code": "00247D60922-1050606250101"}, {"ct": 38.61, "time": "15:18:30", "remark": null, "line_id": 14, "cycle_seq": 1357, "part_code": "00227D60922-1356606300069"}, {"ct": 8.26, "time": "15:35:50", "remark": null, "line_id": 14, "cycle_seq": 1417, "part_code": "00207D60922-1414606300069"}, {"ct": 9.55, "time": "15:37:56", "remark": null, "line_id": 14, "cycle_seq": 1425, "part_code": "00207D60921-1317606300027"}, {"ct": 14.5, "time": "15:47:25", "remark": null, "line_id": 14, "cycle_seq": 1464, "part_code": "00207D60922-1450606300069"}, {"ct": 8.19, "time": "15:48:31", "remark": null, "line_id": 14, "cycle_seq": 1467, "part_code": "00207D60922-1448606300069"}, {"ct": 7.59, "time": "16:19:21", "remark": null, "line_id": 14, "cycle_seq": 1610, "part_code": "00207D60922-1593606250108"}, {"ct": 11.98, "time": "16:25:37", "remark": null, "line_id": 14, "cycle_seq": 1634, "part_code": "00207D60922-1620606250108"}, {"ct": 0.0, "time": "17:05:09", "remark": null, "line_id": 14, "cycle_seq": 1811, "part_code": "00207D60922-1796606250108"}]	2026-09-22 17:17:13.594809+05:30	2026-09-22 17:17:13.594809+05:30
+51796	15	1	2026-09-22	A	1	open	11 alarms on Y17-SS in shift A (2026-09-22); 0 with remark, 11 pending review.	[{"ct": 284.71, "time": "08:34:44", "remark": null, "line_id": 15, "cycle_seq": 1, "part_code": null}, {"ct": 14.99, "time": "08:41:03", "remark": null, "line_id": 15, "cycle_seq": 3, "part_code": "00097N60921-2413606260098"}, {"ct": 32.84, "time": "09:30:53", "remark": null, "line_id": 15, "cycle_seq": 222, "part_code": "00097N60921-0003606220066"}, {"ct": 17.62, "time": "09:31:11", "remark": null, "line_id": 15, "cycle_seq": 223, "part_code": "ERROR"}, {"ct": 9.89, "time": "10:23:56", "remark": null, "line_id": 15, "cycle_seq": 393, "part_code": "00147D60922-0388606260042"}, {"ct": 48.34, "time": "11:19:55", "remark": null, "line_id": 15, "cycle_seq": 623, "part_code": "00147D60922-0612606290079"}, {"ct": 31.23, "time": "14:23:04", "remark": null, "line_id": 15, "cycle_seq": 1224, "part_code": "00157D60922-1217606250076"}, {"ct": 18.99, "time": "14:54:40", "remark": null, "line_id": 15, "cycle_seq": 1310, "part_code": "00097D60922-1306606300019"}, {"ct": 7.0, "time": "14:54:47", "remark": null, "line_id": 15, "cycle_seq": 1311, "part_code": null}, {"ct": 10.64, "time": "15:14:03", "remark": null, "line_id": 15, "cycle_seq": 1398, "part_code": "00097D60922-1392606300019"}, {"ct": 13.72, "time": "16:01:56", "remark": null, "line_id": 15, "cycle_seq": 1596, "part_code": "00097D60922-1591606250077"}]	2026-09-22 17:17:13.594809+05:30	2026-09-22 17:17:13.594809+05:30
+51797	18	1	2026-09-22	A	1	open	4 alarms on YRA-SS in shift A (2026-09-22); 0 with remark, 4 pending review.	[{"ct": 210.34, "time": "08:33:30", "remark": null, "line_id": 18, "cycle_seq": 1, "part_code": null}, {"ct": 523.94, "time": "08:42:14", "remark": null, "line_id": 18, "cycle_seq": 2, "part_code": null}, {"ct": 9.16, "time": "08:43:58", "remark": null, "line_id": 18, "cycle_seq": 4, "part_code": "922-0006606260109"}, {"ct": 6.42, "time": "11:54:09", "remark": null, "line_id": 18, "cycle_seq": 708, "part_code": "921-0024606220060"}]	2026-09-22 17:17:13.594809+05:30	2026-09-22 17:17:13.594809+05:30
+51798	13	1	2026-09-22	A	1	open	12 alarms on YJC-SS in shift A (2026-09-22); 0 with remark, 12 pending review.	[{"ct": 308.8, "time": "08:35:08", "remark": null, "line_id": 13, "cycle_seq": 1, "part_code": null}, {"ct": 48.44, "time": "08:35:57", "remark": null, "line_id": 13, "cycle_seq": 2, "part_code": "ERROR60921-1355411081062"}, {"ct": 270.6, "time": "08:40:27", "remark": null, "line_id": 13, "cycle_seq": 3, "part_code": "ERROR"}, {"ct": 50.66, "time": "08:41:18", "remark": null, "line_id": 13, "cycle_seq": 4, "part_code": "ERROR"}, {"ct": 12.11, "time": "08:41:30", "remark": null, "line_id": 13, "cycle_seq": 5, "part_code": "ERROR"}, {"ct": 68.37, "time": "08:42:38", "remark": null, "line_id": 13, "cycle_seq": 6, "part_code": "ERROR"}, {"ct": 16.85, "time": "08:48:03", "remark": null, "line_id": 13, "cycle_seq": 7, "part_code": "00092N60921-1586411081062"}, {"ct": 35.42, "time": "13:59:52", "remark": null, "line_id": 13, "cycle_seq": 1015, "part_code": "81450N60722-1185607220630"}, {"ct": 15.47, "time": "14:59:21", "remark": null, "line_id": 13, "cycle_seq": 1106, "part_code": "81450N60721-0004607200555"}, {"ct": 18.68, "time": "15:07:29", "remark": null, "line_id": 13, "cycle_seq": 1128, "part_code": "81450N60722-1151607220630"}, {"ct": 13.5, "time": "15:08:50", "remark": null, "line_id": 13, "cycle_seq": 1131, "part_code": "81450N60630-1120606303361"}, {"ct": 162.18, "time": "16:20:38", "remark": null, "line_id": 13, "cycle_seq": 1307, "part_code": "81450D60708-0028607070176"}]	2026-09-22 17:17:13.594809+05:30	2026-09-22 17:17:13.594809+05:30
+51799	2	1	2026-09-22	A	1	open	9 alarms on YNC-SS in shift A (2026-09-22); 0 with remark, 9 pending review.	[{"ct": 182.13, "time": "08:33:02", "remark": null, "line_id": 2, "cycle_seq": 1, "part_code": null}, {"ct": 11.96, "time": "09:06:14", "remark": null, "line_id": 2, "cycle_seq": 124, "part_code": "00096D60922-0116606250099"}, {"ct": 6.76, "time": "11:33:38", "remark": null, "line_id": 2, "cycle_seq": 725, "part_code": "00096D60922-0719606250099"}, {"ct": 8.61, "time": "11:36:35", "remark": null, "line_id": 2, "cycle_seq": 734, "part_code": "00096D60922-0733606250099"}, {"ct": 6.64, "time": "12:38:00", "remark": null, "line_id": 2, "cycle_seq": 855, "part_code": "00096D60922-0869606250099"}, {"ct": 103.39, "time": "13:11:19", "remark": null, "line_id": 2, "cycle_seq": 1003, "part_code": "00096D60922-0992606250099"}, {"ct": 5.46, "time": "14:49:41", "remark": null, "line_id": 2, "cycle_seq": 1348, "part_code": null}, {"ct": 66.4, "time": "14:50:47", "remark": null, "line_id": 2, "cycle_seq": 1349, "part_code": "00156D60922-1381606250099"}, {"ct": 6.78, "time": "16:58:32", "remark": null, "line_id": 2, "cycle_seq": 1853, "part_code": "00156D60922-1884606250099"}]	2026-09-22 17:17:13.594809+05:30	2026-09-22 17:17:13.594809+05:30
+51800	20	2	2026-09-22	A	1	open	32 alarms on YMC Recliner in shift A (2026-09-22); 0 with remark, 32 pending review.	[{"ct": 799.9, "time": "08:43:19", "remark": null, "line_id": 20, "cycle_seq": 1, "part_code": null}, {"ct": 286.91, "time": "08:48:06", "remark": null, "line_id": 20, "cycle_seq": 2, "part_code": null}, {"ct": 296.31, "time": "08:53:03", "remark": null, "line_id": 20, "cycle_seq": 3, "part_code": null}, {"ct": 539.73, "time": "09:02:02", "remark": null, "line_id": 20, "cycle_seq": 4, "part_code": null}, {"ct": 11.71, "time": "09:28:02", "remark": null, "line_id": 20, "cycle_seq": 74, "part_code": null}, {"ct": 13.43, "time": "09:30:03", "remark": null, "line_id": 20, "cycle_seq": 82, "part_code": null}, {"ct": 7.65, "time": "09:56:03", "remark": null, "line_id": 20, "cycle_seq": 176, "part_code": null}, {"ct": 0.0, "time": "10:04:03", "remark": null, "line_id": 20, "cycle_seq": 192, "part_code": null}, {"ct": 153.56, "time": "10:28:03", "remark": null, "line_id": 20, "cycle_seq": 231, "part_code": null}, {"ct": 180.2, "time": "10:31:03", "remark": null, "line_id": 20, "cycle_seq": 232, "part_code": null}, {"ct": 15.5, "time": "10:33:02", "remark": null, "line_id": 20, "cycle_seq": 233, "part_code": null}, {"ct": 13.26, "time": "10:36:03", "remark": null, "line_id": 20, "cycle_seq": 245, "part_code": null}, {"ct": 0.0, "time": "10:39:02", "remark": null, "line_id": 20, "cycle_seq": 257, "part_code": null}, {"ct": 9.55, "time": "10:43:03", "remark": null, "line_id": 20, "cycle_seq": 272, "part_code": null}, {"ct": 9.72, "time": "10:49:03", "remark": null, "line_id": 20, "cycle_seq": 291, "part_code": null}, {"ct": 20.97, "time": "11:07:03", "remark": null, "line_id": 20, "cycle_seq": 354, "part_code": null}, {"ct": 18.36, "time": "11:12:03", "remark": null, "line_id": 20, "cycle_seq": 369, "part_code": null}, {"ct": 5.4, "time": "11:22:03", "remark": null, "line_id": 20, "cycle_seq": 385, "part_code": null}, {"ct": 25.42, "time": "11:43:03", "remark": null, "line_id": 20, "cycle_seq": 395, "part_code": null}, {"ct": 29.95, "time": "11:47:03", "remark": null, "line_id": 20, "cycle_seq": 398, "part_code": null}, {"ct": 22.06, "time": "11:57:02", "remark": null, "line_id": 20, "cycle_seq": 412, "part_code": null}, {"ct": 12.55, "time": "12:15:17", "remark": null, "line_id": 20, "cycle_seq": 426, "part_code": null}, {"ct": 21.72, "time": "12:18:03", "remark": null, "line_id": 20, "cycle_seq": 428, "part_code": null}, {"ct": 0.0, "time": "12:23:03", "remark": null, "line_id": 20, "cycle_seq": 435, "part_code": null}, {"ct": 0.0, "time": "12:33:03", "remark": null, "line_id": 20, "cycle_seq": 436, "part_code": null}, {"ct": 5.61, "time": "12:39:03", "remark": null, "line_id": 20, "cycle_seq": 448, "part_code": null}, {"ct": 11.55, "time": "13:02:02", "remark": null, "line_id": 20, "cycle_seq": 527, "part_code": null}, {"ct": 209.5, "time": "14:00:02", "remark": null, "line_id": 20, "cycle_seq": 694, "part_code": null}, {"ct": 81.64, "time": "14:11:03", "remark": null, "line_id": 20, "cycle_seq": 702, "part_code": null}, {"ct": 1055.84, "time": "14:37:02", "remark": null, "line_id": 20, "cycle_seq": 706, "part_code": null}, {"ct": 9.24, "time": "16:58:03", "remark": null, "line_id": 20, "cycle_seq": 1090, "part_code": null}, {"ct": 9.33, "time": "17:05:04", "remark": null, "line_id": 20, "cycle_seq": 1114, "part_code": null}]	2026-09-22 17:17:13.594809+05:30	2026-09-22 17:17:13.594809+05:30
+51801	4	1	2026-09-22	A	1	open	2 alarms on YSD-SS in shift A (2026-09-22); 0 with remark, 2 pending review.	[{"ct": 261.17, "time": "08:34:21", "remark": null, "line_id": 4, "cycle_seq": 1, "part_code": null}, {"ct": 0.0, "time": "08:44:03", "remark": null, "line_id": 4, "cycle_seq": 6, "part_code": "00143N60921-2318606300017"}]	2026-09-22 17:17:13.594809+05:30	2026-09-22 17:17:13.594809+05:30
+51802	19	1	2026-09-22	A	1	open	3 alarms on YMC-SS in shift A (2026-09-22); 0 with remark, 3 pending review.	[{"ct": 320.34, "time": "08:35:20", "remark": null, "line_id": 19, "cycle_seq": 1, "part_code": null}, {"ct": 348.07, "time": "08:41:08", "remark": null, "line_id": 19, "cycle_seq": 2, "part_code": "ERROR"}, {"ct": 240.3, "time": "08:45:08", "remark": null, "line_id": 19, "cycle_seq": 3, "part_code": "ERROR"}]	2026-09-22 17:17:13.594809+05:30	2026-09-22 17:17:13.594809+05:30
+51803	11	1	2026-09-22	A	1	open	4 alarms on YHB-SS in shift A (2026-09-22); 0 with remark, 4 pending review.	[{"ct": 222.19, "time": "08:33:42", "remark": null, "line_id": 11, "cycle_seq": 1, "part_code": null}, {"ct": 13.11, "time": "08:59:27", "remark": null, "line_id": 11, "cycle_seq": 43, "part_code": "00094D60922-0038606260107"}, {"ct": 65.21, "time": "09:10:09", "remark": null, "line_id": 11, "cycle_seq": 89, "part_code": "00094D60922-0076606260107"}, {"ct": 8.38, "time": "11:01:47", "remark": null, "line_id": 11, "cycle_seq": 377, "part_code": "00094D60922-0380606250084"}]	2026-09-22 17:17:13.594809+05:30	2026-09-22 17:17:13.594809+05:30
+51809	12	1	2026-09-23	A	1	open	4 alarms on YCA-SS in shift A (2026-09-23); 0 with remark, 4 pending review.	[{"ct": 231.54, "time": "08:33:51", "remark": null, "line_id": 12, "cycle_seq": 1, "part_code": "00115N60922-2503606290015"}, {"ct": 60.68, "time": "09:53:51", "remark": null, "line_id": 12, "cycle_seq": 262, "part_code": "00115D60923-0255606290019"}, {"ct": 39.94, "time": "12:52:41", "remark": null, "line_id": 12, "cycle_seq": 763, "part_code": "00115D60923-0751607090054"}, {"ct": 18.51, "time": "14:26:15", "remark": null, "line_id": 12, "cycle_seq": 1113, "part_code": "00105D60923-1107606290011"}]	2026-09-23 17:17:14.64922+05:30	2026-09-23 17:17:14.64922+05:30
+51810	13	1	2026-09-23	A	1	open	5 alarms on YJC-SS in shift A (2026-09-23); 0 with remark, 5 pending review.	[{"ct": 297.1, "time": "08:34:57", "remark": null, "line_id": 13, "cycle_seq": 1, "part_code": "00092N60922-1879411081062"}, {"ct": 17.22, "time": "08:37:27", "remark": null, "line_id": 13, "cycle_seq": 3, "part_code": "00092N60922-1880411081062"}, {"ct": 33.06, "time": "08:38:00", "remark": null, "line_id": 13, "cycle_seq": 4, "part_code": "00072N60910-1086411081062"}, {"ct": 7.16, "time": "10:31:46", "remark": null, "line_id": 13, "cycle_seq": 403, "part_code": "00092D60923-0397411081062"}, {"ct": 8.07, "time": "13:02:18", "remark": null, "line_id": 13, "cycle_seq": 860, "part_code": null}]	2026-09-23 17:17:14.64922+05:30	2026-09-23 17:17:14.64922+05:30
+51811	2	1	2026-09-23	A	1	open	20 alarms on YNC-SS in shift A (2026-09-23); 12 with remark, 8 pending review.	[{"ct": 175.39, "time": "08:33:58", "remark": null, "line_id": 2, "cycle_seq": 2, "part_code": "00092D60922-1063411081062"}, {"ct": 188.54, "time": "08:37:07", "remark": "Power cut", "line_id": 2, "cycle_seq": 3, "part_code": "ERROR"}, {"ct": 55.35, "time": "08:38:02", "remark": null, "line_id": 2, "cycle_seq": 4, "part_code": null}, {"ct": 52.25, "time": "09:01:36", "remark": null, "line_id": 2, "cycle_seq": 102, "part_code": "00096D60923-0087606290007"}, {"ct": 35.94, "time": "11:51:49", "remark": null, "line_id": 2, "cycle_seq": 802, "part_code": "00146D60923-0763606290007"}, {"ct": 50.09, "time": "11:52:39", "remark": "Power cut", "line_id": 2, "cycle_seq": 803, "part_code": "ERROR"}, {"ct": 10.25, "time": "12:12:16", "remark": null, "line_id": 2, "cycle_seq": 834, "part_code": "00156D60923-0812606290007"}, {"ct": 0.0, "time": "12:13:59", "remark": "Power cut", "line_id": 2, "cycle_seq": 835, "part_code": "ERROR"}, {"ct": 54.01, "time": "12:14:53", "remark": "Power cut", "line_id": 2, "cycle_seq": 836, "part_code": "ERROR"}, {"ct": 67.87, "time": "12:16:01", "remark": "Power cut", "line_id": 2, "cycle_seq": 837, "part_code": "ERROR"}, {"ct": 50.04, "time": "12:16:51", "remark": "Power cut", "line_id": 2, "cycle_seq": 838, "part_code": "ERROR"}, {"ct": 84.05, "time": "12:18:15", "remark": "Power cut", "line_id": 2, "cycle_seq": 839, "part_code": "ERROR"}, {"ct": 50.07, "time": "12:19:05", "remark": "Power cut", "line_id": 2, "cycle_seq": 840, "part_code": "ERROR"}, {"ct": 0.0, "time": "12:21:17", "remark": null, "line_id": 2, "cycle_seq": 841, "part_code": "00156D60923-0830606290007"}, {"ct": 48.2, "time": "12:22:05", "remark": "Power cut", "line_id": 2, "cycle_seq": 842, "part_code": "ERROR"}, {"ct": 0.0, "time": "12:34:03", "remark": "Power cut", "line_id": 2, "cycle_seq": 843, "part_code": "ERROR"}, {"ct": 46.88, "time": "15:17:06", "remark": null, "line_id": 2, "cycle_seq": 1453, "part_code": "00156D60923-1449606290007"}, {"ct": 47.62, "time": "15:17:54", "remark": "Power cut", "line_id": 2, "cycle_seq": 1454, "part_code": "ERROR"}, {"ct": 60.17, "time": "15:18:54", "remark": "Power cut", "line_id": 2, "cycle_seq": 1455, "part_code": "ERROR"}, {"ct": 14.07, "time": "15:19:08", "remark": null, "line_id": 2, "cycle_seq": 1456, "part_code": null}]	2026-09-23 17:17:14.64922+05:30	2026-09-23 17:17:14.64922+05:30
+51812	19	1	2026-09-23	A	1	open	7 alarms on YMC-SS in shift A (2026-09-23); 0 with remark, 7 pending review.	[{"ct": 433.22, "time": "08:37:13", "remark": null, "line_id": 19, "cycle_seq": 1, "part_code": "00098N60922-1485606260081"}, {"ct": 61.87, "time": "08:38:15", "remark": null, "line_id": 19, "cycle_seq": 2, "part_code": "ERROR"}, {"ct": 15.01, "time": "11:06:50", "remark": null, "line_id": 19, "cycle_seq": 552, "part_code": "00098D60923-0539606290025"}, {"ct": 3194.24, "time": "13:28:12", "remark": null, "line_id": 19, "cycle_seq": 769, "part_code": "00098D60923-0756606260006"}, {"ct": 32.43, "time": "13:28:44", "remark": null, "line_id": 19, "cycle_seq": 770, "part_code": "00098D60923-0756606260006"}, {"ct": 8.37, "time": "14:11:56", "remark": null, "line_id": 19, "cycle_seq": 938, "part_code": "00098D60923-0912606260006"}, {"ct": 39.65, "time": "16:02:59", "remark": null, "line_id": 19, "cycle_seq": 1307, "part_code": "00098D60923-1293606290107"}]	2026-09-23 17:17:14.64922+05:30	2026-09-23 17:17:14.64922+05:30
+51813	14	1	2026-09-23	A	1	open	12 alarms on YFG-SS in shift A (2026-09-23); 0 with remark, 12 pending review.	[{"ct": 323.09, "time": "08:35:23", "remark": null, "line_id": 14, "cycle_seq": 1, "part_code": "00157N60922-2228606290013"}, {"ct": 116.23, "time": "08:43:13", "remark": null, "line_id": 14, "cycle_seq": 6, "part_code": "00157N60922-2231606290013"}, {"ct": 116.56, "time": "10:42:40", "remark": null, "line_id": 14, "cycle_seq": 424, "part_code": "00207D60923-0383606290095"}, {"ct": 16.77, "time": "11:06:08", "remark": null, "line_id": 14, "cycle_seq": 522, "part_code": "00217D60923-0519606300037"}, {"ct": 51.51, "time": "11:59:04", "remark": null, "line_id": 14, "cycle_seq": 731, "part_code": "00217D60923-0729606290093"}, {"ct": 7.09, "time": "13:14:37", "remark": null, "line_id": 14, "cycle_seq": 843, "part_code": "00237D60923-0848606290093"}, {"ct": 103.26, "time": "13:39:25", "remark": null, "line_id": 14, "cycle_seq": 933, "part_code": "00237D60923-0938606290093"}, {"ct": 10.56, "time": "13:52:08", "remark": null, "line_id": 14, "cycle_seq": 988, "part_code": "00227D60923-0991606290060"}, {"ct": 0.0, "time": "14:33:08", "remark": null, "line_id": 14, "cycle_seq": 1162, "part_code": "00227D60923-1161606290060"}, {"ct": 8.63, "time": "14:52:08", "remark": null, "line_id": 14, "cycle_seq": 1213, "part_code": null}, {"ct": 8.5, "time": "15:53:08", "remark": null, "line_id": 14, "cycle_seq": 1495, "part_code": null}, {"ct": 45.92, "time": "17:09:32", "remark": null, "line_id": 14, "cycle_seq": 1831, "part_code": "00227D60923-1834606150001"}]	2026-09-23 17:17:14.64922+05:30	2026-09-23 17:17:14.64922+05:30
 \.
 
 
@@ -29667,6 +31167,26 @@ COPY public.mes_shift_escalation_log (id, escalation_id, level_no, admin_id, act
 51808	51791	1	\N	created	18 alarms on YNC-SS in shift A (2026-09-21); 4 with remark, 14 pending review.	2026-09-21 17:17:11.944262+05:30
 51809	51792	1	\N	created	15 alarms on YHB-SS in shift A (2026-09-21); 0 with remark, 15 pending review.	2026-09-21 17:17:11.944262+05:30
 51810	51793	1	\N	created	20 alarms on YMC Recliner in shift A (2026-09-21); 0 with remark, 20 pending review.	2026-09-21 17:17:11.944262+05:30
+51811	51794	1	\N	created	3 alarms on YCA-SS in shift A (2026-09-22); 0 with remark, 3 pending review.	2026-09-22 17:17:13.594809+05:30
+51812	51795	1	\N	created	17 alarms on YFG-SS in shift A (2026-09-22); 0 with remark, 17 pending review.	2026-09-22 17:17:13.594809+05:30
+51813	51796	1	\N	created	11 alarms on Y17-SS in shift A (2026-09-22); 0 with remark, 11 pending review.	2026-09-22 17:17:13.594809+05:30
+51814	51797	1	\N	created	4 alarms on YRA-SS in shift A (2026-09-22); 0 with remark, 4 pending review.	2026-09-22 17:17:13.594809+05:30
+51815	51798	1	\N	created	12 alarms on YJC-SS in shift A (2026-09-22); 0 with remark, 12 pending review.	2026-09-22 17:17:13.594809+05:30
+51816	51799	1	\N	created	9 alarms on YNC-SS in shift A (2026-09-22); 0 with remark, 9 pending review.	2026-09-22 17:17:13.594809+05:30
+51817	51800	1	\N	created	32 alarms on YMC Recliner in shift A (2026-09-22); 0 with remark, 32 pending review.	2026-09-22 17:17:13.594809+05:30
+51818	51801	1	\N	created	2 alarms on YSD-SS in shift A (2026-09-22); 0 with remark, 2 pending review.	2026-09-22 17:17:13.594809+05:30
+51819	51802	1	\N	created	3 alarms on YMC-SS in shift A (2026-09-22); 0 with remark, 3 pending review.	2026-09-22 17:17:13.594809+05:30
+51820	51803	1	\N	created	4 alarms on YHB-SS in shift A (2026-09-22); 0 with remark, 4 pending review.	2026-09-22 17:17:13.594809+05:30
+51821	51804	1	\N	created	33 alarms on YMC Recliner in shift A (2026-09-23); 0 with remark, 33 pending review.	2026-09-23 17:17:14.64922+05:30
+51822	51805	1	\N	created	1 alarm on YSD-SS in shift A (2026-09-23); 0 with remark, 1 pending review.	2026-09-23 17:17:14.64922+05:30
+51823	51806	1	\N	created	5 alarms on YHB-SS in shift A (2026-09-23); 0 with remark, 5 pending review.	2026-09-23 17:17:14.64922+05:30
+51824	51807	1	\N	created	7 alarms on Y17-SS in shift A (2026-09-23); 0 with remark, 7 pending review.	2026-09-23 17:17:14.64922+05:30
+51825	51808	1	\N	created	6 alarms on YRA-SS in shift A (2026-09-23); 0 with remark, 6 pending review.	2026-09-23 17:17:14.64922+05:30
+51826	51809	1	\N	created	4 alarms on YCA-SS in shift A (2026-09-23); 0 with remark, 4 pending review.	2026-09-23 17:17:14.64922+05:30
+51827	51810	1	\N	created	5 alarms on YJC-SS in shift A (2026-09-23); 0 with remark, 5 pending review.	2026-09-23 17:17:14.64922+05:30
+51828	51811	1	\N	created	20 alarms on YNC-SS in shift A (2026-09-23); 12 with remark, 8 pending review.	2026-09-23 17:17:14.64922+05:30
+51829	51812	1	\N	created	7 alarms on YMC-SS in shift A (2026-09-23); 0 with remark, 7 pending review.	2026-09-23 17:17:14.64922+05:30
+51830	51813	1	\N	created	12 alarms on YFG-SS in shift A (2026-09-23); 0 with remark, 12 pending review.	2026-09-23 17:17:14.64922+05:30
 \.
 
 
@@ -30332,6 +31852,8 @@ COPY public.mes_user_page_permissions (user_id, page_key, perm_level, updated_at
 27	quality-deviations	read	2026-09-21 12:24:50.592892+05:30
 27	comments-history	full	2026-09-21 12:24:50.592892+05:30
 27	weld-monitor	read	2026-09-21 12:24:50.592892+05:30
+66	dashboard	read	2026-09-22 10:21:07.443673+05:30
+66	historical	read	2026-09-22 10:21:07.443673+05:30
 25	prod-breakdown-slip	read	2026-09-07 13:32:36.163183+05:30
 25	shift-calculator	read	2026-09-07 13:32:36.163183+05:30
 25	shift-compile	read	2026-09-07 13:32:36.163183+05:30
@@ -30708,7 +32230,7 @@ COPY public.mes_user_scope_permissions (user_id, scope_type, scope_id, perm_leve
 --
 
 COPY public.mes_vcov_agent (id, started_at, tracking_since, last_sample, last_eval, last_agent, last_notify, last_error) FROM stdin;
-1	2026-09-21 22:25:00.308552+05:30	2026-09-19 21:32:10.257775+05:30	2026-09-21 22:55:10.567708+05:30	2026-09-21 22:55:22.536387+05:30	2026-09-21 22:52:45.630881+05:30	2026-09-21 22:52:45.637325+05:30	\N
+1	2026-09-24 12:59:44.09943+05:30	2026-09-19 21:32:10.257775+05:30	2026-09-24 14:39:38.408514+05:30	2026-09-24 14:39:55.743252+05:30	2026-09-24 14:38:01.154608+05:30	2026-09-24 13:52:37.654688+05:30	09:18:58 sample: cannot schedule new futures after interpreter shutdown
 \.
 
 
@@ -30719,510 +32241,36 @@ COPY public.mes_vcov_agent (id, started_at, tracking_since, last_sample, last_ev
 COPY public.mes_vcov_cursor (source, last_ts) FROM stdin;
 line:29	2026-09-19 21:33:43.344553+05:30
 line:28	2026-09-19 21:33:43.344553+05:30
-line:15	2026-09-21 22:10:20.576572+05:30
-line:18	2026-09-21 22:10:20.576572+05:30
-line:19	2026-09-21 22:10:20.576572+05:30
-line:12	2026-09-21 22:10:20.576572+05:30
 line:40	2026-09-19 21:33:43.344553+05:30
-line:4	2026-09-21 22:10:20.576572+05:30
-line:14	2026-09-21 22:10:20.576572+05:30
-line:2	2026-09-21 22:10:20.576572+05:30
-line:13	2026-09-21 22:10:20.576572+05:30
-line:11	2026-09-21 22:10:20.576572+05:30
-line:41	2026-09-19 21:33:43.344553+05:30
-line:5	2026-09-21 22:10:20.576572+05:30
 line:37	2026-09-19 21:33:43.344553+05:30
-line:27	2026-09-21 22:10:20.576572+05:30
-line:20	2026-09-21 22:10:20.576572+05:30
-line:10	2026-09-21 22:10:20.576572+05:30
-line:7	2026-09-21 22:10:20.576572+05:30
-line:8	2026-09-21 22:10:20.576572+05:30
-line:6	2026-09-21 22:10:20.576572+05:30
-line:9	2026-09-21 22:10:20.576572+05:30
-line:31	2026-09-21 22:10:20.576572+05:30
-line:21	2026-09-21 22:10:20.576572+05:30
-line:30	2026-09-21 22:10:20.576572+05:30
-line:36	2026-09-21 22:10:20.576572+05:30
-line:33	2026-09-21 22:10:20.576572+05:30
-line:35	2026-09-21 22:10:20.576572+05:30
-line:34	2026-09-21 22:10:20.576572+05:30
-line:38	2026-09-21 22:10:20.576572+05:30
-line:39	2026-09-21 22:10:20.576572+05:30
-subs	2026-09-21 22:10:20.576572+05:30
-\.
-
-
---
--- Data for Name: mes_vcov_findings; Type: TABLE DATA; Schema: public; Owner: -
---
-
-COPY public.mes_vcov_findings (id, kind, fkey, line_id, camera_id, message, opened_at, last_seen, closed_at, notified) FROM stdin;
-154	CAMERA_DOWN	cam:cam_mag_welding_relese_x_hinge_pin_1786596253	5	cam_mag_welding_relese_x_hinge_pin_1786596253	YRA Recliner · Mag Welding Relese x Hinge Pin camera 192.168.33.35 offline (no ping) since 11:10	2026-09-20 14:19:25.936461+05:30	2026-09-20 14:29:31.011525+05:30	2026-09-20 14:34:32.181887+05:30	f
-81	LOW_COVERAGE	cov:21	21	\N	Loop Pipe-Line 2 video coverage 59% (171/288) in the last judged hour	2026-09-20 04:08:04.059536+05:30	2026-09-20 07:55:06.397955+05:30	2026-09-20 08:00:08.058192+05:30	f
-84	CAMERA_DOWN	cam:cam_ylm_bending_machine_02_1787550932	31	cam_ylm_bending_machine_02_1787550932	Loop Pipe-Line 3 · YLM Bending Machine-02 camera 192.168.37.73 offline (no ping) since 07:53	2026-09-20 08:25:17.907924+05:30	2026-09-20 08:35:19.110687+05:30	2026-09-20 08:40:21.067813+05:30	f
-382	CMS_DOWN	cms	\N	\N	CMS is not answering — no camera is recording	2026-09-21 21:30:33.909463+05:30	2026-09-21 21:30:33.909463+05:30	2026-09-21 21:35:34.176007+05:30	f
-114	CAMERA_DOWN	cam:cam_bolt_strength_checking_4way_1789017196	36	cam_bolt_strength_checking_4way_1789017196	YNC-SA-4WAY · BOLT STRENGTH CHECKING (4WAY) camera 192.168.35.84 offline (no ping) since 09:26	2026-09-20 09:40:56.563955+05:30	2026-09-20 09:46:00.311836+05:30	2026-09-20 09:51:05.83241+05:30	f
-46	CAMERA_DOWN	cam:cam_mag_welding_of_lwr_hook_with_lwr_arrm_1787031413	29	cam_mag_welding_of_lwr_hook_with_lwr_arrm_1787031413	YSD Recliner · MAG Welding of  Lwr Hook with Lwr Arrm camera 192.168.33.93 offline (no ping) since 21:32	2026-09-19 22:40:11.744092+05:30	2026-09-20 03:22:46.586217+05:30	2026-09-20 03:27:46.832128+05:30	f
-48	CAMERA_DOWN	cam:cam_ylm_bending_machine_02_1787550932	31	cam_ylm_bending_machine_02_1787550932	Loop Pipe-Line 3 · YLM Bending Machine-02 camera 192.168.37.73 offline (no ping) since 21:32	2026-09-19 22:40:11.744092+05:30	2026-09-19 22:50:19.022577+05:30	2026-09-19 22:55:21.757329+05:30	f
-80	LOW_COVERAGE	cov:30	30	\N	Loop Pipe-Line 1 video coverage 39% (50/127) in the last judged hour	2026-09-20 04:08:04.059536+05:30	2026-09-20 07:55:06.397955+05:30	2026-09-20 08:00:08.058192+05:30	f
-233	LOW_COVERAGE	cov:8	8	\N	2UA RECLINER video coverage 0% (0/72) in the last judged hour	2026-09-21 14:00:54.175581+05:30	2026-09-21 15:56:51.635598+05:30	2026-09-21 16:01:54.396788+05:30	f
-59	LOW_COVERAGE	cov:13	13	\N	YJC-SS video coverage 57% (225/397) in the last judged hour	2026-09-19 23:25:42.800446+05:30	2026-09-20 04:58:41.128383+05:30	2026-09-20 05:03:45.657609+05:30	f
-61	LOW_COVERAGE	cov:18	18	\N	YRA-SS video coverage 44% (162/370) in the last judged hour	2026-09-19 23:25:42.800446+05:30	2026-09-20 04:58:41.128383+05:30	2026-09-20 05:03:45.657609+05:30	f
-75	LOW_COVERAGE	cov:38	38	\N	YNC-SA-6WAY video coverage 0% (0/47) in the last judged hour	2026-09-20 02:07:02.216171+05:30	2026-09-20 04:58:41.128383+05:30	2026-09-20 05:03:45.657609+05:30	f
-62	LOW_COVERAGE	cov:2	2	\N	YNC-SS video coverage 51% (191/371) in the last judged hour	2026-09-19 23:25:42.800446+05:30	2026-09-20 04:58:41.128383+05:30	2026-09-20 05:03:45.657609+05:30	f
-67	LOW_COVERAGE	cov:28	28	\N	YNC Recliner video coverage 20% (41/210) in the last judged hour	2026-09-19 23:30:48.851364+05:30	2026-09-20 03:57:59.492431+05:30	2026-09-20 04:03:03.535425+05:30	f
-60	LOW_COVERAGE	cov:5	5	\N	YRA Recliner video coverage 3% (11/391) in the last judged hour	2026-09-19 23:25:42.800446+05:30	2026-09-20 03:57:59.492431+05:30	2026-09-20 04:03:03.535425+05:30	f
-2	CAMERA_DOWN	cam:cam_lock_bar_1779043510	2	cam_lock_bar_1779043510	YNC-SS · Lock Bar insert Machine camera 192.168.31.132 hung (ping OK, no video) since 21:32	2026-09-19 21:44:47.300725+05:30	2026-09-19 22:09:53.762292+05:30	2026-09-19 22:14:55.047812+05:30	f
-3	CAMERA_DOWN	cam:cam_lower_rail_grease_bar_coding_m_c_1782385250	4	cam_lower_rail_grease_bar_coding_m_c_1782385250	YSD-SS · Lock Bar Insert M/c camera 192.168.31.52 hung (ping OK, no video) since 21:32	2026-09-19 21:44:47.300725+05:30	2026-09-19 22:09:53.762292+05:30	2026-09-19 22:14:55.047812+05:30	f
-4	CAMERA_DOWN	cam:cam_mag_welding_of_arm_x_recliner_st_1_1786596037	5	cam_mag_welding_of_arm_x_recliner_st_1_1786596037	YRA Recliner · MAG Welding of Arm x Recliner ST #1` camera 192.168.33.31 offline (no ping) since 21:32	2026-09-19 21:44:47.300725+05:30	2026-09-19 22:09:53.762292+05:30	2026-09-19 22:14:55.047812+05:30	f
-6	CAMERA_DOWN	cam:cam_mag_welding_of_lwr_hook_with_lwr_arrm_1786350363	27	cam_mag_welding_of_lwr_hook_with_lwr_arrm_1786350363	YHB Recliner · MAG Welding of  Lwr Hook with Lwr Arrm camera 192.168.33.73 hung (ping OK, no video) since 21:32	2026-09-19 21:44:47.300725+05:30	2026-09-19 22:09:53.762292+05:30	2026-09-19 22:14:55.047812+05:30	f
-7	CAMERA_DOWN	cam:cam_mag_welding_of_lwr_hook_with_lwr_arrm_1786596153	5	cam_mag_welding_of_lwr_hook_with_lwr_arrm_1786596153	YRA Recliner · MAG Welding of  Lwr Hook with Lwr Arrm camera 192.168.33.33 offline (no ping) since 21:32	2026-09-19 21:44:47.300725+05:30	2026-09-19 22:09:53.762292+05:30	2026-09-19 22:14:55.047812+05:30	f
-8	CAMERA_DOWN	cam:cam_mag_welding_of_lwr_hook_with_lwr_arrm_1787030950	28	cam_mag_welding_of_lwr_hook_with_lwr_arrm_1787030950	YNC Recliner · MAG Welding of  Lwr Hook with Lwr Arrm camera 192.168.33.113 hung (ping OK, no video) since 21:32	2026-09-19 21:44:47.300725+05:30	2026-09-19 22:09:53.762292+05:30	2026-09-19 22:14:55.047812+05:30	f
-9	CAMERA_DOWN	cam:cam_mag_welding_of_lwr_hook_with_lwr_arrm_1787031413	29	cam_mag_welding_of_lwr_hook_with_lwr_arrm_1787031413	YSD Recliner · MAG Welding of  Lwr Hook with Lwr Arrm camera 192.168.33.93 offline (no ping) since 21:32	2026-09-19 21:44:47.300725+05:30	2026-09-19 22:14:55.047812+05:30	2026-09-19 22:19:56.338358+05:30	f
-63	LOW_COVERAGE	cov:15	15	\N	Y17-SS video coverage 45% (151/339) in the last judged hour	2026-09-19 23:25:42.800446+05:30	2026-09-20 04:58:41.128383+05:30	2026-09-20 05:03:45.657609+05:30	f
-31	LOW_COVERAGE	cov:28	28	\N	YNC Recliner video coverage 0% (0/250) in the last judged hour	2026-09-19 22:25:00.659878+05:30	2026-09-19 22:55:21.757329+05:30	2026-09-19 23:00:25.217486+05:30	f
-32	LOW_COVERAGE	cov:20	20	\N	YMC Recliner video coverage 59% (433/732) in the last judged hour	2026-09-19 22:25:00.659878+05:30	2026-09-19 22:55:21.757329+05:30	2026-09-19 23:00:25.217486+05:30	f
-33	LOW_COVERAGE	cov:13	13	\N	YJC-SS video coverage 44% (257/581) in the last judged hour	2026-09-19 22:25:00.659878+05:30	2026-09-19 22:55:21.757329+05:30	2026-09-19 23:00:25.217486+05:30	f
-52	LOW_COVERAGE	cov:36	36	\N	YNC-SA-4WAY video coverage 35% (433/1238) in the last judged hour	2026-09-19 23:00:25.217486+05:30	2026-09-20 01:56:58.158943+05:30	2026-09-20 02:02:00.578745+05:30	f
-5	CAMERA_DOWN	cam:cam_mag_welding_of_arm_x_recliner_st_2_1786596090	5	cam_mag_welding_of_arm_x_recliner_st_2_1786596090	YRA Recliner · MAG Welding of Arm x Recliner ST #2 camera 192.168.33.32 hung (ping OK, no video) since 21:32	2026-09-19 21:44:47.300725+05:30	2026-09-19 22:04:53.332765+05:30	2026-09-19 22:09:53.762292+05:30	f
-66	LOW_COVERAGE	cov:29	29	\N	YSD Recliner video coverage 0% (0/215) in the last judged hour	2026-09-19 23:30:48.851364+05:30	2026-09-20 01:56:58.158943+05:30	2026-09-20 02:02:00.578745+05:30	f
-44	CAMERA_DOWN	cam:cam_mag_welding_of_arm_x_recliner_st_1_1786596037	5	cam_mag_welding_of_arm_x_recliner_st_1_1786596037	YRA Recliner · MAG Welding of Arm x Recliner ST #1` camera 192.168.33.31 offline (no ping) since 21:32	2026-09-19 22:40:11.744092+05:30	2026-09-20 02:42:21.778642+05:30	2026-09-20 02:47:27.824454+05:30	f
-69	CAMERA_DOWN	cam:cam_ylm_bending_machine_02_1787550932	31	cam_ylm_bending_machine_02_1787550932	Loop Pipe-Line 3 · YLM Bending Machine-02 camera 192.168.37.73 offline (no ping) since 21:32	2026-09-20 00:51:24.902887+05:30	2026-09-20 01:11:34.408651+05:30	2026-09-20 01:16:37.27752+05:30	f
-53	LOW_COVERAGE	cov:38	38	\N	YNC-SA-6WAY video coverage 0% (0/187) in the last judged hour	2026-09-19 23:00:25.217486+05:30	2026-09-20 01:56:58.158943+05:30	2026-09-20 02:02:00.578745+05:30	f
-45	CAMERA_DOWN	cam:cam_mag_welding_of_lwr_hook_with_lwr_arrm_1786596153	5	cam_mag_welding_of_lwr_hook_with_lwr_arrm_1786596153	YRA Recliner · MAG Welding of  Lwr Hook with Lwr Arrm camera 192.168.33.33 offline (no ping) since 21:32	2026-09-19 22:40:11.744092+05:30	2026-09-20 02:42:21.778642+05:30	2026-09-20 02:47:27.824454+05:30	f
-71	CAMERA_DOWN	cam:cam_ylm_bending_machine_02_1787550932	31	cam_ylm_bending_machine_02_1787550932	Loop Pipe-Line 3 · YLM Bending Machine-02 camera 192.168.37.73 offline (no ping) since 21:32	2026-09-20 01:26:41.198601+05:30	2026-09-20 02:12:08.089278+05:30	2026-09-20 02:17:11.65623+05:30	f
-47	CAMERA_DOWN	cam:cam_mag_welding_relese_x_hinge_pin_1786596253	5	cam_mag_welding_relese_x_hinge_pin_1786596253	YRA Recliner · Mag Welding Relese x Hinge Pin camera 192.168.33.35 offline (no ping) since 21:32	2026-09-19 22:40:11.744092+05:30	2026-09-20 02:42:21.778642+05:30	2026-09-20 02:47:27.824454+05:30	f
-49	LOW_COVERAGE	cov:34	34	\N	YSD-SA-4WAY video coverage 0% (0/692) in the last judged hour	2026-09-19 22:55:21.757329+05:30	2026-09-20 01:56:58.158943+05:30	2026-09-20 02:02:00.578745+05:30	f
-64	LOW_COVERAGE	cov:12	12	\N	YCA-SS video coverage 72% (1176/1623) in the last judged hour	2026-09-19 23:25:42.800446+05:30	2026-09-20 04:58:41.128383+05:30	2026-09-20 05:03:45.657609+05:30	f
-25	CAMERA_DOWN	cam:cam_ylm_bending_machine_01_1787031747	30	cam_ylm_bending_machine_01_1787031747	Loop Pipe-Line 1 · YLM Bending Machine-01 camera 192.168.37.51 offline (no ping) since 21:32	2026-09-19 22:09:53.762292+05:30	2026-09-20 03:17:42.095384+05:30	2026-09-20 03:22:46.586217+05:30	f
-193	CAMERA_DOWN	cam:cam_2ua_1782385638	8	cam_2ua_1782385638	2UA RECLINER · 2UA camera 192.168.31.211 offline (no ping) since 06:21	2026-09-21 10:24:20.094831+05:30	2026-09-21 12:10:10.052992+05:30	2026-09-21 12:15:10.339267+05:30	f
-26	LOW_COVERAGE	cov:11	11	\N	YHB-SS video coverage 61% (403/664) in the last judged hour	2026-09-19 22:25:00.659878+05:30	2026-09-19 22:55:21.757329+05:30	2026-09-19 23:00:25.217486+05:30	f
-27	LOW_COVERAGE	cov:19	19	\N	YMC-SS video coverage 57% (330/577) in the last judged hour	2026-09-19 22:25:00.659878+05:30	2026-09-19 22:55:21.757329+05:30	2026-09-19 23:00:25.217486+05:30	f
-28	LOW_COVERAGE	cov:29	29	\N	YSD Recliner video coverage 0% (0/103) in the last judged hour	2026-09-19 22:25:00.659878+05:30	2026-09-19 22:55:21.757329+05:30	2026-09-19 23:00:25.217486+05:30	f
-29	LOW_COVERAGE	cov:4	4	\N	YSD-SS video coverage 30% (193/651) in the last judged hour	2026-09-19 22:25:00.659878+05:30	2026-09-19 22:55:21.757329+05:30	2026-09-19 23:00:25.217486+05:30	f
-1	CAMERA_DOWN	cam:cam_both_karakuri_middle_shelf_1787031646	30	cam_both_karakuri_middle_shelf_1787031646	Loop Pipe-Line 1 · Both Karakuri Middle Shelf camera 192.168.37.53 hung (ping OK, no video) since 21:32	2026-09-19 21:44:47.300725+05:30	2026-09-19 21:44:47.300725+05:30	2026-09-19 21:49:48.854908+05:30	f
-14	CAMERA_DOWN	cam:cam_rainforce_bolt_pjw_m_c_1788930501	36	cam_rainforce_bolt_pjw_m_c_1788930501	YNC-SA-4WAY · "Rinforce×Bolt PJW M/C Upr BKT Rail ×Bolt PJW M/C Upr Rail Rr） " camera 192.168.35.80 offline (no ping) since 21:32	2026-09-19 21:44:47.300725+05:30	2026-09-19 21:44:47.300725+05:30	2026-09-19 21:49:48.854908+05:30	f
-19	CAMERA_DOWN	cam:cam_upr_rail_bolt_fr_pjw_m_c_4_way_1788930828	36	cam_upr_rail_bolt_fr_pjw_m_c_4_way_1788930828	YNC-SA-4WAY · Upr ×Rinforce S/A×UprINRBKT PJW M/C camera 192.168.35.82 offline (no ping) since 21:32	2026-09-19 21:44:47.300725+05:30	2026-09-19 21:44:47.300725+05:30	2026-09-19 21:49:48.854908+05:30	f
-20	CAMERA_DOWN	cam:cam_ylm_bending_machine_01_1787031747	30	cam_ylm_bending_machine_01_1787031747	Loop Pipe-Line 1 · YLM Bending Machine-01 camera 192.168.37.51 offline (no ping) since 21:32	2026-09-19 21:44:47.300725+05:30	2026-09-19 21:44:47.300725+05:30	2026-09-19 21:49:48.854908+05:30	f
-30	LOW_COVERAGE	cov:14	14	\N	YFG-SS video coverage 61% (393/648) in the last judged hour	2026-09-19 22:25:00.659878+05:30	2026-09-19 22:55:21.757329+05:30	2026-09-19 23:00:25.217486+05:30	f
-121	CAMERA_DOWN	cam:cam_bolt_strength_checking_4way_1789017196	36	cam_bolt_strength_checking_4way_1789017196	YNC-SA-4WAY · BOLT STRENGTH CHECKING (4WAY) camera 192.168.35.84 offline (no ping) since 11:10	2026-09-20 11:22:58.30245+05:30	2026-09-20 11:28:03.48033+05:30	2026-09-20 11:33:06.882225+05:30	f
-11	CAMERA_DOWN	cam:cam_mag_welding_relese_x_hinge_pin_1786596253	5	cam_mag_welding_relese_x_hinge_pin_1786596253	YRA Recliner · Mag Welding Relese x Hinge Pin camera 192.168.33.35 offline (no ping) since 21:32	2026-09-19 21:44:47.300725+05:30	2026-09-19 22:14:55.047812+05:30	2026-09-19 22:19:56.338358+05:30	f
-22	CAMERA_DOWN	cam:cam_rainforce_bolt_pjw_m_c_1788930501	36	cam_rainforce_bolt_pjw_m_c_1788930501	YNC-SA-4WAY · "Rinforce×Bolt PJW M/C Upr BKT Rail ×Bolt PJW M/C Upr Rail Rr） " camera 192.168.35.80 offline (no ping) since 21:32	2026-09-19 22:09:53.762292+05:30	2026-09-19 22:14:55.047812+05:30	2026-09-19 22:19:56.338358+05:30	f
-50	LOW_COVERAGE	cov:21	21	\N	Loop Pipe-Line 2 video coverage 36% (426/1168) in the last judged hour	2026-09-19 22:55:21.757329+05:30	2026-09-20 03:57:59.492431+05:30	2026-09-20 04:03:03.535425+05:30	f
-23	CAMERA_DOWN	cam:cam_rainforce_bolt_pjw_m_c_1789013623	35	cam_rainforce_bolt_pjw_m_c_1789013623	YHB-SA-4WAY · Rainforce Bolt PJW M/C camera 192.168.35.70 offline (no ping) since 21:32	2026-09-19 22:09:53.762292+05:30	2026-09-19 22:14:55.047812+05:30	2026-09-19 22:19:56.338358+05:30	f
-16	CAMERA_DOWN	cam:cam_sp_insert_fixture_with_machine_1786350490	27	cam_sp_insert_fixture_with_machine_1786350490	YHB Recliner · SP Insert Fixture with Machine camera 192.168.33.76 hung (ping OK, no video) since 21:32	2026-09-19 21:44:47.300725+05:30	2026-09-19 22:14:55.047812+05:30	2026-09-19 22:19:56.338358+05:30	f
-24	CAMERA_DOWN	cam:cam_upr_rail_bolt_fr_pjw_m_c_4_way_1788930828	36	cam_upr_rail_bolt_fr_pjw_m_c_4_way_1788930828	YNC-SA-4WAY · Upr Rail ×Bolt Fr PJW M/C  ( 4 Way ) camera 192.168.35.82 offline (no ping) since 21:56	2026-09-19 22:09:53.762292+05:30	2026-09-19 22:14:55.047812+05:30	2026-09-19 22:19:56.338358+05:30	f
-155	CAMERA_DOWN	cam:cam_mag_welding_of_arm_x_recliner_st_1_1786596037	5	cam_mag_welding_of_arm_x_recliner_st_1_1786596037	YRA Recliner · MAG Welding of Arm x Recliner ST #1` camera 192.168.33.31 offline (no ping) since 11:10	2026-09-20 14:49:36.995997+05:30	2026-09-20 17:05:48.421574+05:30	2026-09-20 17:10:54.402966+05:30	f
-234	CAMERA_DOWN	cam:cam_upr_rail_bolt_fr_pjw_m_c_4_way_1788930828	36	cam_upr_rail_bolt_fr_pjw_m_c_4_way_1788930828	YNC-SA-4WAY · Upr Rail ×Bolt Fr PJW M/C  ( 4 Way ) camera 192.168.35.82 offline (no ping) since 11:02	2026-09-21 15:06:26.641403+05:30	2026-09-21 15:16:32.196167+05:30	2026-09-21 15:21:32.71293+05:30	f
-51	LOW_COVERAGE	cov:35	35	\N	YHB-SA-4WAY video coverage 43% (487/1120) in the last judged hour	2026-09-19 22:55:21.757329+05:30	2026-09-20 06:59:55.727798+05:30	2026-09-20 07:04:57.925726+05:30	f
-115	CAMERA_DOWN	cam:cam_rainforce_bolt_pjw_m_c_1789013623	35	cam_rainforce_bolt_pjw_m_c_1789013623	YHB-SA-4WAY · Rainforce Bolt PJW M/C camera 192.168.35.70 offline (no ping) since 09:26	2026-09-20 09:40:56.563955+05:30	2026-09-20 09:46:00.311836+05:30	2026-09-20 09:51:05.83241+05:30	f
-168	CAMERA_DOWN	cam:cam_rainforce_bolt_pjw_m_c_1789013623	35	cam_rainforce_bolt_pjw_m_c_1789013623	YHB-SA-4WAY · Rainforce Bolt PJW M/C camera 192.168.35.70 offline (no ping) since 08:59	2026-09-21 09:13:40.7578+05:30	2026-09-21 10:59:42.769423+05:30	2026-09-21 11:04:43.27034+05:30	f
-13	CAMERA_DOWN	cam:cam_rail_assy_m_c_01_1782385278	4	cam_rail_assy_m_c_01_1782385278	YSD-SS · Rail Assy M/c # 01 camera 192.168.31.53 hung (ping OK, no video) since 21:32	2026-09-19 21:44:47.300725+05:30	2026-09-19 21:54:50.190967+05:30	2026-09-19 21:59:51.64081+05:30	f
-21	CAMERA_DOWN	cam:cam_both_karakuri_middle_shelf_1787031646	30	cam_both_karakuri_middle_shelf_1787031646	Loop Pipe-Line 1 · Both Karakuri Middle Shelf camera 192.168.37.53 hung (ping OK, no video) since 21:32	2026-09-19 22:09:53.762292+05:30	2026-09-19 22:09:53.762292+05:30	2026-09-19 22:14:55.047812+05:30	f
-10	CAMERA_DOWN	cam:cam_mag_welding_relese_x_hinge_pin_1786350445	27	cam_mag_welding_relese_x_hinge_pin_1786350445	YHB Recliner · Mag Welding Relese x Hinge Pin camera 192.168.33.75 hung (ping OK, no video) since 21:32	2026-09-19 21:44:47.300725+05:30	2026-09-19 22:09:53.762292+05:30	2026-09-19 22:14:55.047812+05:30	f
-12	CAMERA_DOWN	cam:cam_mag_welding_relese_x_hinge_pin_1787031121	28	cam_mag_welding_relese_x_hinge_pin_1787031121	YNC Recliner · Mag Welding Relese x Hinge Pin camera 192.168.33.115 hung (ping OK, no video) since 21:32	2026-09-19 21:44:47.300725+05:30	2026-09-19 22:09:53.762292+05:30	2026-09-19 22:14:55.047812+05:30	f
-15	CAMERA_DOWN	cam:cam_slit_cut_machine_1787031530	30	cam_slit_cut_machine_1787031530	Loop Pipe-Line 1 · Slit Cut Machine camera 192.168.37.54 hung (ping OK, no video) since 21:32	2026-09-19 21:44:47.300725+05:30	2026-09-19 22:09:53.762292+05:30	2026-09-19 22:14:55.047812+05:30	f
-17	CAMERA_DOWN	cam:cam_upper_rail_greasing_1778650524	13	cam_upper_rail_greasing_1778650524	YJC-SS · Lock Bar Insert M/c camera 192.168.31.112 hung (ping OK, no video) since 21:32	2026-09-19 21:44:47.300725+05:30	2026-09-19 22:09:53.762292+05:30	2026-09-19 22:14:55.047812+05:30	f
-18	CAMERA_DOWN	cam:cam_upper_rail_greasing_m_c_1782385166	4	cam_upper_rail_greasing_m_c_1782385166	YSD-SS · Upper Rail Greasing m/c camera 192.168.31.50 hung (ping OK, no video) since 21:32	2026-09-19 21:44:47.300725+05:30	2026-09-19 22:09:53.762292+05:30	2026-09-19 22:14:55.047812+05:30	f
-78	CAMERA_DOWN	cam:cam_rainforce_bolt_pjw_m_c_1789013623	35	cam_rainforce_bolt_pjw_m_c_1789013623	YHB-SA-4WAY · Rainforce Bolt PJW M/C camera 192.168.35.70 offline (no ping) since 03:32	2026-09-20 03:42:50.634546+05:30	2026-09-20 05:44:14.396229+05:30	2026-09-20 05:49:17.924984+05:30	f
-169	CAMERA_DOWN	cam:cam_upr_rail_bolt_fr_pjw_m_c_4_way_1788930828	36	cam_upr_rail_bolt_fr_pjw_m_c_4_way_1788930828	YNC-SA-4WAY · Upr Rail ×Bolt Fr PJW M/C  ( 4 Way ) camera 192.168.35.82 offline (no ping) since 09:08	2026-09-21 09:23:46.695058+05:30	2026-09-21 10:59:42.769423+05:30	2026-09-21 11:04:43.27034+05:30	f
-79	CAMERA_DOWN	cam:cam_ylm_bending_machine_01_1787031747	30	cam_ylm_bending_machine_01_1787031747	Loop Pipe-Line 1 · YLM Bending Machine-01 camera 192.168.37.51 offline (no ping) since 03:32	2026-09-20 03:42:50.634546+05:30	2026-09-20 06:19:37.928768+05:30	2026-09-20 06:24:40.099492+05:30	f
-156	CAMERA_DOWN	cam:cam_mag_welding_relese_x_hinge_pin_1786596253	5	cam_mag_welding_relese_x_hinge_pin_1786596253	YRA Recliner · Mag Welding Relese x Hinge Pin camera 192.168.33.35 offline (no ping) since 11:10	2026-09-20 14:54:41.03392+05:30	2026-09-20 17:05:48.421574+05:30	2026-09-20 17:10:54.402966+05:30	f
-82	CAMERA_DOWN	cam:cam_rainforce_bolt_pjw_m_c_1788930501	36	cam_rainforce_bolt_pjw_m_c_1788930501	YNC-SA-4WAY · "Rinforce×Bolt PJW M/C Upr BKT Rail ×Bolt PJW M/C Upr Rail Rr） " camera 192.168.35.80 offline (no ping) since 05:50	2026-09-20 06:04:26.609225+05:30	2026-09-20 06:04:26.609225+05:30	2026-09-20 06:09:29.956457+05:30	f
-83	CAMERA_DOWN	cam:cam_rainforce_bolt_pjw_m_c_1789013623	35	cam_rainforce_bolt_pjw_m_c_1789013623	YHB-SA-4WAY · Rainforce Bolt PJW M/C camera 192.168.35.70 offline (no ping) since 05:50	2026-09-20 06:04:26.609225+05:30	2026-09-20 06:04:26.609225+05:30	2026-09-20 06:09:29.956457+05:30	f
-335	CAMERA_DOWN	cam:cam_semi_automatic_bending_m_c_1782450100	11	cam_semi_automatic_bending_m_c_1782450100	YHB-SS · Semi Automatic & Bending M/c camera 192.168.31.75 hung (ping OK, no video) since 18:45	2026-09-21 18:58:29.325595+05:30	2026-09-21 21:09:31.715103+05:30	2026-09-21 21:14:36.658504+05:30	f
-117	CAMERA_DOWN	cam:cam_rainforce_bolt_pjw_m_c_1789013623	35	cam_rainforce_bolt_pjw_m_c_1789013623	YHB-SA-4WAY · Rainforce Bolt PJW M/C camera 192.168.35.70 offline (no ping) since 09:51	2026-09-20 10:06:16.597137+05:30	2026-09-20 10:21:29.030165+05:30	2026-09-20 10:26:31.609777+05:30	f
-125	CAMERA_DOWN	cam:cam_mag_welding_relese_x_hinge_pin_1786596253	5	cam_mag_welding_relese_x_hinge_pin_1786596253	YRA Recliner · Mag Welding Relese x Hinge Pin camera 192.168.33.35 offline (no ping) since 11:10	2026-09-20 11:22:58.30245+05:30	2026-09-20 11:53:19.744924+05:30	2026-09-20 11:58:22.17273+05:30	f
-127	CAMERA_DOWN	cam:cam_ylm_bending_machine_01_1787031747	30	cam_ylm_bending_machine_01_1787031747	Loop Pipe-Line 1 · YLM Bending Machine-01 camera 192.168.37.51 offline (no ping) since 11:10	2026-09-20 11:22:58.30245+05:30	2026-09-20 12:43:48.182136+05:30	2026-09-20 12:48:52.635509+05:30	f
-116	CAMERA_DOWN	cam:cam_bolt_strength_checking_4way_1789017196	36	cam_bolt_strength_checking_4way_1789017196	YNC-SA-4WAY · BOLT STRENGTH CHECKING (4WAY) camera 192.168.35.84 offline (no ping) since 09:51	2026-09-20 10:06:16.597137+05:30	2026-09-20 10:21:29.030165+05:30	2026-09-20 10:26:31.609777+05:30	f
-72	LOW_COVERAGE	cov:36	36	\N	YNC-SA-4WAY video coverage 66% (592/899) in the last judged hour	2026-09-20 02:07:02.216171+05:30	2026-09-20 06:59:55.727798+05:30	2026-09-20 07:04:57.925726+05:30	f
-74	LOW_COVERAGE	cov:34	34	\N	YSD-SA-4WAY video coverage 0% (0/602) in the last judged hour	2026-09-20 02:07:02.216171+05:30	2026-09-20 06:59:55.727798+05:30	2026-09-20 07:04:57.925726+05:30	f
-235	CAMERA_DOWN	cam:cam_bolt_strength_checking_4way_1789017196	36	cam_bolt_strength_checking_4way_1789017196	YNC-SA-4WAY · BOLT STRENGTH CHECKING (4WAY) camera 192.168.35.84 offline (no ping) since 11:02	2026-09-21 15:11:28.675422+05:30	2026-09-21 15:16:32.196167+05:30	2026-09-21 15:21:32.71293+05:30	f
-54	LOW_COVERAGE	cov:11	11	\N	YHB-SS video coverage 43% (116/269) in the last judged hour	2026-09-19 23:25:42.800446+05:30	2026-09-20 04:58:41.128383+05:30	2026-09-20 05:03:45.657609+05:30	f
-43	LOW_COVERAGE	cov:33	33	\N	YRA-SA-4WAY video coverage 0% (0/111) in the last judged hour	2026-09-19 22:35:07.908861+05:30	2026-09-20 07:55:06.397955+05:30	2026-09-20 08:00:08.058192+05:30	f
-34	LOW_COVERAGE	cov:5	5	\N	YRA Recliner video coverage 0% (0/344) in the last judged hour	2026-09-19 22:25:00.659878+05:30	2026-09-19 22:55:21.757329+05:30	2026-09-19 23:00:25.217486+05:30	f
-35	LOW_COVERAGE	cov:18	18	\N	YRA-SS video coverage 60% (408/681) in the last judged hour	2026-09-19 22:25:00.659878+05:30	2026-09-19 22:55:21.757329+05:30	2026-09-19 23:00:25.217486+05:30	f
-36	LOW_COVERAGE	cov:2	2	\N	YNC-SS video coverage 44% (299/679) in the last judged hour	2026-09-19 22:25:00.659878+05:30	2026-09-19 22:55:21.757329+05:30	2026-09-19 23:00:25.217486+05:30	f
-37	LOW_COVERAGE	cov:15	15	\N	Y17-SS video coverage 60% (374/619) in the last judged hour	2026-09-19 22:25:00.659878+05:30	2026-09-19 22:55:21.757329+05:30	2026-09-19 23:00:25.217486+05:30	f
-38	LOW_COVERAGE	cov:12	12	\N	YCA-SS video coverage 61% (404/664) in the last judged hour	2026-09-19 22:25:00.659878+05:30	2026-09-19 22:55:21.757329+05:30	2026-09-19 23:00:25.217486+05:30	f
-39	LOW_COVERAGE	cov:27	27	\N	YHB Recliner video coverage 0% (0/330) in the last judged hour	2026-09-19 22:25:00.659878+05:30	2026-09-19 22:55:21.757329+05:30	2026-09-19 23:00:25.217486+05:30	f
-126	CAMERA_DOWN	cam:cam_rainforce_bolt_pjw_m_c_1789013623	35	cam_rainforce_bolt_pjw_m_c_1789013623	YHB-SA-4WAY · Rainforce Bolt PJW M/C camera 192.168.35.70 offline (no ping) since 11:10	2026-09-20 11:22:58.30245+05:30	2026-09-20 11:28:03.48033+05:30	2026-09-20 11:33:06.882225+05:30	f
-77	CAMERA_DOWN	cam:cam_rainforce_bolt_pjw_m_c_1788930501	36	cam_rainforce_bolt_pjw_m_c_1788930501	YNC-SA-4WAY · "Rinforce×Bolt PJW M/C Upr BKT Rail ×Bolt PJW M/C Upr Rail Rr） " camera 192.168.35.80 offline (no ping) since 03:32	2026-09-20 03:42:50.634546+05:30	2026-09-20 05:44:14.396229+05:30	2026-09-20 05:49:17.924984+05:30	f
-55	LOW_COVERAGE	cov:19	19	\N	YMC-SS video coverage 56% (146/263) in the last judged hour	2026-09-19 23:25:42.800446+05:30	2026-09-20 04:58:41.128383+05:30	2026-09-20 05:03:45.657609+05:30	f
-73	LOW_COVERAGE	cov:29	29	\N	YSD Recliner video coverage 0% (0/53) in the last judged hour	2026-09-20 02:07:02.216171+05:30	2026-09-20 04:58:41.128383+05:30	2026-09-20 05:03:45.657609+05:30	f
-56	LOW_COVERAGE	cov:4	4	\N	YSD-SS video coverage 73% (1113/1529) in the last judged hour	2026-09-19 23:25:42.800446+05:30	2026-09-20 04:58:41.128383+05:30	2026-09-20 05:03:45.657609+05:30	f
-57	LOW_COVERAGE	cov:14	14	\N	YFG-SS video coverage 80% (1455/1820) in the last judged hour	2026-09-19 23:25:42.800446+05:30	2026-09-20 04:58:41.128383+05:30	2026-09-20 05:03:45.657609+05:30	f
-58	LOW_COVERAGE	cov:20	20	\N	YMC Recliner video coverage 52% (192/371) in the last judged hour	2026-09-19 23:25:42.800446+05:30	2026-09-20 04:58:41.128383+05:30	2026-09-20 05:03:45.657609+05:30	f
-65	LOW_COVERAGE	cov:27	27	\N	YHB Recliner video coverage 26% (10/38) in the last judged hour	2026-09-19 23:25:42.800446+05:30	2026-09-20 04:58:41.128383+05:30	2026-09-20 05:03:45.657609+05:30	f
-42	LOW_COVERAGE	cov:30	30	\N	Loop Pipe-Line 1 video coverage 28% (255/898) in the last judged hour	2026-09-19 22:30:03.55177+05:30	2026-09-20 03:57:59.492431+05:30	2026-09-20 04:03:03.535425+05:30	f
-40	CAMERA_DOWN	cam:cam_rainforce_bolt_pjw_m_c_1788930501	36	cam_rainforce_bolt_pjw_m_c_1788930501	YNC-SA-4WAY · "Rinforce×Bolt PJW M/C Upr BKT Rail ×Bolt PJW M/C Upr Rail Rr） " camera 192.168.35.80 offline (no ping) since 22:19	2026-09-19 22:30:03.55177+05:30	2026-09-20 01:06:33.634433+05:30	2026-09-20 01:11:34.408651+05:30	f
-68	CAMERA_DOWN	cam:cam_bolt_strength_checking_4way_1789019293	35	cam_bolt_strength_checking_4way_1789019293	YHB-SA-4WAY · BOLT STRENGTH CHECKING (4WAY) camera 192.168.35.74 offline (no ping) since 23:49	2026-09-20 00:01:01.312823+05:30	2026-09-20 00:01:01.312823+05:30	2026-09-20 00:06:03.964443+05:30	f
-70	CAMERA_DOWN	cam:cam_rainforce_bolt_pjw_m_c_1788930501	36	cam_rainforce_bolt_pjw_m_c_1788930501	YNC-SA-4WAY · "Rinforce×Bolt PJW M/C Upr BKT Rail ×Bolt PJW M/C Upr Rail Rr） " camera 192.168.35.80 offline (no ping) since 22:19	2026-09-20 01:16:37.27752+05:30	2026-09-20 03:17:42.095384+05:30	2026-09-20 03:22:46.586217+05:30	f
-76	LOW_COVERAGE	cov:31	31	\N	Loop Pipe-Line 3 video coverage 19% (7/36) in the last judged hour	2026-09-20 02:37:20.064425+05:30	2026-09-20 02:57:29.266211+05:30	2026-09-20 03:02:31.890628+05:30	f
-41	CAMERA_DOWN	cam:cam_rainforce_bolt_pjw_m_c_1789013623	35	cam_rainforce_bolt_pjw_m_c_1789013623	YHB-SA-4WAY · Rainforce Bolt PJW M/C camera 192.168.35.70 offline (no ping) since 22:19	2026-09-19 22:30:03.55177+05:30	2026-09-20 03:22:46.586217+05:30	2026-09-20 03:27:46.832128+05:30	f
-157	CAMERA_DOWN	cam:cam_final_inspection_1784645338	2	cam_final_inspection_1784645338	YNC-SS · Final Inspection camera 192.168.31.136 hung (ping OK, no video) since 18:41	2026-09-20 19:06:48.647319+05:30	2026-09-20 19:06:48.647319+05:30	2026-09-20 19:11:53.241889+05:30	f
-158	CAMERA_DOWN	cam:cam_final_inspection_m_c_1782556572	12	cam_final_inspection_m_c_1782556572	YCA-SS · Final Inspection M/c camera 192.168.31.96 hung (ping OK, no video) since 18:41	2026-09-20 19:06:48.647319+05:30	2026-09-20 19:06:48.647319+05:30	2026-09-20 19:11:53.241889+05:30	f
-360	LOW_COVERAGE	cov:12	12	\N	YCA-SS video coverage 39% (464/1199) in the last judged hour	2026-09-21 19:28:45.729456+05:30	2026-09-21 22:52:45.246221+05:30	\N	f
-137	CAMERA_DOWN	cam:cam_rainforce_bolt_pjw_m_c_1789013623	35	cam_rainforce_bolt_pjw_m_c_1789013623	YHB-SA-4WAY · Rainforce Bolt PJW M/C camera 192.168.35.70 offline (no ping) since 11:45	2026-09-20 13:09:01.546442+05:30	2026-09-20 17:15:50.496249+05:30	2026-09-20 17:20:56.76853+05:30	f
-136	CAMERA_DOWN	cam:cam_bolt_strength_checking_4way_1789019293	35	cam_bolt_strength_checking_4way_1789019293	YHB-SA-4WAY · BOLT STRENGTH CHECKING (4WAY) camera 192.168.35.74 offline (no ping) since 12:20	2026-09-20 13:09:01.546442+05:30	2026-09-20 17:15:50.496249+05:30	2026-09-20 17:20:56.76853+05:30	f
-246	CAMERA_DOWN	cam:cam_both_karakuri_middle_shelf_1787031646	30	cam_both_karakuri_middle_shelf_1787031646	Loop Pipe-Line 1 · Both Karakuri Middle Shelf camera 192.168.37.53 hung (ping OK, no video) since 18:31	2026-09-21 18:43:16.577582+05:30	2026-09-21 21:09:31.715103+05:30	2026-09-21 21:14:36.658504+05:30	f
-139	CAMERA_DOWN	cam:cam_ylm_bending_machine_02_1787550932	31	cam_ylm_bending_machine_02_1787550932	Loop Pipe-Line 3 · YLM Bending Machine-02 camera 192.168.37.73 offline (no ping) since 11:10	2026-09-20 13:09:01.546442+05:30	2026-09-20 17:20:56.76853+05:30	2026-09-20 17:25:54.583779+05:30	f
-138	CAMERA_DOWN	cam:cam_ylm_bending_machine_01_1787031747	30	cam_ylm_bending_machine_01_1787031747	Loop Pipe-Line 1 · YLM Bending Machine-01 camera 192.168.37.51 offline (no ping) since 11:10	2026-09-20 13:09:01.546442+05:30	2026-09-20 17:20:56.76853+05:30	2026-09-20 17:25:54.583779+05:30	f
-101	LOW_COVERAGE	cov:15	15	\N	Y17-SS video coverage 33% (533/1609) in the last judged hour	2026-09-20 09:25:42.890537+05:30	2026-09-20 12:58:58.528749+05:30	2026-09-20 13:03:59.819602+05:30	f
-102	LOW_COVERAGE	cov:12	12	\N	YCA-SS video coverage 32% (486/1504) in the last judged hour	2026-09-20 09:25:42.890537+05:30	2026-09-20 12:58:58.528749+05:30	2026-09-20 13:03:59.819602+05:30	f
-110	LOW_COVERAGE	cov:27	27	\N	YHB Recliner video coverage 18% (131/714) in the last judged hour	2026-09-20 09:30:47.499204+05:30	2026-09-20 12:58:58.528749+05:30	2026-09-20 13:03:59.819602+05:30	f
-141	LOW_COVERAGE	cov:19	19	\N	YMC-SS video coverage 44% (141/321) in the last judged hour	2026-09-20 13:24:06.741912+05:30	2026-09-20 18:56:40.003456+05:30	2026-09-20 19:01:44.536016+05:30	f
-142	LOW_COVERAGE	cov:4	4	\N	YSD-SS video coverage 57% (247/436) in the last judged hour	2026-09-20 13:24:06.741912+05:30	2026-09-20 18:56:40.003456+05:30	2026-09-20 19:01:44.536016+05:30	f
-204	CAMERA_DOWN	cam:cam_2ua_1782385638	8	cam_2ua_1782385638	2UA RECLINER · 2UA camera 192.168.31.211 offline (no ping) since 06:21	2026-09-21 12:40:21.275815+05:30	2026-09-21 12:50:25.308821+05:30	2026-09-21 12:55:26.320788+05:30	f
-131	LOW_COVERAGE	cov:39	39	\N	Y17-SA-4WAY video coverage 0% (0/66) in the last judged hour	2026-09-20 11:58:22.17273+05:30	2026-09-20 12:58:58.528749+05:30	2026-09-20 13:03:59.819602+05:30	f
-103	LOW_COVERAGE	cov:11	11	\N	YHB-SS video coverage 31% (466/1495) in the last judged hour	2026-09-20 09:25:42.890537+05:30	2026-09-20 12:58:58.528749+05:30	2026-09-20 13:03:59.819602+05:30	f
-120	LOW_COVERAGE	cov:29	29	\N	YSD Recliner video coverage 0% (0/205) in the last judged hour	2026-09-20 11:07:31.968873+05:30	2026-09-20 12:58:58.528749+05:30	2026-09-20 13:03:59.819602+05:30	f
-98	LOW_COVERAGE	cov:13	13	\N	YJC-SS video coverage 32% (428/1327) in the last judged hour	2026-09-20 09:25:42.890537+05:30	2026-09-20 12:58:58.528749+05:30	2026-09-20 13:03:59.819602+05:30	f
-88	CAMERA_DOWN	cam:cam_mag_welding_of_lwr_hook_with_lwr_arrm_1786596153	5	cam_mag_welding_of_lwr_hook_with_lwr_arrm_1786596153	YRA Recliner · MAG Welding of  Lwr Hook with Lwr Arrm camera 192.168.33.33 offline (no ping) since 07:53	2026-09-20 08:40:21.067813+05:30	2026-09-20 10:56:41.880103+05:30	2026-09-20 11:02:28.617036+05:30	f
-90	CAMERA_DOWN	cam:cam_rainforce_bolt_pjw_m_c_1789013623	35	cam_rainforce_bolt_pjw_m_c_1789013623	YHB-SA-4WAY · Rainforce Bolt PJW M/C camera 192.168.35.70 offline (no ping) since 08:01	2026-09-20 08:40:21.067813+05:30	2026-09-20 09:25:42.890537+05:30	2026-09-20 09:30:47.499204+05:30	f
-87	CAMERA_DOWN	cam:cam_bolt_strength_checking_4way_1789017196	36	cam_bolt_strength_checking_4way_1789017196	YNC-SA-4WAY · BOLT STRENGTH CHECKING (4WAY) camera 192.168.35.84 offline (no ping) since 08:01	2026-09-20 08:40:21.067813+05:30	2026-09-20 09:25:42.890537+05:30	2026-09-20 09:30:47.499204+05:30	f
-91	CAMERA_DOWN	cam:cam_mag_welding_of_lwr_hook_with_lwr_arrm_1787031413	29	cam_mag_welding_of_lwr_hook_with_lwr_arrm_1787031413	YSD Recliner · MAG Welding of  Lwr Hook with Lwr Arrm camera 192.168.33.93 offline (no ping) since 07:53	2026-09-20 08:45:23.829552+05:30	2026-09-20 10:56:41.880103+05:30	2026-09-20 11:02:28.617036+05:30	f
-89	CAMERA_DOWN	cam:cam_mag_welding_relese_x_hinge_pin_1786596253	5	cam_mag_welding_relese_x_hinge_pin_1786596253	YRA Recliner · Mag Welding Relese x Hinge Pin camera 192.168.33.35 offline (no ping) since 07:53	2026-09-20 08:40:21.067813+05:30	2026-09-20 10:56:41.880103+05:30	2026-09-20 11:02:28.617036+05:30	f
-161	CAMERA_DOWN	cam:cam_mag_welding_of_arm_x_recliner_st_1_1786596037	5	cam_mag_welding_of_arm_x_recliner_st_1_1786596037	YRA Recliner · MAG Welding of Arm x Recliner ST #1` camera 192.168.33.31 offline (no ping) since 06:21	2026-09-21 08:43:28.610091+05:30	2026-09-21 12:10:10.052992+05:30	2026-09-21 12:15:10.339267+05:30	f
-86	CAMERA_DOWN	cam:cam_ylm_bending_machine_01_1787031747	30	cam_ylm_bending_machine_01_1787031747	Loop Pipe-Line 1 · YLM Bending Machine-01 camera 192.168.37.51 offline (no ping) since 07:53	2026-09-20 08:35:19.110687+05:30	2026-09-20 10:56:41.880103+05:30	2026-09-20 11:02:28.617036+05:30	f
-92	CAMERA_DOWN	cam:cam_ylm_bending_machine_02_1787550932	31	cam_ylm_bending_machine_02_1787550932	Loop Pipe-Line 3 · YLM Bending Machine-02 camera 192.168.37.73 offline (no ping) since 07:53	2026-09-20 09:05:33.399029+05:30	2026-09-20 10:56:41.880103+05:30	2026-09-20 11:02:28.617036+05:30	f
-85	CAMERA_DOWN	cam:cam_mag_welding_of_arm_x_recliner_st_1_1786596037	5	cam_mag_welding_of_arm_x_recliner_st_1_1786596037	YRA Recliner · MAG Welding of Arm x Recliner ST #1` camera 192.168.33.31 offline (no ping) since 07:53	2026-09-20 08:35:19.110687+05:30	2026-09-20 10:56:41.880103+05:30	2026-09-20 11:02:28.617036+05:30	f
-99	LOW_COVERAGE	cov:5	5	\N	YRA Recliner video coverage 3% (16/612) in the last judged hour	2026-09-20 09:25:42.890537+05:30	2026-09-20 12:58:58.528749+05:30	2026-09-20 13:03:59.819602+05:30	f
-128	CAMERA_DOWN	cam:cam_ylm_bending_machine_02_1787550932	31	cam_ylm_bending_machine_02_1787550932	Loop Pipe-Line 3 · YLM Bending Machine-02 camera 192.168.37.73 offline (no ping) since 11:10	2026-09-20 11:22:58.30245+05:30	2026-09-20 12:43:48.182136+05:30	2026-09-20 12:48:52.635509+05:30	f
-132	CAMERA_DOWN	cam:cam_bolt_strength_checking_4way_1789019293	35	cam_bolt_strength_checking_4way_1789019293	YHB-SA-4WAY · BOLT STRENGTH CHECKING (4WAY) camera 192.168.35.74 offline (no ping) since 12:20	2026-09-20 12:33:43.739909+05:30	2026-09-20 12:43:48.182136+05:30	2026-09-20 12:48:52.635509+05:30	f
-109	LOW_COVERAGE	cov:18	18	\N	YRA-SS video coverage 32% (371/1164) in the last judged hour	2026-09-20 09:30:47.499204+05:30	2026-09-20 12:58:58.528749+05:30	2026-09-20 13:03:59.819602+05:30	f
-100	LOW_COVERAGE	cov:2	2	\N	YNC-SS video coverage 32% (493/1540) in the last judged hour	2026-09-20 09:25:42.890537+05:30	2026-09-20 12:58:58.528749+05:30	2026-09-20 13:03:59.819602+05:30	f
-147	LOW_COVERAGE	cov:11	11	\N	YHB-SS video coverage 56% (265/470) in the last judged hour	2026-09-20 13:29:08.835981+05:30	2026-09-20 18:56:40.003456+05:30	2026-09-20 19:01:44.536016+05:30	f
-104	LOW_COVERAGE	cov:36	36	\N	YNC-SA-4WAY video coverage 44% (31/71) in the last judged hour	2026-09-20 09:30:47.499204+05:30	2026-09-20 18:56:40.003456+05:30	2026-09-20 19:01:44.536016+05:30	f
-148	LOW_COVERAGE	cov:29	29	\N	YSD Recliner video coverage 0% (0/34) in the last judged hour	2026-09-20 13:29:08.835981+05:30	2026-09-20 18:56:40.003456+05:30	2026-09-20 19:01:44.536016+05:30	f
-207	CAMERA_DOWN	cam:cam_mag_welding_of_lwr_hook_with_lwr_arrm_1787031413	29	cam_mag_welding_of_lwr_hook_with_lwr_arrm_1787031413	YSD Recliner · MAG Welding of  Lwr Hook with Lwr Arrm camera 192.168.33.93 offline (no ping) since 06:21	2026-09-21 12:40:21.275815+05:30	2026-09-21 17:22:33.273805+05:30	2026-09-21 17:27:34.767393+05:30	f
-105	LOW_COVERAGE	cov:31	31	\N	Loop Pipe-Line 3 video coverage 48% (141/293) in the last judged hour	2026-09-20 09:30:47.499204+05:30	2026-09-20 18:56:40.003456+05:30	2026-09-20 19:01:44.536016+05:30	f
-112	LOW_COVERAGE	cov:34	34	\N	YSD-SA-4WAY video coverage 0% (0/55) in the last judged hour	2026-09-20 09:35:51.73345+05:30	2026-09-20 18:56:40.003456+05:30	2026-09-20 19:01:44.536016+05:30	f
-94	LOW_COVERAGE	cov:30	30	\N	Loop Pipe-Line 1 video coverage 48% (126/265) in the last judged hour	2026-09-20 09:25:42.890537+05:30	2026-09-20 18:56:40.003456+05:30	2026-09-20 19:01:44.536016+05:30	f
-134	CAMERA_DOWN	cam:cam_mag_welding_of_lwr_hook_with_lwr_arrm_1786596153	5	cam_mag_welding_of_lwr_hook_with_lwr_arrm_1786596153	YRA Recliner · MAG Welding of  Lwr Hook with Lwr Arrm camera 192.168.33.33 offline (no ping) since 11:10	2026-09-20 12:38:47.484681+05:30	2026-09-20 17:05:48.421574+05:30	2026-09-20 17:10:54.402966+05:30	f
-95	LOW_COVERAGE	cov:21	21	\N	Loop Pipe-Line 2 video coverage 45% (140/314) in the last judged hour	2026-09-20 09:25:42.890537+05:30	2026-09-20 18:56:40.003456+05:30	2026-09-20 19:01:44.536016+05:30	f
-209	CAMERA_DOWN	cam:cam_bolt_strength_checking_4way_1789017196	36	cam_bolt_strength_checking_4way_1789017196	YNC-SA-4WAY · BOLT STRENGTH CHECKING (4WAY) camera 192.168.35.84 offline (no ping) since 11:02	2026-09-21 13:00:33.736691+05:30	2026-09-21 14:56:21.993833+05:30	2026-09-21 15:01:23.270953+05:30	f
-135	CAMERA_DOWN	cam:cam_mag_welding_of_lwr_hook_with_lwr_arrm_1787031413	29	cam_mag_welding_of_lwr_hook_with_lwr_arrm_1787031413	YSD Recliner · MAG Welding of  Lwr Hook with Lwr Arrm camera 192.168.33.93 offline (no ping) since 11:10	2026-09-20 12:38:47.484681+05:30	2026-09-20 17:20:56.76853+05:30	2026-09-20 17:25:54.583779+05:30	f
-165	CAMERA_DOWN	cam:cam_mag_welding_relese_x_hinge_pin_1786596253	5	cam_mag_welding_relese_x_hinge_pin_1786596253	YRA Recliner · Mag Welding Relese x Hinge Pin camera 192.168.33.35 offline (no ping) since 06:21	2026-09-21 08:48:30.475872+05:30	2026-09-21 12:20:11.071811+05:30	2026-09-21 12:25:11.780232+05:30	f
-164	CAMERA_DOWN	cam:cam_mag_welding_of_lwr_hook_with_lwr_arrm_1786596153	5	cam_mag_welding_of_lwr_hook_with_lwr_arrm_1786596153	YRA Recliner · MAG Welding of  Lwr Hook with Lwr Arrm camera 192.168.33.33 offline (no ping) since 06:21	2026-09-21 08:48:30.475872+05:30	2026-09-21 12:10:10.052992+05:30	2026-09-21 12:15:10.339267+05:30	f
-133	CAMERA_DOWN	cam:cam_mag_welding_of_arm_x_recliner_st_1_1786596037	5	cam_mag_welding_of_arm_x_recliner_st_1_1786596037	YRA Recliner · MAG Welding of Arm x Recliner ST #1` camera 192.168.33.31 offline (no ping) since 11:10	2026-09-20 12:38:47.484681+05:30	2026-09-20 14:39:32.666422+05:30	2026-09-20 14:44:36.315179+05:30	f
-163	CAMERA_DOWN	cam:cam_bolt_strength_checking_4way_1789017196	36	cam_bolt_strength_checking_4way_1789017196	YNC-SA-4WAY · BOLT STRENGTH CHECKING (4WAY) camera 192.168.35.84 offline (no ping) since 08:34	2026-09-21 08:48:30.475872+05:30	2026-09-21 08:53:32.481712+05:30	2026-09-21 08:58:33.728299+05:30	f
-166	CAMERA_DOWN	cam:cam_rainforce_bolt_pjw_m_c_1789013623	35	cam_rainforce_bolt_pjw_m_c_1789013623	YHB-SA-4WAY · Rainforce Bolt PJW M/C camera 192.168.35.70 offline (no ping) since 08:34	2026-09-21 08:48:30.475872+05:30	2026-09-21 08:53:32.481712+05:30	2026-09-21 08:58:33.728299+05:30	f
-129	CAMERA_DOWN	cam:cam_bolt_strength_checking_4way_1789017196	36	cam_bolt_strength_checking_4way_1789017196	YNC-SA-4WAY · BOLT STRENGTH CHECKING (4WAY) camera 192.168.35.84 offline (no ping) since 11:45	2026-09-20 11:58:22.17273+05:30	2026-09-20 12:18:32.257442+05:30	2026-09-20 12:23:36.314068+05:30	f
-124	CAMERA_DOWN	cam:cam_mag_welding_of_lwr_hook_with_lwr_arrm_1787031413	29	cam_mag_welding_of_lwr_hook_with_lwr_arrm_1787031413	YSD Recliner · MAG Welding of  Lwr Hook with Lwr Arrm camera 192.168.33.93 offline (no ping) since 11:10	2026-09-20 11:22:58.30245+05:30	2026-09-20 12:13:31.991252+05:30	2026-09-20 12:18:32.257442+05:30	f
-123	CAMERA_DOWN	cam:cam_mag_welding_of_lwr_hook_with_lwr_arrm_1786596153	5	cam_mag_welding_of_lwr_hook_with_lwr_arrm_1786596153	YRA Recliner · MAG Welding of  Lwr Hook with Lwr Arrm camera 192.168.33.33 offline (no ping) since 11:10	2026-09-20 11:22:58.30245+05:30	2026-09-20 12:13:31.991252+05:30	2026-09-20 12:18:32.257442+05:30	f
-93	LOW_COVERAGE	cov:4	4	\N	YSD-SS video coverage 33% (459/1373) in the last judged hour	2026-09-20 09:25:42.890537+05:30	2026-09-20 12:58:58.528749+05:30	2026-09-20 13:03:59.819602+05:30	f
-122	CAMERA_DOWN	cam:cam_mag_welding_of_arm_x_recliner_st_1_1786596037	5	cam_mag_welding_of_arm_x_recliner_st_1_1786596037	YRA Recliner · MAG Welding of Arm x Recliner ST #1` camera 192.168.33.31 offline (no ping) since 11:10	2026-09-20 11:22:58.30245+05:30	2026-09-20 12:08:28.413669+05:30	2026-09-20 12:13:31.991252+05:30	f
-118	CAMERA_DOWN	cam:cam_bolt_strength_checking_4way_1789017196	36	cam_bolt_strength_checking_4way_1789017196	YNC-SA-4WAY · BOLT STRENGTH CHECKING (4WAY) camera 192.168.35.84 offline (no ping) since 10:24	2026-09-20 10:36:34.886863+05:30	2026-09-20 10:56:41.880103+05:30	2026-09-20 11:02:28.617036+05:30	f
-119	CAMERA_DOWN	cam:cam_rainforce_bolt_pjw_m_c_1789013623	35	cam_rainforce_bolt_pjw_m_c_1789013623	YHB-SA-4WAY · Rainforce Bolt PJW M/C camera 192.168.35.70 offline (no ping) since 10:24	2026-09-20 10:36:34.886863+05:30	2026-09-20 10:56:41.880103+05:30	2026-09-20 11:02:28.617036+05:30	f
-111	LOW_COVERAGE	cov:29	29	\N	YSD Recliner video coverage 0% (0/256) in the last judged hour	2026-09-20 09:35:51.73345+05:30	2026-09-20 10:56:41.880103+05:30	2026-09-20 11:02:28.617036+05:30	f
-96	LOW_COVERAGE	cov:14	14	\N	YFG-SS video coverage 32% (460/1433) in the last judged hour	2026-09-20 09:25:42.890537+05:30	2026-09-20 12:58:58.528749+05:30	2026-09-20 13:03:59.819602+05:30	f
-106	LOW_COVERAGE	cov:28	28	\N	YNC Recliner video coverage 21% (104/498) in the last judged hour	2026-09-20 09:30:47.499204+05:30	2026-09-20 12:58:58.528749+05:30	2026-09-20 13:03:59.819602+05:30	f
-97	LOW_COVERAGE	cov:20	20	\N	YMC Recliner video coverage 31% (523/1705) in the last judged hour	2026-09-20 09:25:42.890537+05:30	2026-09-20 12:58:58.528749+05:30	2026-09-20 13:03:59.819602+05:30	f
-140	CAMERA_DOWN	cam:cam_bolt_strength_checking_4way_1789017196	36	cam_bolt_strength_checking_4way_1789017196	YNC-SA-4WAY · BOLT STRENGTH CHECKING (4WAY) camera 192.168.35.84 offline (no ping) since 13:08	2026-09-20 13:19:06.097618+05:30	2026-09-20 13:19:06.097618+05:30	2026-09-20 13:24:06.741912+05:30	f
-130	CAMERA_DOWN	cam:cam_rainforce_bolt_pjw_m_c_1789013623	35	cam_rainforce_bolt_pjw_m_c_1789013623	YHB-SA-4WAY · Rainforce Bolt PJW M/C camera 192.168.35.70 offline (no ping) since 11:45	2026-09-20 11:58:22.17273+05:30	2026-09-20 12:43:48.182136+05:30	2026-09-20 12:48:52.635509+05:30	f
-208	CAMERA_DOWN	cam:cam_mag_welding_relese_x_hinge_pin_1786596253	5	cam_mag_welding_relese_x_hinge_pin_1786596253	YRA Recliner · Mag Welding Relese x Hinge Pin camera 192.168.33.35 offline (no ping) since 06:21	2026-09-21 12:40:21.275815+05:30	2026-09-21 17:12:29.677342+05:30	2026-09-21 17:17:30.919419+05:30	f
-375	CAMERA_DOWN	cam:cam_mag_welding_relese_x_hinge_pin_1786350445	27	cam_mag_welding_relese_x_hinge_pin_1786350445	YHB Recliner · Mag Welding Relese x Hinge Pin camera 192.168.33.75 hung (ping OK, no video) since 20:41	2026-09-21 20:54:24.849786+05:30	2026-09-21 21:09:31.715103+05:30	2026-09-21 21:14:36.658504+05:30	f
-376	CAMERA_DOWN	cam:cam_mag_welding_relese_x_hinge_pin_1786596253	5	cam_mag_welding_relese_x_hinge_pin_1786596253	YRA Recliner · Mag Welding Relese x Hinge Pin camera 192.168.33.35 offline (no ping) since 20:41	2026-09-21 20:54:24.849786+05:30	2026-09-21 21:09:31.715103+05:30	2026-09-21 21:14:36.658504+05:30	f
-210	CAMERA_DOWN	cam:cam_2ua_1782385638	8	cam_2ua_1782385638	2UA RECLINER · 2UA camera 192.168.31.211 offline (no ping) since 06:21	2026-09-21 13:10:34.816604+05:30	2026-09-21 14:36:11.135351+05:30	2026-09-21 14:41:13.350674+05:30	f
-167	CAMERA_DOWN	cam:cam_mag_welding_of_lwr_hook_with_lwr_arrm_1787031413	29	cam_mag_welding_of_lwr_hook_with_lwr_arrm_1787031413	YSD Recliner · MAG Welding of  Lwr Hook with Lwr Arrm camera 192.168.33.93 offline (no ping) since 06:21	2026-09-21 08:53:32.481712+05:30	2026-09-21 12:10:10.052992+05:30	2026-09-21 12:15:10.339267+05:30	f
-151	LOW_COVERAGE	cov:5	5	\N	YRA Recliner video coverage 4% (22/616) in the last judged hour	2026-09-20 13:29:08.835981+05:30	2026-09-20 17:56:11.108098+05:30	2026-09-20 18:01:11.946362+05:30	f
-145	LOW_COVERAGE	cov:15	15	\N	Y17-SS video coverage 47% (174/370) in the last judged hour	2026-09-20 13:24:06.741912+05:30	2026-09-20 18:56:40.003456+05:30	2026-09-20 19:01:44.536016+05:30	f
-146	LOW_COVERAGE	cov:12	12	\N	YCA-SS video coverage 41% (124/301) in the last judged hour	2026-09-20 13:24:06.741912+05:30	2026-09-20 18:56:40.003456+05:30	2026-09-20 19:01:44.536016+05:30	f
-236	CAMERA_DOWN	cam:cam_rainforce_bolt_pjw_m_c_1788930501	36	cam_rainforce_bolt_pjw_m_c_1788930501	YNC-SA-4WAY · "Rinforce×Bolt PJW M/C Upr BKT Rail ×Bolt PJW M/C Upr Rail Rr） " camera 192.168.35.80 offline (no ping) since 11:02	2026-09-21 15:11:28.675422+05:30	2026-09-21 15:16:32.196167+05:30	2026-09-21 15:21:32.71293+05:30	f
-377	CAMERA_DOWN	cam:cam_pwm_38_round_rec_1784264068	20	cam_pwm_38_round_rec_1784264068	YMC Recliner · Projection Welding of Washer with Lwr Arm UprBKTｘNut PJW M/C camera 192.168.33.50 hung (ping OK, no video) since 20:41	2026-09-21 20:54:24.849786+05:30	2026-09-21 21:09:31.715103+05:30	2026-09-21 21:14:36.658504+05:30	f
-213	CAMERA_DOWN	cam:cam_rainforce_bolt_pjw_m_c_1789013623	35	cam_rainforce_bolt_pjw_m_c_1789013623	YHB-SA-4WAY · Rainforce Bolt PJW M/C camera 192.168.35.70 offline (no ping) since 11:02	2026-09-21 13:10:34.816604+05:30	2026-09-21 15:16:32.196167+05:30	2026-09-21 15:21:32.71293+05:30	f
-211	CAMERA_DOWN	cam:cam_bolt_strength_checking_4way_1789019293	35	cam_bolt_strength_checking_4way_1789019293	YHB-SA-4WAY · BOLT STRENGTH CHECKING (4WAY) camera 192.168.35.74 offline (no ping) since 11:02	2026-09-21 13:10:34.816604+05:30	2026-09-21 15:16:32.196167+05:30	2026-09-21 15:21:32.71293+05:30	f
-178	LOW_COVERAGE	cov:11	11	\N	YHB-SS video coverage 33% (492/1493) in the last judged hour	2026-09-21 09:33:51.986492+05:30	2026-09-21 12:55:26.320788+05:30	2026-09-21 13:00:33.736691+05:30	f
-305	CAMERA_DOWN	cam:cam_upr_rail_bolt_fr_pjw_m_c_4_way_1789019215	35	cam_upr_rail_bolt_fr_pjw_m_c_4_way_1789019215	YHB-SA-4WAY · Upr Rail ×Bolt Fr PJW M/C  ( 4 Way ) camera 192.168.35.72 hung (ping OK, no video) since 18:31	2026-09-21 18:43:16.577582+05:30	2026-09-21 19:48:53.016128+05:30	2026-09-21 19:53:54.136034+05:30	f
-181	LOW_COVERAGE	cov:31	31	\N	Loop Pipe-Line 3 video coverage 39% (358/921) in the last judged hour	2026-09-21 09:33:51.986492+05:30	2026-09-21 11:55:01.374052+05:30	2026-09-21 12:00:03.690165+05:30	f
-205	CAMERA_DOWN	cam:cam_mag_welding_of_arm_x_recliner_st_1_1786596037	5	cam_mag_welding_of_arm_x_recliner_st_1_1786596037	YRA Recliner · MAG Welding of Arm x Recliner ST #1` camera 192.168.33.31 offline (no ping) since 06:21	2026-09-21 12:40:21.275815+05:30	2026-09-21 17:07:25.040065+05:30	2026-09-21 17:12:29.677342+05:30	f
-206	CAMERA_DOWN	cam:cam_mag_welding_of_lwr_hook_with_lwr_arrm_1786596153	5	cam_mag_welding_of_lwr_hook_with_lwr_arrm_1786596153	YRA Recliner · MAG Welding of  Lwr Hook with Lwr Arrm camera 192.168.33.33 offline (no ping) since 06:21	2026-09-21 12:40:21.275815+05:30	2026-09-21 17:12:29.677342+05:30	2026-09-21 17:17:30.919419+05:30	f
-179	LOW_COVERAGE	cov:19	19	\N	YMC-SS video coverage 36% (546/1510) in the last judged hour	2026-09-21 09:33:51.986492+05:30	2026-09-21 12:55:26.320788+05:30	2026-09-21 13:00:33.736691+05:30	f
-195	LOW_COVERAGE	cov:29	29	\N	YSD Recliner video coverage 0% (0/208) in the last judged hour	2026-09-21 11:09:46.354772+05:30	2026-09-21 12:55:26.320788+05:30	2026-09-21 13:00:33.736691+05:30	f
-182	LOW_COVERAGE	cov:4	4	\N	YSD-SS video coverage 34% (433/1268) in the last judged hour	2026-09-21 09:33:51.986492+05:30	2026-09-21 12:55:26.320788+05:30	2026-09-21 13:00:33.736691+05:30	f
-153	LOW_COVERAGE	cov:27	27	\N	YHB Recliner video coverage 17% (127/754) in the last judged hour	2026-09-20 13:29:08.835981+05:30	2026-09-20 17:56:11.108098+05:30	2026-09-20 18:01:11.946362+05:30	f
-143	LOW_COVERAGE	cov:14	14	\N	YFG-SS video coverage 44% (163/367) in the last judged hour	2026-09-20 13:24:06.741912+05:30	2026-09-20 18:56:40.003456+05:30	2026-09-20 19:01:44.536016+05:30	f
-150	LOW_COVERAGE	cov:20	20	\N	YMC Recliner video coverage 37% (117/316) in the last judged hour	2026-09-20 13:29:08.835981+05:30	2026-09-20 18:56:40.003456+05:30	2026-09-20 19:01:44.536016+05:30	f
-107	LOW_COVERAGE	cov:33	33	\N	YRA-SA-4WAY video coverage 0% (0/222) in the last judged hour	2026-09-20 09:30:47.499204+05:30	2026-09-20 18:56:40.003456+05:30	2026-09-20 19:01:44.536016+05:30	f
-108	LOW_COVERAGE	cov:35	35	\N	YHB-SA-4WAY video coverage 11% (26/232) in the last judged hour	2026-09-20 09:30:47.499204+05:30	2026-09-20 18:56:40.003456+05:30	2026-09-20 19:01:44.536016+05:30	f
-152	LOW_COVERAGE	cov:18	18	\N	YRA-SS video coverage 43% (114/266) in the last judged hour	2026-09-20 13:29:08.835981+05:30	2026-09-20 18:56:40.003456+05:30	2026-09-20 19:01:44.536016+05:30	f
-113	LOW_COVERAGE	cov:38	38	\N	YNC-SA-6WAY video coverage 0% (0/51) in the last judged hour	2026-09-20 09:35:51.73345+05:30	2026-09-20 18:56:40.003456+05:30	2026-09-20 19:01:44.536016+05:30	f
-144	LOW_COVERAGE	cov:2	2	\N	YNC-SS video coverage 46% (171/369) in the last judged hour	2026-09-20 13:24:06.741912+05:30	2026-09-20 18:56:40.003456+05:30	2026-09-20 19:01:44.536016+05:30	f
-149	LOW_COVERAGE	cov:28	28	\N	YNC Recliner video coverage 16% (55/347) in the last judged hour	2026-09-20 13:29:08.835981+05:30	2026-09-20 17:56:11.108098+05:30	2026-09-20 18:01:11.946362+05:30	f
-160	CAMERA_DOWN	cam:cam_ylm_bending_machine_02_1787550932	31	cam_ylm_bending_machine_02_1787550932	Loop Pipe-Line 3 · YLM Bending Machine-02 camera 192.168.37.73 offline (no ping) since 06:21	2026-09-21 08:28:23.657643+05:30	2026-09-21 12:40:21.275815+05:30	2026-09-21 12:45:22.043857+05:30	f
-379	CAMERA_DOWN	cam:cam_station_2_1785318728	20	cam_station_2_1785318728	YMC Recliner · MAG Welding of Arm x Recliner Station 2 camera 192.168.33.52 hung (ping OK, no video) since 20:41	2026-09-21 20:54:24.849786+05:30	2026-09-21 21:09:31.715103+05:30	2026-09-21 21:14:36.658504+05:30	f
-159	CAMERA_DOWN	cam:cam_ylm_bending_machine_01_1787550875	31	cam_ylm_bending_machine_01_1787550875	Loop Pipe-Line 3 · YLM Bending Machine-01 camera 192.168.37.72 offline (no ping) since 08:06	2026-09-21 08:28:23.657643+05:30	2026-09-21 09:28:48.97931+05:30	2026-09-21 09:33:51.986492+05:30	f
-325	CAMERA_DOWN	cam:cam_rail_assy_m_c_01_1782385278	4	cam_rail_assy_m_c_01_1782385278	YSD-SS · Rail Assy M/c # 01 camera 192.168.31.53 hung (ping OK, no video) since 18:45	2026-09-21 18:58:29.325595+05:30	2026-09-21 21:09:31.715103+05:30	2026-09-21 21:14:36.658504+05:30	f
-232	LOW_COVERAGE	cov:29	29	\N	YSD Recliner video coverage 0% (0/177) in the last judged hour	2026-09-21 13:30:44.365959+05:30	2026-09-21 17:57:44.370335+05:30	2026-09-21 18:02:49.344938+05:30	f
-172	LOW_COVERAGE	cov:13	13	\N	YJC-SS video coverage 33% (486/1489) in the last judged hour	2026-09-21 09:28:48.97931+05:30	2026-09-21 12:55:26.320788+05:30	2026-09-21 13:00:33.736691+05:30	f
-212	CAMERA_DOWN	cam:cam_rainforce_bolt_pjw_m_c_1788930501	36	cam_rainforce_bolt_pjw_m_c_1788930501	YNC-SA-4WAY · "Rinforce×Bolt PJW M/C Upr BKT Rail ×Bolt PJW M/C Upr Rail Rr） " camera 192.168.35.80 offline (no ping) since 11:02	2026-09-21 13:10:34.816604+05:30	2026-09-21 14:56:21.993833+05:30	2026-09-21 15:01:23.270953+05:30	f
-214	CAMERA_DOWN	cam:cam_upr_rail_bolt_fr_pjw_m_c_4_way_1788930828	36	cam_upr_rail_bolt_fr_pjw_m_c_4_way_1788930828	YNC-SA-4WAY · Upr Rail ×Bolt Fr PJW M/C  ( 4 Way ) camera 192.168.35.82 offline (no ping) since 11:02	2026-09-21 13:10:34.816604+05:30	2026-09-21 14:56:21.993833+05:30	2026-09-21 15:01:23.270953+05:30	f
-215	CAMERA_DOWN	cam:cam_upr_rail_bolt_fr_pjw_m_c_4_way_1789019215	35	cam_upr_rail_bolt_fr_pjw_m_c_4_way_1789019215	YHB-SA-4WAY · Upr Rail ×Bolt Fr PJW M/C  ( 4 Way ) camera 192.168.35.72 offline (no ping) since 11:02	2026-09-21 13:10:34.816604+05:30	2026-09-21 15:16:32.196167+05:30	2026-09-21 15:21:32.71293+05:30	f
-262	CAMERA_DOWN	cam:cam_mag_welding_of_arm_x_recliner_st_1_1786596037	5	cam_mag_welding_of_arm_x_recliner_st_1_1786596037	YRA Recliner · MAG Welding of Arm x Recliner ST #1` camera 192.168.33.31 offline (no ping) since 18:31	2026-09-21 18:43:16.577582+05:30	2026-09-21 20:39:17.621304+05:30	2026-09-21 20:44:18.577912+05:30	f
-186	LOW_COVERAGE	cov:5	5	\N	YRA Recliner video coverage 3% (25/733) in the last judged hour	2026-09-21 09:33:51.986492+05:30	2026-09-21 12:55:26.320788+05:30	2026-09-21 13:00:33.736691+05:30	f
-263	CAMERA_DOWN	cam:cam_mag_welding_of_arm_x_recliner_st_2_1786596090	5	cam_mag_welding_of_arm_x_recliner_st_2_1786596090	YRA Recliner · MAG Welding of Arm x Recliner ST #2 camera 192.168.33.32 hung (ping OK, no video) since 18:31	2026-09-21 18:43:16.577582+05:30	2026-09-21 20:39:17.621304+05:30	2026-09-21 20:44:18.577912+05:30	f
-326	CAMERA_DOWN	cam:cam_rail_assy_m_c_01_1782449920	11	cam_rail_assy_m_c_01_1782449920	YHB-SS · Rail Assy M/c # 01 camera 192.168.31.73 hung (ping OK, no video) since 18:45	2026-09-21 18:58:29.325595+05:30	2026-09-21 21:09:31.715103+05:30	2026-09-21 21:14:36.658504+05:30	f
-295	CAMERA_DOWN	cam:cam_slit_cut_machine_1787031530	30	cam_slit_cut_machine_1787031530	Loop Pipe-Line 1 · Slit Cut Machine camera 192.168.37.54 hung (ping OK, no video) since 18:31	2026-09-21 18:43:16.577582+05:30	2026-09-21 21:09:31.715103+05:30	2026-09-21 21:14:36.658504+05:30	f
-174	LOW_COVERAGE	cov:18	18	\N	YRA-SS video coverage 33% (478/1455) in the last judged hour	2026-09-21 09:28:48.97931+05:30	2026-09-21 12:55:26.320788+05:30	2026-09-21 13:00:33.736691+05:30	f
-175	LOW_COVERAGE	cov:2	2	\N	YNC-SS video coverage 34% (539/1571) in the last judged hour	2026-09-21 09:28:48.97931+05:30	2026-09-21 12:55:26.320788+05:30	2026-09-21 13:00:33.736691+05:30	f
-176	LOW_COVERAGE	cov:15	15	\N	Y17-SS video coverage 35% (500/1420) in the last judged hour	2026-09-21 09:28:48.97931+05:30	2026-09-21 12:55:26.320788+05:30	2026-09-21 13:00:33.736691+05:30	f
-177	LOW_COVERAGE	cov:12	12	\N	YCA-SS video coverage 35% (508/1451) in the last judged hour	2026-09-21 09:28:48.97931+05:30	2026-09-21 12:55:26.320788+05:30	2026-09-21 13:00:33.736691+05:30	f
-188	LOW_COVERAGE	cov:27	27	\N	YHB Recliner video coverage 22% (147/659) in the last judged hour	2026-09-21 09:33:51.986492+05:30	2026-09-21 12:55:26.320788+05:30	2026-09-21 13:00:33.736691+05:30	f
-162	CAMERA_DOWN	cam:cam_ylm_bending_machine_01_1787031747	30	cam_ylm_bending_machine_01_1787031747	Loop Pipe-Line 1 · YLM Bending Machine-01 camera 192.168.37.51 offline (no ping) since 06:21	2026-09-21 08:43:28.610091+05:30	2026-09-21 12:45:22.043857+05:30	2026-09-21 12:50:25.308821+05:30	f
-199	CAMERA_DOWN	cam:cam_rainforce_bolt_pjw_m_c_1789013623	35	cam_rainforce_bolt_pjw_m_c_1789013623	YHB-SA-4WAY · Rainforce Bolt PJW M/C camera 192.168.35.70 offline (no ping) since 11:02	2026-09-21 11:14:46.048282+05:30	2026-09-21 12:45:22.043857+05:30	2026-09-21 12:50:25.308821+05:30	f
-197	CAMERA_DOWN	cam:cam_bolt_strength_checking_4way_1789019293	35	cam_bolt_strength_checking_4way_1789019293	YHB-SA-4WAY · BOLT STRENGTH CHECKING (4WAY) camera 192.168.35.74 offline (no ping) since 11:02	2026-09-21 11:14:46.048282+05:30	2026-09-21 12:40:21.275815+05:30	2026-09-21 12:45:22.043857+05:30	f
-198	CAMERA_DOWN	cam:cam_rainforce_bolt_pjw_m_c_1788930501	36	cam_rainforce_bolt_pjw_m_c_1788930501	YNC-SA-4WAY · "Rinforce×Bolt PJW M/C Upr BKT Rail ×Bolt PJW M/C Upr Rail Rr） " camera 192.168.35.80 offline (no ping) since 11:02	2026-09-21 11:14:46.048282+05:30	2026-09-21 12:40:21.275815+05:30	2026-09-21 12:45:22.043857+05:30	f
-200	CAMERA_DOWN	cam:cam_upr_rail_bolt_fr_pjw_m_c_4_way_1788930828	36	cam_upr_rail_bolt_fr_pjw_m_c_4_way_1788930828	YNC-SA-4WAY · Upr Rail ×Bolt Fr PJW M/C  ( 4 Way ) camera 192.168.35.82 offline (no ping) since 11:02	2026-09-21 11:14:46.048282+05:30	2026-09-21 12:40:21.275815+05:30	2026-09-21 12:45:22.043857+05:30	f
-201	CAMERA_DOWN	cam:cam_upr_rail_bolt_fr_pjw_m_c_4_way_1789019215	35	cam_upr_rail_bolt_fr_pjw_m_c_4_way_1789019215	YHB-SA-4WAY · Upr Rail ×Bolt Fr PJW M/C  ( 4 Way ) camera 192.168.35.72 offline (no ping) since 11:02	2026-09-21 11:14:46.048282+05:30	2026-09-21 12:40:21.275815+05:30	2026-09-21 12:45:22.043857+05:30	f
-191	CAMERA_DOWN	cam:cam_ylm_bending_machine_01_1787550875	31	cam_ylm_bending_machine_01_1787550875	Loop Pipe-Line 3 · YLM Bending Machine-01 camera 192.168.37.72 offline (no ping) since 09:32	2026-09-21 09:44:00.060435+05:30	2026-09-21 12:40:21.275815+05:30	2026-09-21 12:45:22.043857+05:30	f
-196	CAMERA_DOWN	cam:cam_bolt_strength_checking_4way_1789017196	36	cam_bolt_strength_checking_4way_1789017196	YNC-SA-4WAY · BOLT STRENGTH CHECKING (4WAY) camera 192.168.35.84 offline (no ping) since 11:02	2026-09-21 11:14:46.048282+05:30	2026-09-21 12:40:21.275815+05:30	2026-09-21 12:45:22.043857+05:30	f
-202	LOW_COVERAGE	cov:8	8	\N	2UA RECLINER video coverage 0% (0/185) in the last judged hour	2026-09-21 11:14:46.048282+05:30	2026-09-21 12:55:26.320788+05:30	2026-09-21 13:00:33.736691+05:30	f
-192	LOW_COVERAGE	cov:29	29	\N	YSD Recliner video coverage 0% (0/217) in the last judged hour	2026-09-21 09:44:00.060435+05:30	2026-09-21 10:59:42.769423+05:30	2026-09-21 11:04:43.27034+05:30	f
-171	LOW_COVERAGE	cov:14	14	\N	YFG-SS video coverage 35% (528/1498) in the last judged hour	2026-09-21 09:28:48.97931+05:30	2026-09-21 12:55:26.320788+05:30	2026-09-21 13:00:33.736691+05:30	f
-190	LOW_COVERAGE	cov:20	20	\N	YMC Recliner video coverage 32% (488/1527) in the last judged hour	2026-09-21 09:38:55.268484+05:30	2026-09-21 12:55:26.320788+05:30	2026-09-21 13:00:33.736691+05:30	f
-189	LOW_COVERAGE	cov:28	28	\N	YNC Recliner video coverage 17% (83/490) in the last judged hour	2026-09-21 09:38:55.268484+05:30	2026-09-21 12:55:26.320788+05:30	2026-09-21 13:00:33.736691+05:30	f
-266	CAMERA_DOWN	cam:cam_mag_welding_of_lwr_hook_with_lwr_arrm_1787030950	28	cam_mag_welding_of_lwr_hook_with_lwr_arrm_1787030950	YNC Recliner · MAG Welding of  Lwr Hook with Lwr Arrm camera 192.168.33.113 hung (ping OK, no video) since 18:31	2026-09-21 18:43:16.577582+05:30	2026-09-21 20:39:17.621304+05:30	2026-09-21 20:44:18.577912+05:30	f
-267	CAMERA_DOWN	cam:cam_mag_welding_of_lwr_hook_with_lwr_arrm_1787031413	29	cam_mag_welding_of_lwr_hook_with_lwr_arrm_1787031413	YSD Recliner · MAG Welding of  Lwr Hook with Lwr Arrm camera 192.168.33.93 offline (no ping) since 18:31	2026-09-21 18:43:16.577582+05:30	2026-09-21 20:39:17.621304+05:30	2026-09-21 20:44:18.577912+05:30	f
-268	CAMERA_DOWN	cam:cam_mag_welding_relese_x_hinge_pin_1786350445	27	cam_mag_welding_relese_x_hinge_pin_1786350445	YHB Recliner · Mag Welding Relese x Hinge Pin camera 192.168.33.75 hung (ping OK, no video) since 18:31	2026-09-21 18:43:16.577582+05:30	2026-09-21 20:39:17.621304+05:30	2026-09-21 20:44:18.577912+05:30	f
-269	CAMERA_DOWN	cam:cam_mag_welding_relese_x_hinge_pin_1786596253	5	cam_mag_welding_relese_x_hinge_pin_1786596253	YRA Recliner · Mag Welding Relese x Hinge Pin camera 192.168.33.35 offline (no ping) since 18:31	2026-09-21 18:43:16.577582+05:30	2026-09-21 20:39:17.621304+05:30	2026-09-21 20:44:18.577912+05:30	f
-370	CAMERA_DOWN	cam:cam_mag_welding_of_arm_x_recliner_st_1_1786596037	5	cam_mag_welding_of_arm_x_recliner_st_1_1786596037	YRA Recliner · MAG Welding of Arm x Recliner ST #1` camera 192.168.33.31 offline (no ping) since 20:41	2026-09-21 20:54:24.849786+05:30	2026-09-21 21:09:31.715103+05:30	2026-09-21 21:14:36.658504+05:30	f
-371	CAMERA_DOWN	cam:cam_mag_welding_of_arm_x_recliner_st_2_1786596090	5	cam_mag_welding_of_arm_x_recliner_st_2_1786596090	YRA Recliner · MAG Welding of Arm x Recliner ST #2 camera 192.168.33.32 hung (ping OK, no video) since 20:41	2026-09-21 20:54:24.849786+05:30	2026-09-21 21:09:31.715103+05:30	2026-09-21 21:14:36.658504+05:30	f
-217	CAMERA_DOWN	cam:cam_ylm_bending_machine_02_1787550932	31	cam_ylm_bending_machine_02_1787550932	Loop Pipe-Line 3 · YLM Bending Machine-02 camera 192.168.37.73 offline (no ping) since 06:21	2026-09-21 13:10:34.816604+05:30	2026-09-21 17:22:33.273805+05:30	2026-09-21 17:27:34.767393+05:30	f
-372	CAMERA_DOWN	cam:cam_mag_welding_of_lwr_hook_with_lwr_arrm_1786596153	5	cam_mag_welding_of_lwr_hook_with_lwr_arrm_1786596153	YRA Recliner · MAG Welding of  Lwr Hook with Lwr Arrm camera 192.168.33.33 offline (no ping) since 20:41	2026-09-21 20:54:24.849786+05:30	2026-09-21 21:09:31.715103+05:30	2026-09-21 21:14:36.658504+05:30	f
-464	CAMERA_DOWN	cam:cam_upper_rail_greasing_1784645280	2	cam_upper_rail_greasing_1784645280	YNC-SS · Upper Rail Greasing Machine camera 192.168.31.130 hung (ping OK, no video) since 22:25	2026-09-21 22:37:35.487341+05:30	2026-09-21 22:52:45.246221+05:30	\N	f
-465	CAMERA_DOWN	cam:cam_upr_rail_bolt_fr_pjw_m_c_4_way_1788930828	36	cam_upr_rail_bolt_fr_pjw_m_c_4_way_1788930828	YNC-SA-4WAY · Upr Rail ×Bolt Fr PJW M/C  ( 4 Way ) camera 192.168.35.82 hung (ping OK, no video) since 22:25	2026-09-21 22:37:35.487341+05:30	2026-09-21 22:52:45.246221+05:30	\N	f
-170	LOW_COVERAGE	cov:30	30	\N	Loop Pipe-Line 1 video coverage 29% (120/410) in the last judged hour	2026-09-21 09:28:48.97931+05:30	2026-09-21 18:58:29.325595+05:30	2026-09-21 19:03:30.384218+05:30	f
-297	CAMERA_DOWN	cam:cam_station_2_1785318728	20	cam_station_2_1785318728	YMC Recliner · MAG Welding of Arm x Recliner Station 2 camera 192.168.33.52 hung (ping OK, no video) since 18:31	2026-09-21 18:43:16.577582+05:30	2026-09-21 20:39:17.621304+05:30	2026-09-21 20:44:18.577912+05:30	f
-237	CAMERA_DOWN	cam:cam_bolt_strength_checking_4way_1789017196	36	cam_bolt_strength_checking_4way_1789017196	YNC-SA-4WAY · BOLT STRENGTH CHECKING (4WAY) camera 192.168.35.84 offline (no ping) since 15:20	2026-09-21 15:31:37.044911+05:30	2026-09-21 16:42:15.166553+05:30	2026-09-21 16:47:19.453886+05:30	f
-238	CAMERA_DOWN	cam:cam_bolt_strength_checking_4way_1789019293	35	cam_bolt_strength_checking_4way_1789019293	YHB-SA-4WAY · BOLT STRENGTH CHECKING (4WAY) camera 192.168.35.74 offline (no ping) since 15:21	2026-09-21 15:31:37.044911+05:30	2026-09-21 16:42:15.166553+05:30	2026-09-21 16:47:19.453886+05:30	f
-239	CAMERA_DOWN	cam:cam_rainforce_bolt_pjw_m_c_1788930501	36	cam_rainforce_bolt_pjw_m_c_1788930501	YNC-SA-4WAY · "Rinforce×Bolt PJW M/C Upr BKT Rail ×Bolt PJW M/C Upr Rail Rr） " camera 192.168.35.80 offline (no ping) since 15:20	2026-09-21 15:31:37.044911+05:30	2026-09-21 16:42:15.166553+05:30	2026-09-21 16:47:19.453886+05:30	f
-240	CAMERA_DOWN	cam:cam_rainforce_bolt_pjw_m_c_1789013623	35	cam_rainforce_bolt_pjw_m_c_1789013623	YHB-SA-4WAY · Rainforce Bolt PJW M/C camera 192.168.35.70 offline (no ping) since 15:20	2026-09-21 15:31:37.044911+05:30	2026-09-21 16:42:15.166553+05:30	2026-09-21 16:47:19.453886+05:30	f
-466	CAMERA_DOWN	cam:cam_ylm_bending_machine_01_1787031747	30	cam_ylm_bending_machine_01_1787031747	Loop Pipe-Line 1 · YLM Bending Machine-01 camera 192.168.37.51 offline (no ping) since 22:25	2026-09-21 22:37:35.487341+05:30	2026-09-21 22:52:45.246221+05:30	\N	f
-463	CAMERA_DOWN	cam:cam_semi_auto_cam_1783077949	14	cam_semi_auto_cam_1783077949	YFG-SS · Semi-Automatic & Bending M/c camera 192.168.31.155 hung (ping OK, no video) since 22:25	2026-09-21 22:37:35.487341+05:30	2026-09-21 22:42:41.126211+05:30	2026-09-21 22:47:43.6964+05:30	f
-270	CAMERA_DOWN	cam:cam_mag_welding_relese_x_hinge_pin_1787031121	28	cam_mag_welding_relese_x_hinge_pin_1787031121	YNC Recliner · Mag Welding Relese x Hinge Pin camera 192.168.33.115 hung (ping OK, no video) since 18:31	2026-09-21 18:43:16.577582+05:30	2026-09-21 20:08:57.5952+05:30	2026-09-21 20:14:00.180095+05:30	f
-216	CAMERA_DOWN	cam:cam_ylm_bending_machine_01_1787031747	30	cam_ylm_bending_machine_01_1787031747	Loop Pipe-Line 1 · YLM Bending Machine-01 camera 192.168.37.51 offline (no ping) since 06:21	2026-09-21 13:10:34.816604+05:30	2026-09-21 17:17:30.919419+05:30	2026-09-21 17:22:33.273805+05:30	f
-368	CAMERA_DOWN	cam:cam_final_inspection_machine_1784264923	20	cam_final_inspection_machine_1784264923	YMC Recliner · Final Inspection camera 192.168.33.57 hung (ping OK, no video) since 20:41	2026-09-21 20:54:24.849786+05:30	2026-09-21 21:09:31.715103+05:30	2026-09-21 21:14:36.658504+05:30	f
-369	CAMERA_DOWN	cam:cam_hook_spring_mag_welding_inside_1784264267	20	cam_hook_spring_mag_welding_inside_1784264267	YMC Recliner · MAG Welding of  Lwr Hook with Lwr Arrm camera 192.168.33.53 hung (ping OK, no video) since 20:41	2026-09-21 20:54:24.849786+05:30	2026-09-21 21:09:31.715103+05:30	2026-09-21 21:14:36.658504+05:30	f
-187	LOW_COVERAGE	cov:38	38	\N	YNC-SA-6WAY video coverage 0% (0/254) in the last judged hour	2026-09-21 09:33:51.986492+05:30	2026-09-21 17:57:44.370335+05:30	2026-09-21 18:02:49.344938+05:30	f
-218	CAMERA_DOWN	cam:cam_ylm_bending_machine_01_1787550875	31	cam_ylm_bending_machine_01_1787550875	Loop Pipe-Line 3 · YLM Bending Machine-01 camera 192.168.37.72 offline (no ping) since 09:32	2026-09-21 13:15:37.813614+05:30	2026-09-21 17:22:33.273805+05:30	2026-09-21 17:27:34.767393+05:30	f
-409	CAMERA_DOWN	cam:cam_upper_rail_cam_y17_1783077205	15	cam_upper_rail_cam_y17_1783077205	Y17-SS · Upper Rail Greasing M/c camera 192.168.31.170 hung (ping OK, no video) since 21:33	2026-09-21 21:45:40.232705+05:30	2026-09-21 21:55:45.026875+05:30	2026-09-21 21:59:50.540022+05:30	f
-381	CMS_DOWN	cms	\N	\N	CMS is not answering — no camera is recording	2026-09-21 21:19:41.912345+05:30	2026-09-21 21:19:41.912345+05:30	2026-09-21 21:24:42.470355+05:30	f
-410	CAMERA_DOWN	cam:cam_upper_rail_cam_yfg_1783077696	14	cam_upper_rail_cam_yfg_1783077696	YFG-SS · Upper Rail Greasing M/c camera 192.168.31.150 hung (ping OK, no video) since 21:33	2026-09-21 21:45:40.232705+05:30	2026-09-21 21:55:45.026875+05:30	2026-09-21 21:59:50.540022+05:30	f
-448	CAMERA_DOWN	cam:cam_bolt_strength_checking_4way_1789017196	36	cam_bolt_strength_checking_4way_1789017196	YNC-SA-4WAY · BOLT STRENGTH CHECKING (4WAY) camera 192.168.35.84 hung (ping OK, no video) since 22:25	2026-09-21 22:37:35.487341+05:30	2026-09-21 22:52:45.246221+05:30	\N	f
-374	CAMERA_DOWN	cam:cam_mag_welding_of_lwr_hook_with_lwr_arrm_1787031413	29	cam_mag_welding_of_lwr_hook_with_lwr_arrm_1787031413	YSD Recliner · MAG Welding of  Lwr Hook with Lwr Arrm camera 192.168.33.93 offline (no ping) since 20:41	2026-09-21 20:54:24.849786+05:30	2026-09-21 21:09:31.715103+05:30	2026-09-21 21:14:36.658504+05:30	f
-226	LOW_COVERAGE	cov:5	5	\N	YRA Recliner video coverage 3% (18/645) in the last judged hour	2026-09-21 13:25:44.056089+05:30	2026-09-21 17:57:44.370335+05:30	2026-09-21 18:02:49.344938+05:30	f
-378	CAMERA_DOWN	cam:cam_release_arm_mag_welding_inside_1784264562	20	cam_release_arm_mag_welding_inside_1784264562	YMC Recliner · Mag Welding Relese x Hinge Pin camera 192.168.33.55 hung (ping OK, no video) since 20:41	2026-09-21 20:54:24.849786+05:30	2026-09-21 21:09:31.715103+05:30	2026-09-21 21:14:36.658504+05:30	f
-311	CAMERA_DOWN	cam:cam_ball_guide_machine_05_1784269398	2	cam_ball_guide_machine_05_1784269398	YNC-SS · Ball Guide Insert Machine 2 camera 192.168.31.134 hung (ping OK, no video) since 18:45	2026-09-21 18:58:29.325595+05:30	2026-09-21 21:09:31.715103+05:30	2026-09-21 21:14:36.658504+05:30	f
-313	CAMERA_DOWN	cam:cam_final_inspection_m_c_1782556572	12	cam_final_inspection_m_c_1782556572	YCA-SS · Final Inspection M/c camera 192.168.31.96 hung (ping OK, no video) since 18:45	2026-09-21 18:58:29.325595+05:30	2026-09-21 21:09:31.715103+05:30	2026-09-21 21:14:36.658504+05:30	f
-314	CAMERA_DOWN	cam:cam_final_inspection_m_c_1782556863	13	cam_final_inspection_m_c_1782556863	YJC-SS · Final Inspection M/c camera 192.168.31.116 hung (ping OK, no video) since 18:45	2026-09-21 18:58:29.325595+05:30	2026-09-21 21:09:31.715103+05:30	2026-09-21 21:14:36.658504+05:30	f
-315	CAMERA_DOWN	cam:cam_lock_bar_1779043510	2	cam_lock_bar_1779043510	YNC-SS · Lock Bar insert Machine camera 192.168.31.132 hung (ping OK, no video) since 18:45	2026-09-21 18:58:29.325595+05:30	2026-09-21 21:09:31.715103+05:30	2026-09-21 21:14:36.658504+05:30	f
-221	LOW_COVERAGE	cov:4	4	\N	YSD-SS video coverage 39% (143/368) in the last judged hour	2026-09-21 13:25:44.056089+05:30	2026-09-21 18:58:29.325595+05:30	2026-09-21 19:03:30.384218+05:30	f
-223	LOW_COVERAGE	cov:28	28	\N	YNC Recliner video coverage 77% (37/48) in the last judged hour	2026-09-21 13:25:44.056089+05:30	2026-09-21 18:58:29.325595+05:30	2026-09-21 19:03:30.384218+05:30	f
-224	LOW_COVERAGE	cov:20	20	\N	YMC Recliner video coverage 46% (44/96) in the last judged hour	2026-09-21 13:25:44.056089+05:30	2026-09-21 18:58:29.325595+05:30	2026-09-21 19:03:30.384218+05:30	f
-225	LOW_COVERAGE	cov:13	13	\N	YJC-SS video coverage 38% (148/391) in the last judged hour	2026-09-21 13:25:44.056089+05:30	2026-09-21 18:58:29.325595+05:30	2026-09-21 19:03:30.384218+05:30	f
-316	CAMERA_DOWN	cam:cam_lock_bar_y17_1784952289	15	cam_lock_bar_y17_1784952289	Y17-SS · Lock Bar Insert M/c camera 192.168.31.172 hung (ping OK, no video) since 18:45	2026-09-21 18:58:29.325595+05:30	2026-09-21 21:09:31.715103+05:30	2026-09-21 21:14:36.658504+05:30	f
-317	CAMERA_DOWN	cam:cam_lower_rail_grease_bar_coding_m_c_1782385250	4	cam_lower_rail_grease_bar_coding_m_c_1782385250	YSD-SS · Lock Bar Insert M/c camera 192.168.31.52 hung (ping OK, no video) since 18:45	2026-09-21 18:58:29.325595+05:30	2026-09-21 21:09:31.715103+05:30	2026-09-21 21:14:36.658504+05:30	f
-411	CAMERA_DOWN	cam:cam_upper_rail_greasing_1784645280	2	cam_upper_rail_greasing_1784645280	YNC-SS · Upper Rail Greasing Machine camera 192.168.31.130 hung (ping OK, no video) since 21:33	2026-09-21 21:45:40.232705+05:30	2026-09-21 21:55:45.026875+05:30	2026-09-21 21:59:50.540022+05:30	f
-412	CAMERA_DOWN	cam:cam_upper_rail_greasing_m_c_1782385166	4	cam_upper_rail_greasing_m_c_1782385166	YSD-SS · Upper Rail Greasing m/c camera 192.168.31.50 hung (ping OK, no video) since 21:33	2026-09-21 21:45:40.232705+05:30	2026-09-21 21:55:45.026875+05:30	2026-09-21 21:59:50.540022+05:30	f
-318	CAMERA_DOWN	cam:cam_lower_rail_grease_bar_coding_m_c_1782554629	12	cam_lower_rail_grease_bar_coding_m_c_1782554629	YCA-SS · Lock Bar Insert M/c camera 192.168.31.92 hung (ping OK, no video) since 18:45	2026-09-21 18:58:29.325595+05:30	2026-09-21 19:28:45.729456+05:30	2026-09-21 19:33:50.030899+05:30	f
-228	LOW_COVERAGE	cov:2	2	\N	YNC-SS video coverage 36% (109/303) in the last judged hour	2026-09-21 13:25:44.056089+05:30	2026-09-21 18:58:29.325595+05:30	2026-09-21 19:03:30.384218+05:30	f
-230	LOW_COVERAGE	cov:12	12	\N	YCA-SS video coverage 73% (944/1299) in the last judged hour	2026-09-21 13:25:44.056089+05:30	2026-09-21 18:58:29.325595+05:30	2026-09-21 19:03:30.384218+05:30	f
-231	LOW_COVERAGE	cov:27	27	\N	YHB Recliner video coverage 34% (20/58) in the last judged hour	2026-09-21 13:25:44.056089+05:30	2026-09-21 18:58:29.325595+05:30	2026-09-21 19:03:30.384218+05:30	f
-287	CAMERA_DOWN	cam:cam_release_arm_magw_torsion_spring_fitment_1784264713	20	cam_release_arm_magw_torsion_spring_fitment_1784264713	YMC Recliner · SP Insert Fixture with Machine camera 192.168.33.56 hung (ping OK, no video) since 18:31	2026-09-21 18:43:16.577582+05:30	2026-09-21 18:53:25.590293+05:30	2026-09-21 18:58:29.325595+05:30	f
-389	CAMERA_DOWN	cam:cam_lower_rail_cam_yfg_1783077757	14	cam_lower_rail_cam_yfg_1783077757	YFG-SS · Lock Bar Insert M/c camera 192.168.31.152 hung (ping OK, no video) since 21:33	2026-09-21 21:45:40.232705+05:30	2026-09-21 21:55:45.026875+05:30	2026-09-21 21:59:50.540022+05:30	f
-390	CAMERA_DOWN	cam:cam_lower_rail_grease_bar_coding_m_c_1782385250	4	cam_lower_rail_grease_bar_coding_m_c_1782385250	YSD-SS · Lock Bar Insert M/c camera 192.168.31.52 hung (ping OK, no video) since 21:33	2026-09-21 21:45:40.232705+05:30	2026-09-21 21:55:45.026875+05:30	2026-09-21 21:59:50.540022+05:30	f
-279	CAMERA_DOWN	cam:cam_rail_assy_m_c_01_1782554872	13	cam_rail_assy_m_c_01_1782554872	YJC-SS · Rail Assy M/c # 01 camera 192.168.31.113 hung (ping OK, no video) since 18:31	2026-09-21 18:43:16.577582+05:30	2026-09-21 18:43:16.577582+05:30	2026-09-21 18:48:20.735605+05:30	f
-222	LOW_COVERAGE	cov:14	14	\N	YFG-SS video coverage 82% (659/799) in the last judged hour	2026-09-21 13:25:44.056089+05:30	2026-09-21 19:58:54.477755+05:30	2026-09-21 20:03:55.821383+05:30	f
-241	CAMERA_DOWN	cam:cam_upr_rail_bolt_fr_pjw_m_c_4_way_1788930828	36	cam_upr_rail_bolt_fr_pjw_m_c_4_way_1788930828	YNC-SA-4WAY · Upr Rail ×Bolt Fr PJW M/C  ( 4 Way ) camera 192.168.35.82 offline (no ping) since 15:20	2026-09-21 15:31:37.044911+05:30	2026-09-21 16:42:15.166553+05:30	2026-09-21 16:47:19.453886+05:30	f
-242	CAMERA_DOWN	cam:cam_upr_rail_bolt_fr_pjw_m_c_4_way_1789019215	35	cam_upr_rail_bolt_fr_pjw_m_c_4_way_1789019215	YHB-SA-4WAY · Upr Rail ×Bolt Fr PJW M/C  ( 4 Way ) camera 192.168.35.72 offline (no ping) since 15:20	2026-09-21 15:31:37.044911+05:30	2026-09-21 16:42:15.166553+05:30	2026-09-21 16:47:19.453886+05:30	f
-385	CAMERA_DOWN	cam:cam_final_inspection_cam_yfg_1783078029	14	cam_final_inspection_cam_yfg_1783078029	YFG-SS · Final Inspection M/c camera 192.168.31.156 hung (ping OK, no video) since 21:33	2026-09-21 21:45:40.232705+05:30	2026-09-21 21:55:45.026875+05:30	2026-09-21 21:59:50.540022+05:30	f
-248	CAMERA_DOWN	cam:cam_final_inspection_machine_1784264923	20	cam_final_inspection_machine_1784264923	YMC Recliner · Final Inspection camera 192.168.33.57 hung (ping OK, no video) since 18:31	2026-09-21 18:43:16.577582+05:30	2026-09-21 20:39:17.621304+05:30	2026-09-21 20:44:18.577912+05:30	f
-386	CAMERA_DOWN	cam:cam_final_inspection_m_c_1782385578	4	cam_final_inspection_m_c_1782385578	YSD-SS · Final Inspection M/c camera 192.168.31.56 hung (ping OK, no video) since 21:33	2026-09-21 21:45:40.232705+05:30	2026-09-21 21:55:45.026875+05:30	2026-09-21 21:59:50.540022+05:30	f
-387	CAMERA_DOWN	cam:cam_final_inspection_y17_1783077497	15	cam_final_inspection_y17_1783077497	Y17-SS · Final Inspection M/c camera 192.168.31.176 hung (ping OK, no video) since 21:33	2026-09-21 21:45:40.232705+05:30	2026-09-21 21:55:45.026875+05:30	2026-09-21 21:59:50.540022+05:30	f
-245	CAMERA_DOWN	cam:cam_bolt_strength_checking_4way_1789017196	36	cam_bolt_strength_checking_4way_1789017196	YNC-SA-4WAY · BOLT STRENGTH CHECKING (4WAY) camera 192.168.35.84 hung (ping OK, no video) since 18:31	2026-09-21 18:43:16.577582+05:30	2026-09-21 19:43:51.691515+05:30	2026-09-21 19:48:53.016128+05:30	f
-252	CAMERA_DOWN	cam:cam_hook_spring_mag_welding_inside_1784264267	20	cam_hook_spring_mag_welding_inside_1784264267	YMC Recliner · MAG Welding of  Lwr Hook with Lwr Arrm camera 192.168.33.53 hung (ping OK, no video) since 18:31	2026-09-21 18:43:16.577582+05:30	2026-09-21 20:39:17.621304+05:30	2026-09-21 20:44:18.577912+05:30	f
-253	CAMERA_DOWN	cam:cam_hook_spring_magw_hinge_pin_insert_1784264335	20	cam_hook_spring_magw_hinge_pin_insert_1784264335	YMC Recliner · Press in REC with PIN Hinge & Date Code Stamping camera 192.168.33.54 hung (ping OK, no video) since 18:31	2026-09-21 18:43:16.577582+05:30	2026-09-21 20:39:17.621304+05:30	2026-09-21 20:44:18.577912+05:30	f
-265	CAMERA_DOWN	cam:cam_mag_welding_of_lwr_hook_with_lwr_arrm_1786596153	5	cam_mag_welding_of_lwr_hook_with_lwr_arrm_1786596153	YRA Recliner · MAG Welding of  Lwr Hook with Lwr Arrm camera 192.168.33.33 offline (no ping) since 18:31	2026-09-21 18:43:16.577582+05:30	2026-09-21 20:39:17.621304+05:30	2026-09-21 20:44:18.577912+05:30	f
-383	CAMERA_DOWN	cam:cam_ball_guide_machine_04_1784269309	2	cam_ball_guide_machine_04_1784269309	YNC-SS · Ball Guide Insert Machine 1 camera 192.168.31.133 hung (ping OK, no video) since 21:33	2026-09-21 21:45:40.232705+05:30	2026-09-21 21:50:42.73563+05:30	2026-09-21 21:55:45.026875+05:30	f
-384	CAMERA_DOWN	cam:cam_final_inspection_1784645338	2	cam_final_inspection_1784645338	YNC-SS · Final Inspection camera 192.168.31.136 hung (ping OK, no video) since 21:33	2026-09-21 21:45:40.232705+05:30	2026-09-21 21:50:42.73563+05:30	2026-09-21 21:55:45.026875+05:30	f
-321	CAMERA_DOWN	cam:cam_machine_5_6_7_yra_1785489171	18	cam_machine_5_6_7_yra_1785489171	YRA-SS · Lwr Rail Greasing camera 192.168.31.34 hung (ping OK, no video) since 18:45	2026-09-21 18:58:29.325595+05:30	2026-09-21 20:24:06.358456+05:30	2026-09-21 20:29:11.52714+05:30	f
-453	CAMERA_DOWN	cam:cam_lower_rail_grease_bar_coding_m_c_1782554629	12	cam_lower_rail_grease_bar_coding_m_c_1782554629	YCA-SS · Lock Bar Insert M/c camera 192.168.31.92 hung (ping OK, no video) since 22:25	2026-09-21 22:37:35.487341+05:30	2026-09-21 22:52:45.246221+05:30	\N	f
-451	CAMERA_DOWN	cam:cam_final_inspection_m_c_1782385578	4	cam_final_inspection_m_c_1782385578	YSD-SS · Final Inspection M/c camera 192.168.31.56 hung (ping OK, no video) since 22:25	2026-09-21 22:37:35.487341+05:30	2026-09-21 22:47:43.6964+05:30	2026-09-21 22:52:45.246221+05:30	f
-452	CAMERA_DOWN	cam:cam_final_inspection_y17_1783077497	15	cam_final_inspection_y17_1783077497	Y17-SS · Final Inspection M/c camera 192.168.31.176 hung (ping OK, no video) since 22:25	2026-09-21 22:37:35.487341+05:30	2026-09-21 22:47:43.6964+05:30	2026-09-21 22:52:45.246221+05:30	f
-319	CAMERA_DOWN	cam:cam_lower_rail_grease_bar_coding_m_c_1782554828	19	cam_lower_rail_grease_bar_coding_m_c_1782554828	YMC-SS · Lock Bar Insert M/c camera 192.168.31.192 hung (ping OK, no video) since 18:45	2026-09-21 18:58:29.325595+05:30	2026-09-21 21:09:31.715103+05:30	2026-09-21 21:14:36.658504+05:30	f
-320	CAMERA_DOWN	cam:cam_machine_1_2_yra_1785488968	18	cam_machine_1_2_yra_1785488968	YRA-SS · Upper Rail Greasing camera 192.168.31.30 hung (ping OK, no video) since 18:45	2026-09-21 18:58:29.325595+05:30	2026-09-21 21:09:31.715103+05:30	2026-09-21 21:14:36.658504+05:30	f
-322	CAMERA_DOWN	cam:cam_machine_8_9_1785489256	18	cam_machine_8_9_1785489256	YRA-SS · Final Inspection M/c camera 192.168.31.39 hung (ping OK, no video) since 18:45	2026-09-21 18:58:29.325595+05:30	2026-09-21 21:09:31.715103+05:30	2026-09-21 21:14:36.658504+05:30	f
-333	CAMERA_DOWN	cam:cam_semi_auto_1784269536	2	cam_semi_auto_1784269536	YNC-SS · Semi-Auto camera 192.168.31.135 hung (ping OK, no video) since 18:45	2026-09-21 18:58:29.325595+05:30	2026-09-21 21:09:31.715103+05:30	2026-09-21 21:14:36.658504+05:30	f
-442	CAMERA_DOWN	cam:cam_upper_rail_cam_yfg_1783077696	14	cam_upper_rail_cam_yfg_1783077696	YFG-SS · Upper Rail Greasing M/c camera 192.168.31.150 hung (ping OK, no video) since 21:57	2026-09-21 22:09:54.990013+05:30	2026-09-21 22:14:55.237913+05:30	2026-09-21 22:19:55.595862+05:30	f
-306	CAMERA_DOWN	cam:cam_ylm_bending_01_1785943035	21	cam_ylm_bending_01_1785943035	Loop Pipe-Line 2 · Slit Cut Machine camera 192.168.37.31 hung (ping OK, no video) since 18:31	2026-09-21 18:43:16.577582+05:30	2026-09-21 19:18:41.799838+05:30	2026-09-21 19:23:45.885318+05:30	f
-388	CAMERA_DOWN	cam:cam_hook_spring_magw_hinge_pin_insert_1784264335	20	cam_hook_spring_magw_hinge_pin_insert_1784264335	YMC Recliner · Press in REC with PIN Hinge & Date Code Stamping camera 192.168.33.54 hung (ping OK, no video) since 21:34	2026-09-21 21:45:40.232705+05:30	2026-09-21 21:55:45.026875+05:30	2026-09-21 21:59:50.540022+05:30	f
-443	CAMERA_DOWN	cam:cam_upper_rail_greasing_1784645280	2	cam_upper_rail_greasing_1784645280	YNC-SS · Upper Rail Greasing Machine camera 192.168.31.130 hung (ping OK, no video) since 21:57	2026-09-21 22:09:54.990013+05:30	2026-09-21 22:14:55.237913+05:30	2026-09-21 22:19:55.595862+05:30	f
-444	CAMERA_DOWN	cam:cam_upper_rail_greasing_m_c_1782385166	4	cam_upper_rail_greasing_m_c_1782385166	YSD-SS · Upper Rail Greasing m/c camera 192.168.31.50 hung (ping OK, no video) since 21:57	2026-09-21 22:09:54.990013+05:30	2026-09-21 22:14:55.237913+05:30	2026-09-21 22:19:55.595862+05:30	f
-312	CAMERA_DOWN	cam:cam_final_inspection_m_c_1782450148	11	cam_final_inspection_m_c_1782450148	YHB-SS · Final Inspection M/c camera 192.168.31.76 hung (ping OK, no video) since 18:45	2026-09-21 18:58:29.325595+05:30	2026-09-21 19:03:30.384218+05:30	2026-09-21 19:08:33.856338+05:30	f
-445	CAMERA_DOWN	cam:cam_upper_rail_greasing_m_c_1782449757	11	cam_upper_rail_greasing_m_c_1782449757	YHB-SS · Upper Rail Greasing m/c camera 192.168.31.70 hung (ping OK, no video) since 21:57	2026-09-21 22:09:54.990013+05:30	2026-09-21 22:14:55.237913+05:30	2026-09-21 22:19:55.595862+05:30	f
-284	CAMERA_DOWN	cam:cam_rainforce_bolt_pjw_m_c_1788930501	36	cam_rainforce_bolt_pjw_m_c_1788930501	YNC-SA-4WAY · "Rinforce×Bolt PJW M/C Upr BKT Rail ×Bolt PJW M/C Upr Rail Rr） " camera 192.168.35.80 hung (ping OK, no video) since 18:31	2026-09-21 18:43:16.577582+05:30	2026-09-21 19:43:51.691515+05:30	2026-09-21 19:48:53.016128+05:30	f
-243	CAMERA_DOWN	cam:cam_ball_guide_machine_04_1784269309	2	cam_ball_guide_machine_04_1784269309	YNC-SS · Ball Guide Insert Machine 1 camera 192.168.31.133 hung (ping OK, no video) since 18:31	2026-09-21 18:43:16.577582+05:30	2026-09-21 18:43:16.577582+05:30	2026-09-21 18:48:20.735605+05:30	f
-244	CAMERA_DOWN	cam:cam_ball_guide_machine_05_1784269398	2	cam_ball_guide_machine_05_1784269398	YNC-SS · Ball Guide Insert Machine 2 camera 192.168.31.134 hung (ping OK, no video) since 18:31	2026-09-21 18:43:16.577582+05:30	2026-09-21 18:43:16.577582+05:30	2026-09-21 18:48:20.735605+05:30	f
-247	CAMERA_DOWN	cam:cam_final_inspection_1784645338	2	cam_final_inspection_1784645338	YNC-SS · Final Inspection camera 192.168.31.136 hung (ping OK, no video) since 18:31	2026-09-21 18:43:16.577582+05:30	2026-09-21 18:43:16.577582+05:30	2026-09-21 18:48:20.735605+05:30	f
-289	CAMERA_DOWN	cam:cam_semi_auto_1784269536	2	cam_semi_auto_1784269536	YNC-SS · Semi-Auto camera 192.168.31.135 hung (ping OK, no video) since 18:31	2026-09-21 18:43:16.577582+05:30	2026-09-21 18:43:16.577582+05:30	2026-09-21 18:48:20.735605+05:30	f
-249	CAMERA_DOWN	cam:cam_final_inspection_m_c_1782450148	11	cam_final_inspection_m_c_1782450148	YHB-SS · Final Inspection M/c camera 192.168.31.76 hung (ping OK, no video) since 18:31	2026-09-21 18:43:16.577582+05:30	2026-09-21 18:43:16.577582+05:30	2026-09-21 18:48:20.735605+05:30	f
-250	CAMERA_DOWN	cam:cam_final_inspection_m_c_1782556572	12	cam_final_inspection_m_c_1782556572	YCA-SS · Final Inspection M/c camera 192.168.31.96 hung (ping OK, no video) since 18:31	2026-09-21 18:43:16.577582+05:30	2026-09-21 18:43:16.577582+05:30	2026-09-21 18:48:20.735605+05:30	f
-251	CAMERA_DOWN	cam:cam_final_inspection_m_c_1782556863	13	cam_final_inspection_m_c_1782556863	YJC-SS · Final Inspection M/c camera 192.168.31.116 hung (ping OK, no video) since 18:31	2026-09-21 18:43:16.577582+05:30	2026-09-21 18:43:16.577582+05:30	2026-09-21 18:48:20.735605+05:30	f
-254	CAMERA_DOWN	cam:cam_lock_bar_1779043510	2	cam_lock_bar_1779043510	YNC-SS · Lock Bar insert Machine camera 192.168.31.132 hung (ping OK, no video) since 18:31	2026-09-21 18:43:16.577582+05:30	2026-09-21 18:43:16.577582+05:30	2026-09-21 18:48:20.735605+05:30	f
-255	CAMERA_DOWN	cam:cam_lock_bar_y17_1784952289	15	cam_lock_bar_y17_1784952289	Y17-SS · Lock Bar Insert M/c camera 192.168.31.172 hung (ping OK, no video) since 18:31	2026-09-21 18:43:16.577582+05:30	2026-09-21 18:43:16.577582+05:30	2026-09-21 18:48:20.735605+05:30	f
-256	CAMERA_DOWN	cam:cam_lower_rail_grease_bar_coding_m_c_1782385250	4	cam_lower_rail_grease_bar_coding_m_c_1782385250	YSD-SS · Lock Bar Insert M/c camera 192.168.31.52 hung (ping OK, no video) since 18:31	2026-09-21 18:43:16.577582+05:30	2026-09-21 18:43:16.577582+05:30	2026-09-21 18:48:20.735605+05:30	f
-257	CAMERA_DOWN	cam:cam_lower_rail_grease_bar_coding_m_c_1782449890	11	cam_lower_rail_grease_bar_coding_m_c_1782449890	YHB-SS · Lock Bar Insert M/c camera 192.168.31.72 hung (ping OK, no video) since 18:31	2026-09-21 18:43:16.577582+05:30	2026-09-21 18:43:16.577582+05:30	2026-09-21 18:48:20.735605+05:30	f
-258	CAMERA_DOWN	cam:cam_lower_rail_grease_bar_coding_m_c_1782554629	12	cam_lower_rail_grease_bar_coding_m_c_1782554629	YCA-SS · Lock Bar Insert M/c camera 192.168.31.92 hung (ping OK, no video) since 18:31	2026-09-21 18:43:16.577582+05:30	2026-09-21 18:43:16.577582+05:30	2026-09-21 18:48:20.735605+05:30	f
-259	CAMERA_DOWN	cam:cam_machine_1_2_yra_1785488968	18	cam_machine_1_2_yra_1785488968	YRA-SS · Upper Rail Greasing camera 192.168.31.30 hung (ping OK, no video) since 18:31	2026-09-21 18:43:16.577582+05:30	2026-09-21 18:43:16.577582+05:30	2026-09-21 18:48:20.735605+05:30	f
-260	CAMERA_DOWN	cam:cam_machine_5_6_7_yra_1785489171	18	cam_machine_5_6_7_yra_1785489171	YRA-SS · Lwr Rail Greasing camera 192.168.31.34 hung (ping OK, no video) since 18:31	2026-09-21 18:43:16.577582+05:30	2026-09-21 18:43:16.577582+05:30	2026-09-21 18:48:20.735605+05:30	f
-261	CAMERA_DOWN	cam:cam_machine_8_9_1785489256	18	cam_machine_8_9_1785489256	YRA-SS · Final Inspection M/c camera 192.168.31.39 hung (ping OK, no video) since 18:31	2026-09-21 18:43:16.577582+05:30	2026-09-21 18:43:16.577582+05:30	2026-09-21 18:48:20.735605+05:30	f
-264	CAMERA_DOWN	cam:cam_mag_welding_of_lwr_hook_with_lwr_arrm_1786350363	27	cam_mag_welding_of_lwr_hook_with_lwr_arrm_1786350363	YHB Recliner · MAG Welding of  Lwr Hook with Lwr Arrm camera 192.168.33.73 hung (ping OK, no video) since 18:31	2026-09-21 18:43:16.577582+05:30	2026-09-21 18:43:16.577582+05:30	2026-09-21 18:48:20.735605+05:30	f
-290	CAMERA_DOWN	cam:cam_semi_auto_bending_1782901018	12	cam_semi_auto_bending_1782901018	YCA-SS · Semi Automatic & Bending M/c camera 192.168.31.95 hung (ping OK, no video) since 18:31	2026-09-21 18:43:16.577582+05:30	2026-09-21 18:43:16.577582+05:30	2026-09-21 18:48:20.735605+05:30	f
-272	CAMERA_DOWN	cam:cam_rail_assy_01_cam_1783077364	15	cam_rail_assy_01_cam_1783077364	Y17-SS · Rail Assy M/c #01 camera 192.168.31.173 hung (ping OK, no video) since 18:31	2026-09-21 18:43:16.577582+05:30	2026-09-21 18:43:16.577582+05:30	2026-09-21 18:48:20.735605+05:30	f
-273	CAMERA_DOWN	cam:cam_rail_assy_01_cam_yfg_1783077818	14	cam_rail_assy_01_cam_yfg_1783077818	YFG-SS · Rail Assy M/c #01 camera 192.168.31.153 hung (ping OK, no video) since 18:31	2026-09-21 18:43:16.577582+05:30	2026-09-21 18:43:16.577582+05:30	2026-09-21 18:48:20.735605+05:30	f
-274	CAMERA_DOWN	cam:cam_rail_assy_02_cam_1783077400	15	cam_rail_assy_02_cam_1783077400	Y17-SS · Rail Assy M/c #02 camera 192.168.31.174 hung (ping OK, no video) since 18:31	2026-09-21 18:43:16.577582+05:30	2026-09-21 18:43:16.577582+05:30	2026-09-21 18:48:20.735605+05:30	f
-275	CAMERA_DOWN	cam:cam_rail_assy_02_cam_yfg_1783077882	14	cam_rail_assy_02_cam_yfg_1783077882	YFG-SS · Rail Assy M/c #02 camera 192.168.31.154 hung (ping OK, no video) since 18:31	2026-09-21 18:43:16.577582+05:30	2026-09-21 18:43:16.577582+05:30	2026-09-21 18:48:20.735605+05:30	f
-373	CAMERA_DOWN	cam:cam_mag_welding_of_lwr_hook_with_lwr_arrm_1787030950	28	cam_mag_welding_of_lwr_hook_with_lwr_arrm_1787030950	YNC Recliner · MAG Welding of  Lwr Hook with Lwr Arrm camera 192.168.33.113 hung (ping OK, no video) since 20:41	2026-09-21 20:54:24.849786+05:30	2026-09-21 21:09:31.715103+05:30	2026-09-21 21:14:36.658504+05:30	f
-327	CAMERA_DOWN	cam:cam_rail_assy_m_c_01_1782554655	12	cam_rail_assy_m_c_01_1782554655	YCA-SS · Rail Assy M/c # 01 camera 192.168.31.93 hung (ping OK, no video) since 18:45	2026-09-21 18:58:29.325595+05:30	2026-09-21 21:09:31.715103+05:30	2026-09-21 21:14:36.658504+05:30	f
-276	CAMERA_DOWN	cam:cam_rail_assy_m_c_01_1782385278	4	cam_rail_assy_m_c_01_1782385278	YSD-SS · Rail Assy M/c # 01 camera 192.168.31.53 hung (ping OK, no video) since 18:31	2026-09-21 18:43:16.577582+05:30	2026-09-21 18:43:16.577582+05:30	2026-09-21 18:48:20.735605+05:30	f
-277	CAMERA_DOWN	cam:cam_rail_assy_m_c_01_1782449920	11	cam_rail_assy_m_c_01_1782449920	YHB-SS · Rail Assy M/c # 01 camera 192.168.31.73 hung (ping OK, no video) since 18:31	2026-09-21 18:43:16.577582+05:30	2026-09-21 18:43:16.577582+05:30	2026-09-21 18:48:20.735605+05:30	f
-278	CAMERA_DOWN	cam:cam_rail_assy_m_c_01_1782554655	12	cam_rail_assy_m_c_01_1782554655	YCA-SS · Rail Assy M/c # 01 camera 192.168.31.93 hung (ping OK, no video) since 18:31	2026-09-21 18:43:16.577582+05:30	2026-09-21 18:43:16.577582+05:30	2026-09-21 18:48:20.735605+05:30	f
-280	CAMERA_DOWN	cam:cam_rail_assy_m_c_02_1782385315	4	cam_rail_assy_m_c_02_1782385315	YSD-SS · Rail Assy M/c # 02 camera 192.168.31.54 hung (ping OK, no video) since 18:31	2026-09-21 18:43:16.577582+05:30	2026-09-21 18:43:16.577582+05:30	2026-09-21 18:48:20.735605+05:30	f
-281	CAMERA_DOWN	cam:cam_rail_assy_m_c_02_1782449949	11	cam_rail_assy_m_c_02_1782449949	YHB-SS · Rail Assy M/c # 02 camera 192.168.31.74 hung (ping OK, no video) since 18:31	2026-09-21 18:43:16.577582+05:30	2026-09-21 18:43:16.577582+05:30	2026-09-21 18:48:20.735605+05:30	f
-282	CAMERA_DOWN	cam:cam_rail_assy_m_c_02_1782554915	13	cam_rail_assy_m_c_02_1782554915	YJC-SS · Rail Assy M/c # 02 camera 192.168.31.114 hung (ping OK, no video) since 18:31	2026-09-21 18:43:16.577582+05:30	2026-09-21 18:43:16.577582+05:30	2026-09-21 18:48:20.735605+05:30	f
-283	CAMERA_DOWN	cam:cam_rail_assy_m_c_02_1782556448	12	cam_rail_assy_m_c_02_1782556448	YCA-SS · Rail Assy M/c # 02 camera 192.168.31.94 hung (ping OK, no video) since 18:31	2026-09-21 18:43:16.577582+05:30	2026-09-21 18:43:16.577582+05:30	2026-09-21 18:48:20.735605+05:30	f
-288	CAMERA_DOWN	cam:cam_round_rec_st_1_1784263578	20	cam_round_rec_st_1_1784263578	YMC Recliner · MAG Welding of Arm x Recliner Station 1 camera 192.168.33.51 hung (ping OK, no video) since 18:31	2026-09-21 18:43:16.577582+05:30	2026-09-21 18:43:16.577582+05:30	2026-09-21 18:48:20.735605+05:30	f
-291	CAMERA_DOWN	cam:cam_semi_auto_cam_1783077457	15	cam_semi_auto_cam_1783077457	Y17-SS · Semi-Automatic & Bending M/c camera 192.168.31.175 hung (ping OK, no video) since 18:31	2026-09-21 18:43:16.577582+05:30	2026-09-21 18:43:16.577582+05:30	2026-09-21 18:48:20.735605+05:30	f
-292	CAMERA_DOWN	cam:cam_semi_automatic_bending_m_c_1782385341	4	cam_semi_automatic_bending_m_c_1782385341	YSD-SS · Semi Automatic & Bending M/c camera 192.168.31.55 hung (ping OK, no video) since 18:31	2026-09-21 18:43:16.577582+05:30	2026-09-21 18:43:16.577582+05:30	2026-09-21 18:48:20.735605+05:30	f
-293	CAMERA_DOWN	cam:cam_semi_automatic_bending_m_c_1782450100	11	cam_semi_automatic_bending_m_c_1782450100	YHB-SS · Semi Automatic & Bending M/c camera 192.168.31.75 hung (ping OK, no video) since 18:31	2026-09-21 18:43:16.577582+05:30	2026-09-21 18:43:16.577582+05:30	2026-09-21 18:48:20.735605+05:30	f
-294	CAMERA_DOWN	cam:cam_semi_automatic_bending_m_c_1782554942	13	cam_semi_automatic_bending_m_c_1782554942	YJC-SS · Semi Automatic & Bending M/c camera 192.168.31.115 hung (ping OK, no video) since 18:31	2026-09-21 18:43:16.577582+05:30	2026-09-21 18:43:16.577582+05:30	2026-09-21 18:48:20.735605+05:30	f
-298	CAMERA_DOWN	cam:cam_upper_rail_cam_y17_1783077205	15	cam_upper_rail_cam_y17_1783077205	Y17-SS · Upper Rail Greasing M/c camera 192.168.31.170 hung (ping OK, no video) since 18:31	2026-09-21 18:43:16.577582+05:30	2026-09-21 18:43:16.577582+05:30	2026-09-21 18:48:20.735605+05:30	f
-299	CAMERA_DOWN	cam:cam_upper_rail_grease_machine_1782554566	12	cam_upper_rail_grease_machine_1782554566	YCA-SS · Upper Rail Grease Machine camera 192.168.31.90 hung (ping OK, no video) since 18:31	2026-09-21 18:43:16.577582+05:30	2026-09-21 18:43:16.577582+05:30	2026-09-21 18:48:20.735605+05:30	f
-300	CAMERA_DOWN	cam:cam_upper_rail_greasing_1784645280	2	cam_upper_rail_greasing_1784645280	YNC-SS · Upper Rail Greasing Machine camera 192.168.31.130 hung (ping OK, no video) since 18:31	2026-09-21 18:43:16.577582+05:30	2026-09-21 18:43:16.577582+05:30	2026-09-21 18:48:20.735605+05:30	f
-301	CAMERA_DOWN	cam:cam_upper_rail_greasing_m_c_1782385166	4	cam_upper_rail_greasing_m_c_1782385166	YSD-SS · Upper Rail Greasing m/c camera 192.168.31.50 hung (ping OK, no video) since 18:31	2026-09-21 18:43:16.577582+05:30	2026-09-21 18:43:16.577582+05:30	2026-09-21 18:48:20.735605+05:30	f
-302	CAMERA_DOWN	cam:cam_upper_rail_greasing_m_c_1782449757	11	cam_upper_rail_greasing_m_c_1782449757	YHB-SS · Upper Rail Greasing m/c camera 192.168.31.70 hung (ping OK, no video) since 18:31	2026-09-21 18:43:16.577582+05:30	2026-09-21 18:43:16.577582+05:30	2026-09-21 18:48:20.735605+05:30	f
-303	CAMERA_DOWN	cam:cam_upper_rail_greasing_m_c_1782556804	13	cam_upper_rail_greasing_m_c_1782556804	YJC-SS · Upper Rail Greasing m/c camera 192.168.31.110 hung (ping OK, no video) since 18:31	2026-09-21 18:43:16.577582+05:30	2026-09-21 18:43:16.577582+05:30	2026-09-21 18:48:20.735605+05:30	f
-309	CAMERA_DOWN	cam:cam_ymc_final_inspec_1784952790	19	cam_ymc_final_inspec_1784952790	YMC-SS · Final Inspection M/c camera 192.168.31.196 hung (ping OK, no video) since 18:31	2026-09-21 18:43:16.577582+05:30	2026-09-21 18:43:16.577582+05:30	2026-09-21 18:48:20.735605+05:30	f
-194	LOW_COVERAGE	cov:39	39	\N	Y17-SA-4WAY video coverage 0% (0/132) in the last judged hour	2026-09-21 10:24:20.094831+05:30	2026-09-21 18:58:29.325595+05:30	2026-09-21 19:03:30.384218+05:30	f
-323	CAMERA_DOWN	cam:cam_rail_assy_01_cam_1783077364	15	cam_rail_assy_01_cam_1783077364	Y17-SS · Rail Assy M/c #01 camera 192.168.31.173 hung (ping OK, no video) since 18:45	2026-09-21 18:58:29.325595+05:30	2026-09-21 21:09:31.715103+05:30	2026-09-21 21:14:36.658504+05:30	f
-461	CAMERA_DOWN	cam:cam_round_rec_st_1_1784263578	20	cam_round_rec_st_1_1784263578	YMC Recliner · MAG Welding of Arm x Recliner Station 1 camera 192.168.33.51 hung (ping OK, no video) since 22:25	2026-09-21 22:37:35.487341+05:30	2026-09-21 22:37:35.487341+05:30	2026-09-21 22:42:41.126211+05:30	f
-324	CAMERA_DOWN	cam:cam_rail_assy_02_cam_yfg_1783077882	14	cam_rail_assy_02_cam_yfg_1783077882	YFG-SS · Rail Assy M/c #02 camera 192.168.31.154 hung (ping OK, no video) since 18:45	2026-09-21 18:58:29.325595+05:30	2026-09-21 21:09:31.715103+05:30	2026-09-21 21:14:36.658504+05:30	f
-285	CAMERA_DOWN	cam:cam_rainforce_bolt_pjw_m_c_1789013623	35	cam_rainforce_bolt_pjw_m_c_1789013623	YHB-SA-4WAY · Rainforce Bolt PJW M/C camera 192.168.35.70 hung (ping OK, no video) since 18:31	2026-09-21 18:43:16.577582+05:30	2026-09-21 19:43:51.691515+05:30	2026-09-21 19:48:53.016128+05:30	f
-310	CAMERA_DOWN	cam:cam_ball_guide_machine_04_1784269309	2	cam_ball_guide_machine_04_1784269309	YNC-SS · Ball Guide Insert Machine 1 camera 192.168.31.133 hung (ping OK, no video) since 18:45	2026-09-21 18:58:29.325595+05:30	2026-09-21 21:09:31.715103+05:30	2026-09-21 21:14:36.658504+05:30	f
-460	CAMERA_DOWN	cam:cam_rainforce_bolt_pjw_m_c_1788930501	36	cam_rainforce_bolt_pjw_m_c_1788930501	YNC-SA-4WAY · "Rinforce×Bolt PJW M/C Upr BKT Rail ×Bolt PJW M/C Upr Rail Rr） " camera 192.168.35.80 hung (ping OK, no video) since 22:25	2026-09-21 22:37:35.487341+05:30	2026-09-21 22:52:45.246221+05:30	\N	f
-271	CAMERA_DOWN	cam:cam_pwm_38_round_rec_1784264068	20	cam_pwm_38_round_rec_1784264068	YMC Recliner · Projection Welding of Washer with Lwr Arm UprBKTｘNut PJW M/C camera 192.168.33.50 hung (ping OK, no video) since 18:31	2026-09-21 18:43:16.577582+05:30	2026-09-21 20:39:17.621304+05:30	2026-09-21 20:44:18.577912+05:30	f
-462	CAMERA_DOWN	cam:cam_semi_auto_1784269536	2	cam_semi_auto_1784269536	YNC-SS · Semi-Auto camera 192.168.31.135 hung (ping OK, no video) since 22:25	2026-09-21 22:37:35.487341+05:30	2026-09-21 22:52:45.246221+05:30	\N	f
-397	CAMERA_DOWN	cam:cam_pwm_38_round_rec_1784264068	20	cam_pwm_38_round_rec_1784264068	YMC Recliner · Projection Welding of Washer with Lwr Arm UprBKTｘNut PJW M/C camera 192.168.33.50 hung (ping OK, no video) since 21:34	2026-09-21 21:45:40.232705+05:30	2026-09-21 21:55:45.026875+05:30	2026-09-21 21:59:50.540022+05:30	f
-398	CAMERA_DOWN	cam:cam_rail_assy_01_cam_1783077364	15	cam_rail_assy_01_cam_1783077364	Y17-SS · Rail Assy M/c #01 camera 192.168.31.173 hung (ping OK, no video) since 21:33	2026-09-21 21:45:40.232705+05:30	2026-09-21 21:55:45.026875+05:30	2026-09-21 21:59:50.540022+05:30	f
-399	CAMERA_DOWN	cam:cam_rail_assy_01_cam_yfg_1783077818	14	cam_rail_assy_01_cam_yfg_1783077818	YFG-SS · Rail Assy M/c #01 camera 192.168.31.153 hung (ping OK, no video) since 21:33	2026-09-21 21:45:40.232705+05:30	2026-09-21 21:55:45.026875+05:30	2026-09-21 21:59:50.540022+05:30	f
-400	CAMERA_DOWN	cam:cam_rail_assy_02_cam_1783077400	15	cam_rail_assy_02_cam_1783077400	Y17-SS · Rail Assy M/c #02 camera 192.168.31.174 hung (ping OK, no video) since 21:33	2026-09-21 21:45:40.232705+05:30	2026-09-21 21:55:45.026875+05:30	2026-09-21 21:59:50.540022+05:30	f
-401	CAMERA_DOWN	cam:cam_rail_assy_02_cam_yfg_1783077882	14	cam_rail_assy_02_cam_yfg_1783077882	YFG-SS · Rail Assy M/c #02 camera 192.168.31.154 hung (ping OK, no video) since 21:33	2026-09-21 21:45:40.232705+05:30	2026-09-21 21:55:45.026875+05:30	2026-09-21 21:59:50.540022+05:30	f
-449	CAMERA_DOWN	cam:cam_bolt_strength_checking_4way_1789019293	35	cam_bolt_strength_checking_4way_1789019293	YHB-SA-4WAY · BOLT STRENGTH CHECKING (4WAY) camera 192.168.35.74 hung (ping OK, no video) since 22:25	2026-09-21 22:37:35.487341+05:30	2026-09-21 22:52:45.246221+05:30	\N	f
-450	CAMERA_DOWN	cam:cam_both_karakuri_middle_shelf_1787031646	30	cam_both_karakuri_middle_shelf_1787031646	Loop Pipe-Line 1 · Both Karakuri Middle Shelf camera 192.168.37.53 hung (ping OK, no video) since 22:25	2026-09-21 22:37:35.487341+05:30	2026-09-21 22:52:45.246221+05:30	\N	f
-304	CAMERA_DOWN	cam:cam_upr_rail_bolt_fr_pjw_m_c_4_way_1788930828	36	cam_upr_rail_bolt_fr_pjw_m_c_4_way_1788930828	YNC-SA-4WAY · Upr Rail ×Bolt Fr PJW M/C  ( 4 Way ) camera 192.168.35.82 hung (ping OK, no video) since 18:31	2026-09-21 18:43:16.577582+05:30	2026-09-21 19:43:51.691515+05:30	2026-09-21 19:48:53.016128+05:30	f
-402	CAMERA_DOWN	cam:cam_release_arm_mag_welding_inside_1784264562	20	cam_release_arm_mag_welding_inside_1784264562	YMC Recliner · Mag Welding Relese x Hinge Pin camera 192.168.33.55 hung (ping OK, no video) since 21:34	2026-09-21 21:45:40.232705+05:30	2026-09-21 21:55:45.026875+05:30	2026-09-21 21:59:50.540022+05:30	f
-404	CAMERA_DOWN	cam:cam_round_rec_st_1_1784263578	20	cam_round_rec_st_1_1784263578	YMC Recliner · MAG Welding of Arm x Recliner Station 1 camera 192.168.33.51 hung (ping OK, no video) since 21:34	2026-09-21 21:45:40.232705+05:30	2026-09-21 21:55:45.026875+05:30	2026-09-21 21:59:50.540022+05:30	f
-341	CAMERA_DOWN	cam:cam_upper_rail_greasing_m_c_1782556804	13	cam_upper_rail_greasing_m_c_1782556804	YJC-SS · Upper Rail Greasing m/c camera 192.168.31.110 hung (ping OK, no video) since 18:45	2026-09-21 18:58:29.325595+05:30	2026-09-21 21:09:31.715103+05:30	2026-09-21 21:14:36.658504+05:30	f
-307	CAMERA_DOWN	cam:cam_ylm_bending_02_1785943069	21	cam_ylm_bending_02_1785943069	Loop Pipe-Line 2 · YLM Bending Machine-01 camera 192.168.37.32 hung (ping OK, no video) since 18:31	2026-09-21 18:43:16.577582+05:30	2026-09-21 21:09:31.715103+05:30	2026-09-21 21:14:36.658504+05:30	f
-308	CAMERA_DOWN	cam:cam_ylm_bending_machine_01_1787031747	30	cam_ylm_bending_machine_01_1787031747	Loop Pipe-Line 1 · YLM Bending Machine-01 camera 192.168.37.51 offline (no ping) since 18:31	2026-09-21 18:43:16.577582+05:30	2026-09-21 21:09:31.715103+05:30	2026-09-21 21:14:36.658504+05:30	f
-342	CAMERA_DOWN	cam:cam_ymc_final_inspec_1784952790	19	cam_ymc_final_inspec_1784952790	YMC-SS · Final Inspection M/c camera 192.168.31.196 hung (ping OK, no video) since 18:45	2026-09-21 18:58:29.325595+05:30	2026-09-21 21:09:31.715103+05:30	2026-09-21 21:14:36.658504+05:30	f
-343	CAMERA_DOWN	cam:cam_ymc_rail_assy_01_1784952636	19	cam_ymc_rail_assy_01_1784952636	YMC-SS · Rail Assy M/c #01 camera 192.168.31.193 hung (ping OK, no video) since 18:45	2026-09-21 18:58:29.325595+05:30	2026-09-21 21:09:31.715103+05:30	2026-09-21 21:14:36.658504+05:30	f
-345	CAMERA_DOWN	cam:cam_ymc_semi_auto_1784952751	19	cam_ymc_semi_auto_1784952751	YMC-SS · Semi-Automatic & Bending camera 192.168.31.195 hung (ping OK, no video) since 18:45	2026-09-21 18:58:29.325595+05:30	2026-09-21 20:19:04.605801+05:30	2026-09-21 20:24:06.358456+05:30	f
-340	CAMERA_DOWN	cam:cam_upper_rail_greasing_m_c_1782449757	11	cam_upper_rail_greasing_m_c_1782449757	YHB-SS · Upper Rail Greasing m/c camera 192.168.31.70 hung (ping OK, no video) since 18:45	2026-09-21 18:58:29.325595+05:30	2026-09-21 20:08:57.5952+05:30	2026-09-21 20:14:00.180095+05:30	f
-344	CAMERA_DOWN	cam:cam_ymc_rail_assy_02_1784952690	19	cam_ymc_rail_assy_02_1784952690	YMC-SS · Rail Assy M/c #02 camera 192.168.31.194 hung (ping OK, no video) since 18:45	2026-09-21 18:58:29.325595+05:30	2026-09-21 21:09:31.715103+05:30	2026-09-21 21:14:36.658504+05:30	f
-328	CAMERA_DOWN	cam:cam_rail_assy_m_c_01_1782554872	13	cam_rail_assy_m_c_01_1782554872	YJC-SS · Rail Assy M/c # 01 camera 192.168.31.113 hung (ping OK, no video) since 18:45	2026-09-21 18:58:29.325595+05:30	2026-09-21 21:09:31.715103+05:30	2026-09-21 21:14:36.658504+05:30	f
-364	CAMERA_DOWN	cam:cam_rainforce_bolt_pjw_m_c_1788930501	36	cam_rainforce_bolt_pjw_m_c_1788930501	YNC-SA-4WAY · "Rinforce×Bolt PJW M/C Upr BKT Rail ×Bolt PJW M/C Upr Rail Rr） " camera 192.168.35.80 hung (ping OK, no video) since 19:48	2026-09-21 19:58:54.477755+05:30	2026-09-21 21:09:31.715103+05:30	2026-09-21 21:14:36.658504+05:30	f
-365	CAMERA_DOWN	cam:cam_rainforce_bolt_pjw_m_c_1789013623	35	cam_rainforce_bolt_pjw_m_c_1789013623	YHB-SA-4WAY · Rainforce Bolt PJW M/C camera 192.168.35.70 hung (ping OK, no video) since 19:48	2026-09-21 19:58:54.477755+05:30	2026-09-21 21:09:31.715103+05:30	2026-09-21 21:14:36.658504+05:30	f
-336	CAMERA_DOWN	cam:cam_semi_automatic_bending_m_c_1782554942	13	cam_semi_automatic_bending_m_c_1782554942	YJC-SS · Semi Automatic & Bending M/c camera 192.168.31.115 hung (ping OK, no video) since 18:45	2026-09-21 18:58:29.325595+05:30	2026-09-21 21:09:31.715103+05:30	2026-09-21 21:14:36.658504+05:30	f
-338	CAMERA_DOWN	cam:cam_upper_rail_greasing_1784645280	2	cam_upper_rail_greasing_1784645280	YNC-SS · Upper Rail Greasing Machine camera 192.168.31.130 hung (ping OK, no video) since 18:45	2026-09-21 18:58:29.325595+05:30	2026-09-21 21:09:31.715103+05:30	2026-09-21 21:14:36.658504+05:30	f
-339	CAMERA_DOWN	cam:cam_upper_rail_greasing_m_c_1782385166	4	cam_upper_rail_greasing_m_c_1782385166	YSD-SS · Upper Rail Greasing m/c camera 192.168.31.50 hung (ping OK, no video) since 18:45	2026-09-21 18:58:29.325595+05:30	2026-09-21 21:09:31.715103+05:30	2026-09-21 21:14:36.658504+05:30	f
-329	CAMERA_DOWN	cam:cam_rail_assy_m_c_02_1782385315	4	cam_rail_assy_m_c_02_1782385315	YSD-SS · Rail Assy M/c # 02 camera 192.168.31.54 hung (ping OK, no video) since 18:45	2026-09-21 18:58:29.325595+05:30	2026-09-21 21:09:31.715103+05:30	2026-09-21 21:14:36.658504+05:30	f
-454	CAMERA_DOWN	cam:cam_mag_welding_of_arm_x_recliner_st_1_1786596037	5	cam_mag_welding_of_arm_x_recliner_st_1_1786596037	YRA Recliner · MAG Welding of Arm x Recliner ST #1` camera 192.168.33.31 offline (no ping) since 22:25	2026-09-21 22:37:35.487341+05:30	2026-09-21 22:52:45.246221+05:30	\N	f
-420	CAMERA_DOWN	cam:cam_final_inspection_y17_1783077497	15	cam_final_inspection_y17_1783077497	Y17-SS · Final Inspection M/c camera 192.168.31.176 hung (ping OK, no video) since 21:57	2026-09-21 22:09:54.990013+05:30	2026-09-21 22:14:55.237913+05:30	2026-09-21 22:19:55.595862+05:30	f
-421	CAMERA_DOWN	cam:cam_hook_spring_magw_hinge_pin_insert_1784264335	20	cam_hook_spring_magw_hinge_pin_insert_1784264335	YMC Recliner · Press in REC with PIN Hinge & Date Code Stamping camera 192.168.33.54 hung (ping OK, no video) since 21:57	2026-09-21 22:09:54.990013+05:30	2026-09-21 22:14:55.237913+05:30	2026-09-21 22:19:55.595862+05:30	f
-422	CAMERA_DOWN	cam:cam_lower_rail_cam_yfg_1783077757	14	cam_lower_rail_cam_yfg_1783077757	YFG-SS · Lock Bar Insert M/c camera 192.168.31.152 hung (ping OK, no video) since 21:57	2026-09-21 22:09:54.990013+05:30	2026-09-21 22:14:55.237913+05:30	2026-09-21 22:19:55.595862+05:30	f
-432	CAMERA_DOWN	cam:cam_rail_assy_02_cam_1783077400	15	cam_rail_assy_02_cam_1783077400	Y17-SS · Rail Assy M/c #02 camera 192.168.31.174 hung (ping OK, no video) since 21:57	2026-09-21 22:09:54.990013+05:30	2026-09-21 22:14:55.237913+05:30	2026-09-21 22:19:55.595862+05:30	f
-414	CAMERA_DOWN	cam:cam_ymc_upper_rail_1784952496	19	cam_ymc_upper_rail_1784952496	YMC-SS · Upper Rail Greasing M/c camera 192.168.31.190 hung (ping OK, no video) since 21:33	2026-09-21 21:45:40.232705+05:30	2026-09-21 21:50:42.73563+05:30	2026-09-21 21:55:45.026875+05:30	f
-330	CAMERA_DOWN	cam:cam_rail_assy_m_c_02_1782449949	11	cam_rail_assy_m_c_02_1782449949	YHB-SS · Rail Assy M/c # 02 camera 192.168.31.74 hung (ping OK, no video) since 18:45	2026-09-21 18:58:29.325595+05:30	2026-09-21 21:09:31.715103+05:30	2026-09-21 21:14:36.658504+05:30	f
-331	CAMERA_DOWN	cam:cam_rail_assy_m_c_02_1782554915	13	cam_rail_assy_m_c_02_1782554915	YJC-SS · Rail Assy M/c # 02 camera 192.168.31.114 hung (ping OK, no video) since 18:45	2026-09-21 18:58:29.325595+05:30	2026-09-21 21:09:31.715103+05:30	2026-09-21 21:14:36.658504+05:30	f
-332	CAMERA_DOWN	cam:cam_rail_assy_m_c_02_1782556448	12	cam_rail_assy_m_c_02_1782556448	YCA-SS · Rail Assy M/c # 02 camera 192.168.31.94 hung (ping OK, no video) since 18:45	2026-09-21 18:58:29.325595+05:30	2026-09-21 21:09:31.715103+05:30	2026-09-21 21:14:36.658504+05:30	f
-405	CAMERA_DOWN	cam:cam_semi_auto_1784269536	2	cam_semi_auto_1784269536	YNC-SS · Semi-Auto camera 192.168.31.135 hung (ping OK, no video) since 21:33	2026-09-21 21:45:40.232705+05:30	2026-09-21 21:55:45.026875+05:30	2026-09-21 21:59:50.540022+05:30	f
-334	CAMERA_DOWN	cam:cam_semi_automatic_bending_m_c_1782385341	4	cam_semi_automatic_bending_m_c_1782385341	YSD-SS · Semi Automatic & Bending M/c camera 192.168.31.55 hung (ping OK, no video) since 18:45	2026-09-21 18:58:29.325595+05:30	2026-09-21 19:18:41.799838+05:30	2026-09-21 19:23:45.885318+05:30	f
-219	LOW_COVERAGE	cov:11	11	\N	YHB-SS video coverage 49% (92/186) in the last judged hour	2026-09-21 13:25:44.056089+05:30	2026-09-21 18:58:29.325595+05:30	2026-09-21 19:03:30.384218+05:30	f
-220	LOW_COVERAGE	cov:19	19	\N	YMC-SS video coverage 35% (122/347) in the last judged hour	2026-09-21 13:25:44.056089+05:30	2026-09-21 18:58:29.325595+05:30	2026-09-21 19:03:30.384218+05:30	f
-180	LOW_COVERAGE	cov:36	36	\N	YNC-SA-4WAY video coverage 44% (144/324) in the last judged hour	2026-09-21 09:33:51.986492+05:30	2026-09-21 18:58:29.325595+05:30	2026-09-21 19:03:30.384218+05:30	f
-203	LOW_COVERAGE	cov:31	31	\N	Loop Pipe-Line 3 video coverage 41% (135/333) in the last judged hour	2026-09-21 12:05:06.450589+05:30	2026-09-21 18:58:29.325595+05:30	2026-09-21 19:03:30.384218+05:30	f
-183	LOW_COVERAGE	cov:34	34	\N	YSD-SA-4WAY video coverage 0% (0/155) in the last judged hour	2026-09-21 09:33:51.986492+05:30	2026-09-21 18:58:29.325595+05:30	2026-09-21 19:03:30.384218+05:30	f
-184	LOW_COVERAGE	cov:21	21	\N	Loop Pipe-Line 2 video coverage 43% (152/352) in the last judged hour	2026-09-21 09:33:51.986492+05:30	2026-09-21 18:58:29.325595+05:30	2026-09-21 19:03:30.384218+05:30	f
-185	LOW_COVERAGE	cov:33	33	\N	YRA-SA-4WAY video coverage 0% (0/395) in the last judged hour	2026-09-21 09:33:51.986492+05:30	2026-09-21 18:58:29.325595+05:30	2026-09-21 19:03:30.384218+05:30	f
-173	LOW_COVERAGE	cov:35	35	\N	YHB-SA-4WAY video coverage 42% (160/383) in the last judged hour	2026-09-21 09:28:48.97931+05:30	2026-09-21 18:58:29.325595+05:30	2026-09-21 19:03:30.384218+05:30	f
-286	CAMERA_DOWN	cam:cam_release_arm_mag_welding_inside_1784264562	20	cam_release_arm_mag_welding_inside_1784264562	YMC Recliner · Mag Welding Relese x Hinge Pin camera 192.168.33.55 hung (ping OK, no video) since 18:31	2026-09-21 18:43:16.577582+05:30	2026-09-21 20:39:17.621304+05:30	2026-09-21 20:44:18.577912+05:30	f
-406	CAMERA_DOWN	cam:cam_semi_auto_bending_1782901018	12	cam_semi_auto_bending_1782901018	YCA-SS · Semi Automatic & Bending M/c camera 192.168.31.95 hung (ping OK, no video) since 21:33	2026-09-21 21:45:40.232705+05:30	2026-09-21 21:55:45.026875+05:30	2026-09-21 21:59:50.540022+05:30	f
-407	CAMERA_DOWN	cam:cam_semi_auto_cam_1783077457	15	cam_semi_auto_cam_1783077457	Y17-SS · Semi-Automatic & Bending M/c camera 192.168.31.175 hung (ping OK, no video) since 21:33	2026-09-21 21:45:40.232705+05:30	2026-09-21 21:55:45.026875+05:30	2026-09-21 21:59:50.540022+05:30	f
-408	CAMERA_DOWN	cam:cam_semi_auto_cam_1783077949	14	cam_semi_auto_cam_1783077949	YFG-SS · Semi-Automatic & Bending M/c camera 192.168.31.155 hung (ping OK, no video) since 21:33	2026-09-21 21:45:40.232705+05:30	2026-09-21 21:55:45.026875+05:30	2026-09-21 21:59:50.540022+05:30	f
-413	CAMERA_DOWN	cam:cam_upper_rail_greasing_m_c_1782449757	11	cam_upper_rail_greasing_m_c_1782449757	YHB-SS · Upper Rail Greasing m/c camera 192.168.31.70 hung (ping OK, no video) since 21:33	2026-09-21 21:45:40.232705+05:30	2026-09-21 21:55:45.026875+05:30	2026-09-21 21:59:50.540022+05:30	f
-391	CAMERA_DOWN	cam:cam_lower_rail_grease_bar_coding_m_c_1782554629	12	cam_lower_rail_grease_bar_coding_m_c_1782554629	YCA-SS · Lock Bar Insert M/c camera 192.168.31.92 hung (ping OK, no video) since 21:33	2026-09-21 21:45:40.232705+05:30	2026-09-21 21:55:45.026875+05:30	2026-09-21 21:59:50.540022+05:30	f
-337	CAMERA_DOWN	cam:cam_upper_rail_grease_machine_1782554566	12	cam_upper_rail_grease_machine_1782554566	YCA-SS · Upper Rail Grease Machine camera 192.168.31.90 hung (ping OK, no video) since 18:45	2026-09-21 18:58:29.325595+05:30	2026-09-21 19:28:45.729456+05:30	2026-09-21 19:33:50.030899+05:30	f
-296	CAMERA_DOWN	cam:cam_sp_insert_fixture_with_machine_1786350490	27	cam_sp_insert_fixture_with_machine_1786350490	YHB Recliner · SP Insert Fixture with Machine camera 192.168.33.76 hung (ping OK, no video) since 18:31	2026-09-21 18:43:16.577582+05:30	2026-09-21 19:08:33.856338+05:30	2026-09-21 19:13:38.32337+05:30	f
-362	LOW_COVERAGE	cov:29	29	\N	YSD Recliner video coverage 0% (0/243) in the last judged hour	2026-09-21 19:33:50.030899+05:30	2026-09-21 22:52:45.246221+05:30	\N	f
-366	CAMERA_DOWN	cam:cam_upr_rail_bolt_fr_pjw_m_c_4_way_1788930828	36	cam_upr_rail_bolt_fr_pjw_m_c_4_way_1788930828	YNC-SA-4WAY · Upr Rail ×Bolt Fr PJW M/C  ( 4 Way ) camera 192.168.35.82 hung (ping OK, no video) since 19:48	2026-09-21 19:58:54.477755+05:30	2026-09-21 21:09:31.715103+05:30	2026-09-21 21:14:36.658504+05:30	f
-367	CAMERA_DOWN	cam:cam_upr_rail_bolt_fr_pjw_m_c_4_way_1789019215	35	cam_upr_rail_bolt_fr_pjw_m_c_4_way_1789019215	YHB-SA-4WAY · Upr Rail ×Bolt Fr PJW M/C  ( 4 Way ) camera 192.168.35.72 hung (ping OK, no video) since 19:48	2026-09-21 19:58:54.477755+05:30	2026-09-21 21:09:31.715103+05:30	2026-09-21 21:14:36.658504+05:30	f
-455	CAMERA_DOWN	cam:cam_mag_welding_of_arm_x_recliner_st_2_1786596090	5	cam_mag_welding_of_arm_x_recliner_st_2_1786596090	YRA Recliner · MAG Welding of Arm x Recliner ST #2 camera 192.168.33.32 hung (ping OK, no video) since 22:25	2026-09-21 22:37:35.487341+05:30	2026-09-21 22:52:45.246221+05:30	\N	f
-456	CAMERA_DOWN	cam:cam_mag_welding_of_lwr_hook_with_lwr_arrm_1786596153	5	cam_mag_welding_of_lwr_hook_with_lwr_arrm_1786596153	YRA Recliner · MAG Welding of  Lwr Hook with Lwr Arrm camera 192.168.33.33 offline (no ping) since 22:25	2026-09-21 22:37:35.487341+05:30	2026-09-21 22:52:45.246221+05:30	\N	f
-457	CAMERA_DOWN	cam:cam_mag_welding_of_lwr_hook_with_lwr_arrm_1787031413	29	cam_mag_welding_of_lwr_hook_with_lwr_arrm_1787031413	YSD Recliner · MAG Welding of  Lwr Hook with Lwr Arrm camera 192.168.33.93 offline (no ping) since 22:25	2026-09-21 22:37:35.487341+05:30	2026-09-21 22:52:45.246221+05:30	\N	f
-458	CAMERA_DOWN	cam:cam_mag_welding_relese_x_hinge_pin_1786596253	5	cam_mag_welding_relese_x_hinge_pin_1786596253	YRA Recliner · Mag Welding Relese x Hinge Pin camera 192.168.33.35 offline (no ping) since 22:25	2026-09-21 22:37:35.487341+05:30	2026-09-21 22:52:45.246221+05:30	\N	f
-459	CAMERA_DOWN	cam:cam_rail_assy_01_cam_yfg_1783077818	14	cam_rail_assy_01_cam_yfg_1783077818	YFG-SS · Rail Assy M/c #01 camera 192.168.31.153 hung (ping OK, no video) since 22:25	2026-09-21 22:37:35.487341+05:30	2026-09-21 22:52:45.246221+05:30	\N	f
-351	LOW_COVERAGE	cov:39	39	\N	Y17-SA-4WAY video coverage 0% (0/320) in the last judged hour	2026-09-21 19:28:45.729456+05:30	2026-09-21 22:52:45.246221+05:30	\N	f
-348	LOW_COVERAGE	cov:11	11	\N	YHB-SS video coverage 52% (865/1671) in the last judged hour	2026-09-21 19:23:45.885318+05:30	2026-09-21 22:52:45.246221+05:30	\N	f
-363	LOW_COVERAGE	cov:19	19	\N	YMC-SS video coverage 47% (507/1081) in the last judged hour	2026-09-21 19:38:51.668425+05:30	2026-09-21 22:52:45.246221+05:30	\N	f
-352	LOW_COVERAGE	cov:36	36	\N	YNC-SA-4WAY video coverage 25% (196/799) in the last judged hour	2026-09-21 19:28:45.729456+05:30	2026-09-21 22:52:45.246221+05:30	\N	f
-347	LOW_COVERAGE	cov:4	4	\N	YSD-SS video coverage 26% (375/1419) in the last judged hour	2026-09-21 19:23:45.885318+05:30	2026-09-21 22:52:45.246221+05:30	\N	f
-350	LOW_COVERAGE	cov:30	30	\N	Loop Pipe-Line 1 video coverage 14% (106/752) in the last judged hour	2026-09-21 19:23:45.885318+05:30	2026-09-21 22:52:45.246221+05:30	\N	f
-353	LOW_COVERAGE	cov:34	34	\N	YSD-SA-4WAY video coverage 0% (0/630) in the last judged hour	2026-09-21 19:28:45.729456+05:30	2026-09-21 22:52:45.246221+05:30	\N	f
-349	LOW_COVERAGE	cov:21	21	\N	Loop Pipe-Line 2 video coverage 35% (249/706) in the last judged hour	2026-09-21 19:23:45.885318+05:30	2026-09-21 22:52:45.246221+05:30	\N	f
-380	LOW_COVERAGE	cov:14	14	\N	YFG-SS video coverage 27% (381/1393) in the last judged hour	2026-09-21 21:04:27.564519+05:30	2026-09-21 22:52:45.246221+05:30	\N	f
-355	LOW_COVERAGE	cov:20	20	\N	YMC Recliner video coverage 24% (434/1775) in the last judged hour	2026-09-21 19:28:45.729456+05:30	2026-09-21 22:52:45.246221+05:30	\N	f
-354	LOW_COVERAGE	cov:28	28	\N	YNC Recliner video coverage 47% (238/508) in the last judged hour	2026-09-21 19:28:45.729456+05:30	2026-09-21 22:52:45.246221+05:30	\N	f
-357	LOW_COVERAGE	cov:33	33	\N	YRA-SA-4WAY video coverage 0% (0/672) in the last judged hour	2026-09-21 19:28:45.729456+05:30	2026-09-21 22:52:45.246221+05:30	\N	f
-356	LOW_COVERAGE	cov:13	13	\N	YJC-SS video coverage 47% (604/1285) in the last judged hour	2026-09-21 19:28:45.729456+05:30	2026-09-21 22:52:45.246221+05:30	\N	f
-358	LOW_COVERAGE	cov:35	35	\N	YHB-SA-4WAY video coverage 20% (186/937) in the last judged hour	2026-09-21 19:28:45.729456+05:30	2026-09-21 22:52:45.246221+05:30	\N	f
-359	LOW_COVERAGE	cov:5	5	\N	YRA Recliner video coverage 0% (0/776) in the last judged hour	2026-09-21 19:28:45.729456+05:30	2026-09-21 22:52:45.246221+05:30	\N	f
-227	LOW_COVERAGE	cov:18	18	\N	YRA-SS video coverage 51% (577/1142) in the last judged hour	2026-09-21 13:25:44.056089+05:30	2026-09-21 22:52:45.246221+05:30	\N	f
-346	LOW_COVERAGE	cov:2	2	\N	YNC-SS video coverage 29% (432/1515) in the last judged hour	2026-09-21 19:23:45.885318+05:30	2026-09-21 22:52:45.246221+05:30	\N	f
-229	LOW_COVERAGE	cov:15	15	\N	Y17-SS video coverage 31% (470/1495) in the last judged hour	2026-09-21 13:25:44.056089+05:30	2026-09-21 22:52:45.246221+05:30	\N	f
-361	LOW_COVERAGE	cov:27	27	\N	YHB Recliner video coverage 55% (374/686) in the last judged hour	2026-09-21 19:28:45.729456+05:30	2026-09-21 22:52:45.246221+05:30	\N	f
-392	CAMERA_DOWN	cam:cam_mag_welding_of_arm_x_recliner_st_1_1786596037	5	cam_mag_welding_of_arm_x_recliner_st_1_1786596037	YRA Recliner · MAG Welding of Arm x Recliner ST #1` camera 192.168.33.31 offline (no ping) since 21:34	2026-09-21 21:45:40.232705+05:30	2026-09-21 21:55:45.026875+05:30	2026-09-21 21:59:50.540022+05:30	f
-393	CAMERA_DOWN	cam:cam_mag_welding_of_arm_x_recliner_st_2_1786596090	5	cam_mag_welding_of_arm_x_recliner_st_2_1786596090	YRA Recliner · MAG Welding of Arm x Recliner ST #2 camera 192.168.33.32 hung (ping OK, no video) since 21:34	2026-09-21 21:45:40.232705+05:30	2026-09-21 21:55:45.026875+05:30	2026-09-21 21:59:50.540022+05:30	f
-394	CAMERA_DOWN	cam:cam_mag_welding_of_lwr_hook_with_lwr_arrm_1786596153	5	cam_mag_welding_of_lwr_hook_with_lwr_arrm_1786596153	YRA Recliner · MAG Welding of  Lwr Hook with Lwr Arrm camera 192.168.33.33 offline (no ping) since 21:34	2026-09-21 21:45:40.232705+05:30	2026-09-21 21:55:45.026875+05:30	2026-09-21 21:59:50.540022+05:30	f
-395	CAMERA_DOWN	cam:cam_mag_welding_of_lwr_hook_with_lwr_arrm_1787031413	29	cam_mag_welding_of_lwr_hook_with_lwr_arrm_1787031413	YSD Recliner · MAG Welding of  Lwr Hook with Lwr Arrm camera 192.168.33.93 offline (no ping) since 21:34	2026-09-21 21:45:40.232705+05:30	2026-09-21 21:55:45.026875+05:30	2026-09-21 21:59:50.540022+05:30	f
-396	CAMERA_DOWN	cam:cam_mag_welding_relese_x_hinge_pin_1786596253	5	cam_mag_welding_relese_x_hinge_pin_1786596253	YRA Recliner · Mag Welding Relese x Hinge Pin camera 192.168.33.35 offline (no ping) since 21:34	2026-09-21 21:45:40.232705+05:30	2026-09-21 21:55:45.026875+05:30	2026-09-21 21:59:50.540022+05:30	f
-403	CAMERA_DOWN	cam:cam_release_arm_magw_torsion_spring_fitment_1784264713	20	cam_release_arm_magw_torsion_spring_fitment_1784264713	YMC Recliner · SP Insert Fixture with Machine camera 192.168.33.56 hung (ping OK, no video) since 21:34	2026-09-21 21:45:40.232705+05:30	2026-09-21 21:55:45.026875+05:30	2026-09-21 21:59:50.540022+05:30	f
-439	CAMERA_DOWN	cam:cam_semi_auto_bending_1782901018	12	cam_semi_auto_bending_1782901018	YCA-SS · Semi Automatic & Bending M/c camera 192.168.31.95 hung (ping OK, no video) since 21:57	2026-09-21 22:09:54.990013+05:30	2026-09-21 22:19:55.595862+05:30	2026-09-21 22:23:29.223786+05:30	f
-446	CAMERA_DOWN	cam:cam_upr_rail_bolt_fr_pjw_m_c_4_way_1788930828	36	cam_upr_rail_bolt_fr_pjw_m_c_4_way_1788930828	YNC-SA-4WAY · Upr Rail ×Bolt Fr PJW M/C  ( 4 Way ) camera 192.168.35.82 hung (ping OK, no video) since 21:57	2026-09-21 22:09:54.990013+05:30	2026-09-21 22:19:55.595862+05:30	2026-09-21 22:23:29.223786+05:30	f
-447	CAMERA_DOWN	cam:cam_ylm_bending_machine_01_1787031747	30	cam_ylm_bending_machine_01_1787031747	Loop Pipe-Line 1 · YLM Bending Machine-01 camera 192.168.37.51 offline (no ping) since 21:57	2026-09-21 22:09:54.990013+05:30	2026-09-21 22:19:55.595862+05:30	2026-09-21 22:23:29.223786+05:30	f
-415	CAMERA_DOWN	cam:cam_bolt_strength_checking_4way_1789017196	36	cam_bolt_strength_checking_4way_1789017196	YNC-SA-4WAY · BOLT STRENGTH CHECKING (4WAY) camera 192.168.35.84 hung (ping OK, no video) since 21:57	2026-09-21 22:09:54.990013+05:30	2026-09-21 22:19:55.595862+05:30	2026-09-21 22:23:29.223786+05:30	f
-416	CAMERA_DOWN	cam:cam_bolt_strength_checking_4way_1789019293	35	cam_bolt_strength_checking_4way_1789019293	YHB-SA-4WAY · BOLT STRENGTH CHECKING (4WAY) camera 192.168.35.74 hung (ping OK, no video) since 21:57	2026-09-21 22:09:54.990013+05:30	2026-09-21 22:19:55.595862+05:30	2026-09-21 22:23:29.223786+05:30	f
-417	CAMERA_DOWN	cam:cam_both_karakuri_middle_shelf_1787031646	30	cam_both_karakuri_middle_shelf_1787031646	Loop Pipe-Line 1 · Both Karakuri Middle Shelf camera 192.168.37.53 hung (ping OK, no video) since 21:57	2026-09-21 22:09:54.990013+05:30	2026-09-21 22:19:55.595862+05:30	2026-09-21 22:23:29.223786+05:30	f
-434	CAMERA_DOWN	cam:cam_rainforce_bolt_pjw_m_c_1788930501	36	cam_rainforce_bolt_pjw_m_c_1788930501	YNC-SA-4WAY · "Rinforce×Bolt PJW M/C Upr BKT Rail ×Bolt PJW M/C Upr Rail Rr） " camera 192.168.35.80 hung (ping OK, no video) since 21:57	2026-09-21 22:09:54.990013+05:30	2026-09-21 22:19:55.595862+05:30	2026-09-21 22:23:29.223786+05:30	f
-418	CAMERA_DOWN	cam:cam_final_inspection_cam_yfg_1783078029	14	cam_final_inspection_cam_yfg_1783078029	YFG-SS · Final Inspection M/c camera 192.168.31.156 hung (ping OK, no video) since 21:57	2026-09-21 22:09:54.990013+05:30	2026-09-21 22:09:54.990013+05:30	2026-09-21 22:14:55.237913+05:30	f
-419	CAMERA_DOWN	cam:cam_final_inspection_m_c_1782385578	4	cam_final_inspection_m_c_1782385578	YSD-SS · Final Inspection M/c camera 192.168.31.56 hung (ping OK, no video) since 21:57	2026-09-21 22:09:54.990013+05:30	2026-09-21 22:09:54.990013+05:30	2026-09-21 22:14:55.237913+05:30	f
-438	CAMERA_DOWN	cam:cam_semi_auto_1784269536	2	cam_semi_auto_1784269536	YNC-SS · Semi-Auto camera 192.168.31.135 hung (ping OK, no video) since 21:57	2026-09-21 22:09:54.990013+05:30	2026-09-21 22:14:55.237913+05:30	2026-09-21 22:19:55.595862+05:30	f
-440	CAMERA_DOWN	cam:cam_semi_auto_cam_1783077949	14	cam_semi_auto_cam_1783077949	YFG-SS · Semi-Automatic & Bending M/c camera 192.168.31.155 hung (ping OK, no video) since 21:57	2026-09-21 22:09:54.990013+05:30	2026-09-21 22:14:55.237913+05:30	2026-09-21 22:19:55.595862+05:30	f
-441	CAMERA_DOWN	cam:cam_upper_rail_cam_y17_1783077205	15	cam_upper_rail_cam_y17_1783077205	Y17-SS · Upper Rail Greasing M/c camera 192.168.31.170 hung (ping OK, no video) since 21:57	2026-09-21 22:09:54.990013+05:30	2026-09-21 22:14:55.237913+05:30	2026-09-21 22:19:55.595862+05:30	f
-423	CAMERA_DOWN	cam:cam_lower_rail_grease_bar_coding_m_c_1782554629	12	cam_lower_rail_grease_bar_coding_m_c_1782554629	YCA-SS · Lock Bar Insert M/c camera 192.168.31.92 hung (ping OK, no video) since 21:57	2026-09-21 22:09:54.990013+05:30	2026-09-21 22:09:54.990013+05:30	2026-09-21 22:14:55.237913+05:30	f
-424	CAMERA_DOWN	cam:cam_mag_welding_of_arm_x_recliner_st_1_1786596037	5	cam_mag_welding_of_arm_x_recliner_st_1_1786596037	YRA Recliner · MAG Welding of Arm x Recliner ST #1` camera 192.168.33.31 offline (no ping) since 21:57	2026-09-21 22:09:54.990013+05:30	2026-09-21 22:09:54.990013+05:30	2026-09-21 22:14:55.237913+05:30	f
-425	CAMERA_DOWN	cam:cam_mag_welding_of_arm_x_recliner_st_2_1786596090	5	cam_mag_welding_of_arm_x_recliner_st_2_1786596090	YRA Recliner · MAG Welding of Arm x Recliner ST #2 camera 192.168.33.32 hung (ping OK, no video) since 21:57	2026-09-21 22:09:54.990013+05:30	2026-09-21 22:09:54.990013+05:30	2026-09-21 22:14:55.237913+05:30	f
-426	CAMERA_DOWN	cam:cam_mag_welding_of_lwr_hook_with_lwr_arrm_1786596153	5	cam_mag_welding_of_lwr_hook_with_lwr_arrm_1786596153	YRA Recliner · MAG Welding of  Lwr Hook with Lwr Arrm camera 192.168.33.33 offline (no ping) since 21:57	2026-09-21 22:09:54.990013+05:30	2026-09-21 22:09:54.990013+05:30	2026-09-21 22:14:55.237913+05:30	f
-427	CAMERA_DOWN	cam:cam_mag_welding_of_lwr_hook_with_lwr_arrm_1787031413	29	cam_mag_welding_of_lwr_hook_with_lwr_arrm_1787031413	YSD Recliner · MAG Welding of  Lwr Hook with Lwr Arrm camera 192.168.33.93 offline (no ping) since 21:57	2026-09-21 22:09:54.990013+05:30	2026-09-21 22:09:54.990013+05:30	2026-09-21 22:14:55.237913+05:30	f
-428	CAMERA_DOWN	cam:cam_mag_welding_relese_x_hinge_pin_1786596253	5	cam_mag_welding_relese_x_hinge_pin_1786596253	YRA Recliner · Mag Welding Relese x Hinge Pin camera 192.168.33.35 offline (no ping) since 21:57	2026-09-21 22:09:54.990013+05:30	2026-09-21 22:09:54.990013+05:30	2026-09-21 22:14:55.237913+05:30	f
-429	CAMERA_DOWN	cam:cam_pwm_38_round_rec_1784264068	20	cam_pwm_38_round_rec_1784264068	YMC Recliner · Projection Welding of Washer with Lwr Arm UprBKTｘNut PJW M/C camera 192.168.33.50 hung (ping OK, no video) since 21:57	2026-09-21 22:09:54.990013+05:30	2026-09-21 22:09:54.990013+05:30	2026-09-21 22:14:55.237913+05:30	f
-430	CAMERA_DOWN	cam:cam_rail_assy_01_cam_1783077364	15	cam_rail_assy_01_cam_1783077364	Y17-SS · Rail Assy M/c #01 camera 192.168.31.173 hung (ping OK, no video) since 21:57	2026-09-21 22:09:54.990013+05:30	2026-09-21 22:09:54.990013+05:30	2026-09-21 22:14:55.237913+05:30	f
-431	CAMERA_DOWN	cam:cam_rail_assy_01_cam_yfg_1783077818	14	cam_rail_assy_01_cam_yfg_1783077818	YFG-SS · Rail Assy M/c #01 camera 192.168.31.153 hung (ping OK, no video) since 21:57	2026-09-21 22:09:54.990013+05:30	2026-09-21 22:09:54.990013+05:30	2026-09-21 22:14:55.237913+05:30	f
-433	CAMERA_DOWN	cam:cam_rail_assy_02_cam_yfg_1783077882	14	cam_rail_assy_02_cam_yfg_1783077882	YFG-SS · Rail Assy M/c #02 camera 192.168.31.154 hung (ping OK, no video) since 21:57	2026-09-21 22:09:54.990013+05:30	2026-09-21 22:09:54.990013+05:30	2026-09-21 22:14:55.237913+05:30	f
-435	CAMERA_DOWN	cam:cam_release_arm_mag_welding_inside_1784264562	20	cam_release_arm_mag_welding_inside_1784264562	YMC Recliner · Mag Welding Relese x Hinge Pin camera 192.168.33.55 hung (ping OK, no video) since 21:57	2026-09-21 22:09:54.990013+05:30	2026-09-21 22:09:54.990013+05:30	2026-09-21 22:14:55.237913+05:30	f
-436	CAMERA_DOWN	cam:cam_release_arm_magw_torsion_spring_fitment_1784264713	20	cam_release_arm_magw_torsion_spring_fitment_1784264713	YMC Recliner · SP Insert Fixture with Machine camera 192.168.33.56 hung (ping OK, no video) since 21:57	2026-09-21 22:09:54.990013+05:30	2026-09-21 22:09:54.990013+05:30	2026-09-21 22:14:55.237913+05:30	f
-437	CAMERA_DOWN	cam:cam_round_rec_st_1_1784263578	20	cam_round_rec_st_1_1784263578	YMC Recliner · MAG Welding of Arm x Recliner Station 1 camera 192.168.33.51 hung (ping OK, no video) since 21:57	2026-09-21 22:09:54.990013+05:30	2026-09-21 22:09:54.990013+05:30	2026-09-21 22:14:55.237913+05:30	f
+line:13	2026-09-24 13:54:53.427028+05:30
+line:12	2026-09-24 13:54:53.427028+05:30
+line:4	2026-09-24 13:54:53.427028+05:30
+line:18	2026-09-24 13:54:53.427028+05:30
+line:19	2026-09-24 13:54:53.427028+05:30
+line:15	2026-09-24 13:54:53.427028+05:30
+line:14	2026-09-24 13:54:53.427028+05:30
+line:2	2026-09-24 13:54:53.427028+05:30
+line:11	2026-09-24 13:54:53.427028+05:30
+line:5	2026-09-24 13:54:53.427028+05:30
+line:27	2026-09-24 13:54:53.427028+05:30
+line:20	2026-09-24 13:54:53.427028+05:30
+line:10	2026-09-24 13:54:53.427028+05:30
+line:8	2026-09-24 13:54:53.427028+05:30
+line:7	2026-09-24 13:54:53.427028+05:30
+line:6	2026-09-24 13:54:53.427028+05:30
+line:41	2026-09-24 13:54:53.427028+05:30
+line:9	2026-09-24 13:54:53.427028+05:30
+line:31	2026-09-24 13:54:53.427028+05:30
+line:21	2026-09-24 13:54:53.427028+05:30
+line:30	2026-09-24 13:54:53.427028+05:30
+line:34	2026-09-24 13:54:53.427028+05:30
+line:33	2026-09-24 13:54:53.427028+05:30
+line:39	2026-09-24 13:54:53.427028+05:30
+line:38	2026-09-24 13:54:53.427028+05:30
+line:35	2026-09-24 13:54:53.427028+05:30
+line:36	2026-09-24 13:54:53.427028+05:30
+subs	2026-09-24 13:54:53.427028+05:30
 \.
 
 
@@ -31270,6 +32318,1414 @@ COPY public.mes_zones (id, plant_id, zone_code, zone_name, description, is_activ
 --
 
 COPY public.nut_lifting_dashboard_ct_log (id, ts, record_date, shift_name, ct_value, cycle_seq, part_code, is_ng) FROM stdin;
+\.
+
+
+--
+-- Data for Name: nutwelding_pwm39_dashboard_ct_log; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.nutwelding_pwm39_dashboard_ct_log (id, ts, record_date, shift_name, ct_value, cycle_seq, part_code, is_ng) FROM stdin;
+1	2026-09-24 09:57:00.015941	2026-09-24	A	9.72	1	\N	f
+2	2026-09-24 09:57:06.954828	2026-09-24	A	6.94	2	\N	f
+3	2026-09-24 09:57:13.794505	2026-09-24	A	6.84	3	\N	f
+4	2026-09-24 09:57:24.437596	2026-09-24	A	10.64	4	\N	f
+5	2026-09-24 09:57:31.208366	2026-09-24	A	6.77	5	\N	f
+6	2026-09-24 09:57:38.059644	2026-09-24	A	6.85	6	\N	f
+7	2026-09-24 09:57:45.618725	2026-09-24	A	7.56	7	\N	f
+8	2026-09-24 09:57:51.786279	2026-09-24	A	6.17	8	\N	f
+9	2026-09-24 09:57:57.881742	2026-09-24	A	6.10	9	\N	f
+10	2026-09-24 09:58:04.45876	2026-09-24	A	6.58	10	\N	f
+11	2026-09-24 09:58:11.978667	2026-09-24	A	7.52	11	\N	f
+12	2026-09-24 09:58:18.250662	2026-09-24	A	6.27	12	\N	f
+13	2026-09-24 09:58:25.409362	2026-09-24	A	7.16	13	\N	f
+14	2026-09-24 09:58:31.674973	2026-09-24	A	6.27	14	\N	f
+15	2026-09-24 09:58:37.978236	2026-09-24	A	6.30	15	\N	f
+16	2026-09-24 09:58:44.542484	2026-09-24	A	6.56	16	\N	f
+17	2026-09-24 09:58:50.593057	2026-09-24	A	6.05	17	\N	f
+18	2026-09-24 09:58:56.555596	2026-09-24	A	5.96	18	\N	f
+19	2026-09-24 09:59:02.485128	2026-09-24	A	5.93	19	\N	f
+20	2026-09-24 09:59:09.5152	2026-09-24	A	7.03	20	\N	f
+21	2026-09-24 09:59:16.786343	2026-09-24	A	7.27	21	\N	f
+22	2026-09-24 09:59:23.073232	2026-09-24	A	6.29	22	\N	f
+23	2026-09-24 09:59:29.956687	2026-09-24	A	6.88	23	\N	f
+24	2026-09-24 09:59:37.30089	2026-09-24	A	7.34	24	\N	f
+25	2026-09-24 10:12:45.494891	2026-09-24	A	0.00	25	\N	f
+26	2026-09-24 10:12:52.155284	2026-09-24	A	6.66	26	\N	f
+27	2026-09-24 10:13:01.340098	2026-09-24	A	9.18	27	\N	f
+28	2026-09-24 10:13:07.343681	2026-09-24	A	6.00	28	\N	f
+29	2026-09-24 10:13:13.086892	2026-09-24	A	5.74	29	\N	f
+30	2026-09-24 10:13:19.239538	2026-09-24	A	6.15	30	\N	f
+31	2026-09-24 10:13:25.342637	2026-09-24	A	6.10	31	\N	f
+32	2026-09-24 10:13:32.73004	2026-09-24	A	7.39	32	\N	f
+33	2026-09-24 10:13:38.873015	2026-09-24	A	6.14	33	\N	f
+34	2026-09-24 10:13:47.142556	2026-09-24	A	8.27	34	\N	f
+35	2026-09-24 10:13:53.117191	2026-09-24	A	5.97	35	\N	f
+36	2026-09-24 10:13:58.83131	2026-09-24	A	5.71	36	\N	f
+37	2026-09-24 10:14:04.611665	2026-09-24	A	5.78	37	\N	f
+38	2026-09-24 10:14:10.253303	2026-09-24	A	5.64	38	\N	f
+39	2026-09-24 10:14:17.084704	2026-09-24	A	6.83	39	\N	f
+40	2026-09-24 10:14:22.89961	2026-09-24	A	5.81	40	\N	f
+41	2026-09-24 10:14:28.808479	2026-09-24	A	5.91	41	\N	f
+42	2026-09-24 10:14:34.910378	2026-09-24	A	6.10	42	\N	f
+43	2026-09-24 10:14:40.80566	2026-09-24	A	5.90	43	\N	f
+44	2026-09-24 10:14:46.802709	2026-09-24	A	6.00	44	\N	f
+45	2026-09-24 10:14:52.634271	2026-09-24	A	5.83	45	\N	f
+46	2026-09-24 10:15:01.243281	2026-09-24	A	8.61	46	\N	f
+47	2026-09-24 10:15:15.978919	2026-09-24	A	14.74	47	\N	f
+48	2026-09-24 10:15:22.230916	2026-09-24	A	6.25	48	\N	f
+49	2026-09-24 10:15:27.992895	2026-09-24	A	5.76	49	\N	f
+50	2026-09-24 10:15:34.99548	2026-09-24	A	7.00	50	\N	f
+51	2026-09-24 10:15:42.015096	2026-09-24	A	7.02	51	\N	f
+52	2026-09-24 10:15:47.854563	2026-09-24	A	5.84	52	\N	f
+53	2026-09-24 10:15:54.413898	2026-09-24	A	6.56	53	\N	f
+54	2026-09-24 10:16:00.216999	2026-09-24	A	5.80	54	\N	f
+55	2026-09-24 10:16:06.488759	2026-09-24	A	6.27	55	\N	f
+56	2026-09-24 10:16:12.712846	2026-09-24	A	6.22	56	\N	f
+57	2026-09-24 10:16:18.963898	2026-09-24	A	6.25	57	\N	f
+58	2026-09-24 10:16:28.320971	2026-09-24	A	9.36	58	\N	f
+59	2026-09-24 10:16:34.662649	2026-09-24	A	6.34	59	\N	f
+60	2026-09-24 10:16:40.661486	2026-09-24	A	6.00	60	\N	f
+61	2026-09-24 10:16:49.27696	2026-09-24	A	8.62	61	\N	f
+62	2026-09-24 10:16:55.334966	2026-09-24	A	6.06	62	\N	f
+63	2026-09-24 10:17:01.065854	2026-09-24	A	5.73	63	\N	f
+64	2026-09-24 10:17:07.171071	2026-09-24	A	6.11	64	\N	f
+65	2026-09-24 10:17:13.07133	2026-09-24	A	5.90	65	\N	f
+66	2026-09-24 10:17:19.165411	2026-09-24	A	6.09	66	\N	f
+67	2026-09-24 10:17:25.367369	2026-09-24	A	6.20	67	\N	f
+68	2026-09-24 10:17:31.249094	2026-09-24	A	5.88	68	\N	f
+69	2026-09-24 10:17:37.045033	2026-09-24	A	5.80	69	\N	f
+70	2026-09-24 10:17:42.907688	2026-09-24	A	5.86	70	\N	f
+71	2026-09-24 10:17:49.826685	2026-09-24	A	6.92	71	\N	f
+72	2026-09-24 10:17:57.517356	2026-09-24	A	7.69	72	\N	f
+73	2026-09-24 10:18:04.670091	2026-09-24	A	7.15	73	\N	f
+74	2026-09-24 10:18:10.837412	2026-09-24	A	6.17	74	\N	f
+75	2026-09-24 10:18:17.004852	2026-09-24	A	6.17	75	\N	f
+76	2026-09-24 10:18:22.947499	2026-09-24	A	5.94	76	\N	f
+77	2026-09-24 10:18:29.101542	2026-09-24	A	6.15	77	\N	f
+78	2026-09-24 10:18:35.457914	2026-09-24	A	6.36	78	\N	f
+79	2026-09-24 10:18:41.625117	2026-09-24	A	6.17	79	\N	f
+80	2026-09-24 10:18:47.95237	2026-09-24	A	6.33	80	\N	f
+81	2026-09-24 10:18:55.494137	2026-09-24	A	7.54	81	\N	f
+82	2026-09-24 10:19:01.491664	2026-09-24	A	6.00	82	\N	f
+83	2026-09-24 10:19:07.615254	2026-09-24	A	6.12	83	\N	f
+84	2026-09-24 10:19:13.817552	2026-09-24	A	6.20	84	\N	f
+85	2026-09-24 10:19:20.163777	2026-09-24	A	6.35	85	\N	f
+86	2026-09-24 10:19:26.147607	2026-09-24	A	5.98	86	\N	f
+87	2026-09-24 10:19:31.927637	2026-09-24	A	5.78	87	\N	f
+88	2026-09-24 10:19:37.769688	2026-09-24	A	5.84	88	\N	f
+89	2026-09-24 10:19:43.717765	2026-09-24	A	5.95	89	\N	f
+90	2026-09-24 10:19:49.505253	2026-09-24	A	5.79	90	\N	f
+91	2026-09-24 10:19:55.646715	2026-09-24	A	6.14	91	\N	f
+92	2026-09-24 10:20:01.457859	2026-09-24	A	5.81	92	\N	f
+93	2026-09-24 10:20:10.222523	2026-09-24	A	8.76	93	\N	f
+94	2026-09-24 10:20:21.538338	2026-09-24	A	11.32	94	\N	f
+95	2026-09-24 10:23:27.580613	2026-09-24	A	0.00	95	\N	f
+96	2026-09-24 10:23:33.313771	2026-09-24	A	5.73	96	\N	f
+97	2026-09-24 10:23:39.01654	2026-09-24	A	5.70	97	\N	f
+98	2026-09-24 10:23:44.873209	2026-09-24	A	5.86	98	\N	f
+99	2026-09-24 10:23:50.627654	2026-09-24	A	5.75	99	\N	f
+100	2026-09-24 10:23:57.445034	2026-09-24	A	6.82	100	\N	f
+101	2026-09-24 10:24:03.375675	2026-09-24	A	5.93	101	\N	f
+102	2026-09-24 10:24:09.101446	2026-09-24	A	5.73	102	\N	f
+103	2026-09-24 10:24:14.987338	2026-09-24	A	5.89	103	\N	f
+104	2026-09-24 10:24:20.992806	2026-09-24	A	6.01	104	\N	f
+105	2026-09-24 10:24:28.165356	2026-09-24	A	7.17	105	\N	f
+106	2026-09-24 10:24:34.355668	2026-09-24	A	6.19	106	\N	f
+107	2026-09-24 10:24:41.7357	2026-09-24	A	7.38	107	\N	f
+108	2026-09-24 10:24:48.563402	2026-09-24	A	6.83	108	\N	f
+109	2026-09-24 10:24:55.153064	2026-09-24	A	6.59	109	\N	f
+110	2026-09-24 10:25:01.412993	2026-09-24	A	6.26	110	\N	f
+111	2026-09-24 10:25:07.384898	2026-09-24	A	5.97	111	\N	f
+112	2026-09-24 10:25:13.884056	2026-09-24	A	6.50	112	\N	f
+113	2026-09-24 10:25:20.087186	2026-09-24	A	6.20	113	\N	f
+114	2026-09-24 10:25:25.920351	2026-09-24	A	5.83	114	\N	f
+115	2026-09-24 10:25:32.386322	2026-09-24	A	6.47	115	\N	f
+116	2026-09-24 10:26:03.587147	2026-09-24	A	31.20	116	\N	f
+117	2026-09-24 10:26:10.558162	2026-09-24	A	6.97	117	\N	f
+118	2026-09-24 10:26:16.902121	2026-09-24	A	6.34	118	\N	f
+119	2026-09-24 10:26:23.10075	2026-09-24	A	6.20	119	\N	f
+120	2026-09-24 10:26:29.220337	2026-09-24	A	6.12	120	\N	f
+121	2026-09-24 10:26:34.949835	2026-09-24	A	5.73	121	\N	f
+122	2026-09-24 10:26:41.105609	2026-09-24	A	6.16	122	\N	f
+123	2026-09-24 10:26:47.220415	2026-09-24	A	6.11	123	\N	f
+124	2026-09-24 10:26:53.312581	2026-09-24	A	6.09	124	\N	f
+125	2026-09-24 10:27:03.617291	2026-09-24	A	10.30	125	\N	f
+126	2026-09-24 10:27:10.325994	2026-09-24	A	6.71	126	\N	f
+127	2026-09-24 10:27:16.471068	2026-09-24	A	6.15	127	\N	f
+128	2026-09-24 10:27:22.448627	2026-09-24	A	5.98	128	\N	f
+129	2026-09-24 10:27:29.206564	2026-09-24	A	6.76	129	\N	f
+130	2026-09-24 10:27:35.427701	2026-09-24	A	6.22	130	\N	f
+131	2026-09-24 10:27:41.464854	2026-09-24	A	6.04	131	\N	f
+132	2026-09-24 10:27:47.92104	2026-09-24	A	6.46	132	\N	f
+133	2026-09-24 10:27:54.232174	2026-09-24	A	6.31	133	\N	f
+134	2026-09-24 10:28:00.227446	2026-09-24	A	6.00	134	\N	f
+135	2026-09-24 10:28:06.477656	2026-09-24	A	6.25	135	\N	f
+136	2026-09-24 10:28:12.721728	2026-09-24	A	6.24	136	\N	f
+137	2026-09-24 10:28:19.589836	2026-09-24	A	6.87	137	\N	f
+138	2026-09-24 10:28:30.832976	2026-09-24	A	11.24	138	\N	f
+139	2026-09-24 10:28:36.917963	2026-09-24	A	6.08	139	\N	f
+140	2026-09-24 10:28:43.72912	2026-09-24	A	6.81	140	\N	f
+141	2026-09-24 10:28:51.7041	2026-09-24	A	7.97	141	\N	f
+142	2026-09-24 10:28:58.071836	2026-09-24	A	6.37	142	\N	f
+143	2026-09-24 10:29:05.603477	2026-09-24	A	7.53	143	\N	f
+144	2026-09-24 10:29:11.928141	2026-09-24	A	6.32	144	\N	f
+145	2026-09-24 10:29:19.405605	2026-09-24	A	7.48	145	\N	f
+146	2026-09-24 10:29:26.257485	2026-09-24	A	6.85	146	\N	f
+147	2026-09-24 10:29:32.087399	2026-09-24	A	5.83	147	\N	f
+148	2026-09-24 10:29:38.04858	2026-09-24	A	5.96	148	\N	f
+149	2026-09-24 10:29:44.05636	2026-09-24	A	6.01	149	\N	f
+150	2026-09-24 10:29:50.027669	2026-09-24	A	5.97	150	\N	f
+151	2026-09-24 10:29:56.122108	2026-09-24	A	6.09	151	\N	f
+152	2026-09-24 10:30:02.543569	2026-09-24	A	6.42	152	\N	f
+153	2026-09-24 10:30:10.096467	2026-09-24	A	7.55	153	\N	f
+154	2026-09-24 10:30:15.861868	2026-09-24	A	5.77	154	\N	f
+155	2026-09-24 10:30:21.863927	2026-09-24	A	6.00	155	\N	f
+156	2026-09-24 10:30:27.87293	2026-09-24	A	6.01	156	\N	f
+157	2026-09-24 10:30:34.06521	2026-09-24	A	6.19	157	\N	f
+158	2026-09-24 10:30:40.257489	2026-09-24	A	6.19	158	\N	f
+159	2026-09-24 10:30:46.449769	2026-09-24	A	6.19	159	\N	f
+160	2026-09-24 10:30:52.642048	2026-09-24	A	6.19	160	\N	f
+161	2026-09-24 10:30:58.834328	2026-09-24	A	6.19	161	\N	f
+162	2026-09-24 10:31:05.026607	2026-09-24	A	6.19	162	\N	f
+163	2026-09-24 10:31:11.218887	2026-09-24	A	6.19	163	\N	f
+164	2026-09-24 10:31:17.411166	2026-09-24	A	6.19	164	\N	f
+165	2026-09-24 10:31:23.603446	2026-09-24	A	6.19	165	\N	f
+166	2026-09-24 10:31:29.43184	2026-09-24	A	62.51	166	\N	f
+167	2026-09-24 10:31:35.561147	2026-09-24	A	6.13	167	\N	f
+168	2026-09-24 10:31:41.385427	2026-09-24	A	5.82	168	\N	f
+169	2026-09-24 10:31:47.275324	2026-09-24	A	5.89	169	\N	f
+170	2026-09-24 10:31:53.948022	2026-09-24	A	6.67	170	\N	f
+171	2026-09-24 10:31:59.782704	2026-09-24	A	5.83	171	\N	f
+172	2026-09-24 10:32:06.709688	2026-09-24	A	6.93	172	\N	f
+173	2026-09-24 10:32:12.904983	2026-09-24	A	6.20	173	\N	f
+174	2026-09-24 10:32:18.909154	2026-09-24	A	6.00	174	\N	f
+175	2026-09-24 10:32:25.443446	2026-09-24	A	6.53	175	\N	f
+176	2026-09-24 10:32:31.874222	2026-09-24	A	6.43	176	\N	f
+177	2026-09-24 10:32:37.971862	2026-09-24	A	6.10	177	\N	f
+178	2026-09-24 10:32:44.184195	2026-09-24	A	6.21	178	\N	f
+179	2026-09-24 10:32:50.098031	2026-09-24	A	5.91	179	\N	f
+180	2026-09-24 10:32:55.93591	2026-09-24	A	5.84	180	\N	f
+181	2026-09-24 10:33:01.986171	2026-09-24	A	6.05	181	\N	f
+182	2026-09-24 10:33:08.058305	2026-09-24	A	6.07	182	\N	f
+183	2026-09-24 10:33:14.099342	2026-09-24	A	6.04	183	\N	f
+184	2026-09-24 10:33:20.050693	2026-09-24	A	5.95	184	\N	f
+185	2026-09-24 10:33:26.34876	2026-09-24	A	6.30	185	\N	f
+186	2026-09-24 10:33:32.463097	2026-09-24	A	6.11	186	\N	f
+187	2026-09-24 10:33:39.312346	2026-09-24	A	6.85	187	\N	f
+188	2026-09-24 10:33:46.445271	2026-09-24	A	7.13	188	\N	f
+189	2026-09-24 10:33:52.611027	2026-09-24	A	6.17	189	\N	f
+190	2026-09-24 10:33:58.677122	2026-09-24	A	6.07	190	\N	f
+191	2026-09-24 10:34:04.839924	2026-09-24	A	6.16	191	\N	f
+192	2026-09-24 10:34:11.3534	2026-09-24	A	6.51	192	\N	f
+193	2026-09-24 10:34:17.763326	2026-09-24	A	6.41	193	\N	f
+194	2026-09-24 10:34:23.795616	2026-09-24	A	6.03	194	\N	f
+195	2026-09-24 10:34:29.914246	2026-09-24	A	6.12	195	\N	f
+196	2026-09-24 10:34:36.061635	2026-09-24	A	6.15	196	\N	f
+197	2026-09-24 10:34:42.240808	2026-09-24	A	6.18	197	\N	f
+198	2026-09-24 10:34:47.975631	2026-09-24	A	5.73	198	\N	f
+199	2026-09-24 10:34:54.236641	2026-09-24	A	6.26	199	\N	f
+200	2026-09-24 10:35:00.803874	2026-09-24	A	6.57	200	\N	f
+201	2026-09-24 10:35:06.689242	2026-09-24	A	5.89	201	\N	f
+202	2026-09-24 10:35:13.6426	2026-09-24	A	6.95	202	\N	f
+203	2026-09-24 10:35:19.481243	2026-09-24	A	5.84	203	\N	f
+204	2026-09-24 10:35:26.068816	2026-09-24	A	6.59	204	\N	f
+205	2026-09-24 10:35:32.038135	2026-09-24	A	5.97	205	\N	f
+206	2026-09-24 10:35:38.207435	2026-09-24	A	6.17	206	\N	f
+207	2026-09-24 10:35:44.210887	2026-09-24	A	6.00	207	\N	f
+208	2026-09-24 10:35:50.482775	2026-09-24	A	6.27	208	\N	f
+209	2026-09-24 10:35:56.339964	2026-09-24	A	5.86	209	\N	f
+210	2026-09-24 10:36:02.224562	2026-09-24	A	5.88	210	\N	f
+211	2026-09-24 10:36:08.32131	2026-09-24	A	6.10	211	\N	f
+212	2026-09-24 10:36:14.22535	2026-09-24	A	5.90	212	\N	f
+213	2026-09-24 10:36:20.372521	2026-09-24	A	6.15	213	\N	f
+214	2026-09-24 10:36:26.538932	2026-09-24	A	6.17	214	\N	f
+215	2026-09-24 10:36:33.703175	2026-09-24	A	7.16	215	\N	f
+216	2026-09-24 10:36:41.831226	2026-09-24	A	8.13	216	\N	f
+217	2026-09-24 10:36:49.653091	2026-09-24	A	7.82	217	\N	f
+218	2026-09-24 10:36:55.713556	2026-09-24	A	6.06	218	\N	f
+219	2026-09-24 10:37:01.588423	2026-09-24	A	5.87	219	\N	f
+220	2026-09-24 10:37:07.459084	2026-09-24	A	5.87	220	\N	f
+221	2026-09-24 10:37:14.099218	2026-09-24	A	6.64	221	\N	f
+222	2026-09-24 10:37:20.052902	2026-09-24	A	5.95	222	\N	f
+223	2026-09-24 10:37:26.1102	2026-09-24	A	6.06	223	\N	f
+224	2026-09-24 10:37:32.38421	2026-09-24	A	6.27	224	\N	f
+225	2026-09-24 10:42:11.827025	2026-09-24	A	0.00	225	\N	f
+226	2026-09-24 10:43:36.725252	2026-09-24	A	84.90	226	\N	f
+227	2026-09-24 10:43:47.982284	2026-09-24	A	11.26	227	\N	f
+228	2026-09-24 10:43:54.695311	2026-09-24	A	6.71	228	\N	f
+229	2026-09-24 10:44:02.540206	2026-09-24	A	7.84	229	\N	f
+230	2026-09-24 10:44:09.098137	2026-09-24	A	6.56	230	\N	f
+231	2026-09-24 10:44:15.938881	2026-09-24	A	6.84	231	\N	f
+232	2026-09-24 10:44:22.06438	2026-09-24	A	6.13	232	\N	f
+233	2026-09-24 10:44:36.279975	2026-09-24	A	14.22	233	\N	f
+234	2026-09-24 10:44:43.308452	2026-09-24	A	7.03	234	\N	f
+235	2026-09-24 10:44:50.356652	2026-09-24	A	7.05	235	\N	f
+236	2026-09-24 10:44:56.522646	2026-09-24	A	6.17	236	\N	f
+237	2026-09-24 10:45:02.428943	2026-09-24	A	5.91	237	\N	f
+238	2026-09-24 10:45:09.165314	2026-09-24	A	6.74	238	\N	f
+239	2026-09-24 10:45:15.328494	2026-09-24	A	6.16	239	\N	f
+240	2026-09-24 10:45:28.031924	2026-09-24	A	12.70	240	\N	f
+241	2026-09-24 10:45:37.327	2026-09-24	A	9.30	241	\N	f
+242	2026-09-24 10:45:52.801832	2026-09-24	A	15.47	242	\N	f
+243	2026-09-24 10:46:02.354578	2026-09-24	A	9.55	243	\N	f
+244	2026-09-24 10:46:09.426962	2026-09-24	A	7.07	244	\N	f
+245	2026-09-24 10:46:15.990066	2026-09-24	A	6.56	245	\N	f
+246	2026-09-24 10:46:23.034042	2026-09-24	A	7.04	246	\N	f
+247	2026-09-24 10:46:29.123569	2026-09-24	A	6.09	247	\N	f
+248	2026-09-24 10:46:47.329891	2026-09-24	A	18.21	248	\N	f
+249	2026-09-24 10:46:54.391601	2026-09-24	A	7.06	249	\N	f
+250	2026-09-24 10:47:04.099435	2026-09-24	A	9.71	250	\N	f
+251	2026-09-24 10:47:10.333952	2026-09-24	A	6.23	251	\N	f
+252	2026-09-24 10:47:17.159044	2026-09-24	A	6.83	252	\N	f
+253	2026-09-24 10:47:23.530608	2026-09-24	A	6.37	253	\N	f
+254	2026-09-24 10:47:31.230192	2026-09-24	A	7.70	254	\N	f
+255	2026-09-24 10:47:38.246498	2026-09-24	A	7.02	255	\N	f
+256	2026-09-24 10:47:47.082346	2026-09-24	A	8.84	256	\N	f
+257	2026-09-24 10:47:58.379449	2026-09-24	A	11.30	257	\N	f
+258	2026-09-24 10:48:06.857684	2026-09-24	A	8.48	258	\N	f
+259	2026-09-24 10:48:13.421739	2026-09-24	A	6.56	259	\N	f
+260	2026-09-24 10:48:19.978805	2026-09-24	A	6.56	260	\N	f
+261	2026-09-24 10:48:26.298689	2026-09-24	A	6.32	261	\N	f
+262	2026-09-24 10:48:32.973893	2026-09-24	A	6.68	262	\N	f
+263	2026-09-24 10:48:39.527702	2026-09-24	A	6.55	263	\N	f
+264	2026-09-24 10:48:45.85353	2026-09-24	A	6.33	264	\N	f
+265	2026-09-24 10:48:59.360688	2026-09-24	A	13.51	265	\N	f
+266	2026-09-24 10:49:53.617797	2026-09-24	A	54.26	266	\N	f
+267	2026-09-24 10:49:59.70682	2026-09-24	A	6.09	267	\N	f
+268	2026-09-24 10:50:06.365369	2026-09-24	A	6.66	268	\N	f
+269	2026-09-24 10:50:12.439234	2026-09-24	A	6.07	269	\N	f
+270	2026-09-24 10:50:21.015716	2026-09-24	A	8.58	270	\N	f
+271	2026-09-24 10:50:26.961332	2026-09-24	A	5.95	271	\N	f
+272	2026-09-24 10:50:33.86215	2026-09-24	A	6.90	272	\N	f
+273	2026-09-24 10:50:39.900178	2026-09-24	A	6.04	273	\N	f
+274	2026-09-24 10:50:45.797828	2026-09-24	A	5.90	274	\N	f
+275	2026-09-24 10:50:51.645505	2026-09-24	A	5.85	275	\N	f
+276	2026-09-24 10:50:57.552767	2026-09-24	A	5.91	276	\N	f
+277	2026-09-24 10:51:04.149212	2026-09-24	A	6.60	277	\N	f
+278	2026-09-24 10:51:12.531128	2026-09-24	A	8.38	278	\N	f
+279	2026-09-24 10:51:18.693283	2026-09-24	A	6.16	279	\N	f
+280	2026-09-24 10:51:24.904866	2026-09-24	A	6.21	280	\N	f
+281	2026-09-24 10:51:31.191596	2026-09-24	A	6.29	281	\N	f
+282	2026-09-24 10:51:40.097955	2026-09-24	A	8.91	282	\N	f
+283	2026-09-24 10:51:48.215396	2026-09-24	A	8.12	283	\N	f
+284	2026-09-24 10:51:59.125499	2026-09-24	A	10.91	284	\N	f
+285	2026-09-24 10:52:05.467285	2026-09-24	A	6.34	285	\N	f
+286	2026-09-24 10:52:11.897609	2026-09-24	A	6.43	286	\N	f
+287	2026-09-24 10:52:24.704225	2026-09-24	A	12.81	287	\N	f
+288	2026-09-24 10:52:30.84663	2026-09-24	A	6.14	288	\N	f
+289	2026-09-24 10:52:37.558978	2026-09-24	A	6.71	289	\N	f
+290	2026-09-24 10:52:44.428373	2026-09-24	A	6.87	290	\N	f
+291	2026-09-24 10:52:51.158355	2026-09-24	A	6.73	291	\N	f
+292	2026-09-24 10:52:57.029445	2026-09-24	A	5.87	292	\N	f
+293	2026-09-24 10:53:02.917236	2026-09-24	A	5.89	293	\N	f
+294	2026-09-24 10:53:08.714964	2026-09-24	A	5.80	294	\N	f
+295	2026-09-24 10:53:15.365024	2026-09-24	A	6.65	295	\N	f
+296	2026-09-24 10:53:24.388142	2026-09-24	A	9.02	296	\N	f
+297	2026-09-24 10:53:30.684795	2026-09-24	A	6.30	297	\N	f
+298	2026-09-24 10:53:36.792402	2026-09-24	A	6.11	298	\N	f
+299	2026-09-24 10:53:43.24564	2026-09-24	A	6.45	299	\N	f
+300	2026-09-24 10:53:49.547227	2026-09-24	A	6.30	300	\N	f
+301	2026-09-24 10:53:55.466061	2026-09-24	A	5.92	301	\N	f
+302	2026-09-24 10:54:01.561176	2026-09-24	A	6.10	302	\N	f
+303	2026-09-24 10:54:07.678917	2026-09-24	A	6.12	303	\N	f
+304	2026-09-24 10:54:13.761189	2026-09-24	A	6.08	304	\N	f
+305	2026-09-24 10:54:19.911222	2026-09-24	A	6.15	305	\N	f
+306	2026-09-24 10:54:25.828813	2026-09-24	A	5.92	306	\N	f
+307	2026-09-24 10:54:33.981636	2026-09-24	A	8.15	307	\N	f
+308	2026-09-24 10:54:40.145871	2026-09-24	A	6.16	308	\N	f
+309	2026-09-24 10:54:46.437981	2026-09-24	A	6.29	309	\N	f
+310	2026-09-24 10:54:53.112612	2026-09-24	A	6.67	310	\N	f
+311	2026-09-24 10:55:02.283269	2026-09-24	A	9.17	311	\N	f
+312	2026-09-24 10:55:08.667303	2026-09-24	A	6.38	312	\N	f
+313	2026-09-24 10:55:14.77116	2026-09-24	A	6.10	313	\N	f
+314	2026-09-24 10:55:21.04708	2026-09-24	A	6.28	314	\N	f
+315	2026-09-24 10:55:27.713625	2026-09-24	A	6.67	315	\N	f
+316	2026-09-24 10:55:34.050076	2026-09-24	A	6.34	316	\N	f
+317	2026-09-24 10:55:40.335398	2026-09-24	A	6.29	317	\N	f
+318	2026-09-24 10:55:47.136518	2026-09-24	A	6.80	318	\N	f
+319	2026-09-24 10:55:55.672702	2026-09-24	A	8.54	319	\N	f
+320	2026-09-24 10:56:02.290499	2026-09-24	A	6.62	320	\N	f
+321	2026-09-24 10:56:09.441762	2026-09-24	A	7.15	321	\N	f
+322	2026-09-24 11:01:18.269067	2026-09-24	A	0.00	322	\N	f
+323	2026-09-24 11:01:24.129625	2026-09-24	A	5.86	323	\N	f
+324	2026-09-24 11:01:30.120533	2026-09-24	A	5.99	324	\N	f
+325	2026-09-24 11:01:36.63403	2026-09-24	A	6.51	325	\N	f
+326	2026-09-24 11:01:42.540867	2026-09-24	A	5.91	326	\N	f
+327	2026-09-24 11:01:48.613912	2026-09-24	A	6.07	327	\N	f
+328	2026-09-24 11:01:54.525901	2026-09-24	A	5.91	328	\N	f
+329	2026-09-24 11:02:00.353333	2026-09-24	A	5.83	329	\N	f
+330	2026-09-24 11:02:07.612827	2026-09-24	A	7.26	330	\N	f
+331	2026-09-24 11:02:13.892442	2026-09-24	A	6.28	331	\N	f
+332	2026-09-24 11:02:20.780414	2026-09-24	A	6.89	332	\N	f
+333	2026-09-24 11:02:27.776566	2026-09-24	A	7.00	333	\N	f
+334	2026-09-24 11:02:33.942482	2026-09-24	A	6.17	334	\N	f
+335	2026-09-24 11:02:39.826212	2026-09-24	A	5.88	335	\N	f
+336	2026-09-24 11:03:52.029261	2026-09-24	A	72.20	336	\N	f
+337	2026-09-24 11:03:58.142458	2026-09-24	A	6.11	337	\N	f
+338	2026-09-24 11:04:04.46289	2026-09-24	A	6.32	338	\N	f
+339	2026-09-24 11:04:10.939952	2026-09-24	A	6.48	339	\N	f
+340	2026-09-24 11:04:17.530208	2026-09-24	A	6.59	340	\N	f
+341	2026-09-24 11:04:23.685047	2026-09-24	A	6.15	341	\N	f
+342	2026-09-24 11:04:30.109814	2026-09-24	A	6.42	342	\N	f
+343	2026-09-24 11:04:35.912944	2026-09-24	A	5.80	343	\N	f
+344	2026-09-24 11:04:42.131502	2026-09-24	A	6.22	344	\N	f
+345	2026-09-24 11:04:48.01349	2026-09-24	A	5.88	345	\N	f
+346	2026-09-24 11:04:53.88468	2026-09-24	A	5.87	346	\N	f
+347	2026-09-24 11:05:00.992353	2026-09-24	A	7.11	347	\N	f
+348	2026-09-24 11:05:06.88358	2026-09-24	A	5.89	348	\N	f
+349	2026-09-24 11:05:12.645817	2026-09-24	A	5.76	349	\N	f
+350	2026-09-24 11:05:18.388136	2026-09-24	A	5.74	350	\N	f
+351	2026-09-24 11:05:24.544702	2026-09-24	A	6.16	351	\N	f
+352	2026-09-24 11:05:30.609157	2026-09-24	A	6.06	352	\N	f
+353	2026-09-24 11:05:36.4725	2026-09-24	A	5.86	353	\N	f
+354	2026-09-24 11:05:42.406013	2026-09-24	A	5.93	354	\N	f
+355	2026-09-24 11:05:50.465946	2026-09-24	A	8.06	355	\N	f
+356	2026-09-24 11:05:57.013918	2026-09-24	A	6.55	356	\N	f
+357	2026-09-24 11:06:04.170646	2026-09-24	A	7.16	357	\N	f
+358	2026-09-24 11:09:51.050027	2026-09-24	A	0.00	358	\N	f
+359	2026-09-24 11:09:57.106905	2026-09-24	A	6.06	359	\N	f
+360	2026-09-24 11:10:02.845156	2026-09-24	A	5.74	360	\N	f
+361	2026-09-24 11:10:09.059869	2026-09-24	A	6.21	361	\N	f
+362	2026-09-24 11:10:15.004525	2026-09-24	A	5.94	362	\N	f
+363	2026-09-24 11:10:20.80032	2026-09-24	A	5.80	363	\N	f
+364	2026-09-24 11:10:27.320104	2026-09-24	A	6.52	364	\N	f
+365	2026-09-24 11:10:33.291668	2026-09-24	A	5.97	365	\N	f
+366	2026-09-24 11:10:39.273022	2026-09-24	A	5.98	366	\N	f
+367	2026-09-24 11:10:47.19252	2026-09-24	A	7.92	367	\N	f
+368	2026-09-24 11:10:53.034675	2026-09-24	A	5.84	368	\N	f
+369	2026-09-24 11:10:58.852028	2026-09-24	A	5.82	369	\N	f
+370	2026-09-24 11:11:05.302667	2026-09-24	A	6.45	370	\N	f
+371	2026-09-24 11:11:12.302357	2026-09-24	A	7.00	371	\N	f
+372	2026-09-24 11:11:18.328439	2026-09-24	A	6.03	372	\N	f
+373	2026-09-24 11:11:24.037384	2026-09-24	A	5.71	373	\N	f
+374	2026-09-24 11:11:30.046085	2026-09-24	A	6.01	374	\N	f
+375	2026-09-24 11:11:37.017268	2026-09-24	A	6.97	375	\N	f
+376	2026-09-24 11:11:43.383959	2026-09-24	A	6.37	376	\N	f
+377	2026-09-24 11:11:49.145442	2026-09-24	A	5.76	377	\N	f
+378	2026-09-24 11:11:54.992538	2026-09-24	A	5.85	378	\N	f
+379	2026-09-24 11:12:00.766686	2026-09-24	A	5.77	379	\N	f
+380	2026-09-24 11:12:06.801836	2026-09-24	A	6.04	380	\N	f
+381	2026-09-24 11:12:12.69384	2026-09-24	A	5.89	381	\N	f
+382	2026-09-24 11:12:18.604238	2026-09-24	A	5.91	382	\N	f
+383	2026-09-24 11:12:24.525465	2026-09-24	A	5.92	383	\N	f
+384	2026-09-24 11:12:30.473643	2026-09-24	A	5.95	384	\N	f
+385	2026-09-24 11:12:36.667773	2026-09-24	A	6.19	385	\N	f
+386	2026-09-24 11:14:00.595554	2026-09-24	A	83.93	386	\N	f
+387	2026-09-24 11:14:06.511165	2026-09-24	A	5.92	387	\N	f
+388	2026-09-24 11:14:13.944182	2026-09-24	A	7.43	388	\N	f
+389	2026-09-24 11:14:21.73649	2026-09-24	A	7.79	389	\N	f
+390	2026-09-24 11:14:27.920562	2026-09-24	A	6.18	390	\N	f
+391	2026-09-24 11:14:36.169918	2026-09-24	A	8.25	391	\N	f
+392	2026-09-24 11:14:42.061052	2026-09-24	A	5.89	392	\N	f
+393	2026-09-24 11:14:47.804476	2026-09-24	A	5.74	393	\N	f
+394	2026-09-24 11:14:53.479205	2026-09-24	A	5.67	394	\N	f
+395	2026-09-24 11:15:01.705449	2026-09-24	A	8.23	395	\N	f
+396	2026-09-24 11:15:08.486613	2026-09-24	A	6.78	396	\N	f
+397	2026-09-24 11:15:14.32703	2026-09-24	A	5.84	397	\N	f
+398	2026-09-24 11:15:20.472285	2026-09-24	A	6.15	398	\N	f
+399	2026-09-24 11:15:28.892151	2026-09-24	A	8.42	399	\N	f
+400	2026-09-24 11:15:34.726678	2026-09-24	A	5.83	400	\N	f
+401	2026-09-24 11:15:40.865185	2026-09-24	A	6.14	401	\N	f
+402	2026-09-24 11:15:47.197357	2026-09-24	A	6.33	402	\N	f
+403	2026-09-24 11:15:53.132135	2026-09-24	A	5.93	403	\N	f
+404	2026-09-24 11:15:58.976694	2026-09-24	A	5.84	404	\N	f
+405	2026-09-24 11:16:08.786016	2026-09-24	A	9.81	405	\N	f
+406	2026-09-24 11:16:14.641952	2026-09-24	A	5.86	406	\N	f
+407	2026-09-24 11:27:18.666108	2026-09-24	A	0.00	407	\N	f
+408	2026-09-24 11:27:28.276109	2026-09-24	A	9.61	408	\N	f
+409	2026-09-24 11:27:34.344116	2026-09-24	A	6.07	409	\N	f
+410	2026-09-24 11:27:40.283627	2026-09-24	A	5.94	410	\N	f
+411	2026-09-24 11:27:46.173746	2026-09-24	A	5.89	411	\N	f
+412	2026-09-24 11:27:52.051365	2026-09-24	A	5.88	412	\N	f
+413	2026-09-24 11:27:57.923052	2026-09-24	A	5.87	413	\N	f
+414	2026-09-24 11:28:04.225368	2026-09-24	A	6.30	414	\N	f
+415	2026-09-24 11:28:10.506809	2026-09-24	A	6.28	415	\N	f
+416	2026-09-24 11:28:16.265143	2026-09-24	A	5.76	416	\N	f
+417	2026-09-24 11:28:22.229414	2026-09-24	A	5.96	417	\N	f
+418	2026-09-24 11:28:28.440164	2026-09-24	A	6.21	418	\N	f
+419	2026-09-24 11:28:36.021935	2026-09-24	A	7.58	419	\N	f
+420	2026-09-24 11:28:42.462487	2026-09-24	A	6.44	420	\N	f
+421	2026-09-24 11:28:48.986755	2026-09-24	A	6.52	421	\N	f
+422	2026-09-24 11:28:55.715147	2026-09-24	A	6.73	422	\N	f
+423	2026-09-24 11:29:03.363297	2026-09-24	A	7.65	423	\N	f
+424	2026-09-24 11:29:09.676236	2026-09-24	A	6.31	424	\N	f
+425	2026-09-24 11:29:17.740671	2026-09-24	A	8.06	425	\N	f
+426	2026-09-24 11:29:24.637179	2026-09-24	A	6.90	426	\N	f
+427	2026-09-24 11:29:31.124243	2026-09-24	A	6.49	427	\N	f
+428	2026-09-24 11:29:37.945151	2026-09-24	A	6.82	428	\N	f
+429	2026-09-24 11:29:47.944875	2026-09-24	A	10.00	429	\N	f
+430	2026-09-24 11:29:53.979134	2026-09-24	A	6.03	430	\N	f
+431	2026-09-24 11:29:59.867822	2026-09-24	A	5.89	431	\N	f
+432	2026-09-24 11:30:05.802798	2026-09-24	A	5.93	432	\N	f
+433	2026-09-24 11:30:12.645332	2026-09-24	A	6.84	433	\N	f
+434	2026-09-24 11:30:19.014931	2026-09-24	A	6.37	434	\N	f
+435	2026-09-24 11:30:25.288583	2026-09-24	A	6.27	435	\N	f
+436	2026-09-24 11:30:31.538492	2026-09-24	A	6.25	436	\N	f
+437	2026-09-24 11:30:38.017834	2026-09-24	A	6.48	437	\N	f
+438	2026-09-24 11:30:43.905919	2026-09-24	A	5.89	438	\N	f
+439	2026-09-24 11:30:50.345943	2026-09-24	A	6.44	439	\N	f
+440	2026-09-24 11:30:56.591263	2026-09-24	A	6.25	440	\N	f
+441	2026-09-24 11:31:02.475393	2026-09-24	A	5.88	441	\N	f
+442	2026-09-24 11:31:09.786867	2026-09-24	A	7.31	442	\N	f
+443	2026-09-24 11:31:16.827414	2026-09-24	A	7.04	443	\N	f
+444	2026-09-24 11:31:23.987291	2026-09-24	A	7.16	444	\N	f
+445	2026-09-24 11:31:30.165025	2026-09-24	A	6.18	445	\N	f
+446	2026-09-24 11:31:36.463552	2026-09-24	A	6.30	446	\N	f
+447	2026-09-24 11:31:42.543408	2026-09-24	A	6.08	447	\N	f
+448	2026-09-24 11:31:48.5816	2026-09-24	A	6.04	448	\N	f
+449	2026-09-24 11:31:54.680968	2026-09-24	A	6.10	449	\N	f
+450	2026-09-24 11:32:00.848504	2026-09-24	A	6.17	450	\N	f
+451	2026-09-24 11:32:06.923385	2026-09-24	A	6.07	451	\N	f
+452	2026-09-24 11:32:13.068223	2026-09-24	A	6.14	452	\N	f
+453	2026-09-24 11:32:19.14835	2026-09-24	A	6.08	453	\N	f
+454	2026-09-24 11:32:25.336351	2026-09-24	A	6.19	454	\N	f
+455	2026-09-24 11:32:32.103193	2026-09-24	A	6.77	455	\N	f
+456	2026-09-24 11:32:37.996613	2026-09-24	A	5.89	456	\N	f
+457	2026-09-24 11:32:44.130699	2026-09-24	A	6.13	457	\N	f
+458	2026-09-24 11:32:51.199223	2026-09-24	A	7.07	458	\N	f
+459	2026-09-24 11:32:57.279906	2026-09-24	A	6.08	459	\N	f
+460	2026-09-24 11:33:03.498403	2026-09-24	A	6.22	460	\N	f
+461	2026-09-24 11:33:09.418443	2026-09-24	A	5.92	461	\N	f
+462	2026-09-24 11:33:15.507751	2026-09-24	A	6.09	462	\N	f
+463	2026-09-24 11:33:22.328856	2026-09-24	A	6.82	463	\N	f
+464	2026-09-24 11:33:28.342259	2026-09-24	A	6.01	464	\N	f
+465	2026-09-24 11:33:34.50886	2026-09-24	A	6.17	465	\N	f
+466	2026-09-24 11:33:40.597533	2026-09-24	A	6.09	466	\N	f
+467	2026-09-24 11:33:47.260095	2026-09-24	A	6.66	467	\N	f
+468	2026-09-24 11:33:55.399369	2026-09-24	A	8.14	468	\N	f
+469	2026-09-24 11:34:06.56034	2026-09-24	A	11.16	469	\N	f
+470	2026-09-24 11:34:12.614309	2026-09-24	A	6.05	470	\N	f
+471	2026-09-24 11:34:18.663532	2026-09-24	A	6.05	471	\N	f
+472	2026-09-24 11:34:24.6796	2026-09-24	A	6.02	472	\N	f
+473	2026-09-24 11:34:32.106811	2026-09-24	A	7.43	473	\N	f
+474	2026-09-24 11:34:44.95457	2026-09-24	A	12.85	474	\N	f
+475	2026-09-24 11:34:51.1849	2026-09-24	A	6.23	475	\N	f
+476	2026-09-24 11:34:57.478879	2026-09-24	A	6.29	476	\N	f
+477	2026-09-24 11:35:45.909254	2026-09-24	A	48.43	477	\N	f
+478	2026-09-24 11:36:03.026188	2026-09-24	A	17.12	478	\N	f
+479	2026-09-24 11:36:09.056802	2026-09-24	A	6.03	479	\N	f
+480	2026-09-24 11:36:15.160289	2026-09-24	A	6.10	480	\N	f
+481	2026-09-24 11:36:21.940555	2026-09-24	A	6.78	481	\N	f
+482	2026-09-24 11:36:29.014558	2026-09-24	A	7.07	482	\N	f
+483	2026-09-24 11:36:34.888056	2026-09-24	A	5.87	483	\N	f
+484	2026-09-24 11:36:41.116517	2026-09-24	A	6.23	484	\N	f
+485	2026-09-24 11:36:48.115274	2026-09-24	A	7.00	485	\N	f
+486	2026-09-24 11:36:54.091314	2026-09-24	A	5.98	486	\N	f
+487	2026-09-24 11:37:00.17828	2026-09-24	A	6.09	487	\N	f
+488	2026-09-24 11:37:06.027863	2026-09-24	A	5.85	488	\N	f
+489	2026-09-24 11:37:11.790642	2026-09-24	A	5.76	489	\N	f
+490	2026-09-24 11:37:17.96045	2026-09-24	A	6.17	490	\N	f
+491	2026-09-24 11:37:29.787174	2026-09-24	A	11.83	491	\N	f
+492	2026-09-24 11:39:12.856248	2026-09-24	A	0.00	492	\N	f
+493	2026-09-24 11:39:18.648682	2026-09-24	A	5.79	493	\N	f
+494	2026-09-24 11:39:27.199409	2026-09-24	A	8.55	494	\N	f
+495	2026-09-24 11:39:34.3491	2026-09-24	A	7.15	495	\N	f
+496	2026-09-24 11:39:40.530485	2026-09-24	A	6.18	496	\N	f
+497	2026-09-24 11:39:46.525361	2026-09-24	A	5.99	497	\N	f
+498	2026-09-24 11:39:52.928818	2026-09-24	A	6.40	498	\N	f
+499	2026-09-24 11:39:58.774633	2026-09-24	A	5.85	499	\N	f
+500	2026-09-24 11:40:04.595605	2026-09-24	A	5.82	500	\N	f
+501	2026-09-24 11:40:10.516816	2026-09-24	A	5.92	501	\N	f
+502	2026-09-24 11:40:21.978172	2026-09-24	A	11.46	502	\N	f
+503	2026-09-24 11:40:27.808185	2026-09-24	A	5.83	503	\N	f
+504	2026-09-24 11:40:35.530232	2026-09-24	A	7.72	504	\N	f
+505	2026-09-24 11:40:41.552374	2026-09-24	A	6.02	505	\N	f
+506	2026-09-24 11:40:49.645736	2026-09-24	A	8.09	506	\N	f
+507	2026-09-24 11:40:55.699094	2026-09-24	A	6.05	507	\N	f
+508	2026-09-24 11:41:01.843665	2026-09-24	A	6.14	508	\N	f
+509	2026-09-24 11:41:07.812517	2026-09-24	A	5.97	509	\N	f
+510	2026-09-24 11:41:17.350561	2026-09-24	A	9.54	510	\N	f
+511	2026-09-24 11:41:23.511283	2026-09-24	A	6.16	511	\N	f
+512	2026-09-24 11:41:30.996513	2026-09-24	A	7.49	512	\N	f
+513	2026-09-24 11:41:36.829426	2026-09-24	A	5.83	513	\N	f
+514	2026-09-24 11:41:42.704931	2026-09-24	A	5.88	514	\N	f
+515	2026-09-24 11:41:49.136125	2026-09-24	A	6.43	515	\N	f
+516	2026-09-24 11:41:55.62807	2026-09-24	A	6.49	516	\N	f
+517	2026-09-24 11:42:01.595858	2026-09-24	A	5.97	517	\N	f
+518	2026-09-24 11:42:07.586179	2026-09-24	A	5.99	518	\N	f
+519	2026-09-24 11:42:13.471427	2026-09-24	A	5.89	519	\N	f
+520	2026-09-24 11:42:20.523192	2026-09-24	A	7.05	520	\N	f
+521	2026-09-24 11:42:26.397527	2026-09-24	A	5.87	521	\N	f
+522	2026-09-24 11:42:33.723501	2026-09-24	A	7.33	522	\N	f
+523	2026-09-24 11:42:47.456779	2026-09-24	A	13.73	523	\N	f
+524	2026-09-24 11:42:53.740834	2026-09-24	A	6.28	524	\N	f
+525	2026-09-24 11:42:59.726408	2026-09-24	A	5.99	525	\N	f
+526	2026-09-24 11:43:05.815633	2026-09-24	A	6.09	526	\N	f
+527	2026-09-24 11:43:14.444237	2026-09-24	A	8.63	527	\N	f
+528	2026-09-24 11:43:20.752461	2026-09-24	A	6.31	528	\N	f
+529	2026-09-24 11:43:26.67554	2026-09-24	A	5.92	529	\N	f
+530	2026-09-24 11:43:32.65729	2026-09-24	A	5.98	530	\N	f
+531	2026-09-24 11:43:38.558521	2026-09-24	A	5.90	531	\N	f
+532	2026-09-24 11:43:44.650968	2026-09-24	A	6.09	532	\N	f
+533	2026-09-24 11:43:50.444816	2026-09-24	A	5.79	533	\N	f
+534	2026-09-24 11:43:56.746304	2026-09-24	A	6.30	534	\N	f
+535	2026-09-24 11:44:15.889007	2026-09-24	A	19.14	535	\N	f
+536	2026-09-24 11:44:21.807363	2026-09-24	A	5.92	536	\N	f
+537	2026-09-24 11:44:27.969878	2026-09-24	A	6.16	537	\N	f
+538	2026-09-24 11:44:34.077193	2026-09-24	A	6.11	538	\N	f
+539	2026-09-24 11:44:42.542462	2026-09-24	A	8.47	539	\N	f
+540	2026-09-24 11:44:48.527506	2026-09-24	A	5.99	540	\N	f
+541	2026-09-24 11:44:54.463459	2026-09-24	A	5.94	541	\N	f
+542	2026-09-24 11:45:02.02611	2026-09-24	A	7.56	542	\N	f
+543	2026-09-24 11:45:07.735501	2026-09-24	A	5.71	543	\N	f
+544	2026-09-24 11:45:13.63689	2026-09-24	A	5.90	544	\N	f
+545	2026-09-24 11:45:19.723822	2026-09-24	A	6.09	545	\N	f
+546	2026-09-24 11:45:27.052241	2026-09-24	A	7.33	546	\N	f
+547	2026-09-24 11:45:32.951276	2026-09-24	A	5.90	547	\N	f
+548	2026-09-24 11:45:39.167392	2026-09-24	A	6.22	548	\N	f
+549	2026-09-24 11:45:45.279704	2026-09-24	A	6.11	549	\N	f
+550	2026-09-24 11:45:51.121839	2026-09-24	A	5.84	550	\N	f
+551	2026-09-24 11:45:56.949611	2026-09-24	A	5.83	551	\N	f
+552	2026-09-24 11:46:05.518979	2026-09-24	A	8.57	552	\N	f
+553	2026-09-24 11:46:12.470856	2026-09-24	A	6.95	553	\N	f
+554	2026-09-24 11:46:18.300041	2026-09-24	A	5.83	554	\N	f
+555	2026-09-24 11:46:25.237247	2026-09-24	A	6.94	555	\N	f
+556	2026-09-24 11:46:31.414896	2026-09-24	A	6.18	556	\N	f
+557	2026-09-24 11:46:37.410252	2026-09-24	A	6.00	557	\N	f
+558	2026-09-24 11:46:43.303089	2026-09-24	A	5.89	558	\N	f
+559	2026-09-24 11:46:49.867183	2026-09-24	A	6.56	559	\N	f
+560	2026-09-24 11:46:56.109551	2026-09-24	A	6.24	560	\N	f
+561	2026-09-24 11:47:02.352355	2026-09-24	A	6.24	561	\N	f
+562	2026-09-24 11:47:10.159604	2026-09-24	A	7.81	562	\N	f
+563	2026-09-24 11:47:16.337147	2026-09-24	A	6.18	563	\N	f
+564	2026-09-24 11:47:22.452201	2026-09-24	A	6.12	564	\N	f
+565	2026-09-24 11:47:28.333569	2026-09-24	A	5.88	565	\N	f
+566	2026-09-24 11:47:35.236982	2026-09-24	A	6.90	566	\N	f
+567	2026-09-24 11:47:41.541655	2026-09-24	A	6.30	567	\N	f
+568	2026-09-24 11:47:47.931202	2026-09-24	A	6.39	568	\N	f
+569	2026-09-24 11:47:53.918908	2026-09-24	A	5.99	569	\N	f
+570	2026-09-24 11:48:00.715893	2026-09-24	A	6.80	570	\N	f
+571	2026-09-24 11:48:08.825434	2026-09-24	A	8.11	571	\N	f
+572	2026-09-24 11:48:14.894492	2026-09-24	A	6.07	572	\N	f
+573	2026-09-24 11:48:20.70554	2026-09-24	A	5.81	573	\N	f
+574	2026-09-24 11:48:27.088239	2026-09-24	A	6.38	574	\N	f
+575	2026-09-24 11:48:32.971639	2026-09-24	A	5.88	575	\N	f
+576	2026-09-24 11:48:38.972574	2026-09-24	A	6.00	576	\N	f
+577	2026-09-24 11:48:45.035538	2026-09-24	A	6.06	577	\N	f
+578	2026-09-24 11:48:52.526374	2026-09-24	A	7.49	578	\N	f
+579	2026-09-24 11:48:59.656614	2026-09-24	A	7.13	579	\N	f
+580	2026-09-24 11:49:53.309842	2026-09-24	A	53.65	580	\N	f
+581	2026-09-24 11:49:59.117544	2026-09-24	A	5.81	581	\N	f
+582	2026-09-24 11:50:06.4666	2026-09-24	A	7.35	582	\N	f
+583	2026-09-24 11:50:12.509776	2026-09-24	A	6.04	583	\N	f
+584	2026-09-24 11:50:18.569237	2026-09-24	A	6.06	584	\N	f
+585	2026-09-24 11:50:24.406704	2026-09-24	A	5.84	585	\N	f
+586	2026-09-24 11:50:30.555817	2026-09-24	A	6.15	586	\N	f
+587	2026-09-24 11:50:37.786424	2026-09-24	A	7.23	587	\N	f
+588	2026-09-24 11:50:43.995457	2026-09-24	A	6.21	588	\N	f
+589	2026-09-24 11:50:50.892191	2026-09-24	A	6.90	589	\N	f
+590	2026-09-24 11:50:57.187838	2026-09-24	A	6.30	590	\N	f
+591	2026-09-24 11:51:03.717731	2026-09-24	A	6.53	591	\N	f
+592	2026-09-24 11:51:10.032384	2026-09-24	A	6.31	592	\N	f
+593	2026-09-24 11:51:16.277203	2026-09-24	A	6.24	593	\N	f
+594	2026-09-24 11:51:22.267939	2026-09-24	A	5.99	594	\N	f
+595	2026-09-24 11:51:28.6605	2026-09-24	A	6.39	595	\N	f
+596	2026-09-24 11:51:34.941768	2026-09-24	A	6.28	596	\N	f
+597	2026-09-24 11:51:41.348269	2026-09-24	A	6.41	597	\N	f
+598	2026-09-24 11:51:48.135486	2026-09-24	A	6.79	598	\N	f
+599	2026-09-24 11:51:55.654681	2026-09-24	A	7.52	599	\N	f
+600	2026-09-24 11:52:02.828167	2026-09-24	A	7.17	600	\N	f
+601	2026-09-24 11:52:08.881279	2026-09-24	A	6.05	601	\N	f
+602	2026-09-24 11:52:14.997989	2026-09-24	A	6.12	602	\N	f
+603	2026-09-24 11:52:21.040449	2026-09-24	A	6.04	603	\N	f
+604	2026-09-24 11:52:27.244932	2026-09-24	A	6.20	604	\N	f
+605	2026-09-24 11:52:33.973633	2026-09-24	A	6.73	605	\N	f
+606	2026-09-24 11:52:39.845244	2026-09-24	A	5.87	606	\N	f
+607	2026-09-24 11:52:45.860866	2026-09-24	A	6.02	607	\N	f
+608	2026-09-24 11:52:52.440378	2026-09-24	A	6.58	608	\N	f
+609	2026-09-24 11:52:58.345076	2026-09-24	A	5.90	609	\N	f
+610	2026-09-24 11:53:05.326005	2026-09-24	A	6.98	610	\N	f
+611	2026-09-24 11:53:11.408504	2026-09-24	A	6.08	611	\N	f
+612	2026-09-24 11:53:17.931058	2026-09-24	A	6.52	612	\N	f
+613	2026-09-24 11:53:24.993735	2026-09-24	A	7.06	613	\N	f
+614	2026-09-24 11:53:33.788759	2026-09-24	A	8.80	614	\N	f
+615	2026-09-24 11:53:39.860376	2026-09-24	A	6.07	615	\N	f
+616	2026-09-24 11:53:45.851015	2026-09-24	A	5.99	616	\N	f
+617	2026-09-24 11:53:51.812751	2026-09-24	A	5.96	617	\N	f
+618	2026-09-24 11:53:57.879763	2026-09-24	A	6.07	618	\N	f
+619	2026-09-24 11:54:03.824957	2026-09-24	A	5.95	619	\N	f
+620	2026-09-24 11:54:09.897057	2026-09-24	A	6.07	620	\N	f
+621	2026-09-24 11:54:15.888752	2026-09-24	A	5.99	621	\N	f
+622	2026-09-24 11:54:22.037688	2026-09-24	A	6.15	622	\N	f
+623	2026-09-24 11:54:28.080574	2026-09-24	A	6.04	623	\N	f
+624	2026-09-24 11:54:37.462964	2026-09-24	A	9.38	624	\N	f
+625	2026-09-24 11:54:43.511965	2026-09-24	A	6.05	625	\N	f
+626	2026-09-24 11:54:49.699409	2026-09-24	A	6.19	626	\N	f
+627	2026-09-24 11:54:56.119803	2026-09-24	A	6.42	627	\N	f
+628	2026-09-24 11:55:04.322828	2026-09-24	A	8.20	628	\N	f
+629	2026-09-24 11:55:12.165037	2026-09-24	A	7.84	629	\N	f
+630	2026-09-24 11:55:18.606731	2026-09-24	A	6.44	630	\N	f
+631	2026-09-24 11:55:26.343518	2026-09-24	A	7.74	631	\N	f
+632	2026-09-24 11:55:34.556349	2026-09-24	A	8.21	632	\N	f
+633	2026-09-24 11:55:40.549017	2026-09-24	A	5.99	633	\N	f
+634	2026-09-24 11:55:46.683735	2026-09-24	A	6.13	634	\N	f
+635	2026-09-24 11:55:53.355658	2026-09-24	A	6.67	635	\N	f
+636	2026-09-24 11:55:59.617507	2026-09-24	A	6.26	636	\N	f
+637	2026-09-24 11:56:05.515082	2026-09-24	A	5.90	637	\N	f
+638	2026-09-24 11:56:12.32945	2026-09-24	A	6.81	638	\N	f
+639	2026-09-24 11:56:18.102756	2026-09-24	A	5.77	639	\N	f
+640	2026-09-24 11:56:24.250465	2026-09-24	A	6.15	640	\N	f
+641	2026-09-24 11:56:31.6871	2026-09-24	A	7.44	641	\N	f
+642	2026-09-24 11:56:38.084178	2026-09-24	A	6.40	642	\N	f
+643	2026-09-24 11:56:44.157093	2026-09-24	A	6.07	643	\N	f
+644	2026-09-24 11:56:51.243226	2026-09-24	A	7.09	644	\N	f
+645	2026-09-24 11:56:57.219386	2026-09-24	A	5.98	645	\N	f
+646	2026-09-24 11:57:03.309282	2026-09-24	A	6.09	646	\N	f
+647	2026-09-24 11:57:09.671601	2026-09-24	A	6.36	647	\N	f
+648	2026-09-24 11:57:16.056861	2026-09-24	A	6.39	648	\N	f
+649	2026-09-24 11:57:22.195757	2026-09-24	A	6.14	649	\N	f
+650	2026-09-24 11:57:29.312504	2026-09-24	A	7.12	650	\N	f
+651	2026-09-24 11:57:36.308917	2026-09-24	A	7.00	651	\N	f
+652	2026-09-24 11:57:42.4197	2026-09-24	A	6.11	652	\N	f
+653	2026-09-24 11:57:48.574336	2026-09-24	A	6.15	653	\N	f
+654	2026-09-24 12:01:43.932415	2026-09-24	A	0.00	654	\N	f
+655	2026-09-24 12:01:50.445473	2026-09-24	A	6.51	655	\N	f
+656	2026-09-24 12:01:57.701768	2026-09-24	A	7.26	656	\N	f
+657	2026-09-24 12:02:03.871906	2026-09-24	A	6.17	657	\N	f
+658	2026-09-24 12:02:10.244747	2026-09-24	A	6.37	658	\N	f
+659	2026-09-24 12:02:16.247179	2026-09-24	A	6.00	659	\N	f
+660	2026-09-24 12:02:24.150646	2026-09-24	A	7.90	660	\N	f
+661	2026-09-24 12:02:33.488461	2026-09-24	A	9.34	661	\N	f
+662	2026-09-24 12:02:41.19653	2026-09-24	A	7.71	662	\N	f
+663	2026-09-24 12:02:47.743205	2026-09-24	A	6.55	663	\N	f
+664	2026-09-24 12:02:53.565966	2026-09-24	A	5.82	664	\N	f
+665	2026-09-24 12:03:00.274262	2026-09-24	A	6.71	665	\N	f
+666	2026-09-24 12:03:06.654404	2026-09-24	A	6.38	666	\N	f
+667	2026-09-24 12:03:12.901857	2026-09-24	A	6.25	667	\N	f
+668	2026-09-24 12:03:22.649359	2026-09-24	A	9.75	668	\N	f
+669	2026-09-24 12:03:30.392906	2026-09-24	A	7.74	669	\N	f
+670	2026-09-24 12:03:36.373812	2026-09-24	A	5.98	670	\N	f
+671	2026-09-24 12:03:42.478359	2026-09-24	A	6.10	671	\N	f
+672	2026-09-24 12:03:48.502561	2026-09-24	A	6.02	672	\N	f
+673	2026-09-24 12:03:54.455844	2026-09-24	A	5.95	673	\N	f
+674	2026-09-24 12:04:00.695646	2026-09-24	A	6.24	674	\N	f
+675	2026-09-24 12:04:07.842079	2026-09-24	A	7.15	675	\N	f
+676	2026-09-24 12:04:13.876085	2026-09-24	A	6.03	676	\N	f
+677	2026-09-24 12:04:20.837551	2026-09-24	A	6.96	677	\N	f
+678	2026-09-24 12:04:27.165476	2026-09-24	A	6.33	678	\N	f
+679	2026-09-24 12:04:33.122029	2026-09-24	A	5.96	679	\N	f
+680	2026-09-24 12:04:39.044778	2026-09-24	A	5.92	680	\N	f
+681	2026-09-24 12:04:47.572492	2026-09-24	A	8.53	681	\N	f
+682	2026-09-24 12:04:53.653762	2026-09-24	A	6.08	682	\N	f
+683	2026-09-24 12:04:59.815382	2026-09-24	A	6.16	683	\N	f
+684	2026-09-24 12:05:05.758543	2026-09-24	A	5.94	684	\N	f
+685	2026-09-24 12:05:11.539425	2026-09-24	A	5.78	685	\N	f
+686	2026-09-24 12:05:17.547284	2026-09-24	A	6.01	686	\N	f
+687	2026-09-24 12:05:24.863029	2026-09-24	A	7.32	687	\N	f
+688	2026-09-24 12:05:31.174258	2026-09-24	A	6.31	688	\N	f
+689	2026-09-24 12:05:38.494234	2026-09-24	A	7.32	689	\N	f
+690	2026-09-24 12:05:44.755562	2026-09-24	A	6.26	690	\N	f
+691	2026-09-24 12:05:51.157906	2026-09-24	A	6.40	691	\N	f
+692	2026-09-24 12:05:57.859615	2026-09-24	A	6.70	692	\N	f
+693	2026-09-24 12:06:04.072667	2026-09-24	A	6.21	693	\N	f
+694	2026-09-24 12:06:09.964503	2026-09-24	A	5.89	694	\N	f
+695	2026-09-24 12:06:16.611878	2026-09-24	A	6.65	695	\N	f
+696	2026-09-24 12:06:23.294055	2026-09-24	A	6.68	696	\N	f
+697	2026-09-24 12:06:29.022185	2026-09-24	A	5.73	697	\N	f
+698	2026-09-24 12:06:40.410337	2026-09-24	A	11.39	698	\N	f
+699	2026-09-24 12:06:47.025837	2026-09-24	A	6.62	699	\N	f
+700	2026-09-24 12:06:53.926688	2026-09-24	A	6.90	700	\N	f
+701	2026-09-24 12:07:02.27044	2026-09-24	A	8.34	701	\N	f
+702	2026-09-24 12:07:08.174468	2026-09-24	A	5.90	702	\N	f
+703	2026-09-24 12:07:14.300179	2026-09-24	A	6.13	703	\N	f
+704	2026-09-24 12:07:20.56043	2026-09-24	A	6.26	704	\N	f
+705	2026-09-24 12:07:26.654038	2026-09-24	A	6.09	705	\N	f
+706	2026-09-24 12:07:33.188248	2026-09-24	A	6.53	706	\N	f
+707	2026-09-24 12:07:40.938577	2026-09-24	A	7.75	707	\N	f
+708	2026-09-24 12:07:46.90581	2026-09-24	A	5.97	708	\N	f
+709	2026-09-24 12:07:53.056163	2026-09-24	A	6.15	709	\N	f
+710	2026-09-24 12:07:58.968434	2026-09-24	A	5.91	710	\N	f
+711	2026-09-24 12:08:05.436405	2026-09-24	A	6.47	711	\N	f
+712	2026-09-24 12:10:19.057482	2026-09-24	A	0.00	712	\N	f
+713	2026-09-24 12:10:25.244567	2026-09-24	A	6.19	713	\N	f
+714	2026-09-24 12:10:32.276776	2026-09-24	A	7.03	714	\N	f
+715	2026-09-24 12:10:38.83585	2026-09-24	A	6.56	715	\N	f
+716	2026-09-24 12:10:45.436301	2026-09-24	A	6.60	716	\N	f
+717	2026-09-24 12:10:52.75877	2026-09-24	A	7.32	717	\N	f
+718	2026-09-24 12:10:59.023252	2026-09-24	A	6.26	718	\N	f
+719	2026-09-24 12:11:05.536819	2026-09-24	A	6.51	719	\N	f
+720	2026-09-24 12:11:11.736385	2026-09-24	A	6.20	720	\N	f
+721	2026-09-24 12:11:18.059279	2026-09-24	A	6.32	721	\N	f
+722	2026-09-24 12:11:24.313876	2026-09-24	A	6.25	722	\N	f
+723	2026-09-24 12:11:30.733522	2026-09-24	A	6.42	723	\N	f
+724	2026-09-24 12:11:49.036587	2026-09-24	A	18.30	724	\N	f
+725	2026-09-24 12:11:55.037	2026-09-24	A	6.00	725	\N	f
+726	2026-09-24 12:12:01.121285	2026-09-24	A	6.08	726	\N	f
+727	2026-09-24 12:12:07.035812	2026-09-24	A	5.91	727	\N	f
+728	2026-09-24 12:12:13.624681	2026-09-24	A	6.59	728	\N	f
+729	2026-09-24 12:12:19.583295	2026-09-24	A	5.96	729	\N	f
+730	2026-09-24 12:12:27.217876	2026-09-24	A	7.63	730	\N	f
+731	2026-09-24 12:12:33.250295	2026-09-24	A	6.03	731	\N	f
+732	2026-09-24 12:12:39.396588	2026-09-24	A	6.15	732	\N	f
+733	2026-09-24 12:12:45.433501	2026-09-24	A	6.04	733	\N	f
+734	2026-09-24 12:12:53.041206	2026-09-24	A	7.61	734	\N	f
+735	2026-09-24 12:13:00.414071	2026-09-24	A	7.37	735	\N	f
+736	2026-09-24 12:13:07.013196	2026-09-24	A	6.60	736	\N	f
+737	2026-09-24 12:13:12.878466	2026-09-24	A	5.87	737	\N	f
+738	2026-09-24 12:13:19.154446	2026-09-24	A	6.28	738	\N	f
+739	2026-09-24 12:13:25.220453	2026-09-24	A	6.07	739	\N	f
+740	2026-09-24 12:13:31.842032	2026-09-24	A	6.62	740	\N	f
+741	2026-09-24 12:13:38.057152	2026-09-24	A	6.22	741	\N	f
+742	2026-09-24 12:13:44.254033	2026-09-24	A	6.20	742	\N	f
+743	2026-09-24 12:13:50.290253	2026-09-24	A	6.04	743	\N	f
+744	2026-09-24 12:13:56.226718	2026-09-24	A	5.94	744	\N	f
+745	2026-09-24 12:14:02.307277	2026-09-24	A	6.08	745	\N	f
+746	2026-09-24 12:14:08.463492	2026-09-24	A	6.16	746	\N	f
+747	2026-09-24 12:14:15.951422	2026-09-24	A	7.49	747	\N	f
+748	2026-09-24 12:14:23.165994	2026-09-24	A	7.21	748	\N	f
+749	2026-09-24 12:14:30.198299	2026-09-24	A	7.03	749	\N	f
+750	2026-09-24 12:14:38.154928	2026-09-24	A	7.96	750	\N	f
+751	2026-09-24 12:14:44.446547	2026-09-24	A	6.29	751	\N	f
+752	2026-09-24 12:14:50.374949	2026-09-24	A	5.93	752	\N	f
+753	2026-09-24 12:14:56.582745	2026-09-24	A	6.21	753	\N	f
+754	2026-09-24 12:15:07.999124	2026-09-24	A	11.42	754	\N	f
+755	2026-09-24 12:15:14.184416	2026-09-24	A	6.19	755	\N	f
+756	2026-09-24 12:15:21.553742	2026-09-24	A	7.37	756	\N	f
+757	2026-09-24 12:15:27.618558	2026-09-24	A	6.06	757	\N	f
+758	2026-09-24 12:15:33.823058	2026-09-24	A	6.20	758	\N	f
+759	2026-09-24 12:15:41.044614	2026-09-24	A	7.22	759	\N	f
+760	2026-09-24 12:15:49.369928	2026-09-24	A	8.33	760	\N	f
+761	2026-09-24 12:15:56.490355	2026-09-24	A	7.12	761	\N	f
+762	2026-09-24 12:16:02.265962	2026-09-24	A	5.78	762	\N	f
+763	2026-09-24 12:16:08.430028	2026-09-24	A	6.16	763	\N	f
+764	2026-09-24 12:16:14.315776	2026-09-24	A	5.89	764	\N	f
+765	2026-09-24 12:16:21.491094	2026-09-24	A	7.18	765	\N	f
+766	2026-09-24 12:16:29.909063	2026-09-24	A	8.42	766	\N	f
+767	2026-09-24 12:16:35.878045	2026-09-24	A	5.97	767	\N	f
+768	2026-09-24 12:16:42.304708	2026-09-24	A	6.43	768	\N	f
+769	2026-09-24 12:16:48.593276	2026-09-24	A	6.29	769	\N	f
+770	2026-09-24 12:16:55.71568	2026-09-24	A	7.12	770	\N	f
+771	2026-09-24 12:17:02.186482	2026-09-24	A	6.47	771	\N	f
+772	2026-09-24 12:17:09.007176	2026-09-24	A	6.82	772	\N	f
+773	2026-09-24 12:17:16.005713	2026-09-24	A	7.00	773	\N	f
+774	2026-09-24 12:17:26.916978	2026-09-24	A	10.91	774	\N	f
+775	2026-09-24 12:17:36.003647	2026-09-24	A	9.09	776	\N	f
+776	2026-09-24 12:17:41.984641	2026-09-24	A	5.98	777	\N	f
+777	2026-09-24 12:17:48.143178	2026-09-24	A	6.16	778	\N	f
+778	2026-09-24 12:18:05.908906	2026-09-24	A	17.77	779	\N	f
+779	2026-09-24 12:18:11.928966	2026-09-24	A	6.02	780	\N	f
+780	2026-09-24 12:18:18.173349	2026-09-24	A	6.24	781	\N	f
+781	2026-09-24 12:18:24.307123	2026-09-24	A	6.13	782	\N	f
+782	2026-09-24 12:18:30.539668	2026-09-24	A	6.23	783	\N	f
+783	2026-09-24 12:18:36.966115	2026-09-24	A	6.43	784	\N	f
+784	2026-09-24 12:18:43.120261	2026-09-24	A	6.15	785	\N	f
+785	2026-09-24 12:18:49.236854	2026-09-24	A	6.12	786	\N	f
+786	2026-09-24 12:18:55.149371	2026-09-24	A	5.91	787	\N	f
+787	2026-09-24 12:19:01.134726	2026-09-24	A	5.99	788	\N	f
+788	2026-09-24 12:19:07.026555	2026-09-24	A	5.89	789	\N	f
+789	2026-09-24 12:19:13.078628	2026-09-24	A	6.05	790	\N	f
+790	2026-09-24 12:19:19.182527	2026-09-24	A	6.10	791	\N	f
+791	2026-09-24 12:19:25.268555	2026-09-24	A	6.09	792	\N	f
+792	2026-09-24 12:19:31.723103	2026-09-24	A	6.45	793	\N	f
+793	2026-09-24 12:19:37.901792	2026-09-24	A	6.18	794	\N	f
+794	2026-09-24 12:19:44.023981	2026-09-24	A	6.12	795	\N	f
+795	2026-09-24 12:19:49.921213	2026-09-24	A	5.90	796	\N	f
+796	2026-09-24 12:19:56.168444	2026-09-24	A	6.25	797	\N	f
+797	2026-09-24 12:20:02.900976	2026-09-24	A	6.73	798	\N	f
+798	2026-09-24 12:20:09.805105	2026-09-24	A	6.90	799	\N	f
+799	2026-09-24 12:20:15.769801	2026-09-24	A	5.96	800	\N	f
+800	2026-09-24 12:20:21.491077	2026-09-24	A	5.72	801	\N	f
+801	2026-09-24 12:20:27.303045	2026-09-24	A	5.81	802	\N	f
+802	2026-09-24 12:20:33.344439	2026-09-24	A	6.04	803	\N	f
+803	2026-09-24 12:20:40.583079	2026-09-24	A	7.24	804	\N	f
+804	2026-09-24 12:20:47.575859	2026-09-24	A	6.99	805	\N	f
+805	2026-09-24 12:20:54.332236	2026-09-24	A	6.76	806	\N	f
+806	2026-09-24 12:21:01.558689	2026-09-24	A	7.23	807	\N	f
+807	2026-09-24 12:21:08.049453	2026-09-24	A	6.49	808	\N	f
+808	2026-09-24 12:21:14.346127	2026-09-24	A	6.30	809	\N	f
+809	2026-09-24 12:21:20.342569	2026-09-24	A	6.00	810	\N	f
+810	2026-09-24 12:21:27.430155	2026-09-24	A	7.09	811	\N	f
+811	2026-09-24 12:21:35.075346	2026-09-24	A	7.65	812	\N	f
+812	2026-09-24 12:21:42.242585	2026-09-24	A	7.17	813	\N	f
+813	2026-09-24 12:21:49.298961	2026-09-24	A	7.06	814	\N	f
+814	2026-09-24 12:21:55.512457	2026-09-24	A	6.21	815	\N	f
+815	2026-09-24 12:22:01.92761	2026-09-24	A	6.42	816	\N	f
+816	2026-09-24 12:22:07.964338	2026-09-24	A	6.04	817	\N	f
+817	2026-09-24 12:22:14.629088	2026-09-24	A	6.66	818	\N	f
+818	2026-09-24 12:22:20.732204	2026-09-24	A	6.10	819	\N	f
+819	2026-09-24 12:22:28.305331	2026-09-24	A	7.57	820	\N	f
+820	2026-09-24 12:22:34.265233	2026-09-24	A	5.96	821	\N	f
+821	2026-09-24 12:22:40.687101	2026-09-24	A	6.42	822	\N	f
+822	2026-09-24 12:22:47.565693	2026-09-24	A	6.88	823	\N	f
+823	2026-09-24 12:22:53.755014	2026-09-24	A	6.19	824	\N	f
+824	2026-09-24 12:23:04.389216	2026-09-24	A	10.63	825	\N	f
+825	2026-09-24 12:23:10.400254	2026-09-24	A	6.01	826	\N	f
+826	2026-09-24 12:23:17.258246	2026-09-24	A	6.86	827	\N	f
+827	2026-09-24 12:23:24.056769	2026-09-24	A	6.80	828	\N	f
+828	2026-09-24 12:23:31.723631	2026-09-24	A	7.67	829	\N	f
+829	2026-09-24 12:23:38.771306	2026-09-24	A	7.05	830	\N	f
+830	2026-09-24 12:23:46.056327	2026-09-24	A	7.29	831	\N	f
+831	2026-09-24 12:23:53.62632	2026-09-24	A	7.57	832	\N	f
+832	2026-09-24 12:24:00.483571	2026-09-24	A	6.86	833	\N	f
+833	2026-09-24 12:24:06.49894	2026-09-24	A	6.02	834	\N	f
+834	2026-09-24 12:24:12.988422	2026-09-24	A	6.49	835	\N	f
+835	2026-09-24 12:24:19.41882	2026-09-24	A	6.43	836	\N	f
+836	2026-09-24 12:24:27.22443	2026-09-24	A	7.81	837	\N	f
+837	2026-09-24 12:24:34.770596	2026-09-24	A	7.55	838	\N	f
+838	2026-09-24 12:24:41.123976	2026-09-24	A	6.35	839	\N	f
+839	2026-09-24 12:24:47.45191	2026-09-24	A	6.33	840	\N	f
+840	2026-09-24 12:24:53.484221	2026-09-24	A	6.03	841	\N	f
+841	2026-09-24 12:24:59.550819	2026-09-24	A	6.07	842	\N	f
+842	2026-09-24 12:25:05.57914	2026-09-24	A	6.03	843	\N	f
+843	2026-09-24 12:25:11.67536	2026-09-24	A	6.10	844	\N	f
+844	2026-09-24 12:25:17.720706	2026-09-24	A	6.05	845	\N	f
+845	2026-09-24 12:25:24.72502	2026-09-24	A	7.00	846	\N	f
+846	2026-09-24 12:25:31.67595	2026-09-24	A	6.95	847	\N	f
+847	2026-09-24 12:25:37.98527	2026-09-24	A	6.31	848	\N	f
+848	2026-09-24 12:25:43.944585	2026-09-24	A	5.96	849	\N	f
+849	2026-09-24 12:25:50.931328	2026-09-24	A	6.99	850	\N	f
+850	2026-09-24 12:25:58.751992	2026-09-24	A	7.82	851	\N	f
+851	2026-09-24 12:26:05.134006	2026-09-24	A	6.38	852	\N	f
+852	2026-09-24 12:26:12.439724	2026-09-24	A	7.31	853	\N	f
+853	2026-09-24 12:26:19.07621	2026-09-24	A	6.64	854	\N	f
+854	2026-09-24 12:26:25.414858	2026-09-24	A	6.34	855	\N	f
+855	2026-09-24 12:26:31.724151	2026-09-24	A	6.31	856	\N	f
+856	2026-09-24 12:26:39.900894	2026-09-24	A	8.18	857	\N	f
+857	2026-09-24 12:26:46.018536	2026-09-24	A	6.12	858	\N	f
+858	2026-09-24 12:26:52.172134	2026-09-24	A	6.15	859	\N	f
+859	2026-09-24 12:26:58.416164	2026-09-24	A	6.24	860	\N	f
+860	2026-09-24 12:27:04.98906	2026-09-24	A	6.57	861	\N	f
+861	2026-09-24 12:27:10.992643	2026-09-24	A	6.00	862	\N	f
+862	2026-09-24 12:27:17.144992	2026-09-24	A	6.15	863	\N	f
+863	2026-09-24 12:27:23.964158	2026-09-24	A	6.82	864	\N	f
+864	2026-09-24 12:27:31.340423	2026-09-24	A	7.38	865	\N	f
+865	2026-09-24 13:06:42.030431	2026-09-24	A	0.00	866	\N	f
+866	2026-09-24 13:06:48.427456	2026-09-24	A	6.40	867	\N	f
+867	2026-09-24 13:06:55.608838	2026-09-24	A	7.18	868	\N	f
+868	2026-09-24 13:07:03.060685	2026-09-24	A	7.45	869	\N	f
+869	2026-09-24 13:07:09.808003	2026-09-24	A	6.75	870	\N	f
+870	2026-09-24 13:07:57.729944	2026-09-24	A	47.92	871	\N	f
+871	2026-09-24 13:08:04.069719	2026-09-24	A	6.34	872	\N	f
+872	2026-09-24 13:08:10.660579	2026-09-24	A	6.59	873	\N	f
+873	2026-09-24 13:08:18.04392	2026-09-24	A	7.38	874	\N	f
+874	2026-09-24 13:08:27.015031	2026-09-24	A	8.97	875	\N	f
+875	2026-09-24 13:08:33.123472	2026-09-24	A	6.11	876	\N	f
+876	2026-09-24 13:08:41.447884	2026-09-24	A	8.32	877	\N	f
+877	2026-09-24 13:08:52.712112	2026-09-24	A	11.26	878	\N	f
+878	2026-09-24 13:08:59.867376	2026-09-24	A	7.16	879	\N	f
+879	2026-09-24 13:09:06.553772	2026-09-24	A	6.69	880	\N	f
+880	2026-09-24 13:09:13.271413	2026-09-24	A	6.72	881	\N	f
+881	2026-09-24 13:09:20.421475	2026-09-24	A	7.15	882	\N	f
+882	2026-09-24 13:09:27.109751	2026-09-24	A	6.69	883	\N	f
+883	2026-09-24 13:09:40.766765	2026-09-24	A	13.66	884	\N	f
+884	2026-09-24 13:09:48.794311	2026-09-24	A	8.03	885	\N	f
+885	2026-09-24 13:09:55.048076	2026-09-24	A	6.25	886	\N	f
+886	2026-09-24 13:10:02.117583	2026-09-24	A	7.07	887	\N	f
+887	2026-09-24 13:10:08.817039	2026-09-24	A	6.70	888	\N	f
+888	2026-09-24 13:10:15.460922	2026-09-24	A	6.64	889	\N	f
+889	2026-09-24 13:10:24.904537	2026-09-24	A	9.44	890	\N	f
+890	2026-09-24 13:10:31.980001	2026-09-24	A	7.08	891	\N	f
+891	2026-09-24 13:10:38.102212	2026-09-24	A	6.12	892	\N	f
+892	2026-09-24 13:10:45.470296	2026-09-24	A	7.37	893	\N	f
+893	2026-09-24 13:10:53.860122	2026-09-24	A	8.39	894	\N	f
+894	2026-09-24 13:11:00.980857	2026-09-24	A	7.12	895	\N	f
+895	2026-09-24 13:11:09.598345	2026-09-24	A	8.62	896	\N	f
+896	2026-09-24 13:11:17.043113	2026-09-24	A	7.44	897	\N	f
+897	2026-09-24 13:11:23.372541	2026-09-24	A	6.33	898	\N	f
+898	2026-09-24 13:11:29.459842	2026-09-24	A	6.09	899	\N	f
+899	2026-09-24 13:11:36.09898	2026-09-24	A	6.64	900	\N	f
+900	2026-09-24 13:11:44.245376	2026-09-24	A	8.15	901	\N	f
+901	2026-09-24 13:11:50.886194	2026-09-24	A	6.64	902	\N	f
+902	2026-09-24 13:11:57.310907	2026-09-24	A	6.42	903	\N	f
+903	2026-09-24 13:12:03.677094	2026-09-24	A	6.37	904	\N	f
+904	2026-09-24 13:12:10.222214	2026-09-24	A	6.55	905	\N	f
+905	2026-09-24 13:12:16.708007	2026-09-24	A	6.49	906	\N	f
+906	2026-09-24 13:12:23.262371	2026-09-24	A	6.55	907	\N	f
+907	2026-09-24 13:12:29.962742	2026-09-24	A	6.70	908	\N	f
+908	2026-09-24 13:12:37.711066	2026-09-24	A	7.75	909	\N	f
+909	2026-09-24 13:12:45.478255	2026-09-24	A	7.77	910	\N	f
+910	2026-09-24 13:12:53.780388	2026-09-24	A	8.30	911	\N	f
+911	2026-09-24 13:13:00.653568	2026-09-24	A	6.87	912	\N	f
+912	2026-09-24 13:13:07.800458	2026-09-24	A	7.15	913	\N	f
+913	2026-09-24 13:13:14.035477	2026-09-24	A	6.24	914	\N	f
+914	2026-09-24 13:16:10.421477	2026-09-24	A	0.00	915	\N	f
+915	2026-09-24 13:16:16.421002	2026-09-24	A	6.00	916	\N	f
+916	2026-09-24 13:16:22.545893	2026-09-24	A	6.12	917	\N	f
+917	2026-09-24 13:16:29.112021	2026-09-24	A	6.57	918	\N	f
+918	2026-09-24 13:16:36.421356	2026-09-24	A	7.31	919	\N	f
+919	2026-09-24 13:16:55.414373	2026-09-24	A	18.99	920	\N	f
+920	2026-09-24 13:17:19.166512	2026-09-24	A	23.75	921	\N	f
+921	2026-09-24 13:17:25.340304	2026-09-24	A	6.17	922	\N	f
+922	2026-09-24 13:17:31.287312	2026-09-24	A	5.95	923	\N	f
+923	2026-09-24 13:17:37.862558	2026-09-24	A	6.58	924	\N	f
+924	2026-09-24 13:17:44.47832	2026-09-24	A	6.62	925	\N	f
+925	2026-09-24 13:18:04.756092	2026-09-24	A	20.28	926	\N	f
+926	2026-09-24 13:18:10.712296	2026-09-24	A	5.96	927	\N	f
+927	2026-09-24 13:18:30.160654	2026-09-24	A	19.45	928	\N	f
+928	2026-09-24 13:18:37.052987	2026-09-24	A	6.89	929	\N	f
+929	2026-09-24 13:18:43.892891	2026-09-24	A	6.84	930	\N	f
+930	2026-09-24 13:18:50.325203	2026-09-24	A	6.43	931	\N	f
+931	2026-09-24 13:18:56.695366	2026-09-24	A	6.37	932	\N	f
+932	2026-09-24 13:19:52.400723	2026-09-24	A	55.71	933	\N	f
+933	2026-09-24 13:19:59.057352	2026-09-24	A	6.66	934	\N	f
+934	2026-09-24 13:20:05.885612	2026-09-24	A	6.83	935	\N	f
+935	2026-09-24 13:20:13.008608	2026-09-24	A	7.12	936	\N	f
+936	2026-09-24 13:20:19.61219	2026-09-24	A	6.60	937	\N	f
+937	2026-09-24 13:20:26.613452	2026-09-24	A	7.00	938	\N	f
+938	2026-09-24 13:20:34.774463	2026-09-24	A	8.16	939	\N	f
+939	2026-09-24 13:20:42.563569	2026-09-24	A	7.79	940	\N	f
+940	2026-09-24 13:20:51.571321	2026-09-24	A	9.01	941	\N	f
+941	2026-09-24 13:20:59.474105	2026-09-24	A	7.90	942	\N	f
+942	2026-09-24 13:21:05.368561	2026-09-24	A	5.89	943	\N	f
+943	2026-09-24 13:21:23.436091	2026-09-24	A	18.07	944	\N	f
+944	2026-09-24 13:21:29.72303	2026-09-24	A	6.29	945	\N	f
+945	2026-09-24 13:21:40.659872	2026-09-24	A	10.94	946	\N	f
+946	2026-09-24 13:21:47.432488	2026-09-24	A	6.77	947	\N	f
+947	2026-09-24 13:21:53.51095	2026-09-24	A	6.08	948	\N	f
+948	2026-09-24 13:21:59.67091	2026-09-24	A	6.16	949	\N	f
+949	2026-09-24 13:22:05.786218	2026-09-24	A	6.12	950	\N	f
+950	2026-09-24 13:22:11.833903	2026-09-24	A	6.05	951	\N	f
+951	2026-09-24 13:22:18.46975	2026-09-24	A	6.64	952	\N	f
+952	2026-09-24 13:22:24.500501	2026-09-24	A	6.03	953	\N	f
+953	2026-09-24 13:22:30.432189	2026-09-24	A	5.93	954	\N	f
+954	2026-09-24 13:22:36.35266	2026-09-24	A	5.92	955	\N	f
+955	2026-09-24 13:22:42.140178	2026-09-24	A	5.79	956	\N	f
+956	2026-09-24 13:22:50.138866	2026-09-24	A	8.00	957	\N	f
+957	2026-09-24 13:22:56.151955	2026-09-24	A	6.01	958	\N	f
+958	2026-09-24 13:23:03.090624	2026-09-24	A	6.94	959	\N	f
+959	2026-09-24 13:23:09.038777	2026-09-24	A	5.95	960	\N	f
+960	2026-09-24 13:23:15.155673	2026-09-24	A	6.12	961	\N	f
+961	2026-09-24 13:23:21.588461	2026-09-24	A	6.43	962	\N	f
+962	2026-09-24 13:23:29.281204	2026-09-24	A	7.69	963	\N	f
+963	2026-09-24 13:23:37.678022	2026-09-24	A	8.40	964	\N	f
+964	2026-09-24 13:23:43.700104	2026-09-24	A	6.02	965	\N	f
+965	2026-09-24 13:23:49.811843	2026-09-24	A	6.11	966	\N	f
+966	2026-09-24 13:23:56.556262	2026-09-24	A	6.74	967	\N	f
+967	2026-09-24 13:24:02.456504	2026-09-24	A	5.90	968	\N	f
+968	2026-09-24 13:24:09.478912	2026-09-24	A	7.02	969	\N	f
+969	2026-09-24 13:24:22.712259	2026-09-24	A	13.23	970	\N	f
+970	2026-09-24 13:24:34.064619	2026-09-24	A	11.35	971	\N	f
+971	2026-09-24 13:24:41.264497	2026-09-24	A	7.20	972	\N	f
+972	2026-09-24 13:24:49.503502	2026-09-24	A	8.24	973	\N	f
+973	2026-09-24 13:24:57.576388	2026-09-24	A	8.07	974	\N	f
+974	2026-09-24 13:25:06.374033	2026-09-24	A	8.80	975	\N	f
+975	2026-09-24 13:25:12.971757	2026-09-24	A	6.60	976	\N	f
+976	2026-09-24 13:25:19.111338	2026-09-24	A	6.14	977	\N	f
+977	2026-09-24 13:25:26.620384	2026-09-24	A	7.51	978	\N	f
+978	2026-09-24 13:25:33.464235	2026-09-24	A	6.84	979	\N	f
+979	2026-09-24 13:25:40.305798	2026-09-24	A	6.84	980	\N	f
+980	2026-09-24 13:25:49.820078	2026-09-24	A	9.51	981	\N	f
+981	2026-09-24 13:25:57.046897	2026-09-24	A	7.23	982	\N	f
+982	2026-09-24 13:26:04.7	2026-09-24	A	7.65	983	\N	f
+983	2026-09-24 13:26:10.922886	2026-09-24	A	6.22	984	\N	f
+984	2026-09-24 13:26:17.93817	2026-09-24	A	7.02	985	\N	f
+985	2026-09-24 13:26:24.189588	2026-09-24	A	6.25	986	\N	f
+986	2026-09-24 13:26:30.556855	2026-09-24	A	6.37	987	\N	f
+987	2026-09-24 13:26:36.6077	2026-09-24	A	6.05	988	\N	f
+988	2026-09-24 13:26:42.590212	2026-09-24	A	5.98	989	\N	f
+989	2026-09-24 13:26:48.576855	2026-09-24	A	5.99	990	\N	f
+990	2026-09-24 13:26:54.724913	2026-09-24	A	6.15	991	\N	f
+991	2026-09-24 13:27:01.207354	2026-09-24	A	6.48	992	\N	f
+992	2026-09-24 13:27:07.366512	2026-09-24	A	6.16	993	\N	f
+993	2026-09-24 13:27:15.173884	2026-09-24	A	7.81	994	\N	f
+994	2026-09-24 13:27:21.438325	2026-09-24	A	6.26	995	\N	f
+995	2026-09-24 13:27:27.440184	2026-09-24	A	6.00	996	\N	f
+996	2026-09-24 13:27:33.398431	2026-09-24	A	5.96	997	\N	f
+997	2026-09-24 13:27:39.692516	2026-09-24	A	6.29	998	\N	f
+998	2026-09-24 13:27:45.567558	2026-09-24	A	5.88	999	\N	f
+999	2026-09-24 13:27:51.594531	2026-09-24	A	6.03	1000	\N	f
+1000	2026-09-24 13:27:57.912018	2026-09-24	A	6.32	1001	\N	f
+1001	2026-09-24 13:28:03.952814	2026-09-24	A	6.04	1002	\N	f
+1002	2026-09-24 13:28:09.991981	2026-09-24	A	6.04	1003	\N	f
+1003	2026-09-24 13:28:16.02633	2026-09-24	A	6.03	1004	\N	f
+1004	2026-09-24 13:28:21.806334	2026-09-24	A	5.78	1005	\N	f
+1005	2026-09-24 13:28:27.843795	2026-09-24	A	6.04	1006	\N	f
+1006	2026-09-24 13:28:34.286467	2026-09-24	A	6.44	1007	\N	f
+1007	2026-09-24 13:28:40.222166	2026-09-24	A	5.94	1008	\N	f
+1008	2026-09-24 13:28:46.14608	2026-09-24	A	5.92	1009	\N	f
+1009	2026-09-24 13:28:52.191886	2026-09-24	A	6.05	1010	\N	f
+1010	2026-09-24 13:28:58.125483	2026-09-24	A	5.93	1011	\N	f
+1011	2026-09-24 13:29:04.214671	2026-09-24	A	6.09	1012	\N	f
+1012	2026-09-24 13:29:10.735616	2026-09-24	A	6.52	1013	\N	f
+1013	2026-09-24 13:29:16.839155	2026-09-24	A	6.10	1014	\N	f
+1014	2026-09-24 13:29:23.193195	2026-09-24	A	6.35	1015	\N	f
+1015	2026-09-24 13:29:29.631282	2026-09-24	A	6.44	1016	\N	f
+1016	2026-09-24 13:29:36.919315	2026-09-24	A	7.29	1017	\N	f
+1017	2026-09-24 13:29:43.241607	2026-09-24	A	6.32	1018	\N	f
+1018	2026-09-24 13:29:51.40657	2026-09-24	A	8.16	1019	\N	f
+1019	2026-09-24 13:29:57.922515	2026-09-24	A	6.52	1020	\N	f
+1020	2026-09-24 13:30:03.75274	2026-09-24	A	5.83	1021	\N	f
+1021	2026-09-24 13:30:10.074391	2026-09-24	A	6.32	1022	\N	f
+1022	2026-09-24 13:30:16.06123	2026-09-24	A	5.99	1023	\N	f
+1023	2026-09-24 13:30:22.093124	2026-09-24	A	6.03	1024	\N	f
+1024	2026-09-24 13:30:28.359056	2026-09-24	A	6.27	1025	\N	f
+1025	2026-09-24 13:30:36.146967	2026-09-24	A	7.79	1026	\N	f
+1026	2026-09-24 13:30:45.07499	2026-09-24	A	8.93	1027	\N	f
+1027	2026-09-24 13:30:51.064557	2026-09-24	A	5.99	1028	\N	f
+1028	2026-09-24 13:30:56.765667	2026-09-24	A	5.70	1029	\N	f
+1029	2026-09-24 13:31:02.577954	2026-09-24	A	5.81	1030	\N	f
+1030	2026-09-24 13:31:08.787392	2026-09-24	A	6.21	1031	\N	f
+1031	2026-09-24 13:31:15.992749	2026-09-24	A	7.21	1032	\N	f
+1032	2026-09-24 13:31:21.816506	2026-09-24	A	5.82	1033	\N	f
+1033	2026-09-24 13:31:30.100069	2026-09-24	A	8.28	1034	\N	f
+1034	2026-09-24 13:31:36.288511	2026-09-24	A	6.19	1035	\N	f
+1035	2026-09-24 13:31:43.404755	2026-09-24	A	7.12	1036	\N	f
+1036	2026-09-24 13:31:54.162695	2026-09-24	A	10.76	1037	\N	f
+1037	2026-09-24 13:32:02.444868	2026-09-24	A	8.28	1038	\N	f
+1038	2026-09-24 13:32:10.138753	2026-09-24	A	7.69	1039	\N	f
+1039	2026-09-24 13:32:17.640123	2026-09-24	A	7.50	1040	\N	f
+1040	2026-09-24 13:32:24.435722	2026-09-24	A	6.80	1041	\N	f
+1041	2026-09-24 13:32:30.414723	2026-09-24	A	5.98	1042	\N	f
+1042	2026-09-24 13:32:36.695771	2026-09-24	A	6.28	1043	\N	f
+1043	2026-09-24 13:32:43.352623	2026-09-24	A	6.66	1044	\N	f
+1044	2026-09-24 13:32:50.039344	2026-09-24	A	6.69	1045	\N	f
+1045	2026-09-24 13:32:56.162345	2026-09-24	A	6.12	1046	\N	f
+1046	2026-09-24 13:33:02.089915	2026-09-24	A	5.93	1047	\N	f
+1047	2026-09-24 13:33:08.099618	2026-09-24	A	6.01	1048	\N	f
+1048	2026-09-24 13:33:14.107625	2026-09-24	A	6.01	1049	\N	f
+1049	2026-09-24 13:33:20.536236	2026-09-24	A	6.43	1050	\N	f
+1050	2026-09-24 13:33:26.655494	2026-09-24	A	6.12	1051	\N	f
+1051	2026-09-24 13:33:32.693566	2026-09-24	A	6.04	1052	\N	f
+1052	2026-09-24 13:33:38.77239	2026-09-24	A	6.08	1053	\N	f
+1053	2026-09-24 13:33:44.817148	2026-09-24	A	6.04	1054	\N	f
+1054	2026-09-24 13:33:50.599614	2026-09-24	A	5.78	1055	\N	f
+1055	2026-09-24 13:33:56.597925	2026-09-24	A	6.00	1056	\N	f
+1056	2026-09-24 13:34:02.468878	2026-09-24	A	5.87	1057	\N	f
+1057	2026-09-24 13:34:08.353388	2026-09-24	A	5.88	1058	\N	f
+1058	2026-09-24 13:34:14.358198	2026-09-24	A	6.00	1059	\N	f
+1059	2026-09-24 13:34:20.424918	2026-09-24	A	6.07	1060	\N	f
+1060	2026-09-24 13:34:26.706922	2026-09-24	A	6.28	1061	\N	f
+1061	2026-09-24 13:34:32.574775	2026-09-24	A	5.87	1062	\N	f
+1062	2026-09-24 13:34:38.606795	2026-09-24	A	6.03	1063	\N	f
+1063	2026-09-24 13:34:44.611501	2026-09-24	A	6.00	1064	\N	f
+1064	2026-09-24 13:34:50.815069	2026-09-24	A	6.20	1065	\N	f
+1065	2026-09-24 13:34:56.862743	2026-09-24	A	6.05	1066	\N	f
+1066	2026-09-24 13:35:02.976643	2026-09-24	A	6.11	1067	\N	f
+1067	2026-09-24 13:35:09.404289	2026-09-24	A	6.43	1068	\N	f
+1068	2026-09-24 13:35:15.593075	2026-09-24	A	6.19	1069	\N	f
+1069	2026-09-24 13:35:21.796941	2026-09-24	A	6.20	1070	\N	f
+1070	2026-09-24 13:35:28.589645	2026-09-24	A	6.79	1071	\N	f
+1071	2026-09-24 13:35:35.137295	2026-09-24	A	6.55	1072	\N	f
+1072	2026-09-24 13:35:41.115409	2026-09-24	A	5.98	1073	\N	f
+1073	2026-09-24 13:35:50.558847	2026-09-24	A	9.44	1074	\N	f
+1074	2026-09-24 13:35:57.090489	2026-09-24	A	6.53	1075	\N	f
+1075	2026-09-24 13:36:03.026413	2026-09-24	A	5.94	1076	\N	f
+1076	2026-09-24 13:36:09.716839	2026-09-24	A	6.69	1077	\N	f
+1077	2026-09-24 13:36:17.071489	2026-09-24	A	7.35	1078	\N	f
+1078	2026-09-24 13:36:23.257478	2026-09-24	A	6.19	1079	\N	f
+1079	2026-09-24 13:36:29.964971	2026-09-24	A	6.71	1080	\N	f
+1080	2026-09-24 13:36:36.183206	2026-09-24	A	6.22	1081	\N	f
+1081	2026-09-24 13:36:43.362447	2026-09-24	A	7.18	1082	\N	f
+1082	2026-09-24 13:36:49.732934	2026-09-24	A	6.37	1083	\N	f
+1083	2026-09-24 13:36:55.64348	2026-09-24	A	5.91	1084	\N	f
+1084	2026-09-24 13:37:01.651697	2026-09-24	A	6.01	1085	\N	f
+1085	2026-09-24 13:37:07.779644	2026-09-24	A	6.13	1086	\N	f
+1086	2026-09-24 13:37:13.70187	2026-09-24	A	5.92	1087	\N	f
+1087	2026-09-24 13:37:19.846113	2026-09-24	A	6.14	1088	\N	f
+1088	2026-09-24 13:37:26.202908	2026-09-24	A	6.36	1089	\N	f
+1089	2026-09-24 13:37:32.300817	2026-09-24	A	6.10	1090	\N	f
+1090	2026-09-24 13:37:38.463562	2026-09-24	A	6.16	1091	\N	f
+1091	2026-09-24 13:37:44.589875	2026-09-24	A	6.13	1092	\N	f
+1092	2026-09-24 13:37:51.198176	2026-09-24	A	6.61	1093	\N	f
+1093	2026-09-24 13:37:57.323134	2026-09-24	A	6.12	1094	\N	f
+1094	2026-09-24 13:38:03.547745	2026-09-24	A	6.22	1095	\N	f
+1095	2026-09-24 13:38:10.533167	2026-09-24	A	6.99	1096	\N	f
+1096	2026-09-24 13:38:16.930693	2026-09-24	A	6.40	1097	\N	f
+1097	2026-09-24 13:38:24.447832	2026-09-24	A	7.52	1098	\N	f
+1098	2026-09-24 13:38:30.664654	2026-09-24	A	6.22	1099	\N	f
+1099	2026-09-24 13:38:36.629609	2026-09-24	A	5.96	1100	\N	f
+1100	2026-09-24 13:38:42.986591	2026-09-24	A	6.36	1101	\N	f
+1101	2026-09-24 13:38:49.018767	2026-09-24	A	6.03	1102	\N	f
+1102	2026-09-24 13:38:55.092915	2026-09-24	A	6.07	1103	\N	f
+1103	2026-09-24 13:39:01.300136	2026-09-24	A	6.21	1104	\N	f
+1104	2026-09-24 13:39:07.669083	2026-09-24	A	6.37	1105	\N	f
+1105	2026-09-24 13:39:13.842659	2026-09-24	A	6.17	1106	\N	f
+1106	2026-09-24 13:39:19.818511	2026-09-24	A	5.98	1107	\N	f
+1107	2026-09-24 13:39:25.684194	2026-09-24	A	5.87	1108	\N	f
+1108	2026-09-24 13:39:32.017989	2026-09-24	A	6.33	1109	\N	f
+1109	2026-09-24 13:39:37.902727	2026-09-24	A	5.88	1110	\N	f
+1110	2026-09-24 13:39:43.888913	2026-09-24	A	5.99	1111	\N	f
+1111	2026-09-24 13:39:49.902824	2026-09-24	A	6.01	1112	\N	f
+1112	2026-09-24 13:39:56.411331	2026-09-24	A	6.51	1113	\N	f
+1113	2026-09-24 13:40:02.6326	2026-09-24	A	6.22	1114	\N	f
+1114	2026-09-24 13:40:10.895307	2026-09-24	A	8.26	1115	\N	f
+1115	2026-09-24 13:40:18.859329	2026-09-24	A	7.96	1116	\N	f
+1116	2026-09-24 13:40:26.810442	2026-09-24	A	7.95	1117	\N	f
+1117	2026-09-24 13:40:33.329533	2026-09-24	A	6.52	1118	\N	f
+1118	2026-09-24 13:40:39.289529	2026-09-24	A	5.96	1119	\N	f
+1119	2026-09-24 13:40:45.457523	2026-09-24	A	6.17	1120	\N	f
+1120	2026-09-24 13:40:52.644653	2026-09-24	A	7.19	1121	\N	f
+1121	2026-09-24 13:40:59.354042	2026-09-24	A	6.71	1122	\N	f
+1122	2026-09-24 13:41:05.631081	2026-09-24	A	6.28	1123	\N	f
+1123	2026-09-24 13:41:11.697867	2026-09-24	A	6.07	1124	\N	f
+1124	2026-09-24 13:41:17.739677	2026-09-24	A	6.04	1125	\N	f
+1125	2026-09-24 13:47:33.26175	2026-09-24	A	0.00	1126	\N	f
+1126	2026-09-24 13:47:41.140085	2026-09-24	A	7.88	1127	\N	f
+1127	2026-09-24 13:47:48.573957	2026-09-24	A	7.43	1128	\N	f
+1128	2026-09-24 13:47:55.45234	2026-09-24	A	6.88	1129	\N	f
+1129	2026-09-24 13:48:02.723875	2026-09-24	A	7.27	1130	\N	f
+1130	2026-09-24 13:48:09.707498	2026-09-24	A	6.98	1131	\N	f
+1131	2026-09-24 13:48:16.42502	2026-09-24	A	6.72	1132	\N	f
+1132	2026-09-24 13:48:23.345696	2026-09-24	A	6.92	1133	\N	f
+1133	2026-09-24 13:48:30.160271	2026-09-24	A	6.81	1134	\N	f
+1134	2026-09-24 13:48:37.039631	2026-09-24	A	6.88	1135	\N	f
+1135	2026-09-24 13:48:43.787566	2026-09-24	A	6.75	1136	\N	f
+1136	2026-09-24 13:48:50.462401	2026-09-24	A	6.67	1137	\N	f
+1137	2026-09-24 13:49:00.919144	2026-09-24	A	10.46	1138	\N	f
+1138	2026-09-24 13:49:08.863017	2026-09-24	A	7.94	1139	\N	f
+1139	2026-09-24 13:49:17.153752	2026-09-24	A	8.29	1140	\N	f
+1140	2026-09-24 13:49:25.47104	2026-09-24	A	8.32	1141	\N	f
+1141	2026-09-24 13:49:32.374633	2026-09-24	A	6.90	1142	\N	f
+1142	2026-09-24 13:49:58.666296	2026-09-24	A	26.29	1143	\N	f
+1143	2026-09-24 13:50:05.259141	2026-09-24	A	6.59	1144	\N	f
+1144	2026-09-24 13:50:12.076961	2026-09-24	A	6.82	1145	\N	f
+1145	2026-09-24 13:50:19.430088	2026-09-24	A	7.35	1146	\N	f
+1146	2026-09-24 13:50:25.988956	2026-09-24	A	6.56	1147	\N	f
+1147	2026-09-24 13:50:32.565022	2026-09-24	A	6.58	1148	\N	f
+1148	2026-09-24 13:50:39.375544	2026-09-24	A	6.81	1149	\N	f
+1149	2026-09-24 13:50:45.849155	2026-09-24	A	6.47	1150	\N	f
+1150	2026-09-24 13:50:52.36602	2026-09-24	A	6.52	1151	\N	f
+1151	2026-09-24 13:51:01.9878	2026-09-24	A	9.62	1152	\N	f
+1152	2026-09-24 13:51:08.62499	2026-09-24	A	6.64	1153	\N	f
+1153	2026-09-24 13:51:15.459596	2026-09-24	A	6.83	1154	\N	f
+1154	2026-09-24 13:51:21.872228	2026-09-24	A	6.41	1155	\N	f
+1155	2026-09-24 13:51:28.71473	2026-09-24	A	6.84	1156	\N	f
+1156	2026-09-24 13:51:35.94761	2026-09-24	A	7.23	1157	\N	f
+1157	2026-09-24 13:51:42.670813	2026-09-24	A	6.72	1158	\N	f
+1158	2026-09-24 13:51:48.975863	2026-09-24	A	6.31	1159	\N	f
+1159	2026-09-24 13:51:56.095649	2026-09-24	A	7.12	1160	\N	f
+1160	2026-09-24 13:52:02.59222	2026-09-24	A	6.50	1161	\N	f
+1161	2026-09-24 13:52:10.41944	2026-09-24	A	7.83	1162	\N	f
+1162	2026-09-24 13:52:17.300136	2026-09-24	A	6.88	1163	\N	f
+1163	2026-09-24 13:52:24.932949	2026-09-24	A	7.63	1164	\N	f
+1164	2026-09-24 13:52:31.853846	2026-09-24	A	6.92	1165	\N	f
+1165	2026-09-24 13:52:39.098112	2026-09-24	A	7.24	1166	\N	f
+1166	2026-09-24 13:55:33.655443	2026-09-24	A	0.00	1167	\N	f
+1167	2026-09-24 13:55:45.212208	2026-09-24	A	11.56	1168	\N	f
+1168	2026-09-24 13:55:51.71426	2026-09-24	A	6.50	1169	\N	f
+1169	2026-09-24 13:55:59.225867	2026-09-24	A	7.51	1170	\N	f
+1170	2026-09-24 13:56:06.364825	2026-09-24	A	7.14	1171	\N	f
+1171	2026-09-24 13:56:12.826739	2026-09-24	A	6.46	1172	\N	f
+1172	2026-09-24 13:56:20.129666	2026-09-24	A	7.30	1173	\N	f
+1173	2026-09-24 13:56:28.371697	2026-09-24	A	8.24	1174	\N	f
+1174	2026-09-24 13:56:36.3454	2026-09-24	A	7.97	1175	\N	f
+1175	2026-09-24 13:56:43.119655	2026-09-24	A	6.77	1176	\N	f
+1176	2026-09-24 13:56:56.336476	2026-09-24	A	13.22	1177	\N	f
+1177	2026-09-24 13:57:04.983373	2026-09-24	A	8.65	1178	\N	f
+1178	2026-09-24 13:57:11.399631	2026-09-24	A	6.42	1179	\N	f
+1179	2026-09-24 13:57:18.182609	2026-09-24	A	6.78	1180	\N	f
+1180	2026-09-24 13:57:24.735409	2026-09-24	A	6.55	1181	\N	f
+1181	2026-09-24 13:57:31.111986	2026-09-24	A	6.38	1182	\N	f
+1182	2026-09-24 13:57:37.548183	2026-09-24	A	6.44	1183	\N	f
+1183	2026-09-24 13:57:44.236504	2026-09-24	A	6.69	1184	\N	f
+1184	2026-09-24 13:57:51.471499	2026-09-24	A	7.23	1185	\N	f
+1185	2026-09-24 13:57:58.249654	2026-09-24	A	6.78	1186	\N	f
+1186	2026-09-24 13:58:04.790543	2026-09-24	A	6.54	1187	\N	f
+1187	2026-09-24 13:58:11.44569	2026-09-24	A	6.66	1188	\N	f
+1188	2026-09-24 13:58:19.023718	2026-09-24	A	7.58	1189	\N	f
+1189	2026-09-24 13:58:25.818148	2026-09-24	A	6.79	1190	\N	f
+1190	2026-09-24 13:58:32.637346	2026-09-24	A	6.82	1191	\N	f
+1191	2026-09-24 13:58:38.889724	2026-09-24	A	6.25	1192	\N	f
+1192	2026-09-24 13:58:45.594542	2026-09-24	A	6.70	1193	\N	f
+1193	2026-09-24 13:58:52.089418	2026-09-24	A	6.49	1194	\N	f
+1194	2026-09-24 13:58:58.686643	2026-09-24	A	6.60	1195	\N	f
+1195	2026-09-24 13:59:05.189539	2026-09-24	A	6.50	1196	\N	f
+1196	2026-09-24 13:59:12.035158	2026-09-24	A	6.85	1197	\N	f
+1197	2026-09-24 13:59:19.132298	2026-09-24	A	7.10	1198	\N	f
+1198	2026-09-24 13:59:26.105396	2026-09-24	A	6.97	1199	\N	f
+1199	2026-09-24 13:59:33.10433	2026-09-24	A	7.00	1200	\N	f
+1200	2026-09-24 13:59:39.8846	2026-09-24	A	6.78	1201	\N	f
+1201	2026-09-24 13:59:49.465072	2026-09-24	A	9.58	1202	\N	f
+1202	2026-09-24 13:59:56.190233	2026-09-24	A	6.73	1203	\N	f
+1203	2026-09-24 14:00:02.958881	2026-09-24	A	6.77	1204	\N	f
+1204	2026-09-24 14:00:10.050709	2026-09-24	A	7.09	1205	\N	f
+1205	2026-09-24 14:00:16.800619	2026-09-24	A	6.75	1206	\N	f
+1206	2026-09-24 14:00:23.536758	2026-09-24	A	6.74	1207	\N	f
+1207	2026-09-24 14:00:30.254675	2026-09-24	A	6.72	1208	\N	f
+1208	2026-09-24 14:00:36.896718	2026-09-24	A	6.64	1209	\N	f
+1209	2026-09-24 14:00:45.387849	2026-09-24	A	8.49	1210	\N	f
+1210	2026-09-24 14:00:52.689648	2026-09-24	A	7.30	1211	\N	f
+1211	2026-09-24 14:00:59.732447	2026-09-24	A	7.04	1212	\N	f
+1212	2026-09-24 14:01:06.688458	2026-09-24	A	6.96	1213	\N	f
+1213	2026-09-24 14:01:14.138259	2026-09-24	A	7.45	1214	\N	f
+1214	2026-09-24 14:01:24.325042	2026-09-24	A	10.19	1215	\N	f
+1215	2026-09-24 14:01:32.32725	2026-09-24	A	8.00	1216	\N	f
+1216	2026-09-24 14:01:39.049204	2026-09-24	A	6.72	1217	\N	f
+1217	2026-09-24 14:01:46.094008	2026-09-24	A	7.04	1218	\N	f
+1218	2026-09-24 14:01:53.167086	2026-09-24	A	7.07	1219	\N	f
+1219	2026-09-24 14:01:59.611647	2026-09-24	A	6.44	1220	\N	f
+1220	2026-09-24 14:02:06.267461	2026-09-24	A	6.66	1221	\N	f
+1221	2026-09-24 14:02:12.959509	2026-09-24	A	6.69	1222	\N	f
+1222	2026-09-24 14:02:20.423807	2026-09-24	A	7.46	1223	\N	f
+1223	2026-09-24 14:02:27.351489	2026-09-24	A	6.93	1224	\N	f
+1224	2026-09-24 14:02:34.053181	2026-09-24	A	6.70	1225	\N	f
+1225	2026-09-24 14:02:41.669593	2026-09-24	A	7.62	1226	\N	f
+1226	2026-09-24 14:02:55.387741	2026-09-24	A	13.72	1227	\N	f
+1227	2026-09-24 14:03:01.831773	2026-09-24	A	6.44	1228	\N	f
+1228	2026-09-24 14:03:08.742548	2026-09-24	A	6.91	1229	\N	f
+1229	2026-09-24 14:03:15.500377	2026-09-24	A	6.76	1230	\N	f
+1230	2026-09-24 14:03:22.330427	2026-09-24	A	6.83	1231	\N	f
+1231	2026-09-24 14:03:29.131521	2026-09-24	A	6.80	1232	\N	f
+1232	2026-09-24 14:03:36.150457	2026-09-24	A	7.02	1233	\N	f
+1233	2026-09-24 14:03:43.188577	2026-09-24	A	7.04	1234	\N	f
+1234	2026-09-24 14:03:51.699325	2026-09-24	A	8.51	1235	\N	f
+1235	2026-09-24 14:04:07.005996	2026-09-24	A	15.31	1236	\N	f
+1236	2026-09-24 14:04:15.993658	2026-09-24	A	8.99	1237	\N	f
+1237	2026-09-24 14:04:23.353169	2026-09-24	A	7.36	1238	\N	f
+1238	2026-09-24 14:04:30.611958	2026-09-24	A	7.26	1239	\N	f
+1239	2026-09-24 14:04:39.558694	2026-09-24	A	8.95	1240	\N	f
+1240	2026-09-24 14:04:46.857114	2026-09-24	A	7.30	1241	\N	f
+1241	2026-09-24 14:04:54.458033	2026-09-24	A	7.60	1242	\N	f
+1242	2026-09-24 14:05:01.546458	2026-09-24	A	7.09	1243	\N	f
+1243	2026-09-24 14:05:08.587316	2026-09-24	A	7.04	1244	\N	f
+1244	2026-09-24 14:05:16.199598	2026-09-24	A	7.61	1245	\N	f
+1245	2026-09-24 14:05:25.597735	2026-09-24	A	9.40	1246	\N	f
+1246	2026-09-24 14:05:33.865935	2026-09-24	A	8.27	1247	\N	f
+1247	2026-09-24 14:05:41.316502	2026-09-24	A	7.45	1248	\N	f
+1248	2026-09-24 14:05:48.331552	2026-09-24	A	7.02	1249	\N	f
+1249	2026-09-24 14:05:55.119207	2026-09-24	A	6.79	1250	\N	f
+1250	2026-09-24 14:06:02.209862	2026-09-24	A	7.09	1251	\N	f
+1251	2026-09-24 14:06:35.143236	2026-09-24	A	32.93	1252	\N	f
+1252	2026-09-24 14:06:43.095674	2026-09-24	A	7.95	1253	\N	f
+1253	2026-09-24 14:06:52.008388	2026-09-24	A	8.91	1254	\N	f
+1254	2026-09-24 14:06:59.239012	2026-09-24	A	7.23	1255	\N	f
+1255	2026-09-24 14:07:05.980014	2026-09-24	A	6.74	1256	\N	f
+1256	2026-09-24 14:07:12.838025	2026-09-24	A	6.86	1257	\N	f
+1257	2026-09-24 14:07:19.928004	2026-09-24	A	7.09	1258	\N	f
+1258	2026-09-24 14:07:27.06169	2026-09-24	A	7.13	1259	\N	f
+1259	2026-09-24 14:07:34.713687	2026-09-24	A	7.65	1260	\N	f
+1260	2026-09-24 14:07:41.844139	2026-09-24	A	7.13	1261	\N	f
+1261	2026-09-24 14:07:48.52899	2026-09-24	A	6.68	1262	\N	f
+1262	2026-09-24 14:07:55.117826	2026-09-24	A	6.59	1263	\N	f
+1263	2026-09-24 14:08:28.944961	2026-09-24	A	33.83	1264	\N	f
+1264	2026-09-24 14:08:36.314797	2026-09-24	A	7.37	1265	\N	f
+1265	2026-09-24 14:08:59.469299	2026-09-24	A	23.15	1266	\N	f
+1266	2026-09-24 14:09:10.355148	2026-09-24	A	10.89	1267	\N	f
+1267	2026-09-24 14:09:16.791906	2026-09-24	A	6.44	1268	\N	f
+1268	2026-09-24 14:09:23.584413	2026-09-24	A	6.79	1269	\N	f
+1269	2026-09-24 14:09:30.956185	2026-09-24	A	7.37	1270	\N	f
+1270	2026-09-24 14:09:39.026909	2026-09-24	A	8.07	1271	\N	f
+1271	2026-09-24 14:09:46.635049	2026-09-24	A	7.61	1272	\N	f
+1272	2026-09-24 14:09:55.126677	2026-09-24	A	8.49	1273	\N	f
+1273	2026-09-24 14:10:02.423435	2026-09-24	A	7.30	1274	\N	f
+1274	2026-09-24 14:10:09.707693	2026-09-24	A	7.28	1275	\N	f
+1275	2026-09-24 14:10:17.36604	2026-09-24	A	7.66	1276	\N	f
+1276	2026-09-24 14:10:28.441892	2026-09-24	A	11.08	1277	\N	f
+1277	2026-09-24 14:10:35.636324	2026-09-24	A	7.19	1278	\N	f
+1278	2026-09-24 14:10:42.861582	2026-09-24	A	7.23	1279	\N	f
+1279	2026-09-24 14:10:50.410843	2026-09-24	A	7.55	1280	\N	f
+1280	2026-09-24 14:10:57.367686	2026-09-24	A	6.96	1281	\N	f
+1281	2026-09-24 14:12:06.730473	2026-09-24	A	69.36	1282	\N	f
+1282	2026-09-24 14:12:13.533564	2026-09-24	A	6.80	1283	\N	f
+1283	2026-09-24 14:12:20.309316	2026-09-24	A	6.78	1284	\N	f
+1284	2026-09-24 14:12:26.848161	2026-09-24	A	6.54	1285	\N	f
+1285	2026-09-24 14:12:34.676184	2026-09-24	A	7.83	1286	\N	f
+1286	2026-09-24 14:12:41.554313	2026-09-24	A	6.88	1287	\N	f
+1287	2026-09-24 14:12:48.5072	2026-09-24	A	6.95	1288	\N	f
+1288	2026-09-24 14:12:55.398918	2026-09-24	A	6.89	1289	\N	f
+1289	2026-09-24 14:13:02.123187	2026-09-24	A	6.72	1290	\N	f
+1290	2026-09-24 14:13:08.439698	2026-09-24	A	6.32	1291	\N	f
+1291	2026-09-24 14:13:15.692966	2026-09-24	A	7.25	1292	\N	f
+1292	2026-09-24 14:13:22.137889	2026-09-24	A	6.44	1293	\N	f
+1293	2026-09-24 14:13:28.677227	2026-09-24	A	6.54	1294	\N	f
+1294	2026-09-24 14:13:35.424751	2026-09-24	A	6.75	1295	\N	f
+1295	2026-09-24 14:13:42.51633	2026-09-24	A	7.09	1296	\N	f
+1296	2026-09-24 14:19:35.612672	2026-09-24	A	0.00	1297	\N	f
+1297	2026-09-24 14:19:42.40566	2026-09-24	A	6.79	1298	\N	f
+1298	2026-09-24 14:19:49.471211	2026-09-24	A	7.07	1299	\N	f
+1299	2026-09-24 14:19:56.388391	2026-09-24	A	6.92	1300	\N	f
+1300	2026-09-24 14:20:03.08905	2026-09-24	A	6.70	1301	\N	f
+1301	2026-09-24 14:20:15.886962	2026-09-24	A	12.80	1302	\N	f
+1302	2026-09-24 14:20:22.564308	2026-09-24	A	6.68	1303	\N	f
+1303	2026-09-24 14:20:28.967884	2026-09-24	A	6.40	1304	\N	f
+1304	2026-09-24 14:20:35.600894	2026-09-24	A	6.63	1305	\N	f
+1305	2026-09-24 14:20:42.589591	2026-09-24	A	6.99	1306	\N	f
+1306	2026-09-24 14:20:49.457904	2026-09-24	A	6.87	1307	\N	f
+1307	2026-09-24 14:20:56.622288	2026-09-24	A	7.16	1308	\N	f
+1308	2026-09-24 14:21:03.952951	2026-09-24	A	7.33	1309	\N	f
+1309	2026-09-24 14:21:11.664562	2026-09-24	A	7.71	1310	\N	f
+1310	2026-09-24 14:21:18.261266	2026-09-24	A	6.60	1311	\N	f
+1311	2026-09-24 14:21:25.157594	2026-09-24	A	6.90	1312	\N	f
+1312	2026-09-24 14:21:32.47192	2026-09-24	A	7.31	1313	\N	f
+1313	2026-09-24 14:21:39.350245	2026-09-24	A	6.88	1314	\N	f
+1314	2026-09-24 14:21:45.816114	2026-09-24	A	6.47	1315	\N	f
+1315	2026-09-24 14:21:52.355136	2026-09-24	A	6.54	1316	\N	f
+1316	2026-09-24 14:21:59.316589	2026-09-24	A	6.96	1317	\N	f
+1317	2026-09-24 14:22:08.569669	2026-09-24	A	9.25	1318	\N	f
+1318	2026-09-24 14:22:15.43087	2026-09-24	A	6.86	1319	\N	f
+1319	2026-09-24 14:22:22.195528	2026-09-24	A	6.76	1320	\N	f
+1320	2026-09-24 14:22:29.518874	2026-09-24	A	7.32	1321	\N	f
+1321	2026-09-24 14:22:35.998179	2026-09-24	A	6.48	1322	\N	f
+1322	2026-09-24 14:22:42.719904	2026-09-24	A	6.72	1323	\N	f
+1323	2026-09-24 14:22:49.536444	2026-09-24	A	6.82	1324	\N	f
+1324	2026-09-24 14:22:56.271245	2026-09-24	A	6.73	1325	\N	f
+1325	2026-09-24 14:23:03.508137	2026-09-24	A	7.24	1326	\N	f
+1326	2026-09-24 14:23:12.975224	2026-09-24	A	9.47	1327	\N	f
+1327	2026-09-24 14:23:20.214088	2026-09-24	A	7.24	1328	\N	f
+1328	2026-09-24 14:23:29.177377	2026-09-24	A	8.96	1329	\N	f
+1329	2026-09-24 14:23:36.872536	2026-09-24	A	7.70	1330	\N	f
+1330	2026-09-24 14:23:44.449272	2026-09-24	A	7.58	1331	\N	f
+1331	2026-09-24 14:23:51.245107	2026-09-24	A	6.80	1332	\N	f
+1332	2026-09-24 14:23:58.041777	2026-09-24	A	6.80	1333	\N	f
+1333	2026-09-24 14:24:05.980616	2026-09-24	A	7.94	1334	\N	f
+1334	2026-09-24 14:24:13.300188	2026-09-24	A	7.32	1335	\N	f
+1335	2026-09-24 14:24:20.680563	2026-09-24	A	7.38	1336	\N	f
+1336	2026-09-24 14:24:27.627551	2026-09-24	A	6.95	1337	\N	f
+1337	2026-09-24 14:24:35.044072	2026-09-24	A	7.42	1338	\N	f
+1338	2026-09-24 14:24:42.108204	2026-09-24	A	7.06	1339	\N	f
+1339	2026-09-24 14:24:49.228737	2026-09-24	A	7.12	1340	\N	f
+1340	2026-09-24 14:24:57.503622	2026-09-24	A	8.27	1341	\N	f
+1341	2026-09-24 14:25:04.21834	2026-09-24	A	6.71	1342	\N	f
+1342	2026-09-24 14:25:12.451713	2026-09-24	A	8.23	1343	\N	f
+1343	2026-09-24 14:25:19.7646	2026-09-24	A	7.31	1344	\N	f
+1344	2026-09-24 14:25:26.815352	2026-09-24	A	7.05	1345	\N	f
+1345	2026-09-24 14:25:33.448282	2026-09-24	A	6.63	1346	\N	f
+1346	2026-09-24 14:25:40.09038	2026-09-24	A	6.64	1347	\N	f
+1347	2026-09-24 14:25:48.502261	2026-09-24	A	8.41	1348	\N	f
+1348	2026-09-24 14:25:57.998882	2026-09-24	A	9.50	1349	\N	f
+1349	2026-09-24 14:26:05.224429	2026-09-24	A	7.23	1350	\N	f
+1350	2026-09-24 14:26:12.320572	2026-09-24	A	7.10	1351	\N	f
+1351	2026-09-24 14:26:23.164539	2026-09-24	A	10.84	1352	\N	f
+1352	2026-09-24 14:26:30.003729	2026-09-24	A	6.84	1353	\N	f
+1353	2026-09-24 14:26:36.78707	2026-09-24	A	6.78	1354	\N	f
+1354	2026-09-24 14:26:43.414568	2026-09-24	A	6.63	1355	\N	f
+1355	2026-09-24 14:26:52.398472	2026-09-24	A	8.98	1356	\N	f
+1356	2026-09-24 14:26:59.21082	2026-09-24	A	6.81	1357	\N	f
+1357	2026-09-24 14:27:06.418766	2026-09-24	A	7.21	1358	\N	f
+1358	2026-09-24 14:27:13.950639	2026-09-24	A	7.53	1359	\N	f
+1359	2026-09-24 14:27:20.557473	2026-09-24	A	6.61	1360	\N	f
+1360	2026-09-24 14:27:27.569415	2026-09-24	A	7.01	1361	\N	f
+1361	2026-09-24 14:27:34.643861	2026-09-24	A	7.07	1362	\N	f
+1362	2026-09-24 14:27:41.709315	2026-09-24	A	7.07	1363	\N	f
+1363	2026-09-24 14:27:48.721585	2026-09-24	A	7.01	1364	\N	f
+1364	2026-09-24 14:27:56.203365	2026-09-24	A	7.48	1365	\N	f
+1365	2026-09-24 14:28:02.990835	2026-09-24	A	6.79	1366	\N	f
+1366	2026-09-24 14:28:09.415273	2026-09-24	A	6.42	1367	\N	f
+1367	2026-09-24 14:28:15.978415	2026-09-24	A	6.56	1368	\N	f
+1368	2026-09-24 14:28:22.585667	2026-09-24	A	6.61	1369	\N	f
+1369	2026-09-24 14:28:29.490607	2026-09-24	A	6.90	1370	\N	f
+1370	2026-09-24 14:28:36.907038	2026-09-24	A	7.42	1371	\N	f
+1371	2026-09-24 14:28:43.830023	2026-09-24	A	6.92	1372	\N	f
+1372	2026-09-24 14:28:50.689689	2026-09-24	A	6.86	1373	\N	f
+1373	2026-09-24 14:28:57.657693	2026-09-24	A	6.97	1374	\N	f
+1374	2026-09-24 14:29:05.224405	2026-09-24	A	7.57	1375	\N	f
+1375	2026-09-24 14:29:19.327577	2026-09-24	A	14.10	1376	\N	f
+1376	2026-09-24 14:29:29.279389	2026-09-24	A	9.95	1377	\N	f
+1377	2026-09-24 14:29:35.877842	2026-09-24	A	6.60	1378	\N	f
+1378	2026-09-24 14:29:42.37065	2026-09-24	A	6.49	1379	\N	f
+1379	2026-09-24 14:29:50.251595	2026-09-24	A	7.88	1380	\N	f
+1380	2026-09-24 14:29:59.400988	2026-09-24	A	9.15	1381	\N	f
+1381	2026-09-24 14:30:05.974961	2026-09-24	A	6.57	1382	\N	f
+1382	2026-09-24 14:30:12.730766	2026-09-24	A	6.76	1383	\N	f
+1383	2026-09-24 14:30:19.770354	2026-09-24	A	7.04	1384	\N	f
+1384	2026-09-24 14:30:27.53743	2026-09-24	A	7.77	1385	\N	f
+1385	2026-09-24 14:30:34.288079	2026-09-24	A	6.75	1386	\N	f
+1386	2026-09-24 14:30:41.12717	2026-09-24	A	6.84	1387	\N	f
+1387	2026-09-24 14:30:48.628764	2026-09-24	A	7.50	1388	\N	f
+1388	2026-09-24 14:30:55.818805	2026-09-24	A	7.19	1389	\N	f
+1389	2026-09-24 14:31:02.543506	2026-09-24	A	6.72	1390	\N	f
+1390	2026-09-24 14:31:09.350253	2026-09-24	A	6.81	1391	\N	f
+1391	2026-09-24 14:31:16.775481	2026-09-24	A	7.43	1392	\N	f
+1392	2026-09-24 14:31:23.773521	2026-09-24	A	7.00	1393	\N	f
+1393	2026-09-24 14:31:30.399299	2026-09-24	A	6.63	1394	\N	f
+1394	2026-09-24 14:31:36.890605	2026-09-24	A	6.49	1395	\N	f
+1395	2026-09-24 14:31:44.426001	2026-09-24	A	7.54	1396	\N	f
+1396	2026-09-24 14:31:51.20369	2026-09-24	A	6.78	1397	\N	f
+1397	2026-09-24 14:31:58.908836	2026-09-24	A	7.71	1398	\N	f
+1398	2026-09-24 14:32:05.986405	2026-09-24	A	7.08	1399	\N	f
+1399	2026-09-24 14:32:12.36969	2026-09-24	A	6.38	1400	\N	f
+1400	2026-09-24 14:32:20.080721	2026-09-24	A	7.71	1401	\N	f
 \.
 
 
@@ -32167,14 +34623,14 @@ SELECT pg_catalog.setval('public.emp_master_id_seq', 60, true);
 -- Name: gear_lifter_dashboard_ct_log_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.gear_lifter_dashboard_ct_log_id_seq', 166324, true);
+SELECT pg_catalog.setval('public.gear_lifter_dashboard_ct_log_id_seq', 174605, true);
 
 
 --
 -- Name: gear_lifter_dashboard_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.gear_lifter_dashboard_id_seq', 230, true);
+SELECT pg_catalog.setval('public.gear_lifter_dashboard_id_seq', 238, true);
 
 
 --
@@ -32202,35 +34658,35 @@ SELECT pg_catalog.setval('public.lines_id_seq', 4, false);
 -- Name: loop_pipe_dashboard_01_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.loop_pipe_dashboard_01_id_seq', 138, true);
+SELECT pg_catalog.setval('public.loop_pipe_dashboard_01_id_seq', 148, true);
 
 
 --
 -- Name: loop_pipe_dashboard_03_ct_log_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.loop_pipe_dashboard_03_ct_log_id_seq', 58830, true);
+SELECT pg_catalog.setval('public.loop_pipe_dashboard_03_ct_log_id_seq', 64992, true);
 
 
 --
 -- Name: loop_pipe_dashboard_03_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.loop_pipe_dashboard_03_id_seq', 110, true);
+SELECT pg_catalog.setval('public.loop_pipe_dashboard_03_id_seq', 120, true);
 
 
 --
 -- Name: loop_pipe_dashboard_ct_log_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.loop_pipe_dashboard_ct_log_id_seq', 350569, true);
+SELECT pg_catalog.setval('public.loop_pipe_dashboard_ct_log_id_seq', 376152, true);
 
 
 --
 -- Name: loop_pipe_dashboard_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.loop_pipe_dashboard_id_seq', 217, true);
+SELECT pg_catalog.setval('public.loop_pipe_dashboard_id_seq', 227, true);
 
 
 --
@@ -32398,14 +34854,14 @@ SELECT pg_catalog.setval('public.mes_5s_photos_id_seq', 1, false);
 -- Name: mes_admin_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.mes_admin_id_seq', 65, true);
+SELECT pg_catalog.setval('public.mes_admin_id_seq', 67, true);
 
 
 --
 -- Name: mes_audit_log_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.mes_audit_log_id_seq', 4813, true);
+SELECT pg_catalog.setval('public.mes_audit_log_id_seq', 5075, true);
 
 
 --
@@ -32447,7 +34903,7 @@ SELECT pg_catalog.setval('public.mes_breakdown_logbook_id_seq', 1646, true);
 -- Name: mes_breakdown_mail_levels_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.mes_breakdown_mail_levels_id_seq', 15191, true);
+SELECT pg_catalog.setval('public.mes_breakdown_mail_levels_id_seq', 15235, true);
 
 
 --
@@ -32475,7 +34931,7 @@ SELECT pg_catalog.setval('public.mes_capa_id_seq', 1, false);
 -- Name: mes_capa_thresholds_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.mes_capa_thresholds_id_seq', 7887, true);
+SELECT pg_catalog.setval('public.mes_capa_thresholds_id_seq', 7909, true);
 
 
 --
@@ -32489,14 +34945,14 @@ SELECT pg_catalog.setval('public.mes_customers_id_seq', 1, false);
 -- Name: mes_cycle_comments_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.mes_cycle_comments_id_seq', 28066, true);
+SELECT pg_catalog.setval('public.mes_cycle_comments_id_seq', 40423, true);
 
 
 --
 -- Name: mes_departments_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.mes_departments_id_seq', 7935, true);
+SELECT pg_catalog.setval('public.mes_departments_id_seq', 7957, true);
 
 
 --
@@ -32538,7 +34994,7 @@ SELECT pg_catalog.setval('public.mes_fg_parts_id_seq', 200, true);
 -- Name: mes_gas_log_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.mes_gas_log_id_seq', 1495, true);
+SELECT pg_catalog.setval('public.mes_gas_log_id_seq', 114088, true);
 
 
 --
@@ -32559,70 +35015,70 @@ SELECT pg_catalog.setval('public.mes_heijunka_plan_id_seq', 78, true);
 -- Name: mes_hourly_slots_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.mes_hourly_slots_id_seq', 2024, true);
+SELECT pg_catalog.setval('public.mes_hourly_slots_id_seq', 2072, true);
 
 
 --
 -- Name: mes_kanban_log_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.mes_kanban_log_id_seq', 257, true);
+SELECT pg_catalog.setval('public.mes_kanban_log_id_seq', 262, true);
 
 
 --
 -- Name: mes_kpi_targets_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.mes_kpi_targets_id_seq', 22473, true);
+SELECT pg_catalog.setval('public.mes_kpi_targets_id_seq', 22539, true);
 
 
 --
 -- Name: mes_l6_ball_guide_13_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.mes_l6_ball_guide_13_id_seq', 146231, true);
+SELECT pg_catalog.setval('public.mes_l6_ball_guide_13_id_seq', 151781, true);
 
 
 --
 -- Name: mes_l6_ball_guide_14_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.mes_l6_ball_guide_14_id_seq', 145191, true);
+SELECT pg_catalog.setval('public.mes_l6_ball_guide_14_id_seq', 150814, true);
 
 
 --
 -- Name: mes_l6_final_inspection_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.mes_l6_final_inspection_id_seq', 312353, true);
+SELECT pg_catalog.setval('public.mes_l6_final_inspection_id_seq', 323573, true);
 
 
 --
 -- Name: mes_l6_lock_bar_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.mes_l6_lock_bar_id_seq', 294758, true);
+SELECT pg_catalog.setval('public.mes_l6_lock_bar_id_seq', 305947, true);
 
 
 --
 -- Name: mes_l6_lower_rail_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.mes_l6_lower_rail_id_seq', 280328, true);
+SELECT pg_catalog.setval('public.mes_l6_lower_rail_id_seq', 291486, true);
 
 
 --
 -- Name: mes_l6_semi_auto_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.mes_l6_semi_auto_id_seq', 301746, true);
+SELECT pg_catalog.setval('public.mes_l6_semi_auto_id_seq', 313612, true);
 
 
 --
 -- Name: mes_l6_upper_rail_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.mes_l6_upper_rail_id_seq', 291295, true);
+SELECT pg_catalog.setval('public.mes_l6_upper_rail_id_seq', 302490, true);
 
 
 --
@@ -32636,7 +35092,7 @@ SELECT pg_catalog.setval('public.mes_lines_id_seq', 41, true);
 -- Name: mes_loss_remarks_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.mes_loss_remarks_id_seq', 75, true);
+SELECT pg_catalog.setval('public.mes_loss_remarks_id_seq', 76, true);
 
 
 --
@@ -32657,7 +35113,7 @@ SELECT pg_catalog.setval('public.mes_machine_monitor_configs_id_seq', 1, true);
 -- Name: mes_machine_process_log_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.mes_machine_process_log_id_seq', 811434, true);
+SELECT pg_catalog.setval('public.mes_machine_process_log_id_seq', 843588, true);
 
 
 --
@@ -32713,7 +35169,7 @@ SELECT pg_catalog.setval('public.mes_manpower_alerts_id_seq', 1, false);
 -- Name: mes_manpower_allocations_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.mes_manpower_allocations_id_seq', 135, true);
+SELECT pg_catalog.setval('public.mes_manpower_allocations_id_seq', 318, true);
 
 
 --
@@ -32762,14 +35218,14 @@ SELECT pg_catalog.setval('public.mes_non_production_days_id_seq', 52, true);
 -- Name: mes_operator_lines_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.mes_operator_lines_id_seq', 554, true);
+SELECT pg_catalog.setval('public.mes_operator_lines_id_seq', 572, true);
 
 
 --
 -- Name: mes_operator_punches_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.mes_operator_punches_id_seq', 110, true);
+SELECT pg_catalog.setval('public.mes_operator_punches_id_seq', 199, true);
 
 
 --
@@ -32783,7 +35239,7 @@ SELECT pg_catalog.setval('public.mes_operator_sessions_id_seq', 1, false);
 -- Name: mes_operators_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.mes_operators_id_seq', 145, true);
+SELECT pg_catalog.setval('public.mes_operators_id_seq', 195, true);
 
 
 --
@@ -32825,7 +35281,7 @@ SELECT pg_catalog.setval('public.mes_plc_configs_id_seq', 217, true);
 -- Name: mes_poka_yoke_events_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.mes_poka_yoke_events_id_seq', 18996, true);
+SELECT pg_catalog.setval('public.mes_poka_yoke_events_id_seq', 19276, true);
 
 
 --
@@ -32846,7 +35302,7 @@ SELECT pg_catalog.setval('public.mes_process_cameras_id_seq', 4, true);
 -- Name: mes_processes_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.mes_processes_id_seq', 146, true);
+SELECT pg_catalog.setval('public.mes_processes_id_seq', 151, true);
 
 
 --
@@ -32860,14 +35316,14 @@ SELECT pg_catalog.setval('public.mes_pulse_log_id_seq', 7260, true);
 -- Name: mes_push_inbox_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.mes_push_inbox_id_seq', 32807, true);
+SELECT pg_catalog.setval('public.mes_push_inbox_id_seq', 33939, true);
 
 
 --
 -- Name: mes_push_subscriptions_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.mes_push_subscriptions_id_seq', 588, true);
+SELECT pg_catalog.setval('public.mes_push_subscriptions_id_seq', 740, true);
 
 
 --
@@ -32881,7 +35337,7 @@ SELECT pg_catalog.setval('public.mes_py_assignments_id_seq', 2403, true);
 -- Name: mes_py_bypass_cases_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.mes_py_bypass_cases_id_seq', 32918, true);
+SELECT pg_catalog.setval('public.mes_py_bypass_cases_id_seq', 65665, true);
 
 
 --
@@ -33042,7 +35498,7 @@ SELECT pg_catalog.setval('public.mes_report_email_config_id_seq', 1, false);
 -- Name: mes_sa_fi_quality_log_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.mes_sa_fi_quality_log_id_seq', 506128, true);
+SELECT pg_catalog.setval('public.mes_sa_fi_quality_log_id_seq', 589386, true);
 
 
 --
@@ -33063,7 +35519,7 @@ SELECT pg_catalog.setval('public.mes_sensor_ack_requests_id_seq', 77, true);
 -- Name: mes_shift_compile_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.mes_shift_compile_id_seq', 92, true);
+SELECT pg_catalog.setval('public.mes_shift_compile_id_seq', 112, true);
 
 
 --
@@ -33077,21 +35533,21 @@ SELECT pg_catalog.setval('public.mes_shift_configs_id_seq', 364, true);
 -- Name: mes_shift_count_archive_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.mes_shift_count_archive_id_seq', 4262, true);
+SELECT pg_catalog.setval('public.mes_shift_count_archive_id_seq', 4460, true);
 
 
 --
 -- Name: mes_shift_escalation_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.mes_shift_escalation_id_seq', 51793, true);
+SELECT pg_catalog.setval('public.mes_shift_escalation_id_seq', 51813, true);
 
 
 --
 -- Name: mes_shift_escalation_log_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.mes_shift_escalation_log_id_seq', 51810, true);
+SELECT pg_catalog.setval('public.mes_shift_escalation_log_id_seq', 51830, true);
 
 
 --
@@ -33112,7 +35568,7 @@ SELECT pg_catalog.setval('public.mes_station_py_machine_id_seq', 8, true);
 -- Name: mes_status_log_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.mes_status_log_id_seq', 69849, true);
+SELECT pg_catalog.setval('public.mes_status_log_id_seq', 70755, true);
 
 
 --
@@ -33140,42 +35596,42 @@ SELECT pg_catalog.setval('public.mes_store_issues_id_seq', 1, false);
 -- Name: mes_submachine_ct_log_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.mes_submachine_ct_log_id_seq', 11579562, true);
+SELECT pg_catalog.setval('public.mes_submachine_ct_log_id_seq', 12553951, true);
 
 
 --
 -- Name: mes_submachine_data_log_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.mes_submachine_data_log_id_seq', 916702, true);
+SELECT pg_catalog.setval('public.mes_submachine_data_log_id_seq', 999761, true);
 
 
 --
 -- Name: mes_ui_timing_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.mes_ui_timing_id_seq', 67765, true);
+SELECT pg_catalog.setval('public.mes_ui_timing_id_seq', 86073, true);
 
 
 --
 -- Name: mes_vcov_cam_state_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.mes_vcov_cam_state_id_seq', 6823, true);
+SELECT pg_catalog.setval('public.mes_vcov_cam_state_id_seq', 11100, true);
 
 
 --
 -- Name: mes_vcov_findings_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.mes_vcov_findings_id_seq', 466, true);
+SELECT pg_catalog.setval('public.mes_vcov_findings_id_seq', 1012, true);
 
 
 --
 -- Name: mes_vcov_missing_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.mes_vcov_missing_id_seq', 431992, true);
+SELECT pg_catalog.setval('public.mes_vcov_missing_id_seq', 1175425, true);
 
 
 --
@@ -33189,7 +35645,7 @@ SELECT pg_catalog.setval('public.mes_video_archive_id_seq', 644277, true);
 -- Name: mes_weld_log_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.mes_weld_log_id_seq', 1049674, true);
+SELECT pg_catalog.setval('public.mes_weld_log_id_seq', 1072391, true);
 
 
 --
@@ -33217,14 +35673,21 @@ SELECT pg_catalog.setval('public.nut_lifting_dashboard_ct_log_id_seq', 1, false)
 -- Name: nut_lifting_dashboard_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.nut_lifting_dashboard_id_seq', 161, true);
+SELECT pg_catalog.setval('public.nut_lifting_dashboard_id_seq', 169, true);
+
+
+--
+-- Name: nutwelding_pwm39_dashboard_ct_log_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+--
+
+SELECT pg_catalog.setval('public.nutwelding_pwm39_dashboard_ct_log_id_seq', 1400, true);
 
 
 --
 -- Name: nutwelding_pwm39_dashboard_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.nutwelding_pwm39_dashboard_id_seq', 23, true);
+SELECT pg_catalog.setval('public.nutwelding_pwm39_dashboard_id_seq', 33, true);
 
 
 --
@@ -33343,14 +35806,14 @@ SELECT pg_catalog.setval('public.tickets_id_seq', 243, true);
 -- Name: ua2_recliner_dashboard_ct_log_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.ua2_recliner_dashboard_ct_log_id_seq', 19108, true);
+SELECT pg_catalog.setval('public.ua2_recliner_dashboard_ct_log_id_seq', 21102, true);
 
 
 --
 -- Name: ua2_recliner_dashboard_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.ua2_recliner_dashboard_id_seq', 231, true);
+SELECT pg_catalog.setval('public.ua2_recliner_dashboard_id_seq', 239, true);
 
 
 --
@@ -33364,70 +35827,70 @@ SELECT pg_catalog.setval('public.users_id_seq', 10, false);
 -- Name: y17_l7_complete_ct_log_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.y17_l7_complete_ct_log_id_seq', 180685, true);
+SELECT pg_catalog.setval('public.y17_l7_complete_ct_log_id_seq', 189427, true);
 
 
 --
 -- Name: y17_l7_complete_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.y17_l7_complete_id_seq', 298, true);
+SELECT pg_catalog.setval('public.y17_l7_complete_id_seq', 308, true);
 
 
 --
 -- Name: y17_l7_dashboard_ct_log_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.y17_l7_dashboard_ct_log_id_seq', 2673, true);
+SELECT pg_catalog.setval('public.y17_l7_dashboard_ct_log_id_seq', 15418, true);
 
 
 --
 -- Name: y17_l7_dashboard_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.y17_l7_dashboard_id_seq', 23, true);
+SELECT pg_catalog.setval('public.y17_l7_dashboard_id_seq', 33, true);
 
 
 --
 -- Name: yca_l5_dashboard_ct_log_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.yca_l5_dashboard_ct_log_id_seq', 146520, true);
+SELECT pg_catalog.setval('public.yca_l5_dashboard_ct_log_id_seq', 157061, true);
 
 
 --
 -- Name: yca_l5_dashboard_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.yca_l5_dashboard_id_seq', 308, true);
+SELECT pg_catalog.setval('public.yca_l5_dashboard_id_seq', 318, true);
 
 
 --
 -- Name: yfg_l7_complete_ct_log_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.yfg_l7_complete_ct_log_id_seq', 195158, true);
+SELECT pg_catalog.setval('public.yfg_l7_complete_ct_log_id_seq', 205466, true);
 
 
 --
 -- Name: yfg_l7_complete_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.yfg_l7_complete_id_seq', 300, true);
+SELECT pg_catalog.setval('public.yfg_l7_complete_id_seq', 310, true);
 
 
 --
 -- Name: yhb_l3_dashboard_ct_log_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.yhb_l3_dashboard_ct_log_id_seq', 205598, true);
+SELECT pg_catalog.setval('public.yhb_l3_dashboard_ct_log_id_seq', 215723, true);
 
 
 --
 -- Name: yhb_l3_dashboard_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.yhb_l3_dashboard_id_seq', 304, true);
+SELECT pg_catalog.setval('public.yhb_l3_dashboard_id_seq', 314, true);
 
 
 --
@@ -33441,7 +35904,7 @@ SELECT pg_catalog.setval('public.yhb_recliner_complete_ct_log_id_seq', 1, false)
 -- Name: yhb_recliner_complete_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.yhb_recliner_complete_id_seq', 166, true);
+SELECT pg_catalog.setval('public.yhb_recliner_complete_id_seq', 176, true);
 
 
 --
@@ -33455,56 +35918,56 @@ SELECT pg_catalog.setval('public.yhb_recliner_dashboard_id_seq', 5, true);
 -- Name: yhb_sa_l3_dashboard_ct_log_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.yhb_sa_l3_dashboard_ct_log_id_seq', 39992, true);
+SELECT pg_catalog.setval('public.yhb_sa_l3_dashboard_ct_log_id_seq', 53839, true);
 
 
 --
 -- Name: yhb_sa_l3_dashboard_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.yhb_sa_l3_dashboard_id_seq', 59, true);
+SELECT pg_catalog.setval('public.yhb_sa_l3_dashboard_id_seq', 69, true);
 
 
 --
 -- Name: yjc_l2_dashboard_ct_log_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.yjc_l2_dashboard_ct_log_id_seq', 175392, true);
+SELECT pg_catalog.setval('public.yjc_l2_dashboard_ct_log_id_seq', 184617, true);
 
 
 --
 -- Name: yjc_l2_dashboard_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.yjc_l2_dashboard_id_seq', 296, true);
+SELECT pg_catalog.setval('public.yjc_l2_dashboard_id_seq', 306, true);
 
 
 --
 -- Name: ymc_l9_complete_ct_log_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.ymc_l9_complete_ct_log_id_seq', 128285, true);
+SELECT pg_catalog.setval('public.ymc_l9_complete_ct_log_id_seq', 136340, true);
 
 
 --
 -- Name: ymc_l9_complete_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.ymc_l9_complete_id_seq', 327, true);
+SELECT pg_catalog.setval('public.ymc_l9_complete_id_seq', 337, true);
 
 
 --
 -- Name: ymc_recliner_complete_ct_log_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.ymc_recliner_complete_ct_log_id_seq', 111647, true);
+SELECT pg_catalog.setval('public.ymc_recliner_complete_ct_log_id_seq', 119545, true);
 
 
 --
 -- Name: ymc_recliner_complete_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.ymc_recliner_complete_id_seq', 216, true);
+SELECT pg_catalog.setval('public.ymc_recliner_complete_id_seq', 226, true);
 
 
 --
@@ -33518,14 +35981,14 @@ SELECT pg_catalog.setval('public.ync_cycle_time_tracking_id_seq', 34, true);
 -- Name: ync_dashboard_complete_ct_log_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.ync_dashboard_complete_ct_log_id_seq', 366385, true);
+SELECT pg_catalog.setval('public.ync_dashboard_complete_ct_log_id_seq', 376971, true);
 
 
 --
 -- Name: ync_dashboard_complete_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.ync_dashboard_complete_id_seq', 894, true);
+SELECT pg_catalog.setval('public.ync_dashboard_complete_id_seq', 904, true);
 
 
 --
@@ -33539,35 +36002,35 @@ SELECT pg_catalog.setval('public.ync_hourly_production_id_seq', 1, true);
 -- Name: ync_recliner_complete_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.ync_recliner_complete_id_seq', 138, true);
+SELECT pg_catalog.setval('public.ync_recliner_complete_id_seq', 148, true);
 
 
 --
 -- Name: ync_sa_l4_dashboard_ct_log_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.ync_sa_l4_dashboard_ct_log_id_seq', 38548, true);
+SELECT pg_catalog.setval('public.ync_sa_l4_dashboard_ct_log_id_seq', 52234, true);
 
 
 --
 -- Name: ync_sa_l4_dashboard_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.ync_sa_l4_dashboard_id_seq', 55, true);
+SELECT pg_catalog.setval('public.ync_sa_l4_dashboard_id_seq', 65, true);
 
 
 --
 -- Name: ync_sa_l6_dashboard_ct_log_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.ync_sa_l6_dashboard_ct_log_id_seq', 4364, true);
+SELECT pg_catalog.setval('public.ync_sa_l6_dashboard_ct_log_id_seq', 8098, true);
 
 
 --
 -- Name: ync_sa_l6_dashboard_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.ync_sa_l6_dashboard_id_seq', 47, true);
+SELECT pg_catalog.setval('public.ync_sa_l6_dashboard_id_seq', 57, true);
 
 
 --
@@ -33581,21 +36044,21 @@ SELECT pg_catalog.setval('public.ync_seatslider_id_seq', 15, true);
 -- Name: ync_status_log_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.ync_status_log_id_seq', 16740, true);
+SELECT pg_catalog.setval('public.ync_status_log_id_seq', 16832, true);
 
 
 --
 -- Name: yra_l1_complete_ct_log_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.yra_l1_complete_ct_log_id_seq', 182870, true);
+SELECT pg_catalog.setval('public.yra_l1_complete_ct_log_id_seq', 191897, true);
 
 
 --
 -- Name: yra_l1_complete_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.yra_l1_complete_id_seq', 328, true);
+SELECT pg_catalog.setval('public.yra_l1_complete_id_seq', 338, true);
 
 
 --
@@ -33609,77 +36072,77 @@ SELECT pg_catalog.setval('public.yra_recliner_complete_ct_log_id_seq', 1, false)
 -- Name: yra_recliner_complete_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.yra_recliner_complete_id_seq', 158, true);
+SELECT pg_catalog.setval('public.yra_recliner_complete_id_seq', 168, true);
 
 
 --
 -- Name: yra_sa_l1_dashboard_ct_log_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.yra_sa_l1_dashboard_ct_log_id_seq', 14508, true);
+SELECT pg_catalog.setval('public.yra_sa_l1_dashboard_ct_log_id_seq', 28474, true);
 
 
 --
 -- Name: yra_sa_l1_dashboard_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.yra_sa_l1_dashboard_id_seq', 55, true);
+SELECT pg_catalog.setval('public.yra_sa_l1_dashboard_id_seq', 65, true);
 
 
 --
 -- Name: ysd_l2_dashboard_ct_log_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.ysd_l2_dashboard_ct_log_id_seq', 197963, true);
+SELECT pg_catalog.setval('public.ysd_l2_dashboard_ct_log_id_seq', 207931, true);
 
 
 --
 -- Name: ysd_l2_dashboard_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.ysd_l2_dashboard_id_seq', 336, true);
+SELECT pg_catalog.setval('public.ysd_l2_dashboard_id_seq', 346, true);
 
 
 --
 -- Name: ysd_recliner_complete_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.ysd_recliner_complete_id_seq', 138, true);
+SELECT pg_catalog.setval('public.ysd_recliner_complete_id_seq', 148, true);
 
 
 --
 -- Name: ysd_sa_l2_dashboard_ct_log_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.ysd_sa_l2_dashboard_ct_log_id_seq', 3261, true);
+SELECT pg_catalog.setval('public.ysd_sa_l2_dashboard_ct_log_id_seq', 17164, true);
 
 
 --
 -- Name: ysd_sa_l2_dashboard_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.ysd_sa_l2_dashboard_id_seq', 55, true);
+SELECT pg_catalog.setval('public.ysd_sa_l2_dashboard_id_seq', 65, true);
 
 
 --
 -- Name: ywd_recliner_dashboard_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.ywd_recliner_dashboard_id_seq', 234, true);
+SELECT pg_catalog.setval('public.ywd_recliner_dashboard_id_seq', 242, true);
 
 
 --
 -- Name: ywd_ss_dashboard_ct_log_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.ywd_ss_dashboard_ct_log_id_seq', 135400, true);
+SELECT pg_catalog.setval('public.ywd_ss_dashboard_ct_log_id_seq', 142475, true);
 
 
 --
 -- Name: ywd_ss_dashboard_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.ywd_ss_dashboard_id_seq', 262, true);
+SELECT pg_catalog.setval('public.ywd_ss_dashboard_id_seq', 270, true);
 
 
 --
@@ -36240,6 +38703,14 @@ ALTER TABLE ONLY public.nut_lifting_dashboard_ct_log
 
 ALTER TABLE ONLY public.nut_lifting_dashboard
     ADD CONSTRAINT nut_lifting_dashboard_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: nutwelding_pwm39_dashboard_ct_log nutwelding_pwm39_dashboard_ct_log_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.nutwelding_pwm39_dashboard_ct_log
+    ADD CONSTRAINT nutwelding_pwm39_dashboard_ct_log_pkey PRIMARY KEY (id);
 
 
 --
@@ -39015,6 +41486,13 @@ CREATE INDEX nut_lifting_dashboard_ct_log_ts_idx ON public.nut_lifting_dashboard
 
 
 --
+-- Name: nutwelding_pwm39_dashboard_ct_log_date_shift; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX nutwelding_pwm39_dashboard_ct_log_date_shift ON public.nutwelding_pwm39_dashboard_ct_log USING btree (record_date, shift_name);
+
+
+--
 -- Name: ua2_recliner_dashboard_ct_log_date_shift; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -40798,5 +43276,5 @@ ALTER TABLE ONLY public.tickets
 -- PostgreSQL database dump complete
 --
 
-\unrestrict wIooYy7S1R5VfbY5vUhFkWfbH1cNkPalWrWBUFcHhFGq0V4I2HbcMf8rEvo10ci
+\unrestrict rJAsdAH1H9QDKa2oKSWnO3DUFUhNEBF25uzEVMSvIpjVTlic4PYePlVutow16aA
 

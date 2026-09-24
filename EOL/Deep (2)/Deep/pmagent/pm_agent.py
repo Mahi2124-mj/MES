@@ -553,12 +553,14 @@ _REASONS = {
     "no_camera": "no camera assigned", "cms_down": "CMS down",
     "network_down": "network down", "camera_offline": "camera offline",
     "camera_hung": "camera hung", "shift_wipe": "footage deleted at shift change",
+    "camera_wrong_ip": "wrong camera address (IP is a PLC)",
     "clip_failed": "clip not cut (camera was recording)", "unknown": "not tracked",
 }
 # reason of a missing clip -> cause text in video_rules.json
 _REASON_CAUSE = {
     "no_camera": "fi_no_camera", "cms_down": "cms_down", "network_down": "segment_down",
     "camera_offline": "camera_offline", "camera_hung": "camera_hung",
+    "camera_wrong_ip": "camera_wrong_ip",
     "shift_wipe": "shift_change_loss", "clip_failed": "archiver_capacity",
     "unknown": "tracker_stale",
 }
@@ -784,7 +786,8 @@ def check_video(a, rules, learn=True):
         if net in down_nets:
             continue                    # already reported once as a segment
         vgap(f"video:cam:{f['camera_id']}", "warning", f["message"], "",
-             "camera_hung" if st.get("state") == "camera_hung" else "camera_offline")
+             st.get("state") if st.get("state") in ("camera_hung", "camera_wrong_ip")
+             else "camera_offline")
     down_cams = {g["id"][10:] for g in a.gaps if g["id"].startswith("video:cam:")}
 
     # V5. recorders (from /proc)

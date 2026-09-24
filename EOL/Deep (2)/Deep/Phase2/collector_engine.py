@@ -2967,6 +2967,20 @@ class CollectorEngine:
         except Exception:
             return True
 
+    def _allow_zero_after_seed(self, reg):
+        """A validated reset right after a start-of-shift seed in the SAME
+        shift: the row's count came only from the carried-over seed, so the
+        next dashboard write may go down to the live value even when it is 0.
+        Anything else keeps the 2026-07-03 never-wipe-to-0 guard (a populated
+        or closing row, an OT reopen, a mid-shift restart)."""
+        seed = getattr(self, "_shift_start_seed", None)
+        self._shift_start_seed = None
+        if seed and seed[0] == self._shift_id and self._near_shift_boundary(30):
+            self._reg_allow_zero_write = True
+            print(f"[REG-SEED-RESET] {reg} reset after start-of-shift seed "
+                  f"{seed[1]} -- carried-over count, row follows the live "
+                  f"register", flush=True)
+
     def _rate_clamp_climb(self, reg, last, now_val, accept_attr):
         """Physics-based phantom-dump guard for a climbing DATA register.
 
@@ -3278,6 +3292,18 @@ class CollectorEngine:
                         print(f"[REGISTER-MIRROR] {_ok_reg} seed={_now_val} "
                               f"-> ok_shift snapped (was {self.ok_shift})",
                               flush=True)
+                        # 2026-09-22 — START-OF-SHIFT SEED.  When the PLC is
+                        # offline at the shift boundary, the reset pulse cannot
+                        # reach it; the first read after it comes back is the
+                        # previous run's count, and that seed is written into
+                        # the NEW shift's row.  Remember it: if the reset lands
+                        # after it (below), the row holds only the carried-over
+                        # count and may be written down to the live value, even
+                        # 0 (22-Sep: YSD/YHB/YNC/Y17-SA A rows stuck at 673-808).
+                        self._shift_start_seed = (
+                            (self._shift_id, _now_val)
+                            if _now_val > 0 and self._near_shift_boundary(20)
+                            else None)
                         data["ok_bit"] = 0
                         self._ok_pending_high = None
                         self._ok_drop_garbage_streak = 0
@@ -3347,6 +3373,7 @@ class CollectorEngine:
                                   f"{_last}->{_now_val} (L110 reset in "
                                   f"progress) -- ok_shift mirrors down",
                                   flush=True)
+                            self._allow_zero_after_seed(_ok_reg)
                             data["ok_bit"] = 0
                             self._ok_pending_high = None
                             self._ok_drop_garbage_streak = 0
@@ -3390,6 +3417,7 @@ class CollectorEngine:
                                       f"-- ok_shift snapped DOWN to live, no "
                                       f"backfill", flush=True)
                                 self._ok_shift_peak = _now_val   # new baseline
+                                self._allow_zero_after_seed(_ok_reg)
                                 self._reg_resnap_armed = False
                                 self._reg_resnap_low1  = None
                                 self._ok_drop_garbage_streak = 0
@@ -7235,22 +7263,22 @@ class CollectorEngine:
             conn = _db_conn()
             try:
                 cur = conn.cursor()
-                if _hw_meta and _hw_meta[1]:
-                    cur.execute(
-                        f"SELECT COALESCE(MAX(counter_val), 0), MAX(ts) "
-                        f"FROM {_hw_meta[0]} "
-                        "WHERE bit_type='OK' AND shift_name=%s "
-                        "AND record_date=%s",
-                        (shift, rec_dt),
-                    )
-                else:
-                    cur.execute(
-                        f"SELECT COALESCE(MAX(cycle_seq), 0), MAX(ts) "
-                        f"FROM {self.cfg['table_name']}_ct_log "
-                        "WHERE shift_name=%s AND record_date=%s "
-                        "AND NOT COALESCE(is_ng, FALSE)",
-                        (shift, rec_dt),
-                    )
+                # 2026-09-24 — ALWAYS measure the gap against THIS line's own
+                # ct_log.  It used to read mes_l6_final_inspection for the main
+                # Final-Inspection machine, but that table is SHARED by every
+                # line's FI and has no line/machine column at all, so
+                # MAX(counter_val) there is the highest count of ANY line.  On a
+                # restart this line then "filled" the difference against another
+                # line's number and wrote phantom rows.  The per-line ct_log
+                # carries the same cycle_seq (pinned to the D-register), so it is
+                # the correct and unambiguous source.
+                cur.execute(
+                    f"SELECT COALESCE(MAX(cycle_seq), 0), MAX(ts) "
+                    f"FROM {self.cfg['table_name']}_ct_log "
+                    "WHERE shift_name=%s AND record_date=%s "
+                    "AND NOT COALESCE(is_ng, FALSE)",
+                    (shift, rec_dt),
+                )
                 _row = cur.fetchone() or (0, None)
                 db_max = int(_row[0] or 0)
                 last_ts = _row[1]
@@ -7648,9 +7676,12 @@ class CollectorEngine:
             # behaviour, UI still follows a real reset), but on a populated /
             # closing row GREATEST prevents it from being wiped to 0 (the
             # OT-reopen zeroing that made ync 07-02 A ok_count=0).
+            # 2026-09-22 — …or when the row holds only a start-of-shift seed
+            # that the reset proved stale (_allow_zero_after_seed).
             _ok_set = ("ok_count=%s"
                        if (getattr(self, "_reg_force_db_exact", False)
-                           and int(self.ok_shift or 0) > 0)
+                           and (int(self.ok_shift or 0) > 0
+                                or getattr(self, "_reg_allow_zero_write", False)))
                        else "ok_count=GREATEST(ok_count, %s)")
             cur.execute(f"""
                 UPDATE {self.cfg['table_name']} SET
@@ -7701,6 +7732,7 @@ class CollectorEngine:
             self._db.commit()
             cur.close()
             self._reg_force_db_exact = False   # one-shot exact-write consumed
+            self._reg_allow_zero_write = False
 
             # Flush buffered CT log entries
             self._flush_ct_log()

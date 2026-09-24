@@ -3,7 +3,7 @@
 AUTO-GENERATED COLLECTOR — YSD-SA-4WAY
 Line ID    : 34
 Table      : ysd_sa_l2_dashboard
-Generated  : 2026-09-08 16:20:32
+Generated  : 2026-09-23 15:57:52
 
 DO NOT EDIT MANUALLY — regenerate via admin panel if config changes.
 """
@@ -29,7 +29,7 @@ CONFIG = {
     "models":     {},
     "status_map": {},
     "breaks":     [{'start': '01:00:00', 'end': '01:10:00', 'name': 'Night Tea Break'}, {'start': '04:00:00', 'end': '04:10:00', 'name': 'Early Morning Break'}, {'start': '10:00:00', 'end': '10:10:00', 'name': 'Morning Tea Break'}, {'start': '12:00:00', 'end': '12:35:00', 'name': 'Lunch Break'}, {'start': '14:30:00', 'end': '14:40:00', 'name': 'Evening Tea Break'}, {'start': '18:00:00', 'end': '18:10:00', 'name': 'Dinner Break 1'}, {'start': '20:00:00', 'end': '20:10:00', 'name': 'Tea Break'}, {'start': '22:00:00', 'end': '22:35:00', 'name': 'Dinner Break 2'}],
-    "shifts":     {'A': {'start': '08:30:00', 'end': '17:15:00', 'plan': 2415, 'crosses_midnight': False}, 'B': {'start': '18:30:00', 'end': '03:15:00', 'plan': 2415, 'crosses_midnight': True}},
+    "shifts":     {'A': {'start': '08:30:00', 'end': '17:15:00', 'plan': 2475, 'crosses_midnight': False}, 'B': {'start': '18:30:00', 'end': '03:15:00', 'plan': 2475, 'crosses_midnight': True}},
 }
 
 if __name__ == "__main__":

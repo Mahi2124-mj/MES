@@ -549,6 +549,11 @@ export default function ShiftAllocation() {
         }
         .shake { animation: shake-x .6s ease-in-out; }
         .pulse-red { animation: pulse-red 1.4s ease-in-out infinite; }
+        /* 2026-09-22 — the pool stays in view while the process grid scrolls,
+           so an operator can be dragged onto any tile; off on phones, where the
+           board is stacked and a sticky pool would cover the screen. */
+        .sa-pool { position: sticky; top: 76px; align-self: flex-start; }
+        @media (max-width: 600px) { .sa-pool { position: static; } }
         .col-scroll::-webkit-scrollbar { width: 6px; }
         .col-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
       `}</style>
@@ -677,12 +682,16 @@ export default function ShiftAllocation() {
       </div>
 
       {/* ═══ KANBAN BOARD ════════════════════════════════════════════ */}
-      {/* .sa-board — horizontal kanban on desktop; on the phone index.html
-         stacks it into a single column (Operator Pool on top, each machine
-         drop-box full-width below it) so there's no sideways scrolling. */}
+      {/* .sa-board — Operator Pool on the left, processes in a wrapping grid.
+         2026-09-22: it used to be one row of fixed 280px columns scrolled
+         sideways — YRA-SS showed 5 of its 14 processes on a 1920 screen and
+         fewer on the line panel, and every column stretched to full height
+         around a single slot.  Now every process is on screen, tiles are as
+         tall as their slots, and the page scrolls only vertically.  On the
+         phone index.html still stacks the board into one column. */}
       <div className="sa-board" style={{
         display: "flex", gap: 14, padding: "20px 48px",
-        overflowX: "auto", alignItems: "stretch",
+        alignItems: "flex-start",
       }}>
         {/* POOL COLUMN */}
         <div
@@ -690,8 +699,9 @@ export default function ShiftAllocation() {
           onDragEnter={() => setDropHover("pool")}
           onDragLeave={(e) => { if (e.currentTarget === e.target) setDropHover(null); }}
           onDrop={dropOnPool}
+          className="sa-pool"
           style={{
-            flexShrink: 0, width: 280,
+            flexShrink: 0, width: 260,
             background: "#fff",
             border: `1px solid ${dropHover === "pool" ? "#2563eb" : "#e2e8f0"}`,
             borderRadius: 14, display: "flex", flexDirection: "column",
@@ -714,7 +724,7 @@ export default function ShiftAllocation() {
               }}>+ ADD</button>
             )}
           </div>
-          <div className="col-scroll" style={{ padding: 10, flex: 1, overflowY: "auto", maxHeight: "calc(100vh - 340px)" }}>
+          <div className="col-scroll" style={{ padding: 10, flex: 1, overflowY: "auto", maxHeight: "calc(100vh - 170px)" }}>
             {pool.length === 0 ? (
               <div style={{ padding: 24, textAlign: "center", color: "#94a3b8", fontSize: 11 }}>
                 Nobody punched in yet.<br/>
@@ -749,10 +759,15 @@ export default function ShiftAllocation() {
           </div>
         </div>
 
-        {/* PROCESS COLUMNS */}
+        {/* PROCESS TILES — wrapping grid */}
+        <div className="sa-procs" style={{
+          flex: 1, minWidth: 0, display: "grid",
+          gridTemplateColumns: "repeat(auto-fill, minmax(210px, 1fr))",
+          gap: 12, alignItems: "start",
+        }}>
         {processes.length === 0 ? (
           <div style={{
-            flex: 1, minWidth: 400, display: "flex", alignItems: "center", justifyContent: "center",
+            gridColumn: "1 / -1", display: "flex", alignItems: "center", justifyContent: "center",
             background: "#fff", border: "1px dashed #e2e8f0", borderRadius: 14,
             color: "#64748b", fontSize: 13, textAlign: "center", padding: 30,
           }}>
@@ -775,7 +790,7 @@ export default function ShiftAllocation() {
                 onDragLeave={(e) => { if (e.currentTarget === e.target) setDropHover(null); }}
                 onDrop={(e) => dropOnProcess(e, p.id)}
                 style={{
-                  flexShrink: 0, width: 280,
+                  minWidth: 0,
                   background: hasAny ? "#fff" : "#fef2f2",
                   border: `1px solid ${isHovering ? "#2563eb" : hasAny ? "#e2e8f0" : "#fecaca"}`,
                   borderRadius: 14, display: "flex", flexDirection: "column",
@@ -783,7 +798,7 @@ export default function ShiftAllocation() {
                   transition: "border-color .15s, box-shadow .15s, background .15s",
                 }}>
                 {/* Header */}
-                <div style={{ padding: 14, borderBottom: "1px solid #e2e8f0" }}>
+                <div style={{ padding: "10px 12px", borderBottom: "1px solid #e2e8f0" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start", gap: 8 }}>
                     <div style={{ minWidth: 0, flex: 1 }}>
                       <div style={{ fontSize: 12, fontWeight: 800, color: "#0f172a", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
@@ -810,7 +825,7 @@ export default function ShiftAllocation() {
                 </div>
 
                 {/* Slot cells */}
-                <div className="col-scroll" style={{ padding: 10, flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: 8 }}>
+                <div style={{ padding: 8, display: "flex", flexDirection: "column", gap: 6 }}>
                   {ops.map((opId, idx) => {
                     const op = opId ? pool.find(x => x.id === opId) : null;
                     const match = !op || op.skill_level >= p.required_skill_level;
@@ -819,7 +834,7 @@ export default function ShiftAllocation() {
                     return (
                       <div key={idx} style={{
                         border: `1px dashed ${slotBorder}`, borderRadius: 10,
-                        background: slotBg, minHeight: 64, padding: 6,
+                        background: slotBg, minHeight: 54, padding: 5,
                         display: "flex", flexDirection: "column", justifyContent: "center",
                       }}>
                         {op ? (
@@ -865,6 +880,7 @@ export default function ShiftAllocation() {
             );
           })
         )}
+        </div>
       </div>
 
       {/* ═══ HISTORY ─ collapsible ════════════════════════════════════ */}

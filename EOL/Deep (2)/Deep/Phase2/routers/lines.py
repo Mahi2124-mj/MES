@@ -61,7 +61,13 @@ _PRODUCING_CACHE: dict = {"at": 0.0, "minutes": None, "lines": []}
 
 
 @router.get("/producing")
-def lines_producing(minutes: int = Query(15, ge=1, le=240),
+# 2026-09-24 — cap raised 240 -> 1440 (24 h).  The CMS asks for
+# VIDEO_ACTIVE_MINUTES, which was changed 45 -> 1440 on 21-Sep so breaks and
+# shift gaps stop stopping cameras (the single-session cams hang when their
+# recorder is killed and restarted).  240 made every one of those calls a 422,
+# so the CMS never got a producing set and recorded ALL 127 cameras — which put
+# every camera into each shift rotation and left ~72 of them hung on 24-Sep.
+def lines_producing(minutes: int = Query(15, ge=1, le=1440),
                     user=Depends(get_current_user_optional)):
     """Lines with at least one cycle in the last `minutes`.
 
@@ -2224,7 +2230,7 @@ def get_line_realtime(line_id: int, user=Depends(get_current_user_optional)):
         cur.execute(
             "SELECT db_table_name, current_shift_row_id, "
             "       collector_status, ot_active_shift, "
-            "       planned_takt_time, energy_per_part "
+            "       planned_takt_time, energy_per_part, zone_id "
             "FROM mes_lines WHERE id = %s",
             (line_id,),
         )
@@ -2237,6 +2243,7 @@ def get_line_realtime(line_id: int, user=Depends(get_current_user_optional)):
         _line_ot_active    = row.get("ot_active_shift")
         _line_planned_takt = row.get("planned_takt_time")
         _line_energy_pp    = row.get("energy_per_part")
+        _line_zone_id      = row.get("zone_id")
 
         # 2026-09-05 — Guard: some lines are configured in mes_lines but their
         # per-line dashboard table was never provisioned (no table = no
@@ -2461,21 +2468,32 @@ def get_line_realtime(line_id: int, user=Depends(get_current_user_optional)):
                 except Exception as _e:
                     # Never let the filter break the response.
                     pass
+            # 2026-09-23 — NAME RESOLUTION IS PER LINE, THEN PER ZONE.
+            # Every zone numbers its models from 0 up, so a bit exists in two
+            # or three zones (bit 1 = Seat Slider "TRACK ASSY FRONT SEAT 6 WAY
+            # OTR RH", Loop Pipe "YCA TOWEL BAR", Recliner "YTB/YY8 DSR OL/RH").
+            # This used to read the master by bit_number alone with ORDER BY id
+            # DESC, so the rows added last (Recliner) won plant-wide and the
+            # Loop Pipe dashboard showed a Recliner model name.  Now: the line's
+            # own mapping first, then the master restricted to the line's zone;
+            # if neither knows the bit, keep whatever the collector stored
+            # rather than showing another zone's model.
             fresh_name = None
             cur.execute(
-                "SELECT model_name FROM mes_py_model_master "
-                "WHERE bit_number=%s AND is_active=true "
-                "ORDER BY id DESC LIMIT 1",
-                (mnum,),
+                "SELECT model_name FROM mes_model_mappings "
+                "WHERE line_id=%s AND model_number=%s",
+                (line_id, mnum),
             )
             r = cur.fetchone()
             if r and r["model_name"]:
                 fresh_name = r["model_name"]
-            if not fresh_name:
+            if not fresh_name and _line_zone_id is not None:
                 cur.execute(
-                    "SELECT model_name FROM mes_model_mappings "
-                    "WHERE line_id=%s AND model_number=%s",
-                    (line_id, mnum),
+                    "SELECT model_name FROM mes_py_model_master "
+                    "WHERE bit_number=%s AND is_active=true "
+                    "  AND zone_id = %s "
+                    "ORDER BY id DESC LIMIT 1",
+                    (mnum, _line_zone_id),
                 )
                 r = cur.fetchone()
                 if r and r["model_name"]:

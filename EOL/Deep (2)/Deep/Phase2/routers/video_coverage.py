@@ -70,12 +70,16 @@ REASONS = {
     "network_down":   "Network / switch down",
     "camera_offline": "Camera offline (no ping)",
     "camera_hung":    "Camera hung (ping OK, no video)",
+    "camera_wrong_ip": "Wrong camera address (this IP is a PLC)",
     "shift_wipe":     "Footage deleted at shift change",
     "clip_failed":    "Clip not cut (camera was recording)",
     "unknown":        "Not tracked (tracker was not running)",
 }
 # worst first — a cycle overlapping several states takes the worst one
-_STATE_RANK = {"cms_down": 0, "camera_offline": 2, "camera_hung": 3, "recording": 9}
+_STATE_RANK = {"cms_down": 0, "camera_offline": 2, "camera_hung": 3, "camera_wrong_ip": 3,
+               "recording": 9}
+# "answers ping but no video": a real camera (hung) or a PLC address bound as a camera
+_PING_OK_DOWN = ("camera_hung", "camera_wrong_ip")
 
 
 # ── schema ────────────────────────────────────────────────────────────────
@@ -276,6 +280,33 @@ def _machines(cur):
     return lines, subs
 
 
+_PLC_IPS = {"t": 0.0, "ips": frozenset()}
+
+
+def _plc_ips():
+    """IPs of every PLC in the MES config (5-min cache).  A camera bound to one
+    of these is a wrong address in Camera Master, not a hung camera."""
+    if time.time() - _PLC_IPS["t"] < 300:
+        return _PLC_IPS["ips"]
+    try:
+        with get_conn() as conn:
+            cur = conn.cursor()
+            cur.execute("SELECT DISTINCT TRIM(plc_ip) FROM mes_plc_configs "
+                        "WHERE COALESCE(TRIM(plc_ip), '') <> ''")
+            _PLC_IPS["ips"] = frozenset(r[0] for r in cur.fetchall())
+    except Exception:
+        pass
+    _PLC_IPS["t"] = time.time()
+    return _PLC_IPS["ips"]
+
+
+def _idle_state(ip, plc_ips):
+    # ICMP only — never TCP/RTSP: single-session cameras must not lose their slot
+    if not _ping(ip):
+        return "camera_offline"
+    return "camera_wrong_ip" if ip in plc_ips else "camera_hung"
+
+
 # ── camera tracker ──────────────────────────────────────────────────────────
 _last_sizes = {}          # camera_id -> (file name, size) at the previous sample
 _last_rows = {}           # camera_id -> (row id, state, subnet_down)
@@ -320,9 +351,10 @@ def _sample():
                 states[cid] = "recording"
             else:
                 idle.append(cid)
+        plc_ips = _plc_ips()
         with ThreadPoolExecutor(32) as ex:
-            for cid, ok in zip(idle, ex.map(lambda c: _ping(cams.get(c)), idle)):
-                states[cid] = "camera_hung" if ok else "camera_offline"
+            for cid, stt in zip(idle, ex.map(lambda c: _idle_state(cams.get(c), plc_ips), idle)):
+                states[cid] = stt
     for cid, nw in newest.items():
         _last_sizes[cid] = (nw[0], nw[1])
 
@@ -418,6 +450,8 @@ def _reason(cam, ts_start, ts_end, states, bounds):
         return "network_down", f"{stt.replace('_', ' ')}; 80%+ of cameras on its subnet down"
     if stt == "camera_offline":
         return "camera_offline", "no ping reply, no video file growing"
+    if stt == "camera_wrong_ip":
+        return "camera_wrong_ip", "the camera IP is a PLC address — fix it in Camera Master"
     if stt == "camera_hung":
         return "camera_hung", "answers ping but its video file was not growing"
     if _near_wipe(ts_end, bounds):
@@ -565,6 +599,7 @@ def _evaluate():
                         WHERE ts_end > now() - interval '%s hours'
                           AND reason IN ('clip_failed', 'shift_wipe', 'unknown',
                                          'camera_hung', 'camera_offline',
+                                         'camera_wrong_ip',
                                          'network_down', 'cms_down')""" % RECHECK_H)
         for r in cur.fetchall():
             kind, owner = (("line", r["line_id"]) if r["machine_key"] == "main"
@@ -640,10 +675,12 @@ def _agent():
                             WHERE camera_id = ANY(%s) AND to_ts > now() - interval '3 minutes'
                             ORDER BY camera_id, to_ts DESC""", (list(needed),))
             for r in cur.fetchall():
-                if r["state"] in ("camera_offline", "camera_hung") and \
+                if (r["state"] == "camera_offline" or r["state"] in _PING_OK_DOWN) and \
                         r["from_ts"] <= datetime.now().astimezone() - timedelta(minutes=10):
                     lid, mname = needed[r["camera_id"]]
-                    why = "offline (no ping)" if r["state"] == "camera_offline" else "hung (ping OK, no video)"
+                    why = {"camera_offline": "offline (no ping)",
+                           "camera_wrong_ip": "wrong address (this IP is a PLC)"}.get(
+                               r["state"], "hung (ping OK, no video)")
                     found[f"cam:{r['camera_id']}"] = (
                         "CAMERA_DOWN", lid, r["camera_id"],
                         f"{lname.get(lid, lid)} · {mname} camera {r['ip'] or ''} {why} "
@@ -736,6 +773,7 @@ NOTCUT_REASON = {
     "network_down":   "Network / switch down",
     "camera_offline": "Camera offline (no ping)",
     "camera_hung":    "Camera hung (ping OK, no video)",
+    "camera_wrong_ip": "Wrong camera address (this IP is a PLC)",
     "recording":      "Recording, but clips not being cut",
     None:             "Not tracked yet",
 }
@@ -845,7 +883,8 @@ def _camera_status(cur, allowed=None, include_unassigned=False):
             status = "cutting"
             reason = None if c * 100 >= 80 * n else f"Clips catching up ({round(c * 100.0 / n)}% so far)"
         else:
-            key = "network_down" if (s_ and s_["subnet_down"] and state != "recording") else state
+            key = "network_down" if (s_ and s_["subnet_down"]
+                                     and state in ("camera_offline", "camera_hung")) else state
             status, reason = "not_cutting", NOTCUT_REASON.get(key, NOTCUT_REASON[None])
         ln = lmeta[lid]
         z = zones.setdefault(ln.get("zone_name") or "—", {})
@@ -859,7 +898,7 @@ def _camera_status(cur, allowed=None, include_unassigned=False):
             "since": s_["from_ts"].astimezone().isoformat() if s_ else None,
             "cycles": n, "clips": c, "clip_pct": round(c * 100.0 / n, 1) if n else None,
             "status": status, "reason": reason})
-    out, tot = [], dict(cameras=0, online=0, hung=0, offline=0, cms_down=0,
+    out, tot = [], dict(cameras=0, online=0, hung=0, wrong_ip=0, offline=0, cms_down=0,
                         cutting=0, not_cutting=0, idle=0)
     for zname in sorted(zones):
         zl = []
@@ -868,6 +907,7 @@ def _camera_status(cur, allowed=None, include_unassigned=False):
             cnt = dict(cameras=len(cs),
                        online=sum(1 for x in cs if x["state"] == "recording"),
                        hung=sum(1 for x in cs if x["state"] == "camera_hung"),
+                       wrong_ip=sum(1 for x in cs if x["state"] == "camera_wrong_ip"),
                        offline=sum(1 for x in cs if x["state"] == "camera_offline"),
                        cms_down=sum(1 for x in cs if x["state"] == "cms_down"),
                        cutting=sum(1 for x in cs if x["status"] == "cutting"),
@@ -911,7 +951,8 @@ def _snapshot():
                               VALUES (date_trunc('minute', now()), %s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
                               ON CONFLICT (ts, line_id) DO NOTHING""",
                            (L["line_id"], L["zone_name"], L["line_name"], L["cameras"], L["online"],
-                            L["hung"], L["offline"], L["cms_down"], L["cutting"], L["not_cutting"],
+                            L["hung"] + L["wrong_ip"], L["offline"],
+                            L["cms_down"], L["cutting"], L["not_cutting"],
                             L["idle"]))
         pc.execute("DELETE FROM mes_vcov_line_snap WHERE ts < now() - interval '%s days'" % RETAIN_DAYS)
 
@@ -1171,7 +1212,8 @@ def cameras(user=Depends(get_current_user)):
                          "since": r["from_ts"].astimezone().isoformat(),
                          "last_seen": r["to_ts"].astimezone().isoformat(),
                          "bound_to": where.get(r["camera_id"], [])})
-    order = {"cms_down": 0, "camera_offline": 1, "camera_hung": 2, "recording": 3}
+    order = {"cms_down": 0, "camera_offline": 1, "camera_hung": 2, "camera_wrong_ip": 2,
+             "recording": 3}
     rows.sort(key=lambda x: (order.get(x["state"], 4), x["ip"] or ""))
     return {"cameras": rows}
 
@@ -1377,6 +1419,7 @@ def camera_log_export(date_from: Optional[str] = Query(None), date_to: Optional[
         llog = _line_log_rows(cur, user, d0, d1, line_id, 20000)
     clean = lambda v: ILLEGAL_CHARACTERS_RE.sub("", v) if isinstance(v, str) else v
     lbl = {"recording": "Recording", "camera_hung": "Hung (ping OK, no video)",
+           "camera_wrong_ip": "Wrong address (this IP is a PLC)",
            "camera_offline": "Offline (no ping)", "cms_down": "CMS down"}
     wb = Workbook()
     hfill, hfont = PatternFill("solid", fgColor="1E3A8A"), Font(bold=True, color="FFFFFF")

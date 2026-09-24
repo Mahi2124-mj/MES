@@ -3,7 +3,7 @@
 AUTO-GENERATED COLLECTOR — Y17-SA-4WAY
 Line ID    : 39
 Table      : y17_l7_dashboard
-Generated  : 2026-09-21 11:01:56
+Generated  : 2026-09-23 15:58:04
 
 DO NOT EDIT MANUALLY — regenerate via admin panel if config changes.
 """

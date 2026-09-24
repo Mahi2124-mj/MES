@@ -48,7 +48,7 @@
          font-style: normal;
          font-weight: 400;
          font-display: block;
-         src: local("Calibri"), local("Carlito"),
+         src: local("Calibri"),
               url("/fonts/Carlito-Regular.ttf") format("truetype");
       }
 
@@ -57,9 +57,15 @@
          font-style: normal;
          font-weight: 700;
          font-display: block;
-         src: local("Calibri Bold"), local("Calibri-Bold"), local("Carlito Bold"),
+         src: local("Calibri Bold"), local("Calibri-Bold"),
               url("/fonts/Carlito-Bold.ttf") format("truetype");
       }
+      /* 2026-09-22 — no local("Carlito …") sources.  On this server a per-user
+         Carlito sits in ~/.local/share/fonts: fontconfig lists it but the snap
+         Firefox cannot open the file, so local("Carlito Bold") "loaded" and then
+         drew every bold label in a serif fallback ~23 % wider — "Summery Line
+         Stop(Minutes)", "NEW PROD. PREP. JOB( NPP)", "Losses in Minutes" ran out
+         of their boxes.  The served file is the dependable source. */
 
       .page-01 {
          width: 1587.36px;
@@ -638,9 +644,9 @@
 
             <tr>
                <td id="machineRow">
-                  <select id="lineSelect" onchange="updateMachines()" class="date-input" style="border:none;">
-                     <option value="">-- Select Line --</option>
-                  </select>
+                  <!-- 2026-09-23 — LINE is not chosen any more: it follows the work
+                       centre (line master) and is printed as plain text. -->
+                  <input type="text" id="lineSelect" class="date-input" style="border:none;" readonly tabindex="-1" title="Line — from the selected work centre">
 
                   <div id="machineTableContainer"></div>
                </td>
@@ -648,16 +654,23 @@
          </div>
          <tr id="wcRow">
             <td>
-               <select id="wcSelect" class="no-arrow" onclick="openWCPopup()" class="date-input" border:none;>
+               <!-- 2026-09-23 — the ONLY selector on the sheet: pick the work centre
+                    (its last letter is the shift) and everything else follows. -->
+               <!-- 2026-09-23 — the WC list is grouped by zone: the panel opens on
+                    the zone names (Seat Slider, Recliner …) and a zone expands to
+                    its codes.  The <select> stays as the hidden value holder so
+                    every existing reader (auto-fill, shift letter, PDF name) and
+                    its change handler keep working unchanged. -->
+               <button type="button" id="wcBtn" class="date-input" aria-haspopup="listbox" aria-expanded="false" title="Work centre — pick a zone, then its code">--Select WC--</button>
+               <select id="wcSelect" style="display:none" tabindex="-1" aria-hidden="true">
                   <option value="">--Select WC--</option>
                </select>
             </td>
          </tr>
          <tr id="shiftRow">
             <td>
-               <select id="shiftSelect" class="date-input" border:none;>
-                  <option value="">--Select Shift--</option>
-               </select>
+               <!-- 2026-09-23 — SHIFT is the work centre's last letter, plain text. -->
+               <input type="text" id="shiftSelect" class="date-input" style="border:none;" readonly tabindex="-1" title="Shift — the last letter of the work centre">
             </td>
          </tr>
       </table>
@@ -864,7 +877,7 @@
             if (!selectedWC) return;
 
             const wcSelect = document.getElementById("wcSelect");
-            wcSelect.innerHTML = `<option value="${selectedWC}">${selectedWC}</option>`;
+            if (window.peffSetWC) window.peffSetWC(selectedWC); else wcSelect.value = selectedWC;
             wcSelect.classList.add("updated");
             setTimeout(() => wcSelect.classList.remove("updated"), 600);
 
@@ -873,7 +886,7 @@
 
             updateLineAndShift();
 
-            // Auto-select line
+            // Auto-select line (loadPeffData overwrites it with the line master's name)
             const line = wcData[selectedWC].lines[0];
             const lineSelect = document.getElementById("lineSelect");
             lineSelect.value = line;
@@ -901,23 +914,13 @@
             const lineSelect = document.getElementById("lineSelect");
             const shiftSelect = document.getElementById("shiftSelect");
 
-            lineSelect.innerHTML = '<option value="">--Select Line--</option>';
-            shiftSelect.innerHTML = '<option value="">--Select Shift--</option>';
+            // 2026-09-23 — both are plain text fields now: set them, don't list them.
+            lineSelect.value = "";
+            shiftSelect.value = "";
 
             if (wcData[wc]) {
-               wcData[wc].lines.forEach(line => {
-                  const opt = document.createElement("option");
-                  opt.value = line;
-                  opt.textContent = line;
-                  lineSelect.appendChild(opt);
-               });
-
-               wcData[wc].shifts.forEach(shift => {
-                  const opt = document.createElement("option");
-                  opt.value = shift;
-                  opt.textContent = shift;
-                  shiftSelect.appendChild(opt);
-               });
+               lineSelect.value = wcData[wc].lines[0] || "";
+               shiftSelect.value = wc.slice(-1).toUpperCase();
             }
 
             document.getElementById("machineRow").classList.add("updated");
@@ -1004,7 +1007,7 @@
             if (!selectedWC) return;
 
             const wcSelect = document.getElementById("wcSelect");
-            wcSelect.innerHTML = `<option value="${selectedWC}">${selectedWC}</option>`;
+            if (window.peffSetWC) window.peffSetWC(selectedWC); else wcSelect.value = selectedWC;
             wcSelect.classList.add("updated");
             setTimeout(() => wcSelect.classList.remove("updated"), 600);
 
@@ -1013,7 +1016,7 @@
 
             updateLineAndShift();
 
-            // Auto-select line
+            // Auto-select line (loadPeffData overwrites it with the line master's name)
             const line = wcData[selectedWC].lines[0];
             const lineSelect = document.getElementById("lineSelect");
             lineSelect.value = line;
@@ -1041,23 +1044,13 @@
             const lineSelect = document.getElementById("lineSelect");
             const shiftSelect = document.getElementById("shiftSelect");
 
-            lineSelect.innerHTML = '<option value="">--Select Line--</option>';
-            shiftSelect.innerHTML = '<option value="">--Select Shift--</option>';
+            // 2026-09-23 — both are plain text fields now: set them, don't list them.
+            lineSelect.value = "";
+            shiftSelect.value = "";
 
             if (wcData[wc]) {
-               wcData[wc].lines.forEach(line => {
-                  const opt = document.createElement("option");
-                  opt.value = line;
-                  opt.textContent = line;
-                  lineSelect.appendChild(opt);
-               });
-
-               wcData[wc].shifts.forEach(shift => {
-                  const opt = document.createElement("option");
-                  opt.value = shift;
-                  opt.textContent = shift;
-                  shiftSelect.appendChild(opt);
-               });
+               lineSelect.value = wcData[wc].lines[0] || "";
+               shiftSelect.value = wc.slice(-1).toUpperCase();
 
                // ✅ NEW: Auto fill timing based on WC shift
                const shift = wc.slice(-1).toUpperCase();
@@ -1536,35 +1529,62 @@
 
 
 
+      <!-- 2026-09-22 — "Losses Detail Problem and Countermeasure": the detail runs
+           to several lines, and an <input> is one line (html2canvas also prints a
+           textarea as one clipped line), so each cell is an editable block.
+           Geometry in the OVERLAY GEOMETRY block, values in fillLosses(). -->
       <table id="losses"
-         style="position:absolute;top:936.7px;left:252px;border:0.2px solid rgb(1, 1, 1);border-collapse:collapse;">
-
+         style="position:absolute;top:936.7px;left:252px;border:none;border-collapse:collapse;">
          <tr>
-            <td class="losses_1" style="width: 75.4px; height: 120px;"><input type="text,number" value=""
-                  class="losses_2" style="border: none;width: 76px;height: 115px;"></td>
-            <td class="losses_1" style="width: 75.4px; height: 120px;"><input type="text,number" value=""
-                  class="losses_2" style="border: none;width: 76.8px;height: 115px;"></td>
-            <td class="losses_1" style="width: 76.9px; height: 120px;"><input type="text,number" value=""
-                  class="losses_2" style="border: none;width: 75px;height: 115px;"></td>
-            <td class="losses_1" style="width: 72.4px; height: 120px;"><input type="text,number" value=""
-                  class="losses_2" style="border: none;width: 72px;height: 115px;margin-left: 5px;"></td>
-            <td class="losses_1" style="width: 76.4px; height: 120px;"><input type="text,number" value=""
-                  class="losses_2" style="border: none;width: 75px;height: 115px;margin-left: 2px;"></td>
-            <td class="losses_1" style="width: 76.4px; height: 120px;"><input type="text,number" value=""
-                  class="losses_2" style="border: none;width: 75px;height: 115px;margin-left: 1px;"></td>
-            <td class="losses_1" style="width: 76.4px; height: 120px;"><input type="text,number" value=""
-                  class="losses_2" style="border: none;width: 75px;height: 115px;margin-left: 2px;"></td>
-            <td class="losses_1" style="width: 76.4px; height: 120px;"><input type="text,number" value=""
-                  class="losses_2" style="border: none;width: 75px;height: 115px;margin-left: 2px;"></td>
-            <td class="losses_1" style="width: 76.4px; height: 120px;"><input type="text,number" value=""
-                  class="losses_2" style="border: none;width: 75px;height: 115px;margin-left: 2px;"></td>
-            <td class="losses_1" style="width: 76.4px; height: 120px;"><input type="text,number" value=""
-                  class="losses_2" style="border: none;width: 75px;height: 115px;margin-left: 2px;"></td>
-            <td class="losses_1" style="width: 76.4px; height: 120px;"><input type="text,number" value=""
-                  class="losses_2" style="border: none;width: 75px;height: 115px;margin-left: 2px;"></td>
-            <td class="losses_1" style="width: 71.4px; height: 120px;"><input type="text,number" value=""
-                  class="losses_2" style="border: none;width: 71.5px;height: 115px;"></td>
+            <td class="losses_1"><div class="losses_2 peff-ml" contenteditable="true" spellcheck="false"></div></td>
+            <td class="losses_1"><div class="losses_2 peff-ml" contenteditable="true" spellcheck="false"></div></td>
+            <td class="losses_1"><div class="losses_2 peff-ml" contenteditable="true" spellcheck="false"></div></td>
+            <td class="losses_1"><div class="losses_2 peff-ml" contenteditable="true" spellcheck="false"></div></td>
+            <td class="losses_1"><div class="losses_2 peff-ml" contenteditable="true" spellcheck="false"></div></td>
+            <td class="losses_1"><div class="losses_2 peff-ml" contenteditable="true" spellcheck="false"></div></td>
+            <td class="losses_1"><div class="losses_2 peff-ml" contenteditable="true" spellcheck="false"></div></td>
+            <td class="losses_1"><div class="losses_2 peff-ml" contenteditable="true" spellcheck="false"></div></td>
+            <td class="losses_1"><div class="losses_2 peff-ml" contenteditable="true" spellcheck="false"></div></td>
+            <td class="losses_1"><div class="losses_2 peff-ml" contenteditable="true" spellcheck="false"></div></td>
+            <td class="losses_1"><div class="losses_2 peff-ml" contenteditable="true" spellcheck="false"></div></td>
+            <td class="losses_1"><div class="losses_2 peff-ml" contenteditable="true" spellcheck="false"></div></td>
          </tr>
+      </table>
+
+      <!-- 2026-09-22 — SUMMARY OF HOURLY LOSSES header rows: Time duration (two
+           lines), Losses in Minutes, Reason 4M.  The form had no boxes here. -->
+      <table id="lossHead" style="position:absolute;top:878.32px;left:252.59px;border:none;border-collapse:collapse;">
+         <tr><td><input type="text" value="" class="lossHead02" spellcheck="false"></td><td><input type="text" value="" class="lossHead02" spellcheck="false"></td><td><input type="text" value="" class="lossHead02" spellcheck="false"></td><td><input type="text" value="" class="lossHead02" spellcheck="false"></td><td><input type="text" value="" class="lossHead02" spellcheck="false"></td><td><input type="text" value="" class="lossHead02" spellcheck="false"></td><td><input type="text" value="" class="lossHead02" spellcheck="false"></td><td><input type="text" value="" class="lossHead02" spellcheck="false"></td><td><input type="text" value="" class="lossHead02" spellcheck="false"></td><td><input type="text" value="" class="lossHead02" spellcheck="false"></td><td><input type="text" value="" class="lossHead02" spellcheck="false"></td><td><input type="text" value="" class="lossHead02" spellcheck="false"></td></tr>
+         <tr><td><input type="text" value="" class="lossHead02" spellcheck="false"></td><td><input type="text" value="" class="lossHead02" spellcheck="false"></td><td><input type="text" value="" class="lossHead02" spellcheck="false"></td><td><input type="text" value="" class="lossHead02" spellcheck="false"></td><td><input type="text" value="" class="lossHead02" spellcheck="false"></td><td><input type="text" value="" class="lossHead02" spellcheck="false"></td><td><input type="text" value="" class="lossHead02" spellcheck="false"></td><td><input type="text" value="" class="lossHead02" spellcheck="false"></td><td><input type="text" value="" class="lossHead02" spellcheck="false"></td><td><input type="text" value="" class="lossHead02" spellcheck="false"></td><td><input type="text" value="" class="lossHead02" spellcheck="false"></td><td><input type="text" value="" class="lossHead02" spellcheck="false"></td></tr>
+         <tr><td><input type="text" value="" class="lossHead02" spellcheck="false"></td><td><input type="text" value="" class="lossHead02" spellcheck="false"></td><td><input type="text" value="" class="lossHead02" spellcheck="false"></td><td><input type="text" value="" class="lossHead02" spellcheck="false"></td><td><input type="text" value="" class="lossHead02" spellcheck="false"></td><td><input type="text" value="" class="lossHead02" spellcheck="false"></td><td><input type="text" value="" class="lossHead02" spellcheck="false"></td><td><input type="text" value="" class="lossHead02" spellcheck="false"></td><td><input type="text" value="" class="lossHead02" spellcheck="false"></td><td><input type="text" value="" class="lossHead02" spellcheck="false"></td><td><input type="text" value="" class="lossHead02" spellcheck="false"></td><td><input type="text" value="" class="lossHead02" spellcheck="false"></td></tr>
+         <tr><td><input type="text" value="" class="lossHead02" spellcheck="false"></td><td><input type="text" value="" class="lossHead02" spellcheck="false"></td><td><input type="text" value="" class="lossHead02" spellcheck="false"></td><td><input type="text" value="" class="lossHead02" spellcheck="false"></td><td><input type="text" value="" class="lossHead02" spellcheck="false"></td><td><input type="text" value="" class="lossHead02" spellcheck="false"></td><td><input type="text" value="" class="lossHead02" spellcheck="false"></td><td><input type="text" value="" class="lossHead02" spellcheck="false"></td><td><input type="text" value="" class="lossHead02" spellcheck="false"></td><td><input type="text" value="" class="lossHead02" spellcheck="false"></td><td><input type="text" value="" class="lossHead02" spellcheck="false"></td><td><input type="text" value="" class="lossHead02" spellcheck="false"></td></tr>
+      </table>
+
+      <!-- 2026-09-22 — "Summary Line Stop (Minutes)": Man, Equip.(E), Material (M),
+           Process (P), Others (O), Total Line Stop. -->
+      <table id="lineStop" style="position:absolute;top:936.88px;left:1290.77px;border:none;border-collapse:collapse;">
+         <tr><td><input type="text" value="" class="lineStop02" spellcheck="false"></td></tr>
+         <tr><td><input type="text" value="" class="lineStop02" spellcheck="false"></td></tr>
+         <tr><td><input type="text" value="" class="lineStop02" spellcheck="false"></td></tr>
+         <tr><td><input type="text" value="" class="lineStop02" spellcheck="false"></td></tr>
+         <tr><td><input type="text" value="" class="lineStop02" spellcheck="false"></td></tr>
+         <tr><td><input type="text" value="" class="lineStop02" spellcheck="false"></td></tr>
+      </table>
+
+      <!-- 2026-09-22 — CORE JOB MAN HOUR "TOTAL MAN HOURS" column: one total per
+           group (DIRECT = (--)+21+22, INDIRECT = 11-14, WAITING TIME = 23+24,
+           KAIZEN = 25-27).  The form had no boxes here; values in lossRecalc(). -->
+      <table id="cjGroups" style="position:absolute;top:485.95px;left:1290.77px;border:none;border-collapse:collapse;">
+         <tr><td><input type="text" value="" class="cjGroups02" spellcheck="false"></td></tr>
+         <tr><td><input type="text" value="" class="cjGroups02" spellcheck="false"></td></tr>
+         <tr><td><input type="text" value="" class="cjGroups02" spellcheck="false"></td></tr>
+         <tr><td><input type="text" value="" class="cjGroups02" spellcheck="false"></td></tr>
+      </table>
+
+      <!-- 2026-09-22 — "Model S. N." row: which product row's model ran in each hour,
+           "(1)" or "(1)+(2)".  The form had no boxes here; values in fillModelSn(). -->
+      <table id="modelSn" style="position:absolute;top:401.47px;left:252.59px;border:none;border-collapse:collapse;">
+         <tr><td><input type="text" value="" class="modelSn02" spellcheck="false"></td><td><input type="text" value="" class="modelSn02" spellcheck="false"></td><td><input type="text" value="" class="modelSn02" spellcheck="false"></td><td><input type="text" value="" class="modelSn02" spellcheck="false"></td><td><input type="text" value="" class="modelSn02" spellcheck="false"></td><td><input type="text" value="" class="modelSn02" spellcheck="false"></td><td><input type="text" value="" class="modelSn02" spellcheck="false"></td><td><input type="text" value="" class="modelSn02" spellcheck="false"></td><td><input type="text" value="" class="modelSn02" spellcheck="false"></td><td><input type="text" value="" class="modelSn02" spellcheck="false"></td><td><input type="text" value="" class="modelSn02" spellcheck="false"></td><td><input type="text" value="" class="modelSn02" spellcheck="false"></td></tr>
       </table>
 
 
@@ -2201,6 +2221,71 @@
                   // Fixed-position chrome would otherwise be printed onto the sheet.
                   const HIDE = ["savePdfBtn", "wcCfgBtn", "peffFitBtn", "peffMsg", "overlay", "zonePopup", "wcPopup"];
 
+                  // ── 2026-09-22: two things html2canvas gets wrong on this sheet ──
+                  // 1. It draws the form grid by turning the <svg> into an image, and an
+                  //    SVG image cannot see the page's @font-face fonts.  On any machine
+                  //    without Calibri installed (Android panels, the Linux server) every
+                  //    label printed in a serif fallback ~23 % wider and ran out of its
+                  //    box ("Summery Line Stop(Minutes)" over item 91, ...).  The clone that
+                  //    gets rendered carries the served Carlito files inline instead.
+                  // 2. It prints an <input>/<select>'s text at a fixed offset below the
+                  //    box top — the baseline of the page's 16 px body font, whatever the
+                  //    field's own font — so short boxes print their values sliced at the
+                  //    bottom line: the 13-15 px hourly loss rows everywhere, and in
+                  //    Firefox (a taller fallback body font) also DATE / LINE / WC, the
+                  //    Detail Working Hrs figures and the NPP column.  In the clone every
+                  //    field becomes a plain block with the same box, font and text,
+                  //    centred as it is on screen.
+                  let fontCssP = null;
+                  function fontCss() {
+                     if (!fontCssP) fontCssP = (async function () {
+                        const b64 = async u => {
+                           const r = await fetch(u);
+                           if (!r.ok) throw new Error(u + " " + r.status);
+                           const bl = await r.blob();
+                           return await new Promise((res, rej) => {
+                              const fr = new FileReader();
+                              fr.onload = () => res(String(fr.result).split(",")[1] || "");
+                              fr.onerror = rej;
+                              fr.readAsDataURL(bl);
+                           });
+                        };
+                        const [reg, bold] = await Promise.all([b64("/fonts/Carlito-Regular.ttf"), b64("/fonts/Carlito-Bold.ttf")]);
+                        const face = (w, d) => '@font-face{font-family:"Calibri";font-style:normal;font-weight:' + w +
+                           ';src:url(data:font/ttf;base64,' + d + ') format("truetype")}';
+                        return face(400, reg) + face(700, bold);
+                     })().catch(function () { fontCssP = null; return ""; });
+                     return fontCssP;
+                  }
+                  const PRINT_AS_BLOCK = '.page-01 input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="button"]), .page-01 select';
+                  async function onClone(doc) {
+                     try {
+                        const css = await fontCss();
+                        if (css) doc.querySelectorAll(".page-01 svg").forEach(svg => {
+                           const st = doc.createElementNS("http://www.w3.org/2000/svg", "style");
+                           st.textContent = css;
+                           svg.insertBefore(st, svg.firstChild);
+                        });
+                     } catch (e) { }
+                     try {
+                        const win = doc.defaultView || window;
+                        doc.querySelectorAll(PRINT_AS_BLOCK).forEach(el => {
+                           const cs = win.getComputedStyle(el), h = el.offsetHeight, w = el.offsetWidth;
+                           if (!w || !h || cs.display === "none" || cs.visibility === "hidden") return;
+                           const d = doc.createElement("div");
+                           d.textContent = el.tagName === "SELECT"
+                              ? ((el.options[el.selectedIndex] || {}).text || "") : el.value;
+                           d.style.cssText = "box-sizing:border-box;overflow:hidden;white-space:nowrap;background:transparent;border:0;" +
+                              "display:" + (cs.display === "block" ? "block" : "inline-block") + ";vertical-align:" + cs.verticalAlign + ";" +
+                              "margin:" + cs.marginTop + " " + cs.marginRight + " " + cs.marginBottom + " " + cs.marginLeft + ";" +
+                              "width:" + w + "px;height:" + h + "px;line-height:" + h + "px;padding:0 " + cs.paddingRight + " 0 " + cs.paddingLeft + ";" +
+                              "font-style:" + cs.fontStyle + ";font-weight:" + cs.fontWeight + ";font-size:" + cs.fontSize + ";" +
+                              "font-family:" + cs.fontFamily + ";color:" + cs.color + ";text-align:" + cs.textAlign + ";";
+                           el.replaceWith(d);
+                        });
+                     } catch (e) { }
+                  }
+
                   function pdfName() {
                      const g = id => (document.getElementById(id) || {}).value || "";
                      const parts = ["PEFF", g("lineSelect") || g("wcSelect"), g("shiftSelect"), g("dateInput")];
@@ -2234,6 +2319,9 @@
                         const capW = sheetEl ? Math.ceil(sheetEl.getBoundingClientRect().width)
                                              : document.documentElement.scrollWidth;
                         document.body.style.width = capW + "px";
+                        // 2026-09-22 — fields typed or filled at another zoom are refitted
+                        // at the 1:1 capture size, so no value prints cut at its box edge.
+                        try { if (window.peffFitAll) window.peffFitAll(); } catch (e2) { }
                         // Let the hide paint before html2canvas clones the document.
                         // Deliberately a timer and not an animation-frame callback: a
                         // background tab stops firing those, which left the button stuck
@@ -2250,7 +2338,8 @@
                            // as wide as the window, so leaving it here kept rendering the
                            // full 1905 px and put the blank band back.
                            windowWidth: capW,
-                           windowHeight: document.documentElement.scrollHeight
+                           windowHeight: document.documentElement.scrollHeight,
+                           onclone: onClone
                         });
 
                         const { jsPDF } = window.jspdf;
@@ -5449,9 +5538,73 @@
                }
 
                .page-01 table input:not([type="checkbox"]),
-               .page-01 table select {
+               .page-01 table select,
+               .page-01 table button#wcBtn {
                   background-color: transparent !important;
                }
+
+               /* WC picker (zone → code).  The button carries the field's own
+                  size rules (#wcBtn is listed with LINE/SHIFT above); here it
+                  only has to stop looking like a browser button. */
+               #wcBtn {
+                  font: inherit;
+                  border: none;
+                  padding: 0;
+                  cursor: pointer;
+                  color: #000;
+               }
+
+               #wcPanel {
+                  position: fixed;
+                  z-index: 99999;
+                  display: none;
+                  min-width: 300px;
+                  max-height: 62vh;
+                  overflow: auto;
+                  background: #fff;
+                  border: 1px solid #b7c4d0;
+                  border-radius: 6px;
+                  box-shadow: 0 8px 26px rgba(0, 0, 0, .18);
+                  font: 12px/1.45 Arial, Helvetica, sans-serif;
+                  color: #222;
+               }
+
+               #wcPanel .wcz-h {
+                  display: flex;
+                  justify-content: space-between;
+                  gap: 10px;
+                  padding: 7px 10px;
+                  font-weight: bold;
+                  background: #f3f7fb;
+                  border-bottom: 1px solid #e4eaf0;
+                  cursor: pointer;
+                  user-select: none;
+               }
+
+               #wcPanel .wcz-h:hover { background: #e9f1fa; }
+               #wcPanel .wcz-h .wcz-car { color: #5b6b7b; font-weight: normal; }
+               #wcPanel .wcz-l { display: none; }
+               #wcPanel .wcz-l.open { display: block; }
+
+               #wcPanel .wc-i {
+                  display: flex;
+                  justify-content: space-between;
+                  align-items: baseline;
+                  gap: 14px;
+                  padding: 5px 10px 5px 20px;
+                  border-bottom: 1px solid #f2f5f8;
+                  cursor: pointer;
+                  white-space: nowrap;
+               }
+
+               #wcPanel .wc-i > span:first-child {
+                  overflow: hidden;
+                  text-overflow: ellipsis;
+               }
+
+               #wcPanel .wc-i:hover { background: #eaf3ff; }
+               #wcPanel .wc-i.sel { background: #ddf0dc; font-weight: bold; }
+               #wcPanel .wc-n { color: #6b7a88; font-weight: normal; }
 
                /* DATE / LINE / WC / SHIFT sit in two id-less tables that use the
                   HTML border attribute, so the list above missed them: each box
@@ -5477,7 +5630,7 @@
 
                #dateInput,
                #lineSelect,
-               #wcSelect,
+               #wcBtn,
                #shiftSelect {
                   display: block !important;
                   box-sizing: border-box !important;
@@ -5487,9 +5640,16 @@
                }
 
                #lineSelect,
-               #wcSelect,
+               #wcBtn,
                #shiftSelect {
                   line-height: 18px !important;
+                  /* 2026-09-23 — LINE and SHIFT became plain text fields and WC the only
+                     dropdown: pin all three to the width the selects had, so the column
+                     keeps its box and the WC list sits in its own cell, right after the
+                     "WC.:-" label. */
+                  width: 141px !important;
+                  text-align: center !important;
+                  text-align-last: center;
                }
 
                /* Operator row: 11 columns 252.59 → 1160.85, row 87.04 → 105.68.
@@ -5726,6 +5886,111 @@
 
                #shiftTimingTable td { width: 82.56px !important; }
                #shiftTimingTable td:nth-child(12) { width: 77.6px !important; }
+
+               /* ── SUMMARY OF HOURLY LOSSES + Summary Line Stop (2026-09-22) ──
+                  Grid (page px): hour columns as above; rows Time duration
+                  878.32 → 892.40 → 905.20 (two lines), Losses in Minutes → 921.04,
+                  Reason 4M → 936.88, Losses Detail → 1058.75.  Summary Line Stop
+                  values 1290.77 → 1357.97, rows 936.88 / 952.72 / 968.56 / 984.40 /
+                  1000.27 / 1027.95 / 1058.75. */
+               [id="lossHead"], [id="lossHead"] td,
+               [id="lineStop"], [id="lineStop"] td { border: none !important; }
+               [id="lossHead"] { width: 985.86px !important; table-layout: fixed !important; }
+               [id="lossHead"] td { padding: 0 !important; width: 82.56px !important; }
+               [id="lossHead"] td:nth-child(12) { width: 77.6px !important; }
+               [id="lossHead"] tr:nth-child(1) > td { height: 14.08px !important; }
+               [id="lossHead"] tr:nth-child(2) > td { height: 12.8px !important; }
+               [id="lossHead"] tr:nth-child(3) > td,
+               [id="lossHead"] tr:nth-child(4) > td { height: 15.84px !important; }
+               [id="lineStop"] { width: 67.2px !important; table-layout: fixed !important; }
+               [id="lineStop"] td { padding: 0 !important; width: 67.2px !important; height: 15.84px !important; }
+               [id="lineStop"] tr:nth-child(4) > td { height: 15.87px !important; }
+               [id="lineStop"] tr:nth-child(5) > td { height: 27.68px !important; }
+               [id="lineStop"] tr:nth-child(6) > td { height: 30.8px !important; }
+               [id="lossHead"] input,
+               [id="lineStop"] input {
+                  display: block !important;
+                  box-sizing: border-box !important;
+                  width: calc(100% - 4px) !important;
+                  height: 14px;
+                  margin: 0 auto !important;
+                  padding: 0 2px !important;
+                  border: none !important;
+                  font-size: 10px;
+                  font-family: Arial, sans-serif;
+                  text-align: center;
+               }
+               [id="lossHead"] tr:nth-child(1) input { height: 13px; font-size: 9px; }
+               [id="lossHead"] tr:nth-child(2) input { height: 12px; font-size: 9px; }
+               [id="lineStop"] tr:nth-child(6) input { font-weight: bold; }
+               /* Losses Detail: an editable block per hour (several lines). */
+               [id="losses"] .peff-ml {
+                  display: block;
+                  box-sizing: border-box;
+                  width: calc(100% - 4px);
+                  height: 116px;
+                  margin: 0 auto;
+                  padding: 2px;
+                  overflow: hidden;
+                  overflow-wrap: anywhere;
+                  word-break: break-word;
+                  white-space: normal;
+                  font: 8px/1.25 Arial, sans-serif;
+                  color: #000;
+                  text-align: left;
+                  background: transparent;
+                  cursor: text;
+               }
+               [id="losses"] .peff-ml:focus { outline: 1px dashed #4a78c2; outline-offset: -1px; }
+               /* TOTAL MAN HOURS (group totals): 1290.77 → 1357.98; groups 485.95 /
+                  575.71 / 690.47 / 750.30 → 840.08.  In the section's TOTAL row the
+                  SUB TOTAL and TOTAL MAN HOURS columns are ONE merged cell
+                  (1238.45 → 1357.98, no divider), so the section total is centred
+                  across both. */
+               [id="cjGroups"], [id="cjGroups"] td { border: none !important; }
+               [id="cjGroups"] { width: 67.21px !important; table-layout: fixed !important; }
+               [id="cjGroups"] td { padding: 0 !important; width: 67.21px !important; }
+               [id="cjGroups"] tr:nth-child(1) > td { height: 89.76px !important; }
+               [id="cjGroups"] tr:nth-child(2) > td { height: 114.76px !important; }
+               [id="cjGroups"] tr:nth-child(3) > td { height: 59.83px !important; }
+               [id="cjGroups"] tr:nth-child(4) > td { height: 89.78px !important; }
+               [id="cjGroups"] input {
+                  display: block !important;
+                  box-sizing: border-box !important;
+                  width: calc(100% - 6px) !important;
+                  height: 20px !important;
+                  margin: 0 auto !important;
+                  padding: 0 2px !important;
+                  border: none !important;
+                  text-align: center;
+               }
+               /* Model S. N. row: hour columns 252.59 → 1238.45, row 401.47 → 430.11. */
+               [id="modelSn"], [id="modelSn"] td { border: none !important; }
+               [id="modelSn"] { width: 985.86px !important; table-layout: fixed !important; }
+               [id="modelSn"] td { padding: 0 !important; width: 82.56px !important; height: 28.64px !important; }
+               [id="modelSn"] td:nth-child(12) { width: 77.6px !important; }
+               [id="modelSn"] input {
+                  display: block !important;
+                  box-sizing: border-box !important;
+                  width: calc(100% - 4px) !important;
+                  height: 20px !important;
+                  margin: 0 auto !important;
+                  padding: 0 2px !important;
+                  border: none !important;
+                  font-size: 11px;
+                  font-family: Arial, sans-serif;
+                  text-align: center;
+               }
+               /* Product TOTAL row: real cells now (NG is typed), in the look of the
+                  overlay the row used to get. */
+               [id="Sno-Table"] tr:nth-child(8) input {
+                  font: bold 10px Arial, sans-serif;
+                  color: #0a3d91;
+               }
+               [id="2NDTable"] tr:nth-child(13) > td:nth-child(13) input {
+                  width: 113.53px !important;
+                  margin: 0 0 0 3px !important;
+               }
             </style>
 
             <!-- ═══════════ MES AUTO-FILL (machines / operators / hourly plan-actual / OK-NG) ═══════════ -->
@@ -5947,10 +6212,8 @@
                   //
                   // Lines whose Paid Break (row 82) also counts the line leader:
                   // 0.33 × (manpower + 1).  Every other line: 0.33 × manpower.
-                  const PAID_BREAK_COUNTS_LEADER = {
-                     4: "YSD-SS", 18: "YRA-SS", 13: "YJC-SS", 14: "YFG-SS",   // seat slider
-                     5: "YRA Recliner", 27: "YHB Recliner",                    // recliner
-                  };
+                  // 2026-09-22 — the SAME list as Manpower Plan / Actual: countsLeader()
+                  // in the HEADER block is the one source of truth for both.
                   const FIVE_S_MIN = 5;          // 5S activity: added to Normal hours, and rows 32 / 39
                   const MEAL_MIN = 30;           // breaks this long are meals (unpaid); tea breaks are paid
                   const PAID_BREAK_HRS = 0.33;   // row 82 "Paid Break (0.33 Hrs)"
@@ -5958,6 +6221,9 @@
                   const SC_R32 = 1, SC_R39 = 8, SC_R82 = 9, SC_TOTAL = 10;
                   const DASH = "-";
                   let whCtx = "";                // line|date|shift the block currently shows
+                  let whManpower = null;         // operators counted by fillWorkHours (null = not readable)
+                  let curLineName = "";          // mes_lines.line_name of the loaded line
+                  let whBreaks = null;           // /api/config/breaks of the loaded line
 
                   const f2 = v => (Math.round((v + Number.EPSILON) * 100) / 100).toFixed(2);
                   const toMin = t => { const m = /^(\d{1,2}):(\d{2})/.exec(String(t == null ? "" : t)); return m ? (+m[1]) * 60 + (+m[2]) : null; };
@@ -6064,6 +6330,8 @@
                         if (row.ot_enabled && os != null && oe != null) hB = mins(os, oe) / 60;
                      }
                      const M = mp.m;                                            // null = not readable
+                     whManpower = M;                                            // loss man-hours use the same count
+                     whBreaks = Array.isArray(breaks) ? breaks : null;          // row 11 OT supervisor time
                      const { detail, semi, lists } = whCells();
                      const n = detail[0] || [], o = detail[1] || [];
                      setAuto(n[0], hA == null ? DASH : f2(hA));
@@ -6074,11 +6342,11 @@
                      setAuto(o[2], hB == null || M == null ? DASH : f2(hB * M));
                      for (let r = 3; r < detail.length; r++) detail[r].forEach(el => setAuto(el, DASH));
 
-                     const lead = PAID_BREAK_COUNTS_LEADER[lineId] ? 1 : 0;
+                     const lead = countsLeader(curLineName) ? 1 : 0;
                      semi.slice(0, SC_TOTAL).forEach((el, i) => {
                         let v = DASH;
                         if (M != null && (i === SC_R32 || i === SC_R39)) v = f2(FIVE_S_MIN / 60 * M);
-                        if (M != null && i === SC_R82) v = f2(PAID_BREAK_HRS * (M + lead));
+                        if (M != null && i === SC_R82) v = M > 0 ? f2(PAID_BREAK_HRS * (M + lead)) : f2(0);   // 0 operators → 0, like Plan/Actual
                         setAuto(el, v);
                      });
                      lists.forEach(l => l.slice(0, -1).forEach(el => setAuto(el, DASH)));   // manual-entry rows
@@ -6089,17 +6357,508 @@
                      return mp.from && mp.from !== date ? "  (manpower from " + mp.from + ")" : "";
                   }
 
+                  // ═══ CORE JOB MAN HOUR + SUMMARY OF HOURLY LOSSES auto-fill (2026-09-22) ═══
+                  // Source: /api/peff/data `losses` — one entry per hourly slot with the
+                  // breakdown / speed / material / others minutes (Hourly Report engine +
+                  // PLC status log), the operator loss remarks and the loss windows.
+                  //   • (--) Regular Cyclic Job: "-" in every hour.
+                  //   • 21 22 11 12 13 14 23 24 25 26 27: 0 in every hour, except
+                  //       24 Waiting due to machine breakdown = breakdown min × operators ÷ 60
+                  //       23 Waiting due to material shortage = material min × operators ÷ 60
+                  //   • SEMI CORE JOB 33 "OJT Time" (one Man Hour cell for the shift)
+                  //       = speed-loss min × operators ÷ 60
+                  //   • TOTAL row and SUB TOTAL column: sums, 2 decimals.
+                  //   • Time duration / Losses in Minutes / Reason 4M / Losses Detail per hour.
+                  //   • Summary Line Stop, in MINUTES: Man = speed, Equip.(E) = breakdown,
+                  //     Material (M) = material, Process (P) = 0, Others (O) = others.
+                  // "Operators" = the count fillWorkHours uses (Shift Allocation).  Every
+                  // cell stays editable: a typed value is kept for that line/date/shift
+                  // (whCtx) through reloads and refits, and the totals follow the edit.
+                  const CJ_HOURS = 12, CJ_SUB = 12;                  // 12 hour columns, then SUB TOTAL
+                  const CJ_CYCLIC = 0, CJ_R11 = 3, CJ_R23 = 7, CJ_R24 = 8, CJ_TOTAL = 12;
+                  // Row 11 Supervisory (2026-09-22): "-" in every hour, SUB TOTAL a fixed
+                  // 3.88 man-hours (YMC-SS 7.75) — or the sum, once hours are typed in.
+                  const SUP_HRS = name => normLine(name) === "YMCSS" ? "7.75" : "3.88";
+                  let lossSupDefault = "", lossOtNote = "";
+                  // "3.88 + 2.83" (row 11 SUB TOTAL with OT) counts as the sum.
+                  const numSum = el => {
+                     const t = String((el && el.value) || "").trim();
+                     if (/^\d+(\.\d+)?(\s*\+\s*\d+(\.\d+)?)+$/.test(t)) return t.split("+").reduce((a, x) => a + parseFloat(x), 0);
+                     return numOf(el);
+                  };
+                  // OT supervisor time: the OT column's minutes minus the line's configured
+                  // breaks inside that window (applying to this shift), in hours.
+                  function otSupervisorHours(hours, shift) {
+                     let total = 0, anyOt = false, anyBreak = false;
+                     (hours || []).forEach(h => {
+                        if (!h || !h.ot) return;
+                        const m = /(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})/.exec(String(h.label || ""));
+                        if (!m) return;
+                        anyOt = true;
+                        const os = (+m[1]) * 60 + (+m[2]);
+                        let oe = (+m[3]) * 60 + (+m[4]);
+                        if (oe <= os) oe += 1440;
+                        let brk = 0;
+                        (whBreaks || []).forEach(b => {
+                           const on = String(b.applies_to_shifts || "").toUpperCase().split(",").map(x => x.trim());
+                           if (on.length && on[0] && !on.includes(shift)) return;
+                           const bs = toMin(b.start_time); let be = toMin(b.end_time);
+                           if (bs == null || be == null) return;
+                           if (be <= bs) be += 1440;
+                           [-1440, 0, 1440].forEach(k => { brk += Math.max(0, Math.min(oe, be + k) - Math.max(os, bs + k)); });
+                        });
+                        if (brk > 0) anyBreak = true;
+                        total += Math.max(0, (oe - os) - brk);
+                     });
+                     return { anyOt, anyBreak, hrs: total / 60 };
+                  }
+                  const SC_R33 = 2;                                  // semicorejob rows 0..8 = items 31..39
+                  const LS = { MAN: 0, E: 1, M: 2, P: 3, O: 4, TOTAL: 5 };
+                  const MIN_EPS = 0.05;                              // prints as 0.0 → no loss
+                  const LOSS_CAT = { breakdown: "E", material: "M", others: "O" };
+                  let lossSlots = 0;                                 // hour columns the loaded shift has
+                  const fmin = v => v >= MIN_EPS ? (Math.round(v * 10) / 10).toFixed(1) : "0";
+                  const fmh = v => v >= 0.005 ? f2(v) : "0";
+                  const isEd = el => !!(el && el.isContentEditable);
+                  const baseFs = el => {                             // the cell's own font size, before any fitting
+                     if (!el.dataset.peffFs) {
+                        const was = el.style.fontSize; el.style.fontSize = "";
+                        el.dataset.peffFs = String(parseFloat(getComputedStyle(el).fontSize) || 13);
+                        el.style.fontSize = was;
+                     }
+                     return parseFloat(el.dataset.peffFs);
+                  };
+                  const overflows = el => isEd(el)
+                     ? (el.scrollHeight > el.clientHeight + 1 || el.scrollWidth > el.clientWidth + 1)
+                     : (!!el.value && el.scrollWidth > el.clientWidth + 1);
+                  // Multi-line twin of fitCell() for the Losses Detail blocks: shrink the
+                  // text until it fits the box both ways; the box itself never resizes.
+                  function fitBox(el, startPx, floorPx) {
+                     let s = startPx;
+                     el.style.fontSize = s + "px";
+                     if (!el.textContent) return true;
+                     while (s > floorPx && overflows(el)) { s -= 0.5; el.style.fontSize = s + "px"; }
+                     // A block that had to shrink sits at the edge of its box; html2canvas
+                     // rounds text a little differently, so give it half a pixel back.
+                     if (s < startPx && s > floorPx) el.style.fontSize = (s - 0.5) + "px";
+                     return !overflows(el);
+                  }
+                  // Fit one cell back to its own size, shrinking only as far as it must.
+                  function fitOne(el) {
+                     if (!el) return;
+                     if (isEd(el)) { fitBox(el, baseFs(el), 6); return; }
+                     const b = baseFs(el);
+                     if (!el.value) { el.style.fontSize = ""; el.style.height = ""; el.style.lineHeight = ""; return; }
+                     if (fitCell(el, b, 6) && parseFloat(el.style.fontSize) < b) el.style.fontSize = (parseFloat(el.style.fontSize) - 0.5) + "px";
+                  }
+                  // Nothing may overflow its box (screen or PDF): fit every filled field
+                  // on the sheet that does.  Reads first, then writes, so the page is laid
+                  // out once and not once per field.
+                  function fitAll() {
+                     const els = [...document.querySelectorAll(".page-01 table input, .page-01 .peff-ml")]
+                        .filter(el => el.type !== "checkbox" && el.type !== "hidden" && el.offsetParent !== null);
+                     els.filter(overflows).forEach(fitOne);
+                  }
+                  window.peffFitAll = fitAll;
+                  // Refit a field as it is typed into (any field on the sheet).
+                  document.addEventListener("input", function (e) {
+                     const el = e.target;
+                     if (!el || !el.closest || !el.closest(".page-01")) return;
+                     if (!(el.matches("table input") || isEd(el))) return;
+                     if (el.type === "checkbox") return;
+                     if (overflows(el) || (el.style.fontSize && parseFloat(el.style.fontSize) < baseFs(el))) fitOne(el);
+                  }, true);
+
+                  function lossCells() {
+                     const cj = document.getElementById("2NDTable"), lh = document.getElementById("lossHead");
+                     const ls = document.getElementById("lineStop"), lo = document.getElementById("losses");
+                     const sc = document.getElementById("semicorejob");
+                     return {
+                        core: cj ? [...cj.rows].map(r => [...r.querySelectorAll("input")]) : [],   // 13 rows × (12 hours + SUB TOTAL)
+                        head: lh ? [...lh.rows].map(r => [...r.querySelectorAll("input")]) : [],   // duration ×2, minutes, reason
+                        detail: lo ? [...lo.querySelectorAll(".peff-ml")] : [],
+                        stop: ls ? [...ls.querySelectorAll("input")] : [],
+                        groups: (document.getElementById("cjGroups") || { querySelectorAll: () => [] }).querySelectorAll("input"),
+                        r33: sc && sc.rows[SC_R33] ? sc.rows[SC_R33].querySelector("input") : null,
+                     };
+                  }
+                  // Auto value, unless the operator typed one for this line/date/shift.
+                  function setLoss(el, v) {
+                     if (!el || el.dataset.peffManual === whCtx) return false;
+                     delete el.dataset.peffManual;
+                     if (isEd(el)) {
+                        el.textContent = "";
+                        (Array.isArray(v) ? v : (v ? [v] : [])).forEach(t => {
+                           const d = document.createElement("div"); d.textContent = t; el.appendChild(d);
+                        });
+                     } else {
+                        el.value = v == null ? "" : String(v);
+                     }
+                     el.style.fontSize = ""; el.style.height = ""; el.style.lineHeight = "";   // back to the cell's own size
+                     return true;
+                  }
+                  // TOTAL row, SUB TOTAL column, TOTAL MAN HOURS (groups + section) and
+                  // Total Line Stop.  A total the operator typed is kept through reloads
+                  // and refits; it is recomputed only when one of the cells it is made
+                  // of is edited (edited = that cell; null on a reload).
+                  const CJ_GROUP_OF = [0, 0, 0, 1, 1, 1, 1, 2, 2, 3, 3, 3];   // rows (--)..27 → DIRECT, INDIRECT, WAITING, KAIZEN
+                  function lossRecalc(edited) {
+                     const { core, stop } = lossCells();
+                     const groups = [...lossCells().groups];
+                     const rows = core.slice(0, CJ_TOTAL), tot = core[CJ_TOTAL] || [];
+                     const force = new Set();
+                     if (edited) {
+                        rows.forEach((r, ri) => {
+                           const ci = r.indexOf(edited);
+                           if (ci < 0) return;
+                           if (ci < CJ_HOURS) { if (ri !== CJ_R11) force.add(r[CJ_SUB]); force.add(tot[ci]); }
+                           force.add(groups[CJ_GROUP_OF[ri]]); force.add(tot[CJ_SUB]);
+                        });
+                        if (groups.includes(edited)) force.add(tot[CJ_SUB]);
+                        if (stop.indexOf(edited) >= 0 && stop.indexOf(edited) < LS.TOTAL) force.add(stop[LS.TOTAL]);
+                     }
+                     const put = (el, v) => {
+                        if (!el || el === edited) return;
+                        if (el.dataset.peffManual === whCtx && !force.has(el)) return;
+                        delete el.dataset.peffManual;
+                        if (el.value !== v) { el.value = v; fitOne(el); }
+                     };
+                     const sum = xs => f2(xs.reduce((a, b) => a + b, 0));
+                     rows.forEach((r, ri) => {
+                        const hrs = r.slice(0, CJ_HOURS), v = hrs.map(numOf).filter(x => x != null);
+                        if (ri === CJ_R11 && lossSupDefault) { put(r[CJ_SUB], lossSupDefault); return; }   // never the typed hours
+                        put(r[CJ_SUB], v.length ? sum(v) : (hrs.some(el => el && el.value.trim()) ? DASH : ""));
+                     });
+                     for (let c = 0; c < CJ_HOURS; c++) {
+                        const v = rows.map(r => numOf(r[c])).filter(x => x != null);
+                        put(tot[c], (c < lossSlots || v.length) ? sum(v) : "");
+                     }
+                     // Group totals from the rows' SUB TOTALs ("-" counts as 0), then the
+                     // section total (the TOTAL row's merged cell) from the four groups.
+                     groups.forEach((g, gi) => {
+                        const v = rows.filter((r, ri) => CJ_GROUP_OF[ri] === gi).map(r => numSum(r[CJ_SUB])).filter(x => x != null);
+                        put(g, (lossSlots || v.length) ? sum(v) : "");
+                     });
+                     const gv = groups.map(numOf).filter(x => x != null);
+                     put(tot[CJ_SUB], (lossSlots || gv.length) ? sum(gv) : "");
+                     const parts = stop.slice(0, LS.TOTAL).map(numOf).filter(x => x != null);
+                     put(stop[LS.TOTAL], parts.length ? fmin(parts.reduce((a, b) => a + b, 0)) : "");
+                  }
+                  function lossWire() {
+                     if (lossWire.done) return;
+                     lossWire.done = true;
+                     const { core, head, detail, stop, groups } = lossCells();
+                     const recalcOn = new Set([...core.flat(), ...groups, ...stop]);
+                     [...core.flat(), ...groups, ...head.flat(), ...detail, ...stop].forEach(el => {
+                        if (!el) return;
+                        baseFs(el);
+                        el.addEventListener("focus", () => { if (!isEd(el) && (el.value === DASH || el.value === "0")) el.select(); });
+                        // Paste into a detail block as plain text (no fonts/colours from the source).
+                        if (isEd(el)) el.addEventListener("paste", e => {
+                           const t = e.clipboardData ? e.clipboardData.getData("text/plain") : null;
+                           if (t == null) return;
+                           e.preventDefault();
+                           document.execCommand("insertText", false, t);
+                        });
+                        el.addEventListener("input", () => {
+                           el.dataset.peffManual = whCtx;                     // keep it through reloads
+                           if (recalcOn.has(el)) lossRecalc(el);
+                        });
+                     });
+                  }
+                  function fillLosses(data, M) {
+                     lossWire();
+                     const { core, head, detail, stop, r33 } = lossCells();
+                     const L = Array.isArray(data.losses) ? data.losses : null;
+                     const hours = data.hours || [];
+                     const n = Math.min(CJ_HOURS, hours.length);
+                     lossSlots = n;
+                     lossSupDefault = SUP_HRS(data.line_name);
+                     {
+                        const ot = otSupervisorHours(hours, String(data.shift || "").toUpperCase());
+                        lossOtNote = "";
+                        if (ot.anyOt) {
+                           lossSupDefault = lossSupDefault + " + " + f2(ot.hrs);
+                           if (!ot.anyBreak) lossOtNote = "  (no break configured inside the OT window)";
+                        }
+                     }
+                     const ops = M > 0 ? M : 0;
+                     const num = v => { const x = parseFloat(v); return isFinite(x) ? x : 0; };
+                     const byLabel = {};
+                     (L || []).forEach(l => { if (l && l.label) byLabel[l.label] = l; });
+                     const at = i => (L ? (byLabel[(hours[i] || {}).label] || L[i] || null) : null);
+
+                     // ── CORE JOB MAN HOUR hour grid ──
+                     for (let r = 0; r < CJ_TOTAL && r < core.length; r++) {
+                        for (let c = 0; c < CJ_HOURS; c++) {
+                           let v = "";
+                           if (r === CJ_R11) v = DASH;                   // every hour column
+                           else if (c < n) {
+                              const l = at(c);
+                              v = r === CJ_CYCLIC ? DASH : "0";
+                              if (l && r === CJ_R24) v = fmh(num(l.breakdown_min) * ops / 60);
+                              if (l && r === CJ_R23) v = fmh(num(l.material_min) * ops / 60);
+                           }
+                           setLoss(core[r][c], v);
+                        }
+                     }
+                     // ── shift totals (minutes) → SEMI CORE JOB 33 + Summary Line Stop ──
+                     let sp = 0, bd = 0, ma = 0, ot = 0;
+                     (L || []).forEach(l => { sp += num(l.speed_min); bd += num(l.breakdown_min); ma += num(l.material_min); ot += num(l.others_min); });
+                     if (L) setLoss(r33, f2(sp * ops / 60));
+                     setLoss(stop[LS.MAN], L ? fmin(sp) : "");
+                     setLoss(stop[LS.E], L ? fmin(bd) : "");
+                     setLoss(stop[LS.M], L ? fmin(ma) : "");
+                     setLoss(stop[LS.P], L ? "0" : "");
+                     setLoss(stop[LS.O], L ? fmin(ot) : "");
+
+                     // ── SUMMARY OF HOURLY LOSSES, per hour ──
+                     const [dur1, dur2, minsRow, reasonRow] = head;
+                     for (let c = 0; c < CJ_HOURS; c++) {
+                        const l = c < n ? at(c) : null;
+                        let d1 = "", d2 = "", mins = "", reason = "", lines = [], wl = "";
+                        if (l) {
+                           const b = num(l.breakdown_min), s = num(l.speed_min), m = num(l.material_min), o = num(l.others_min);
+                           mins = fmin(b + s + m + o);
+                           reason = [[s, "Man"], [b, "E"], [m, "M"], [o, "O"]].filter(x => x[0] >= MIN_EPS).map(x => x[1]).join(", ");
+                           [[b, "Breakdown"], [s, "Speed"], [m, "Material"], [o, "Others"]]
+                              .forEach(([v, k]) => { if (v >= MIN_EPS) lines.push(k + " " + fmin(v) + " min"); });
+                           String(l.remarks || "").split(" · ").map(x => x.trim()).filter(Boolean).forEach(x => lines.push(x));
+                           // Time duration: the two longest stop windows (breakdown /
+                           // material / others) in time order; "+N" = more windows.
+                           const ws = (Array.isArray(l.windows) ? l.windows : [])
+                              .filter(w => LOSS_CAT[w.category] && num(w.min) >= MIN_EPS);
+                           const fw = w => w.start + "-" + w.end + " " + LOSS_CAT[w.category];
+                           const top = ws.slice().sort((a, z) => num(z.min) - num(a.min)).slice(0, 2)
+                              .sort((a, z) => ws.indexOf(a) - ws.indexOf(z));
+                           if (top[0]) d1 = fw(top[0]);
+                           if (top[1]) d2 = fw(top[1]) + (ws.length > 2 ? " +" + (ws.length - 2) : "");
+                           wl = ws.map(fw).join(", ");
+                        }
+                        if (dur1 && setLoss(dur1[c], d1)) dur1[c].title = wl;
+                        if (dur2 && setLoss(dur2[c], d2)) dur2[c].title = wl;
+                        if (minsRow) setLoss(minsRow[c], mins);
+                        if (reasonRow) setLoss(reasonRow[c], reason);
+                        setLoss(detail[c], lines);
+                     }
+                     lossRecalc(null);
+                     whRecalc(false);                                   // SEMI CORE TOTAL picks up row 33
+                     fitAll();
+                     if (!L) return "  (loss data not available yet)" + lossOtNote;
+                     return (ops ? "" : "  (loss man-hours 0: no operator count)") + lossOtNote;
+                  }
+
+                  // ═══ PRODUCT ROWS engine (2026-09-22) ═══
+                  // prodBuild() turns the filled grid into a list of computed cells, in
+                  // dependency order; prodRecalc(edited) recomputes them.  A cell the
+                  // leader typed is kept through reloads; it is recomputed only when a
+                  // cell it is built from is edited (edited = that cell; null = reload).
+                  let prodGraph = null, prodSnoToRow = {}, prodOrderNote = "";
+                  const n2 = v => String(Math.round(v * 100) / 100);
+                  function prodBuild(G) {
+                     const nodes = [];
+                     const node = (el, inputs, fn) => { if (el) nodes.push({ el, inputs: inputs.filter(Boolean), fn }); };
+                     const mdl = G.rows.map((r, i) => i).filter(i => G.rows[i].isModel);
+                     const last = mdl.length ? mdl[mdl.length - 1] : -1;
+                     const planKnown = G.ordered;
+                     // OK Prod first: the plan of every model but the last is its OK Prod.
+                     G.rows.forEach(r => {
+                        node(r.ok, [r.total, r.ng], () => numOf(r.total) == null ? "" : n2(numOf(r.total) - (numOf(r.ng) || 0)));
+                     });
+                     mdl.forEach(i => {
+                        if (i === last) return;
+                        const r = G.rows[i];
+                        node(r.plan, [r.ok], () => planKnown && numOf(r.ok) != null ? n2(numOf(r.ok)) : "");
+                     });
+                     if (last >= 0) {
+                        const others = mdl.filter(i => i !== last).map(i => G.rows[i].plan);
+                        node(G.rows[last].plan, others, () => {
+                           if (G.shiftPlan == null || (!planKnown && mdl.length > 1)) return "";
+                           return n2(Math.max(0, G.shiftPlan - others.reduce((a, el) => a + (numOf(el) || 0), 0)));
+                        });
+                     }
+                     G.rows.forEach(r => {
+                        node(r.bal, [r.ok, r.plan], () => (numOf(r.ok) == null || numOf(r.plan) == null) ? "" : n2(numOf(r.ok) - numOf(r.plan)));
+                     });
+                     const t = G.tot, sumOf = els => { const v = els.map(numOf).filter(x => x != null); return v.length ? n2(v.reduce((a, b) => a + b, 0)) : ""; };
+                     node(t.total, G.rows.map(r => r.total), () => sumOf(G.rows.map(r => r.total)));
+                     node(t.ng, G.rows.map(r => r.ng), () => sumOf(G.rows.map(r => r.ng)));
+                     node(t.ok, [t.total, t.ng], () => numOf(t.total) == null ? "" : n2(numOf(t.total) - (numOf(t.ng) || 0)));
+                     node(t.plan, [], () => G.shiftPlan == null ? "" : n2(G.shiftPlan));
+                     node(t.bal, [t.ok, t.plan], () => (numOf(t.ok) == null || numOf(t.plan) == null) ? "" : n2(numOf(t.ok) - numOf(t.plan)));
+                     prodGraph = nodes;
+                     prodWire();
+                  }
+                  function prodRecalc(edited) {
+                     if (!prodGraph) return;
+                     const force = new Set();
+                     if (edited) {
+                        const src = new Set([edited]);
+                        let grew = true;
+                        while (grew) {
+                           grew = false;
+                           prodGraph.forEach(n => { if (!src.has(n.el) && n.inputs.some(x => src.has(x))) { src.add(n.el); force.add(n.el); grew = true; } });
+                        }
+                     }
+                     prodGraph.forEach(n => {
+                        const el = n.el;
+                        if (el === edited) return;
+                        if (el.dataset.peffManual === whCtx && !force.has(el)) return;
+                        delete el.dataset.peffManual;
+                        const v = n.fn();
+                        if (el.value !== v) { el.value = v; fitOne(el); }
+                     });
+                  }
+                  function prodWire() {
+                     if (prodWire.done) return;
+                     prodWire.done = true;
+                     [...document.getElementsByClassName("Sno-Table2")].forEach(el => {
+                        el.addEventListener("input", () => {
+                           el.dataset.peffManual = whCtx;                     // keep it through reloads
+                           prodRecalc(el);
+                        });
+                     });
+                  }
+                  // Model S.N. row: the S.No of each model that ran in the hour —
+                  // "(1)", or "(1)+(2)" when the model changed within the hour.
+                  function fillModelSn(data) {
+                     const cells = [...document.querySelectorAll("#modelSn input")];
+                     if (!cells.length) return;
+                     cells.forEach(el => {
+                        if (!el.dataset.peffWired) {
+                           el.dataset.peffWired = "1";
+                           baseFs(el);
+                           el.addEventListener("input", () => { el.dataset.peffManual = whCtx; });
+                        }
+                     });
+                     const sm = Array.isArray(data.slot_models) ? data.slot_models : null;
+                     const n = (data.hours || []).length;
+                     cells.forEach((el, c) => {
+                        let v = "";
+                        if (sm && c < n && Array.isArray(sm[c])) {
+                           const rowsNo = [...new Set(sm[c].map(x => prodSnoToRow[x]).filter(x => x != null))].sort((a, b) => a - b);
+                           v = rowsNo.map(x => "(" + x + ")").join("+");
+                        }
+                        setLoss(el, v);
+                     });
+                  }
+
+                  // ═══ HEADER: Manpower on Role / Plan / Actual, working-time tick, line leader (2026-09-22) ═══
+                  //   • Manpower on Role: Operator = operators (the Shift Allocation count
+                  //     fillWorkHours uses), Supply = 0, Total = Operator + Supply.
+                  //   • Manpower Plan / Actual (Op + Sup) = Total, + 1 for the line leader
+                  //     on the lines below (by mes_lines.line_name).  Row 82 (Paid Break)
+                  //     uses the same list through countsLeader().
+                  //   • Holiday / Regular Working Time: Sunday → Holiday, else Regular.
+                  //   • LEADER NAME: the shift's line leader (/api/leaders/for-line).
+                  // All editable; a typed value is kept for the line/date/shift, and an
+                  // edit recomputes only what is built from it (Operator/Supply → Total →
+                  // Plan/Actual).
+                  const normLine = x => String(x || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+                  const MP_COUNTS_LEADER = ["YSD-SS", "YJC-SS", "YRA-SS", "YFG-SS", "YMC-SS",
+                                            "YRA Recliner", "YHB Recliner"].map(normLine);
+                  // Also drives row 82 (Paid Break) — one list for both.
+                  function countsLeader(lineName) { return MP_COUNTS_LEADER.includes(normLine(lineName)); }
+                  let hdrLeaderAdd = 0;
+                  function hdrCells() {
+                     const oi = [...document.querySelectorAll("#onrole input")];
+                     const pi = [...document.querySelectorAll("#plan_actual input")];
+                     const cb = [...document.querySelectorAll(".chk-table .checkbox")];
+                     return { op: oi[0], sup: oi[1], tot: oi[2], plan: pi[0], act: pi[1],
+                              holiday: cb[0], regular: cb[1], leader: document.querySelector("#LEADER input") };
+                  }
+                  function hdrRecalc(edited) {
+                     const { op, sup, tot, plan, act } = hdrCells();
+                     const force = new Set();
+                     if (edited && (edited === op || edited === sup)) { force.add(tot); force.add(plan); force.add(act); }
+                     if (edited && edited === tot) { force.add(plan); force.add(act); }
+                     const put = (el, v) => {
+                        if (!el || el === edited) return;
+                        if (el.dataset.peffManual === whCtx && !force.has(el)) return;
+                        delete el.dataset.peffManual;
+                        if (el.value !== v) { el.value = v; fitOne(el); }
+                     };
+                     const n2 = v => String(Math.round(v * 100) / 100);
+                     const o = numOf(op), su = numOf(sup);
+                     put(tot, o == null ? ((op && op.value.trim()) ? DASH : "") : n2(o + (su || 0)));
+                     const t = numOf(tot);
+                     // A line with nobody allocated stays 0 (no lone "+1" for the leader).
+                     const pv = t == null ? "" : n2(t > 0 ? t + hdrLeaderAdd : t);
+                     put(plan, pv);
+                     put(act, pv);
+                  }
+                  function hdrWire() {
+                     if (hdrWire.done) return;
+                     hdrWire.done = true;
+                     const c = hdrCells();
+                     [c.op, c.sup, c.tot, c.plan, c.act, c.leader].forEach(el => {
+                        if (!el) return;
+                        baseFs(el);
+                        el.addEventListener("input", () => {
+                           el.dataset.peffManual = whCtx;                     // keep it through reloads
+                           hdrRecalc(el);
+                        });
+                     });
+                     // The two boxes are one choice (the sheet's own script unticks the
+                     // other), so a click keeps BOTH as the operator left them.
+                     [c.holiday, c.regular].forEach(el => {
+                        if (el) el.addEventListener("change", () => {
+                           [c.holiday, c.regular].forEach(x => { if (x) x.dataset.peffManual = whCtx; });
+                        });
+                     });
+                  }
+                  async function fillHeader(data, lineId, date, shift, tok, isCurrent) {
+                     hdrWire();
+                     const M = whManpower;
+                     hdrLeaderAdd = countsLeader(data.line_name) ? 1 : 0;
+                     const c = hdrCells();
+                     setLoss(c.op, M == null ? DASH : String(M));
+                     setLoss(c.sup, "0");
+                     hdrRecalc(null);
+                     // Working time: Sunday = holiday, any other day = regular.
+                     if (c.holiday && c.regular && c.holiday.dataset.peffManual !== whCtx && c.regular.dataset.peffManual !== whCtx) {
+                        const sunday = new Date(date + "T00:00:00Z").getUTCDay() === 0;
+                        c.holiday.checked = sunday;
+                        c.regular.checked = !sunday;
+                     }
+                     // Line leader from Shift Allocation (same endpoint as the cycle-comment Leader field).
+                     let j = null;
+                     try {
+                        const r = await fetch("/api/leaders/for-line?line_id=" + lineId + "&date=" + date + "&shift=" + encodeURIComponent(shift),
+                           { headers: { Authorization: "Bearer " + tok } });
+                        j = r.ok ? await r.json() : null;
+                     } catch (e) { j = null; }
+                     if (!isCurrent()) return "";
+                     const name = j && j.default ? String(j.default) : "";
+                     if (c.leader && setLoss(c.leader, name)) { c.leader.title = name; if (name) fitOne(c.leader); }
+                     // The name box offers this line's leaders (it used to list placeholder names).
+                     const dl = document.getElementById("LEADERS2");
+                     if (dl && j && Array.isArray(j.options) && j.options.length) {
+                        dl.textContent = "";
+                        j.options.forEach(o => { if (o && o.username) { const op = document.createElement("option"); op.value = o.username; dl.appendChild(op); } });
+                     }
+                     if (!j) return "  (line leader not available)";
+                     return name ? "" : "  (no line leader allocated)";
+                  }
+
                   let fillSeq = 0;
-                  window.loadPeffData = async function (wc) {
+                  window.loadPeffData = async function (wc, opts) {
                      const mySeq = ++fillSeq;         // only the newest fill may touch the sheet
                      peffFit();                       // the window may have changed since the last fill
-                     wc = wc || (document.getElementById("wcSelect") || {}).value || "";
-                     const lineId = WC_TO_LINE[wc];
-                     const shift = (wc.slice(-1) || (document.getElementById("shiftSelect") || {}).value || "A").toUpperCase();
+                     // 2026-09-23 — the picker passes the LINE it picked: one code can
+                     // belong to several lines (Loop Pipe 1/2/3 all run Q31L01) and a
+                     // line whose WC is not filled in yet has no code at all.  A plain
+                     // loadPeffData() (date change, refit) repeats the last pick.
+                     wc = wc || (wcSel && wcSel.code) || (document.getElementById("wcSelect") || {}).value || "";
+                     const sel = (opts && opts.lineId) ? opts
+                               : (wcSel && (!wc || wcSel.code === wc) ? wcSel : null);
+                     const lineId = (sel && sel.lineId) || wcLineOf(wc) || WC_TO_LINE[wc];
+                     const shift = ((sel && sel.shift) || wc.slice(-1)
+                                    || (document.getElementById("shiftSelect") || {}).value || "A").toUpperCase();
                      const di = document.getElementById("dateInput");
                      let date = (di && di.value) || today();
                      if (di && !di.value) di.value = date;
-                     if (!lineId) { msg("Select a Seat Slider or Recliner work-center first", true); return; }
+                     if (!lineId) { msg("Select a work centre first", true); return; }
                      const tok = token();
                      if (!tok) { msg("Open from inside the MES app (login needed)", true); return; }
                      msg("Loading…");
@@ -6113,16 +6872,18 @@
                      if (mySeq !== fillSeq) return;   // a newer load overtook this one
 
                      clearOverlays();
+                     whCtx = lineId + "|" + date + "|" + shift;   // this load's context (fillWorkHours sets the same)
+                     curLineName = data.line_name || "";
 
                      // WC field ← canonical work-center from the alignment panel (base + shift)
-                     if (data.wc) { const wsEl = document.getElementById("wcSelect"); if (wsEl) wsEl.innerHTML = '<option value="' + data.wc + '">' + data.wc + '</option>'; }
+                     if (data.wc) peffSetWC(data.wc);            // keep the whole list, just select it
                      // LINE and SHIFT are printed on the sheet, so they must carry the
                      // loaded line/shift — a PDF that reads "-- Select Line --" is not
                      // a record anyone can file.
                      const lnEl = document.getElementById("lineSelect");
-                     if (lnEl && data.line_name) lnEl.innerHTML = '<option value="' + data.line_name + '">' + data.line_name + '</option>';
+                     if (lnEl && data.line_name) { lnEl.value = data.line_name; fitOne(lnEl); }
                      const shEl = document.getElementById("shiftSelect");
-                     if (shEl) shEl.innerHTML = '<option value="' + shift + '">' + shift + '</option>';
+                     if (shEl) shEl.value = shift;
 
                      // ═══ MEASURED ANCHORS (real DOM cells → accurate on any browser/scale) ═══
                      const timeTds = [...document.querySelectorAll("#shiftTimingRow td")];
@@ -6140,8 +6901,16 @@
                      const machCy = mt ? cY(mt) : (timeCy - 244);
 
                      // ── TIME row: clear all cells, then write the REAL MES slot labels ──
-                     timeTds.forEach(td => { td.textContent = ""; });
+                     timeTds.forEach(td => { td.textContent = ""; td.style.fontSize = ""; td.style.whiteSpace = ""; });
                      (data.hours || []).forEach((h, i) => { if (timeTds[i]) timeTds[i].textContent = h.label || ""; });
+                     // 2026-09-22 — an OT column's label ("03:30-06:20 OT") is longer than
+                     // an hour's: keep it on one line and shrink it into its cell.
+                     timeTds.forEach(td => {
+                        if (!td.textContent) return;
+                        td.style.whiteSpace = "nowrap";
+                        let fs = parseFloat(getComputedStyle(td).fontSize) || 10;
+                        while (fs > 6 && td.scrollWidth > td.clientWidth + 1) { fs -= 0.5; td.style.fontSize = fs + "px"; }
+                     });
 
                      // ── machine-no row (overlay at real operator-column centers) + operators (real inputs) ──
                      // 2026-09-21 — choosing a work-center through the Zone → WC popup
@@ -6212,7 +6981,9 @@
                         return out;
                      })();
                      const cellAt = (top, tx) => { let b = null, bd = 1e9; for (const o of snoAll) { if (Math.abs(o.r.top - top) > ROWTOL) continue; const dd = Math.abs(o.r.left - tx); if (dd < bd) { bd = dd; b = o; } } return (b && bd < 40) ? b : null; };
-                     const setCell = (top, tx, val) => { const c = cellAt(top, tx); if (c) c.el.value = (val == null || val === "") ? "" : String(val); };
+                     // 2026-09-22 — manual-aware: a value the leader typed for this
+                     // line/date/shift survives reloads and refits (see prodRecalc).
+                     const setCell = (top, tx, val) => { const c = cellAt(top, tx); if (c) setLoss(c.el, (val == null || val === "") ? "" : String(val)); };
                      // The last cluster is the sheet's own TOTAL row (9 cells, not 12).
                      const totalTop = rowTops[rowTops.length - 1];
                      const prodTops = rowTops.slice(0, -1);
@@ -6221,47 +6992,66 @@
                      // used to leave the previous model still printed underneath.
                      rowTops.forEach(top => PCOLS.forEach(tx => setCell(top, tx, "")));
 
-                     const prods = (data.products || []).slice();
-                     if (prods.length) {
+                     // ── 2026-09-22 — product rows in the order the models FIRST RAN in
+                     //    the shift (S.No 1..n).  Plan: every model but the last = its OK
+                     //    Prod; the last = shift plan − the others (never
+                     //    below 0).  NG Prod no longer comes from the MES NG alarm (it will
+                     //    come from the line-rejection sheet): 0, typed by the leader.
+                     //    OK Prod = Total Prod − NG Prod.  Balance = OK Prod − Plan (the
+                     //    sheet's existing sign: + over plan, − short).
+                     //    2026-09-23 — the "Not scanned (no part code)" row counts as a
+                     //    model too (operator asked: the leader writes the real name on
+                     //    it): it takes the last row's plan (shift plan − the others) and
+                     //    its S.No shows in Model S. N. for every hour it ran.  Its S.No
+                     //    is the one after the scanned models (what /api/peff/data puts in
+                     //    slot_models for cycles with no part code).
+                     const models = (data.products || []).slice();
+                     const ordered = models.length > 0 && models.every(p => p.sno != null);
+                     if (ordered) models.sort((a, b) => a.sno - b.sno);
+                     const rows = models.map(p => ({ name: p.model || "", total: p.total, isModel: true, snos: [p.sno] }));
+                     let rest = null;
+                     if (models.length) {
                         // Cycles whose part code never scanned cannot be attributed to a
                         // model, so the model rows come up short of the shift TOTAL.
-                        // Print the remainder as its own row instead of leaving the
-                        // column silently not adding up.
-                        const gOk = (T.ok || 0) - prods.reduce((s, p) => s + (p.ok || 0), 0);
-                        const gNg = (T.ng || 0) - prods.reduce((s, p) => s + (p.ng || 0), 0);
-                        const gTot = (T.total || 0) - prods.reduce((s, p) => s + (p.total || 0), 0);
-                        if (gTot > 0) prods.push({ model: "Not scanned (no part code)", plan: null, total: gTot, ok: gOk, ng: gNg, balance: null });
-                     } else {
-                        // No model could be resolved for the shift — either nothing was
-                        // scanned (part_code NULL) or the line's part codes are not in
-                        // the model-number format and it has no model mapping.  Say so:
-                        // the row used to print the shift's figures against a BLANK
-                        // product name, which reads as an unlabelled 1,344-piece shift.
-                        prods.push({ model: data.model || "Model not identified", plan: T.plan, total: T.total, ok: T.ok, ng: T.ng, balance: T.balance });
+                        const gTot = (T.total || 0) - models.reduce((a, p) => a + (p.total || 0), 0);
+                        if (gTot > 0) rest = { name: "Not scanned (no part code)", total: gTot, isModel: true, snos: [models.length + 1] };
+                     } else if ((T.total || 0) > 0) {
+                        // No model could be resolved for the shift — say so instead of an
+                        // unlabelled row (nothing scanned, or codes not in model format).
+                        rest = { name: data.model || "Model not identified", total: T.total, isModel: true, snos: [1] };
                      }
-                     // The sheet only has so many product lines.  If a shift ever runs
-                     // more models than that, fold the tail into one row rather than
-                     // dropping them — the column has to keep adding up to TOTAL.
-                     if (prods.length > prodTops.length) {
-                        const tail = prods.splice(prodTops.length - 1);
-                        prods.push({
-                           model: "Other models (" + tail.length + ")", plan: null, balance: null,
-                           total: tail.reduce((s, p) => s + (p.total || 0), 0),
-                           ok: tail.reduce((s, p) => s + (p.ok || 0), 0),
-                           ng: tail.reduce((s, p) => s + (p.ng || 0), 0)
-                        });
+                     // More models than product lines: fold the latest ones into one row
+                     // (still a model group — it is the "last model" for the plan rule).
+                     const room = prodTops.length - (rest ? 1 : 0);
+                     if (rows.length > room && room > 0) {
+                        const tail = rows.splice(room - 1);
+                        rows.push({ name: "Other models (" + tail.length + ")", isModel: true,
+                                    total: tail.reduce((a, r) => a + (r.total || 0), 0),
+                                    snos: tail.reduce((a, r) => a.concat(r.snos), []) });
                      }
-                     prods.slice(0, prodTops.length).forEach((p, i) => {
+                     if (rest) rows.push(rest);
+                     const shown = rows.slice(0, prodTops.length);
+                     const snoToRow = {};
+                     shown.forEach((r, i) => r.snos.forEach(n => { if (n != null) snoToRow[n] = i + 1; }));
+                     const cellEl = (top, tx) => { const c = cellAt(top, tx); return c ? c.el : null; };
+                     const G = { shiftPlan: (T.plan != null && T.plan > 0) ? T.plan : null, rows: [], tot: null, nodes: [] };
+                     shown.forEach((r, i) => {
                         const top = prodTops[i];
                         setCell(top, 21, i + 1);
-                        setCell(top, 48, p.model || "");
-                        { const c48 = cellAt(top, 48); if (c48) fitCell(c48.el, 13, 7); }
-                        setCell(top, 337, p.plan);
-                        setCell(top, 419, p.total);
-                        setCell(top, 501, p.ok);
-                        setCell(top, 583, p.ng);
-                        setCell(top, 666, p.balance);
+                        setCell(top, 48, r.name);
+                        { const c48 = cellAt(top, 48); if (c48 && c48.el.dataset.peffManual !== whCtx) fitCell(c48.el, 13, 7); }
+                        setCell(top, 419, r.total);
+                        setCell(top, 583, 0);
+                        G.rows.push({ isModel: r.isModel, plan: cellEl(top, 337), total: cellEl(top, 419), ok: cellEl(top, 501),
+                                      ng: cellEl(top, 583), bal: cellEl(top, 666) });
                      });
+                     G.tot = { plan: cellEl(totalTop, 337), total: cellEl(totalTop, 419), ok: cellEl(totalTop, 501),
+                               ng: cellEl(totalTop, 583), bal: cellEl(totalTop, 666) };
+                     G.ordered = ordered || models.length <= 1;
+                     prodBuild(G);
+                     prodRecalc(null);
+                     prodSnoToRow = snoToRow;
+                     prodOrderNote = G.ordered ? "" : "  (model order and per-model plan need the updated MES data)";
                      // One size for the whole PRODUCT NAME column (as the operator row
                      // does): a short name such as "Not scanned (no part code)" used to
                      // print at 13 px beside long model names shrunk to 8.5 px.
@@ -6269,48 +7059,280 @@
                      // screen tolerates but html2canvas clips ("INR RH" printed as
                      // "INR RI"), so it gets half a pixel of headroom.
                      (function () {
-                        const els = prodTops.map(top => cellAt(top, 48)).filter(c => c && c.el.value).map(c => c.el);
+                        const els = prodTops.map(top => cellAt(top, 48)).filter(c => c && c.el.value && c.el.dataset.peffManual !== whCtx).map(c => c.el);
                         if (!els.length) return;
                         let size = Math.min(...els.map(e => parseFloat(e.style.fontSize) || 13));
                         if (size < 13) size -= 0.5;
                         els.forEach(e => { e.style.fontSize = size + "px"; });
                      })();
-                     // TOTAL row — drawn as an overlay ANCHORED to the sheet's own TOTAL
-                     // cells, rather than typed into them.  Those inputs are 17 px tall
-                     // but the TIME table below starts 4 px before they end, so anything
-                     // typed in them prints with its bottom sliced off.  Centring inside
-                     // the part that is actually visible keeps the figures whole, and
-                     // measuring the cells keeps the columns aligned.
-                     (function () {
-                        const ref = cellAt(totalTop, 419);
-                        if (!ref) return;
-                        const cy = (ref.r.top + Math.min(ref.r.bottom, tr.top)) / 2 + sY();
-                        [[337, T.plan], [419, T.total], [501, T.ok], [583, T.ng], [666, T.balance]]
-                           .forEach(([tx, val]) => {
-                              if (val == null) return;
-                              const c = cellAt(totalTop, tx);
-                              if (c) putC(c.r.left + c.r.width / 2 + sX(), cy, String(val), { bold: true, fs: 10 });
-                           });
-                     })();
+                     // TOTAL row: now real (editable) cells, styled like the overlay the
+                     // row used to get.  The 21-Sep geometry fix pinned the row to the
+                     // grid, so it no longer runs under the TIME row.
 
                      // ── hourly PLAN / ACTUAL / CUMM (overlay at measured column centers) ──
                      (data.hours || []).forEach((h, i) => {
                         if (colCx[i] == null) return;
                         if (h.plan != null) putC(colCx[i], planCy, String(h.plan), { fs: 10 });
-                        if (h.ok != null) putC(colCx[i], actCy, String(h.ok), { fs: 10, bold: true, color: "#0a7d2c" });
+                        // 2026-09-22 — ACTUAL = parts made (OK + MES NG): the MES NG alarm
+                        // is no longer taken as NG (NG comes from the line-rejection sheet).
+                        if (h.ok != null) putC(colCx[i], actCy, String(h.ok + (h.ng || 0)), { fs: 10, bold: true, color: "#0a7d2c" });
                         if (h.cum != null) putC(colCx[i] + 20, cumCy, String(h.cum), { fs: 9, color: "#555" });
                      });
+                     // ── Model S. N. row (S.No of the model(s) run in each hour) ──
+                     try { fillModelSn(data); } catch (e) { console.warn("peff model s.n.:", e); }
                      // ── Detail Working Hrs + Semi Core Job (own fetches, same token) ──
                      const whNote = await fillWorkHours(lineId, date, shift, tok, () => mySeq === fillSeq);
+                     if (mySeq !== fillSeq) return;
+                     // ── Core-job man hours + hourly loss summary + Summary Line Stop ──
+                     let lossNote = "";
+                     try { lossNote = fillLosses(data, whManpower); }
+                     catch (e) { console.warn("peff losses:", e); lossNote = "  (loss section not filled)"; }
+                     // ── Header: Manpower on Role / Plan / Actual, working-time tick, leader ──
+                     let hdrNote = "";
+                     try { hdrNote = await fillHeader(data, lineId, date, shift, tok, () => mySeq === fillSeq); }
+                     catch (e) { console.warn("peff header:", e); hdrNote = "  (header not filled)"; }
                      if (mySeq !== fillSeq) return;
 
                      const noModel = !(data.products || []).length && (T.total || 0) > 0;
                      const opsFilled = (data.machines || []).some(m => m.operator);
-                     msg("✓ " + data.line_name + " " + shift + " " + date + (opsFilled ? "" : "  (operators: allocate in Shift Allocation)") + (noModel ? "  (no model on the part codes — check Model Master)" : "") + whNote, false);
+                     msg("✓ " + data.line_name + " " + shift + " " + date + (opsFilled ? "" : "  (operators: allocate in Shift Allocation)") + (noModel ? "  (no model on the part codes — check Model Master)" : "") + whNote + lossNote + hdrNote + prodOrderNote, false);
                   };
+
+                  // ── 2026-09-23 — the WC list IS the selector ──────────────────
+                  // Every work centre the sheet can resolve to a line, A and B where
+                  // both run, so the shift is still chosen — through the WC code.
+                  window.peffSetWC = function (code) {
+                     const el = document.getElementById("wcSelect");
+                     if (!el || !code) return;
+                     if (![...el.options].some(o => o.value === code)) {
+                        const o = document.createElement("option");
+                        o.value = code; o.textContent = code;
+                        el.appendChild(o);
+                     }
+                     el.value = code;
+                     wcSyncLabel();
+                  };
+                  // ── 2026-09-23 — zone → line picker ──────────────────────────
+                  // Built from the LINE MASTER (/api/lines/ → zone_name, peff_wc,
+                  // active_shifts), so EVERY zone is in the list, not only the
+                  // zones whose codes happen to be hard-coded: one entry per line
+                  // and shift it runs.  A line whose work centre is not set yet
+                  // (Sub-Assembly, YMC …) is still selectable — it loads by line,
+                  // and its WC cell stays empty until the code is filled in on
+                  // Admin → Work Center.  WC_TO_LINE stays as the offline
+                  // fallback (no token / no network).
+                  let WC_DB = null;            // [{lineId, lineName, zone, zoneId, wc, shifts}]
+                  let wcSel = null;            // what the picker last chose
+                  const WC_ZONE_FALLBACK = ["Seat Slider", "Recliner", "Loop Pipe",
+                                            "Sub Assembly", "Press Shop", "Thin Recliner", "Other"];
+                  const WC_LINE_NAME = {
+                     Q31S01: "YRA-SS", Q31S02: "YJC-SS", Q31S03: "YSD-SS", Q31S04: "YHB-SS",
+                     Q31S05: "YCA-SS", Q31S06: "YNC-SS", Q31S07: "YFG-SS", Q31S08: "YWD-SS",
+                     Q31S09: "Y17-SS", Q31R01: "YRA Recliner", Q31R02: "YSD Recliner",
+                     Q31R03: "YHB Recliner", Q31R04: "YNC Recliner", Q31R05: "YWD Recliner",
+                  };
+                  function wcZoneOf(code) {
+                     const c = String(code || "").toUpperCase();
+                     if (/^Q31SS/.test(c)) return "Sub Assembly";
+                     if (/^Q31S/.test(c)) return "Seat Slider";
+                     if (/^Q31R/.test(c)) return "Recliner";
+                     if (/^Q31L/.test(c)) return "Loop Pipe";
+                     if (/^Q31P/.test(c)) return "Press Shop";
+                     if (/^Q31T/.test(c)) return "Thin Recliner";
+                     return "Other";
+                  }
+                  async function wcLoadDb() {
+                     if (WC_DB) return WC_DB;
+                     try {
+                        const tok = token();
+                        if (!tok) return null;
+                        const r = await fetch("/api/lines/", { headers: { Authorization: "Bearer " + tok } });
+                        if (!r.ok) return null;
+                        const j = await r.json();
+                        if (!Array.isArray(j) || !j.length) return null;
+                        WC_DB = j.filter(l => l && l.id && l.is_active !== false).map(l => {
+                           let sh = String(l.active_shifts || "A,B").split(",")
+                              .map(x => x.trim().toUpperCase()).filter(x => x === "A" || x === "B");
+                           sh = [...new Set(sh)].sort();
+                           return {
+                              lineId: l.id,
+                              lineName: l.line_name || ("Line " + l.id),
+                              zone: l.zone_name || "Other",
+                              zoneId: (l.zone_id == null ? 999 : l.zone_id),
+                              wc: String(l.peff_wc || "").trim().toUpperCase(),
+                              shifts: sh.length ? sh : ["A"],
+                           };
+                        });
+                        return WC_DB;
+                     } catch (e) { return null; }
+                  }
+                  // every pickable entry: one line, one shift
+                  function wcEntries() {
+                     if (WC_DB && WC_DB.length) {
+                        const out = [];
+                        WC_DB.slice().sort((a, b) => (a.zoneId - b.zoneId) || (a.lineId - b.lineId))
+                           .forEach(l => l.shifts.forEach(sh => out.push({
+                              code: l.wc ? l.wc + sh : "", lineId: l.lineId, lineName: l.lineName,
+                              zone: l.zone, zoneId: l.zoneId, shift: sh,
+                           })));
+                        return out;
+                     }
+                     // offline fallback — the hard-coded codes, zone read off the code
+                     return Object.keys(WC_TO_LINE).sort().map(code => ({
+                        code, lineId: WC_TO_LINE[code],
+                        lineName: WC_LINE_NAME[code.slice(0, 6)] || "",
+                        zone: wcZoneOf(code),
+                        zoneId: WC_ZONE_FALLBACK.indexOf(wcZoneOf(code)),
+                        shift: code.slice(-1).toUpperCase(),
+                     }));
+                  }
+                  function wcLineOf(code) {
+                     const c = String(code || "").toUpperCase();
+                     const e = wcEntries().find(x => x.code === c);
+                     return e ? e.lineId : null;
+                  }
+                  function wcSyncLabel() {
+                     const el = document.getElementById("wcSelect");
+                     const b = document.getElementById("wcBtn");
+                     if (!el || !b) return;
+                     b.textContent = el.value || (wcSel ? "—" : "--Select WC--");
+                     b.title = wcSel ? (wcSel.lineName + " · " + wcSel.shift + " shift"
+                                        + (el.value ? "" : "  (work centre not set for this line)"))
+                                     : "Work centre — pick a zone, then its code";
+                  }
+                  function wcClose() {
+                     const p = document.getElementById("wcPanel");
+                     if (p) p.style.display = "none";
+                     const b = document.getElementById("wcBtn");
+                     if (b) b.setAttribute("aria-expanded", "false");
+                  }
+                  function wcPick(e) {
+                     const el = document.getElementById("wcSelect");
+                     if (!el || !e) return;
+                     wcSel = e;
+                     if (e.code && window.peffSetWC) peffSetWC(e.code);
+                     else { el.value = e.code || ""; wcSyncLabel(); }
+                     wcClose();
+                     if (window.loadPeffData) loadPeffData(e.code, { lineId: e.lineId, shift: e.shift });
+                  }
+                  function wcBuildPanel() {
+                     let p = document.getElementById("wcPanel");
+                     if (!p) {
+                        p = document.createElement("div");
+                        p.id = "wcPanel";
+                        // NOT in <body>: peffFit zooms the body to fit the sheet
+                        // (body.style.zoom), which would shrink the panel's text
+                        // and throw its fixed position off by the same factor.
+                        document.documentElement.appendChild(p);
+                     }
+                     const curCode = (document.getElementById("wcSelect") || {}).value || "";
+                     const isCur = e => (wcSel ? (e.lineId === wcSel.lineId && e.shift === wcSel.shift)
+                                               : (!!e.code && e.code === curCode));
+                     const zones = [];
+                     const byZone = {};
+                     wcEntries().forEach(e => {
+                        if (!byZone[e.zone]) { byZone[e.zone] = []; zones.push({ name: e.zone, id: e.zoneId }); }
+                        byZone[e.zone].push(e);
+                     });
+                     zones.sort((a, b) => (a.id - b.id) || a.name.localeCompare(b.name));
+                     p.innerHTML = "";
+                     zones.forEach(z => {
+                        const zone = z.name;
+                        const h = document.createElement("div");
+                        h.className = "wcz-h";
+                        h.innerHTML = '<span></span><span class="wcz-car">▸</span>';
+                        h.firstChild.textContent = zone + " (" + byZone[zone].length + ")";
+                        const list = document.createElement("div");
+                        list.className = "wcz-l";
+                        byZone[zone].forEach(e => {
+                           const it = document.createElement("div");
+                           it.className = "wc-i" + (isCur(e) ? " sel" : "");
+                           it.innerHTML = '<span></span><span class="wc-n"></span>';
+                           it.firstChild.textContent = e.code || (e.lineName || "line " + e.lineId);
+                           it.lastChild.textContent = e.code ? ((e.lineName ? e.lineName + " · " : "") + e.shift)
+                                                             : ("WC not set · " + e.shift);
+                           it.addEventListener("click", () => wcPick(e));
+                           list.appendChild(it);
+                        });
+                        h.addEventListener("click", () => {
+                           const open = list.classList.contains("open");
+                           p.querySelectorAll(".wcz-l.open").forEach(o => o.classList.remove("open"));
+                           p.querySelectorAll(".wcz-car").forEach(c => c.textContent = "▸");
+                           if (!open) { list.classList.add("open"); h.lastChild.textContent = "▾"; }
+                        });
+                        // the zone holding the current selection starts expanded
+                        if (byZone[zone].some(isCur)) {
+                           list.classList.add("open");
+                           h.lastChild.textContent = "▾";
+                        }
+                        p.appendChild(h);
+                        p.appendChild(list);
+                     });
+                     return p;
+                  }
+                  async function wcOpen() {
+                     const b = document.getElementById("wcBtn");
+                     if (!b) return;
+                     if (!WC_DB) { await wcLoadDb(); }      // first open: pull the line master
+                     const p = wcBuildPanel();
+                     const r = b.getBoundingClientRect();
+                     p.style.display = "block";
+                     p.style.visibility = "hidden";
+                     p.style.left = "0px";
+                     p.style.top = "0px";
+                     const pr = p.getBoundingClientRect();
+                     const h = pr.height, w = pr.width;
+                     let top = r.bottom + 4, left = r.left;
+                     if (top + h > window.innerHeight - 8) top = Math.max(8, r.top - 4 - h);
+                     if (left + w > window.innerWidth - 8) left = Math.max(8, window.innerWidth - 8 - w);
+                     p.style.top = top + "px";
+                     p.style.left = left + "px";
+                     p.style.visibility = "visible";
+                     b.setAttribute("aria-expanded", "true");
+                  }
+                  function wcWireBtn() {
+                     const b = document.getElementById("wcBtn");
+                     if (!b || b.dataset.peffWired) return;
+                     b.dataset.peffWired = "1";
+                     b.addEventListener("click", function (e) {
+                        e.stopPropagation();
+                        const p = document.getElementById("wcPanel");
+                        if (p && p.style.display === "block") wcClose(); else wcOpen();
+                     });
+                     document.addEventListener("click", function (e) {
+                        const p = document.getElementById("wcPanel");
+                        if (p && p.style.display === "block" && !p.contains(e.target)) wcClose();
+                     });
+                     document.addEventListener("keydown", function (e) {
+                        if (e.key === "Escape") wcClose();
+                     });
+                     window.addEventListener("resize", wcClose);
+                  }
+
+                  function peffWcList() {
+                     const el = document.getElementById("wcSelect");
+                     if (!el) return;
+                     const keep = el.value;
+                     el.innerHTML = '<option value="">--Select WC--</option>';
+                     Object.keys(WC_TO_LINE).sort().forEach(code => {
+                        const o = document.createElement("option");
+                        o.value = code; o.textContent = code;
+                        el.appendChild(o);
+                     });
+                     if (keep) peffSetWC(keep);
+                     if (!el.dataset.peffWired) {
+                        el.dataset.peffWired = "1";
+                        el.addEventListener("change", function () {
+                           if (this.value && window.loadPeffData) window.loadPeffData(this.value);
+                        });
+                     }
+                     wcWireBtn();
+                     wcSyncLabel();
+                  }
 
                   // default date = today; reload on date change
                   document.addEventListener("DOMContentLoaded", function () {
+                     peffWcList();
                      peffFit();
                      setTimeout(peffFit, 250);        // iframe flex box often settles late
                      window.addEventListener("load", function () { peffFit(); });
@@ -6319,7 +7341,7 @@
                         if (!di.value) di.value = today();
                         di.addEventListener("change", function () {
                            const wc = (document.getElementById("wcSelect") || {}).value;
-                           if (wc) window.loadPeffData(wc);
+                           if (wc || wcSel) window.loadPeffData(wc || "");
                         });
                      }
                   });

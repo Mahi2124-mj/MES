@@ -341,6 +341,19 @@ def _start_loss_line_alarm():
         print(f"[LOSS-LINE] failed to start: {exc}")
 
 
+# ── Camera-hung alarm background worker ──────────────────────────
+@bg_startup
+def _start_cam_hung_alarm():
+    """Inbox alert when a camera on a running line has had no video for
+    CAM_HUNG_SUSTAIN_MIN minutes — most hung cameras can only be fixed by a
+    power-cycle, so the system asks for one instead of waiting to be told."""
+    try:
+        from cam_hung_alert import start as start_cam_hung
+        start_cam_hung()
+    except Exception as exc:
+        print(f"[CAM-HUNG] failed to start: {exc}")
+
+
 # ── PM reminder mail background worker ───────────────────────────
 @bg_startup
 def _start_pm_mail_worker():

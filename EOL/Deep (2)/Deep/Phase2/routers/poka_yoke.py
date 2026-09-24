@@ -1275,16 +1275,29 @@ def _send_bypass_email_async(body: "EventIngest") -> None:
     try:
         with get_conn() as conn:
             cur = dict_cursor(conn)
-            cur.execute("SELECT line_name FROM mes_lines WHERE id = %s", (body.line_id,))
+            cur.execute("SELECT line_name, zone_id FROM mes_lines WHERE id = %s", (body.line_id,))
             r = cur.fetchone()
             if r and r.get("line_name"): line_name = r["line_name"]
+            _zone_id = r.get("zone_id") if r else None
             if model_bit is not None:
+                # 2026-09-23 — per line, then per zone (same fix as the dashboard
+                # in routers/lines.py): every zone numbers its models from 0, so
+                # reading the master by bit alone printed another zone's model in
+                # the bypass e-mail.
                 cur.execute(
-                    "SELECT model_name FROM mes_py_model_master "
-                    "WHERE bit_number=%s AND is_active=true ORDER BY id DESC LIMIT 1",
-                    (model_bit,),
+                    "SELECT model_name FROM mes_model_mappings "
+                    "WHERE line_id=%s AND model_number=%s",
+                    (body.line_id, model_bit),
                 )
                 mr = cur.fetchone()
+                if not (mr and mr.get("model_name")) and _zone_id is not None:
+                    cur.execute(
+                        "SELECT model_name FROM mes_py_model_master "
+                        "WHERE bit_number=%s AND is_active=true AND zone_id=%s "
+                        "ORDER BY id DESC LIMIT 1",
+                        (model_bit, _zone_id),
+                    )
+                    mr = cur.fetchone()
                 if mr and mr.get("model_name"):
                     # Strip any legacy "TYPE-SERIES:" prefix so the email is clean.
                     import re as _re

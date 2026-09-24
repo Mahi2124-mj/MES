@@ -1,0 +1,161 @@
+{
+  "line_id": 2,
+  "date": "2026-09-22",
+  "shift": "A",
+  "shift_start": "2026-09-22T08:30:00",
+  "shift_end": "2026-09-22T17:15:00",
+  "episodes": [
+    {
+      "py_no": "D422",
+      "py_name": "4W INR/OTR BOLT MIXING.X41",
+      "hit_count": 1,
+      "alert": "WARNING",
+      "start_at": "2026-09-22T08:39:26.061987",
+      "end_at": "2026-09-22T08:48:31.902440",
+      "start_slot": "08:30-09:30",
+      "slot": "08:30-09:30"
+    },
+    {
+      "py_no": "D401",
+      "py_name": "LOCATE PIN",
+      "hit_count": 1,
+      "alert": "WARNING",
+      "start_at": "2026-09-22T08:41:02.932550",
+      "end_at": "2026-09-22T08:41:02.932550",
+      "start_slot": "08:30-09:30",
+      "slot": "08:30-09:30"
+    },
+    {
+      "py_no": "D406",
+      "py_name": "Fr.Lwr.Protector",
+      "hit_count": 1,
+      "alert": "WARNING",
+      "start_at": "2026-09-22T08:41:03.102573",
+      "end_at": "2026-09-22T08:41:03.102573",
+      "start_slot": "08:30-09:30",
+      "slot": "08:30-09:30"
+    },
+    {
+      "py_no": "D407",
+      "py_name": "Rr.Lwr.Protector",
+      "hit_count": 1,
+      "alert": "WARNING",
+      "start_at": "2026-09-22T08:41:03.331130",
+      "end_at": "2026-09-22T08:41:23.601023",
+      "start_slot": "08:30-09:30",
+      "slot": "08:30-09:30"
+    },
+    {
+      "py_no": "D401",
+      "py_name": "LOCATE PIN",
+      "hit_count": 1,
+      "alert": "WARNING",
+      "start_at": "2026-09-22T10:49:03.454494",
+      "end_at": "2026-09-22T10:49:08.850660",
+      "start_slot": "10:30-11:30",
+      "slot": "10:30-11:30"
+    },
+    {
+      "py_no": "D406",
+      "py_name": "Fr.Lwr.Protector",
+      "hit_count": 1,
+      "alert": "WARNING",
+      "start_at": "2026-09-22T10:49:03.599993",
+      "end_at": "2026-09-22T10:49:08.969886",
+      "start_slot": "10:30-11:30",
+      "slot": "10:30-11:30"
+    }
+  ],
+  "by_slot": {
+    "08:30-09:30": [
+      {
+        "py_no": "D422",
+        "py_name": "4W INR/OTR BOLT MIXING.X41",
+        "hit_count": 1,
+        "alert": "WARNING",
+        "start_at": "2026-09-22T08:39:26.061987",
+        "end_at": "2026-09-22T08:48:31.902440",
+        "start_slot": "08:30-09:30",
+        "slot": "08:30-09:30",
+        "slot_label": "08:30-09:30",
+        "slot_segment_from": "2026-09-22T08:39:26.061987",
+        "slot_segment_to": "2026-09-22T08:48:31.902440",
+        "slot_segment_sec": 545.8,
+        "starts_here": true,
+        "ends_here": true,
+        "ongoing_now": false
+      },
+      {
+        "py_no": "D407",
+        "py_name": "Rr.Lwr.Protector",
+        "hit_count": 1,
+        "alert": "WARNING",
+        "start_at": "2026-09-22T08:41:03.331130",
+        "end_at": "2026-09-22T08:41:23.601023",
+        "start_slot": "08:30-09:30",
+        "slot": "08:30-09:30",
+        "slot_label": "08:30-09:30",
+        "slot_segment_from": "2026-09-22T08:41:03.331130",
+        "slot_segment_to": "2026-09-22T08:41:23.601023",
+        "slot_segment_sec": 20.3,
+        "starts_here": true,
+        "ends_here": true,
+        "ongoing_now": false
+      }
+    ],
+    "10:30-11:30": [
+      {
+        "py_no": "D401",
+        "py_name": "LOCATE PIN",
+        "hit_count": 1,
+        "alert": "WARNING",
+        "start_at": "2026-09-22T10:49:03.454494",
+        "end_at": "2026-09-22T10:49:08.850660",
+        "start_slot": "10:30-11:30",
+        "slot": "10:30-11:30",
+        "slot_label": "10:30-11:30",
+        "slot_segment_from": "2026-09-22T10:49:03.454494",
+        "slot_segment_to": "2026-09-22T10:49:08.850660",
+        "slot_segment_sec": 5.4,
+        "starts_here": true,
+        "ends_here": true,
+        "ongoing_now": false
+      },
+      {
+        "py_no": "D406",
+        "py_name": "Fr.Lwr.Protector",
+        "hit_count": 1,
+        "alert": "WARNING",
+        "start_at": "2026-09-22T10:49:03.599993",
+        "end_at": "2026-09-22T10:49:08.969886",
+        "start_slot": "10:30-11:30",
+        "slot": "10:30-11:30",
+        "slot_label": "10:30-11:30",
+        "slot_segment_from": "2026-09-22T10:49:03.599993",
+        "slot_segment_to": "2026-09-22T10:49:08.969886",
+        "slot_segment_sec": 5.4,
+        "starts_here": true,
+        "ends_here": true,
+        "ongoing_now": false
+      }
+    ]
+  },
+  "slot_summary": {
+    "08:30-09:30": {
+      "total_bypass_sec": 566.1,
+      "longest_sec": 545.8,
+      "episode_count": 2,
+      "ongoing_count": 0,
+      "distinct_py": 2
+    },
+    "10:30-11:30": {
+      "total_bypass_sec": 10.8,
+      "longest_sec": 5.4,
+      "episode_count": 2,
+      "ongoing_count": 0,
+      "distinct_py": 2
+    }
+  },
+  "merge_gap_sec": 60.0,
+  "generated_at": "2026-09-22T10:55:46.658237"
+}

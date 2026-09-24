@@ -524,6 +524,15 @@ def cycle_video(
             _clipped_from = _win_s
             ts_start = ts_end - timedelta(seconds=_CLIP_MAX_SECONDS)
         plc_ip   = sub["plc_ip"]   # canonical link to NF2's plcs.json/bindings
+        # 2026-09-24 — a machine with NO camera can never have a clip.  Without
+        # nf2_camera_id the CMS falls back to plc_ip → its own plcs.json, which
+        # does not list these PLCs, so every single request came back
+        # "No PLC in plcs.json": 4,982 of them on 24-Sep, all from Loop Pipe-1/2
+        # Squeezing Machine (192.168.36.50 / .30) and LP-2 Both Karakuri
+        # (.31) — machines that simply have no camera installed.  Answer here
+        # instead of hammering the CMS and burying its log in 404s.
+        if not str(sub.get("nf2_camera_id") or "").strip():
+            raise HTTPException(404, "No camera configured for this machine")
 
     # Forward Range header for seeking
     fwd_headers = {}

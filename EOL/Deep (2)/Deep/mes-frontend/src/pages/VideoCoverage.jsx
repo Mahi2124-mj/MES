@@ -21,6 +21,7 @@ const dur  = (m) => (m == null ? "—" : m < 60 ? `${Math.round(m)} min` : `${(m
 const REASON = {
   clip_failed:    ["Clip not cut (camera was recording)", "#ca8a04"],
   camera_hung:    ["Camera hung (ping OK, no video)", "#ea580c"],
+  camera_wrong_ip: ["Wrong camera address (IP is a PLC)", "#be185d"],
   camera_offline: ["Camera offline (no ping)", "#dc2626"],
   network_down:   ["Network / switch down", "#9333ea"],
   cms_down:       ["CMS down", "#b91c1c"],
@@ -31,6 +32,7 @@ const REASON = {
 const STATE = {
   recording:      ["Online", "#16a34a"],
   camera_hung:    ["Hung", "#ea580c"],
+  camera_wrong_ip: ["Wrong address", "#be185d"],
   camera_offline: ["Offline", "#dc2626"],
   cms_down:       ["CMS down", "#b91c1c"],
 };
@@ -466,10 +468,11 @@ export default function VideoCoverage() {
         const K = camSt.kpis;
         const cell = (v, col) => <td style={{ ...tdR, fontWeight: v ? 700 : 400, color: v ? col : C.sub }}>{num(v)}</td>;
         const mix = (o) => {        // online / hung / offline stacked bar
-          const t = (o.online || 0) + (o.hung || 0) + (o.offline || 0) + (o.cms_down || 0) || 1;
+          const t = (o.online || 0) + (o.hung || 0) + (o.wrong_ip || 0) + (o.offline || 0) + (o.cms_down || 0) || 1;
           return (
             <span style={{ display: "inline-flex", width: 90, height: 8, borderRadius: 4, overflow: "hidden", background: C.zone }}>
-              {[["online", "#16a34a"], ["hung", "#ea580c"], ["offline", "#dc2626"], ["cms_down", "#b91c1c"]].map(([f, col]) =>
+              {[["online", "#16a34a"], ["hung", "#ea580c"], ["wrong_ip", "#be185d"], ["offline", "#dc2626"],
+                ["cms_down", "#b91c1c"]].map(([f, col]) =>
                 o[f] ? <span key={f} style={{ width: `${(o[f] * 100) / t}%`, background: col }} /> : null)}
             </span>);
         };
@@ -482,7 +485,8 @@ export default function VideoCoverage() {
             <div style={kpiRow}>
               <Kpi label="Total cameras" value={num(K.total_cameras)} color={C.accent} sub={`${K.unbound} not on a machine`} />
               <Kpi label="Online" value={num(K.online)} color="#16a34a" sub={`of ${num(K.cameras)} on machines`} />
-              <Kpi label="Hung" value={num(K.hung)} color="#ea580c" />
+              <Kpi label="Hung" value={num(K.hung)} color="#ea580c" sub="ping OK, no video — power-cycle" />
+              <Kpi label="Wrong address" value={num(K.wrong_ip)} color="#be185d" sub="IP is a PLC — fix in Camera Master" />
               <Kpi label="Offline" value={num(K.offline)} color="#dc2626" />
               <Kpi label="Clips cutting" value={num(K.cutting)} color="#16a34a" />
               <Kpi label="Not cutting" value={num(K.not_cutting)} color="#dc2626" />
@@ -510,17 +514,17 @@ export default function VideoCoverage() {
             </div>
 
             <div style={{ ...card, padding: 0, overflow: "auto" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 900 }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 980 }}>
                 <thead><tr>
                   <th style={th}>Zone / Line</th><th style={thR}>Cameras</th><th style={th}>State mix</th><th style={thR}>Online</th>
-                  <th style={thR}>Hung</th><th style={thR}>Offline</th><th style={thR}>Cutting</th><th style={thR}>Not cutting</th><th style={thR}>Idle</th></tr></thead>
+                  <th style={thR}>Hung</th><th style={thR}>Wrong address</th><th style={thR}>Offline</th><th style={thR}>Cutting</th><th style={thR}>Not cutting</th><th style={thR}>Idle</th></tr></thead>
                 <tbody>
                   {csFiltered.map(z => (
                     <Fragment key={z.zone_name}>
                       <tr style={{ background: C.zone }}>
                         <td style={{ ...td, fontWeight: 800 }}>{z.zone_name}</td>
                         {cell(z.cameras, C.fg)}<td style={td}>{mix(z)}</td>
-                        {cell(z.online, "#16a34a")}{cell(z.hung, "#ea580c")}{cell(z.offline, "#dc2626")}
+                        {cell(z.online, "#16a34a")}{cell(z.hung, "#ea580c")}{cell(z.wrong_ip, "#be185d")}{cell(z.offline, "#dc2626")}
                         {cell(z.cutting, "#16a34a")}{cell(z.not_cutting, "#dc2626")}{cell(z.idle, C.sub)}
                       </tr>
                       {z.lines.map(L => {
@@ -530,11 +534,11 @@ export default function VideoCoverage() {
                             <tr style={{ cursor: "pointer" }} onClick={() => setCsOpen(o => ({ ...o, [L.line_id]: !o[L.line_id] }))}>
                               <td style={{ ...td, paddingLeft: 22, fontWeight: 700 }}>{open ? "▾" : "▸"} {L.line_name}</td>
                               {cell(L.cameras, C.fg)}<td style={td}>{mix(L)}</td>
-                              {cell(L.online, "#16a34a")}{cell(L.hung, "#ea580c")}{cell(L.offline, "#dc2626")}
+                              {cell(L.online, "#16a34a")}{cell(L.hung, "#ea580c")}{cell(L.wrong_ip, "#be185d")}{cell(L.offline, "#dc2626")}
                               {cell(L.cutting, "#16a34a")}{cell(L.not_cutting, "#dc2626")}{cell(L.idle, C.sub)}
                             </tr>
                             {open && (
-                              <tr><td colSpan={9} style={{ padding: "4px 10px 10px 40px", background: C.soft }}>
+                              <tr><td colSpan={10} style={{ padding: "4px 10px 10px 40px", background: C.soft }}>
                                 <table style={{ width: "100%", borderCollapse: "collapse" }}>
                                   <thead><tr>{["Camera IP", "Machine", "State", "Since", "Cycles", "Clips", "Clip %", "Status", "Reason"].map(h =>
                                     <th key={h} style={{ ...(["Cycles", "Clips", "Clip %"].includes(h) ? thR : th), background: C.soft }}>{h}</th>)}</tr></thead>
@@ -562,7 +566,7 @@ export default function VideoCoverage() {
                       })}
                     </Fragment>
                   ))}
-                  {!csFiltered.length && <tr><td colSpan={9}><Empty>No cameras match this filter.</Empty></td></tr>}
+                  {!csFiltered.length && <tr><td colSpan={10}><Empty>No cameras match this filter.</Empty></td></tr>}
                 </tbody>
               </table>
             </div>
@@ -630,8 +634,9 @@ export default function VideoCoverage() {
               {logView === "line" && lineLog && (
                 <div style={{ overflow: "auto", maxHeight: 440, border: `1px solid ${C.line}`, borderRadius: 8 }}>
                   <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 900 }}>
-                    <thead><tr>{["Time", "Zone", "Line", "Cameras", "Online", "Hung", "Offline", "CMS down", "Cutting", "Not cutting", "Idle"].map((h, i) =>
-                      <th key={h} style={i > 2 ? thR : th}>{h}</th>)}</tr></thead>
+                    <thead><tr>{["Time", "Zone", "Line", "Cameras", "Online", "Ping OK, no video", "Offline", "CMS down", "Cutting", "Not cutting", "Idle"].map((h, i) =>
+                      <th key={h} style={i > 2 ? thR : th}
+                          title={h === "Ping OK, no video" ? "Hung + wrong address" : undefined}>{h}</th>)}</tr></thead>
                     <tbody>
                       {lineLog.rows.map((r, i) => (
                         <tr key={i}>

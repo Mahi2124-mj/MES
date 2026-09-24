@@ -78,6 +78,39 @@ if pid:
     for c in children_of(pid):
         try: os.kill(c, signal.SIGKILL)
         except Exception: pass
+
+    # 2026-09-24 — SWEEP ORPHANED CAMERA RECORDERS TOO.
+    # children_of() is `pgrep -P <cms pid>`: DIRECT children only.  A recorder
+    # left behind by an EARLIER CMS generation has been reparented (ppid 1 /
+    # systemd --user), so a restart never killed it — and because these cameras
+    # allow ONE RTSP session, that stale ffmpeg keeps the camera hostage: the new
+    # CMS cannot connect, the camera answers ping and refuses every TCP port, and
+    # it reads exactly like a firmware hang.  That is what kept cameras "hung"
+    # after a restart_cms on 24-Sep, while a full start_everything (which kills
+    # every process) brought them straight back.  The CMS is going down anyway,
+    # so every camera recorder must die with it, child or not.
+    try:
+        _out = subprocess.check_output(["ps", "-eo", "pid,args"], text=True)
+        _orph = 0
+        for _ln in _out.splitlines():
+            _parts = _ln.strip().split(None, 1)
+            if len(_parts) != 2 or not _parts[0].isdigit():
+                continue
+            _p, _args = int(_parts[0]), _parts[1]
+            if "ffmpeg" not in _args or "rtsp://" not in _args:
+                continue
+            if "-f mpegts" not in _args and not _args.rstrip().endswith(".ts"):
+                continue                      # not a continuous TS recorder
+            try:
+                os.kill(_p, signal.SIGKILL)
+                _orph += 1
+            except Exception:
+                pass
+        if _orph:
+            print(f"  swept {_orph} camera recorder(s) — including any orphan "
+                  f"holding a camera's single RTSP session")
+    except Exception as _e:
+        print(f"  recorder sweep skipped: {_e}")
 else:
     print(f"No CMS-API on :{PORT} — launching fresh")
 

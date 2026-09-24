@@ -10976,6 +10976,10 @@ export function OperatorsPage({ toast, readOnly = false }) {
   // badge would have created a second operator; edits go to PUT /{id}.
   const [editId,    setEditId]    = useState(null);
   const [zones,     setZones]     = useState([]);
+  // 2026-09-23 — Department is a dropdown (operator request), fed by
+  // /api/departments (mes_departments).  An operator whose stored department
+  // is not in that list keeps it as an extra option, so editing never drops it.
+  const [depts,     setDepts]     = useState([]);
 
   // Per-shift summary state
   const [sumLine,  setSumLine]  = useState("");
@@ -10987,14 +10991,16 @@ export function OperatorsPage({ toast, readOnly = false }) {
 
   const load = useCallback(async () => {
     try {
-      const [ops, ls, zs] = await Promise.all([
+      const [ops, ls, zs, ds] = await Promise.all([
         api.get("/api/operators", token),
         api.get("/api/lines/", token),
         api.get("/api/zones/", token).catch(() => []),
+        api.get("/api/departments/", token).catch(() => []),
       ]);
       setOperators(ops || []);
       setLines(ls || []);
       setZones(Array.isArray(zs) ? zs : []);
+      setDepts(Array.isArray(ds) ? ds.map(d => d.name).filter(Boolean) : []);
       if (!sumLine && ls?.length) setSumLine(ls[0].id);
     } catch (e) { toast("Failed to load operators", "err"); }
   }, [token, sumLine]);
@@ -11220,9 +11226,13 @@ export function OperatorsPage({ toast, readOnly = false }) {
             </div>
             <div>
               <label style={{ fontSize: 11, color: "#64748b" }}>Department</label>
-              <input value={form.department} onChange={e => setForm({ ...form, department: e.target.value })}
-                     placeholder="Production / Quality"
-                     style={{ width: "100%", padding: "8px 10px", fontSize: 13, border: "1px solid #cbd5e1", borderRadius: 6 }} />
+              <select value={form.department || ""} onChange={e => setForm({ ...form, department: e.target.value })}
+                      style={{ width: "100%", padding: "8px 10px", fontSize: 13, border: "1px solid #cbd5e1", borderRadius: 6 }}>
+                <option value="">— not set —</option>
+                {depts.map(d => <option key={d} value={d}>{d}</option>)}
+                {form.department && !depts.includes(form.department) &&
+                  <option value={form.department}>{form.department}</option>}
+              </select>
             </div>
           </div>
           <div>

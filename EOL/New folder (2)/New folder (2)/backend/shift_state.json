@@ -1,6 +1,6 @@
 {
-  "last_fired_shift_label": "2026-09-21_1830",
-  "last_fired_at": "2026-09-21T18:30:01",
+  "last_fired_shift_label": "2026-09-24_0830",
+  "last_fired_at": "2026-09-24T08:30:00",
   "wiped_cameras": [
     "cam_lock_bar_1779043510",
     "cam_lower_rail_grease_bar_coding_m_c_1782554629",
@@ -117,6 +117,17 @@
     "cam_rinforce_bolt_pjw_m_c_upr_bkt_rail_bolt_pjw_m_c_upr_rail_rr_1788930626",
     "cam_bolt_strength_checking_4way_1789017196",
     "cam_upr_rail_bolt_fr_pjw_m_c_4_way_1789019215",
-    "cam_bolt_strength_checking_4way_1789019293"
+    "cam_bolt_strength_checking_4way_1789019293",
+    "cam_rainforce_bolt_pjw_m_c_1790063338",
+    "cam_upr_rail_bolt_fr_pjw_m_c_4_way_1790063461",
+    "cam_bolt_strength_checking_4way_1790063513",
+    "cam_rainforce_bolt_pjw_m_c_4_way_1790063575",
+    "cam_bolt_strength_checking_4way_1790063636",
+    "cam_rainforce_bolt_pjw_m_c_4_way_1790063679",
+    "cam_upr_rail_bolt_fr_pjw_m_c_4_way_1790063741",
+    "cam_bolt_strength_checking_4way_1790063788",
+    "cam_upr_rinforce_s_a_uprinrbkt_pjw_m_c_6_way_1790063841",
+    "cam_upr_rinforce_s_a_uprinrbkt_pjw_m_c_6_way_1790063911",
+    "cam_mag_weld_upr_brkt_with_t_nut_bolt_m_c_1790063983"
   ]
 }
