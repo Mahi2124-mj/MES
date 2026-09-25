@@ -16,16 +16,125 @@ recorder records them — i.e. same-cycle capture reuses the proven pipeline.
 Actual RTSP capture + per-camera clip files are produced CMS-side; the camera
 RTSP URLs entered here are stored so the CMS can be pointed at them.
 """
+import hashlib
+import os
+import re
+import subprocess
+import tempfile
+import threading
+import time
 from typing import Optional
-from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException, Query
+from datetime import datetime, timedelta
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel
 
 from database import get_conn, dict_cursor
-from auth import get_current_user, require_admin
+from auth import get_current_user, get_current_user_optional, require_admin
 from ddl_once import once
 
 router = APIRouter(prefix="/api/sixsigma", tags=["sixsigma"])
+
+_TBL_RE = re.compile(r"^[a-z0-9_]+$")   # per-line table names are plain idents
+
+# The CMS cuts a clip for ONE camera between two timestamps; the sub-machine
+# page already uses this endpoint, and it is the only path that can give the two
+# Ball Guide cameras their own footage instead of the line's Final-Inspection
+# clip.  Same default as routers/submachines.py.
+CYCLE_VIDEO_BASE_URL = os.environ.get("CYCLE_VIDEO_BASE_URL", "http://127.0.0.1:5555")
+CLIP_PROXY_TIMEOUT = float(os.environ.get("SIXSIGMA_CLIP_TIMEOUT", "20") or 20)
+
+# ── browser-playable clips (2026-09-25) ─────────────────────────────────────
+# "video kuch PC me render ho rahi, kuch me nahi."  The cameras on this station
+# record HEVC, and the CMS cuts the clip by stream copy, so what reached the
+# browser was H.265 in an MP4 tagged `hev1`.  That plays only where the machine
+# happens to have HEVC support — on Windows that means the paid HEVC Video
+# Extension plus a GPU that decodes it, which is why it worked on some PCs and
+# showed a black box on others; `hev1` (rather than `hvc1`) is refused even by
+# several players that do support HEVC.
+#
+# So this page — and only this page — re-encodes what the CMS returns to plain
+# H.264 Constrained Baseline / yuv420p / faststart before it reaches the
+# browser.  That is the profile every Edge, Chrome, Firefox and Safari has
+# decoded for a decade, with no extension installed.  Measured on a real clip:
+# 704x576, 16.8 s, HEVC 1.32 MB -> H.264 616 KB in 1.4 s on the CPU.
+#
+# libx264, not NVENC, is deliberate: the GPU encoder is already saturated by
+# the CMS's live transcodes, and for a cut this small the CPU finishes sooner
+# (measured elsewhere in this stack: 1.0 s CPU vs 6.6 s GPU) on a box that
+# otherwise has idle cores.  The CMS is not touched.
+#
+# Results are cached on disk, so a clip is converted once and every later view
+# (and every Range request the player makes while seeking) is served straight
+# off the file.
+CLIP_CACHE_DIR = os.environ.get(
+    "SIXSIGMA_CLIP_CACHE",
+    os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                 "cache", "sixsigma_clips"))
+CLIP_CACHE_HOURS = float(os.environ.get("SIXSIGMA_CLIP_CACHE_HOURS", "24") or 24)
+FFMPEG = os.environ.get("SIXSIGMA_FFMPEG", "ffmpeg")
+
+_clip_locks: dict = {}
+_clip_locks_guard = threading.Lock()
+
+
+def _clip_lock(key: str):
+    """One in-flight conversion per clip, so a double-click converts once."""
+    with _clip_locks_guard:
+        if len(_clip_locks) > 256:
+            _clip_locks.clear()
+        return _clip_locks.setdefault(key, threading.Lock())
+
+
+def _prune_clip_cache():
+    """Drop cached clips older than CLIP_CACHE_HOURS.  Cheap: one scandir."""
+    cutoff = time.time() - CLIP_CACHE_HOURS * 3600
+    try:
+        with os.scandir(CLIP_CACHE_DIR) as it:
+            for e in it:
+                try:
+                    if e.is_file() and e.stat().st_mtime < cutoff:
+                        os.unlink(e.path)
+                except OSError:
+                    pass
+    except OSError:
+        pass
+
+
+def _to_h264(src: str, dst: str) -> bool:
+    """Re-encode `src` into a browser-safe MP4 at `dst`.  True if it worked.
+
+    Constrained Baseline + yuv420p + limited range is the lowest common
+    denominator every browser decodes; +faststart puts the moov atom first so
+    playback can begin before the whole file has arrived.  The cameras tag
+    their stream full-range (yuvj420p), so the range conversion is explicit
+    rather than left to the encoder's guess.
+    """
+    tmp = dst + ".part"
+    cmd = [FFMPEG, "-hide_banner", "-loglevel", "error", "-nostdin", "-y",
+           "-i", src,
+           "-vf", "scale=in_range=full:out_range=tv,format=yuv420p",
+           "-c:v", "libx264", "-preset", "veryfast", "-crf", "23",
+           "-profile:v", "baseline", "-level", "3.1", "-color_range", "tv",
+           "-an", "-movflags", "+faststart",
+           # `-f mp4` explicitly: the temp name ends in .part, and ffmpeg picks
+           # its muxer from the extension, so without this it just refuses
+           # ("Unable to choose an output format").
+           "-f", "mp4", tmp]
+    try:
+        r = subprocess.run(cmd, capture_output=True, timeout=CLIP_PROXY_TIMEOUT * 3)
+        if r.returncode != 0 or not os.path.getsize(tmp):
+            print(f"[6SIGMA] transcode failed rc={r.returncode}: "
+                  f"{r.stderr[:200]!r}", flush=True)
+            raise RuntimeError("ffmpeg")
+        os.replace(tmp, dst)
+        return True
+    except Exception as exc:
+        print(f"[6SIGMA] transcode error: {exc}", flush=True)
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+        return False
 
 DEFAULT_MACHINE = "Ball Guide"
 DEFAULT_RETENTION = 40
@@ -43,6 +152,21 @@ def _ensure(cur):
                      retention_days INTEGER NOT NULL DEFAULT 40,
                      updated_by     TEXT,
                      updated_at     TIMESTAMPTZ NOT NULL DEFAULT now())""")
+    # 2026-09-25 — the CMS camera id for each of the two cameras.  The config
+    # stores the RTSP URL the operator typed; the CMS knows the camera by its
+    # own id, and the per-camera clip endpoint needs THAT.  Filled when the
+    # camera is registered with the CMS (see camera_config.add_camera).
+    # 2026-09-25 — best-effort ONLY.  A plain ALTER here ran inside a request and
+    # died with "canceling statement due to lock timeout" (the per-request DDL
+    # trap this codebase has hit before), turning the clip call into a 500.  The
+    # columns are created once; if the lock is busy we simply carry on.
+    for _sql in ("ALTER TABLE mes_sixsigma_config ADD COLUMN IF NOT EXISTS cam1_cid TEXT",
+                 "ALTER TABLE mes_sixsigma_config ADD COLUMN IF NOT EXISTS cam2_cid TEXT"):
+        try:
+            cur.execute(_sql)
+        except Exception:
+            try: cur.connection.rollback()
+            except Exception: pass
 
 
 def _ss_lines(cur):
@@ -192,21 +316,167 @@ def get_clips(line_id: int = Query(...),
             # Nothing records these two cameras yet — the CMS has no Ball Guide
             # recorder at all — so the honest answer is "no clip".  When the CMS
             # starts emitting per-camera files, fill these from THOSE files.
+            _b = f"/api/sixsigma/clip?line_id={line_id}&cycle_seq={seq}&date={rec_date}"
+            if shift:
+                _b += f"&shift={shift}"
             cycles.append({
                 "cycle_seq": seq,
                 "ts": r["ts"].isoformat() if r.get("ts") else None,
                 "is_ng": bool(r.get("is_ng")),
                 "part_code": r.get("part_code"),
-                "cam1_url": None,
-                "cam2_url": None,
+                # A camera only gets a URL once its CMS camera id is known —
+                # otherwise the page correctly says "no clip from this camera".
+                "cam1_url": (f"{_b}&cam=1" if (cfg.get("cam1_cid") or "").strip() else None),
+                "cam2_url": (f"{_b}&cam=2" if (cfg.get("cam2_cid") or "").strip() else None),
             })
         conn.commit()
-        note = ("Ball Guide cameras are saved, but nothing is recording them yet "
-                "— the CMS has no Ball Guide recorder, so these cycles have no "
-                "Ball Guide clip. The cycle list below is the line's real "
-                "production, shown so the station can be reviewed once recording "
-                "is wired up.")
+        note = ""
+        if not ((cfg.get("cam1_cid") or "").strip() or (cfg.get("cam2_cid") or "").strip()):
+            note = ("These cameras are not registered with the CMS yet, so no "
+                    "footage is being recorded for this station.")
         return {"config": _cfg_public(cfg), "cycles": cycles, "clips_note": note}
+
+
+@router.get("/clip")
+def sixsigma_clip(line_id: int = Query(...),
+                  cycle_seq: int = Query(...),
+                  cam: int = Query(1, ge=1, le=2),
+                  date: Optional[str] = Query(None),
+                  shift: Optional[str] = Query(None),
+                  token: Optional[str] = Query(None,
+                      description="JWT fallback for <video src=...>"),
+                  request: Request = None,
+                  user=Depends(get_current_user_optional)):
+    """One Ball Guide camera's footage for one cycle of this line.
+
+    The cycle window comes from the line's own ct_log (ts is the cycle END and
+    ct_value its length), and the cut itself is done by the CMS for THAT camera
+    — so camera 1 and camera 2 return different video, which is the whole point
+    of this page.
+    """
+    import requests
+    from fastapi.responses import StreamingResponse
+
+    rec_date = date or datetime.now().strftime("%Y-%m-%d")
+    with get_conn() as conn:
+        cur = dict_cursor(conn)
+        # no DDL on this path — the table exists; a lock wait here would only
+        # turn a video request into a 500.
+        cur.execute("""SELECT c.*, l.db_table_name FROM mes_sixsigma_config c
+                         JOIN mes_lines l ON l.id=c.line_id WHERE c.line_id=%s""",
+                    (line_id,))
+        cfg = cur.fetchone()
+        if not cfg:
+            raise HTTPException(404, "This line has no Ball Guide 6-Sigma config")
+        cid = (cfg.get("cam1_cid") if cam == 1 else cfg.get("cam2_cid")) or ""
+        cid = cid.strip()
+        if not cid:
+            raise HTTPException(404, "This camera is not registered with the CMS yet")
+        tbl = (cfg["db_table_name"] or "") + "_ct_log"
+        if not _TBL_RE.match(tbl):
+            raise HTTPException(400, "bad table")
+        cur.execute("SELECT to_regclass(%s) AS r", (tbl,))
+        if not cur.fetchone()["r"]:
+            raise HTTPException(404, "no cycle log for this line")
+        q = f"SELECT ts, ct_value FROM {tbl} WHERE record_date=%s AND cycle_seq=%s"
+        params = [rec_date, cycle_seq]
+        if shift:
+            q += " AND shift_name=%s"; params.append(shift)
+        q += " ORDER BY ts DESC LIMIT 1"
+        cur.execute(q, params)
+        row = cur.fetchone()
+        conn.rollback()
+    if not row or not row.get("ts"):
+        raise HTTPException(404, "Cycle not found")
+    ts_end = row["ts"]
+    try:
+        ct = float(row.get("ct_value") or 0)
+    except Exception:
+        ct = 0.0
+    ct = min(max(ct, 3.0), 120.0)          # sane window even on a junk ct
+    ts_start = ts_end - timedelta(seconds=ct)
+
+    # ── serve a browser-playable copy ───────────────────────────────────
+    # The CMS hands back the camera's own HEVC, which only some machines can
+    # decode (see the note at CLIP_CACHE_DIR).  Convert once, cache, and let
+    # the range-aware server from clip_archive do the rest so seeking works.
+    from routers.clip_archive import serve as _serve_file
+
+    key = hashlib.sha1(
+        f"{cid}|{ts_start.isoformat()}|{ts_end.isoformat()}".encode()
+    ).hexdigest()[:24]
+    try:
+        os.makedirs(CLIP_CACHE_DIR, exist_ok=True)
+    except OSError:
+        pass
+    cached = os.path.join(CLIP_CACHE_DIR, f"{key}.mp4")
+
+    if os.path.exists(cached) and os.path.getsize(cached) > 0:
+        return _serve_file(cached, request)
+
+    with _clip_lock(key):
+        # Another request may have finished it while we waited on the lock.
+        if os.path.exists(cached) and os.path.getsize(cached) > 0:
+            return _serve_file(cached, request)
+
+        # Always fetch the WHOLE cut — a Range would give us a fragment that
+        # cannot be re-encoded.  The player's Range is answered off the cached
+        # file instead.
+        try:
+            r = requests.get(f"{CYCLE_VIDEO_BASE_URL}/api/submachine/clip",
+                             params={"camera_id": cid,
+                                     "ts_start": ts_start.isoformat(),
+                                     "ts_end": ts_end.isoformat()},
+                             stream=True, timeout=CLIP_PROXY_TIMEOUT)
+        except Exception as exc:
+            raise HTTPException(502, f"Upstream unreachable: {exc}")
+        if r.status_code >= 400:
+            detail, code = f"Upstream: {r.text[:200]}", r.status_code
+            try: r.close()
+            except Exception: pass
+            raise HTTPException(code, detail)
+
+        raw = os.path.join(CLIP_CACHE_DIR, f"{key}.src")
+        try:
+            with open(raw, "wb") as fh:
+                for chunk in r.iter_content(chunk_size=256 * 1024):
+                    if chunk:
+                        fh.write(chunk)
+        except Exception as exc:
+            raise HTTPException(502, f"Upstream read failed: {exc}")
+        finally:
+            try: r.close()
+            except Exception: pass
+
+        ok = _to_h264(raw, cached)
+        try:
+            os.unlink(raw)
+        except OSError:
+            pass
+        _prune_clip_cache()
+
+        if not ok:
+            # Never leave the page blank because a conversion failed: hand the
+            # original through, which still plays wherever HEVC is supported.
+            def _passthrough():
+                rr = requests.get(f"{CYCLE_VIDEO_BASE_URL}/api/submachine/clip",
+                                  params={"camera_id": cid,
+                                          "ts_start": ts_start.isoformat(),
+                                          "ts_end": ts_end.isoformat()},
+                                  stream=True, timeout=CLIP_PROXY_TIMEOUT)
+                try:
+                    for chunk in rr.iter_content(chunk_size=64 * 1024):
+                        yield chunk
+                finally:
+                    try: rr.close()
+                    except Exception: pass
+            return StreamingResponse(
+                _passthrough(), media_type="video/mp4",
+                headers={"Accept-Ranges": "bytes",
+                         "Cache-Control": "no-cache, no-store, must-revalidate",
+                         "X-Clip-Codec": "source-passthrough"})
+
+    return _serve_file(cached, request)
 
 
 def _cfg_public(cfg):

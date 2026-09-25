@@ -240,7 +240,11 @@ def ct_history(
                    shift_name, model_number, model_name, part_code
             FROM mes_submachine_ct_log
             WHERE {where}
-            ORDER BY cycle_seq DESC
+            -- 2026-09-25 — newest by TIME.  cycle_seq follows the machine's
+            -- own D-register, so it restarts whenever that register is reset
+            -- and repeats within a shift; ordering by it pinned this chart to
+            -- the cycles before the last reset (YMC Recliner M-4/M-6).
+            ORDER BY ts_end DESC, cycle_seq DESC
             LIMIT %s
         """, params + [limit])
         rows = cur.fetchall()

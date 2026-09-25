@@ -46,7 +46,15 @@ function Kpi({ label, value, tone }) {
 }
 
 export default function PyBypass() {
-  const { user } = useAuth();
+  //  2026-09-25 — this page was written against an axios-shaped client: it
+  //  called api.get(path) with no token, read r.data, and looked for
+  //  e.response.status.  api/client.jsx is a fetch wrapper: the token is the
+  //  SECOND argument, the parsed body IS the return value, and a failure is a
+  //  plain Error whose message holds the detail.  So every call here went out
+  //  with no Authorization header, the backend answered 401, and the client's
+  //  401 handler sent the user to the login screen — opening PY Bypass logged
+  //  you out.
+  const { user, token } = useAuth();
   const isAdmin = (user?.role || "") === "admin";
   const [data, setData] = useState(null);
   const [err, setErr] = useState("");
@@ -55,20 +63,25 @@ export default function PyBypass() {
   const [saving, setSaving] = useState("");
 
   const load = useCallback(async () => {
+    if (!token) return;
     try {
-      const r = await api.get("/api/py-bypass/cases?hours=24");
-      setData(r.data); setErr("");
+      setData(await api.get("/api/py-bypass/cases?hours=24", token));
+      setErr("");
     } catch (e) {
-      setErr(e?.response?.status === 404
+      const msg = e?.message || "";
+      setErr(msg.includes("404")
         ? "This page becomes active after the next MES-API restart."
-        : (e?.response?.data?.detail || "Could not load bypass cases."));
+        : (msg || "Could not load bypass cases."));
     }
-  }, []);
+  }, [token]);
 
   const loadBits = useCallback(async () => {
-    if (!isAdmin) return;
-    try { setBits((await api.get("/api/py-bypass/bits")).data.lines || []); } catch { /* not admin */ }
-  }, [isAdmin]);
+    if (!isAdmin || !token) return;
+    try {
+      const r = await api.get("/api/py-bypass/bits", token);
+      setBits(r?.lines || []);
+    } catch { /* not admin */ }
+  }, [isAdmin, token]);
 
   useEffect(() => { load(); loadBits(); }, [load, loadBits]);   // eslint-disable-line react-hooks/set-state-in-effect
   useEffect(() => {
@@ -84,10 +97,10 @@ export default function PyBypass() {
     try {
       await api.put("/api/py-bypass/bits", {
         line_id: line.line_id, bit_addr: line.bit_addr || "", active: line.active !== false,
-      });
+      }, token);
       await loadBits();
     } catch (e) {
-      alert(e?.response?.data?.detail || "Could not save the bit.");
+      alert(e?.message || "Could not save the bit.");
     }
     setSaving("");
   };

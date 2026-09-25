@@ -105,6 +105,26 @@ export default function SixSigmaPage({ toast }) {
 
   const withTok = (u) => `${u}&token=${encodeURIComponent(token || "")}`;
 
+  // 2026-09-25 — a downloaded clip must say what it is without being opened:
+  // line, machine, camera, cycle, NG flag and the cycle's own timestamp.
+  const clipFileName = (camName) => {
+    const safe = (v) => String(v || "").trim().replace(/[^A-Za-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+    const lineName = (lines.find(l => String(l.id) === String(viewLine)) || {}).line_name
+                     || (configs.find(c => String(c.line_id) === String(viewLine)) || {}).line_name
+                     || `line-${viewLine}`;
+    let stamp = "";
+    if (sel?.ts) {
+      const d = new Date(sel.ts);
+      if (!isNaN(d)) {
+        const p = (n) => String(n).padStart(2, "0");
+        stamp = `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}_${p(d.getHours())}-${p(d.getMinutes())}-${p(d.getSeconds())}`;
+      }
+    }
+    return [safe(lineName), safe(viewCfg?.machine_name || "Ball-Guide"), safe(camName),
+            `cycle-${sel?.cycle_seq}`, sel?.is_ng ? "NG" : "OK", stamp]
+           .filter(Boolean).join("_") + ".mp4";
+  };
+
   return (
     <div style={{ minHeight: "100vh", background: "#f8fafc", paddingBottom: 60, color: "#0f172a" }}>
       <PageTopbar leading="6" accent="Sigma" />
@@ -222,8 +242,23 @@ export default function SixSigmaPage({ toast }) {
                     camera names. Anything pointing at /cycle-video is therefore
                     NOT this station's footage and must not be presented as it. */}
                 {(sel[k] && !String(sel[k]).includes("/cycle-video")) ? (
-                  <video key={sel.cycle_seq + k} controls style={{ width: "100%", borderRadius: 10, background: "#000", aspectRatio: "16/9" }}
-                         src={withTok(sel[k])} />
+                  <>
+                    {/* 2026-09-25 — plays as soon as the cycle is opened.  Muted
+                        is not a preference: every browser blocks autoplay with
+                        sound, so an unmuted <video autoPlay> would simply sit
+                        still.  The controls are there to unmute. */}
+                    <video key={sel.cycle_seq + k} controls autoPlay muted playsInline preload="auto"
+                           style={{ width: "100%", borderRadius: 10, background: "#000", aspectRatio: "16/9" }}
+                           src={withTok(sel[k])} />
+                    <a href={withTok(sel[k])} download={clipFileName(nm)}
+                       style={{ display: "inline-flex", alignItems: "center", gap: 6, marginTop: 6,
+                                padding: "6px 12px", borderRadius: 8, fontSize: 12, fontWeight: 600,
+                                border: "1px solid #cbd5e1", background: "#fff", color: "#1e40af",
+                                textDecoration: "none" }}
+                       title={clipFileName(nm)}>
+                      ⬇ Download
+                    </a>
+                  </>
                 ) : (
                   <div style={{ width: "100%", borderRadius: 10, background: "#0f172a", aspectRatio: "16/9",
                                 display: "flex", alignItems: "center", justifyContent: "center",

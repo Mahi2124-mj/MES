@@ -3,6 +3,7 @@ import { useAuth } from "../context/AuthContext";
 import { api } from "../api/client";
 import AIAssistant from "../components/AIAssistant";
 import NetworkPanel from "./NetworkPanel";
+import { NAV_ITEMS } from "../components/SlideNav";
 import MachineMaster from "./MachineMaster";
 import PyConfigEditor from "./PyConfigEditor";
 import FaultConfigPanel from "./FaultConfigPanel";
@@ -5753,6 +5754,9 @@ const PAGE_PERM_GROUPS = [
     { key: "shift-compile",     label: "Shift Compile" },
     { key: "shift-calculator",  label: "Shift Calculator" },
     { key: "operators",         label: "Employee Master" },
+    { key: "peff-sheet",        label: "PEFF Sheet" },
+    { key: "six-sigma",         label: "6 Sigma (Ball Guide clip review)" },
+    { key: "bin-filling",       label: "Bin Filling" },
     { key: "prod-breakdown-slip", label: "Breakdown Slip (Production)" },
     { key: "my-escalations",    label: "My Escalations" },
     { key: "store",             label: "Store" },
@@ -5790,6 +5794,8 @@ const PAGE_PERM_GROUPS = [
   ]},
   { group: "System", items: [
     { key: "department-panel",   label: "Department Panel" },
+    { key: "my-team",            label: "My Team" },
+    { key: "device-registry",    label: "Device Registry" },
     { key: "escalation-admin",   label: "Escalation Setup (per-zone chain)" },
     { key: "settings",           label: "Settings" },
     { key: "network",            label: "Network Panel" },
@@ -5800,6 +5806,29 @@ const PAGE_PERM_GROUPS = [
     { key: "admin",              label: "Admin Core (System Map / Departments / Users)" },
   ]},
 ];
+
+// 2026-09-25 — KEEP THIS LIST HONEST.
+// The groups above are hand-ordered, but they were also maintained by hand
+// ALONE: PEFF Sheet, 6 Sigma, Bin Filling, My Team and Device Registry all
+// shipped as real pages and never appeared here, so an admin could not grant
+// them at all (operator: "jo pages update hue hain vo assign permission wale
+// me nahi aa rahe").  NAV_ITEMS is what the app actually navigates by, so any
+// page there that is missing here is a bug — surface it instead of losing it.
+// Routes that deliberately redirect (kanban, heijunka -> /dashboard) are not
+// grantable and stay exempt.
+const PERM_EXEMPT_PAGES = new Set(["kanban", "heijunka"]);
+
+export function missingPagePerms() {
+  try {
+    const known = new Set(PAGE_PERM_GROUPS.flatMap(g => g.items.map(i => i.key)));
+    return (NAV_ITEMS || [])
+      .flatMap(sec => sec.items || [])
+      .map(i => i.key)
+      .filter(k => k && !known.has(k) && !PERM_EXEMPT_PAGES.has(k));
+  } catch {
+    return [];
+  }
+}
 
 const PERM_LEVELS = [
   { key: "none", label: "No Access",  bg: "#fee2e2", color: "#b91c1c" },

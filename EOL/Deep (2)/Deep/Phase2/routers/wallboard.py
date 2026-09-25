@@ -301,6 +301,16 @@ def wallboard_cycles(
         # it in the cycles JSON so the wallboard chart can render red
         # ⚠ markers on NG dots.
         cur.execute("""
+            -- 2026-09-25 — order by TIME, not cycle_seq.  cycle_seq is
+            -- pinned to the machine's own D-register (collector_engine
+            -- _sub_reg_count / REG-MIRROR), so it is neither monotonic nor
+            -- unique inside a shift: a PLC whose register is not zeroed at
+            -- shift start counts on from its lifetime total, and a register
+            -- reset mid-shift drops it back to 1.  Ordering by it put the
+            -- PRE-reset block at the end of the array, so the chart showed
+            -- 08:43-10:00 while the live cycles sat invisible before it —
+            -- YMC Recliner M-4 read 59616 and M-6 55354 at 11:43 while the
+            -- PLC itself was at ~680.  ts_end is the only honest order.
             SELECT p.id                  AS sub_id,
                    p.machine_name,
                    p.machine_seq,
@@ -311,7 +321,7 @@ def wallboard_cycles(
                            'ts',        l.ts_end,
                            'ct',        l.ct_seconds,
                            'is_ng',     COALESCE(l.is_ng, FALSE)
-                       ) ORDER BY l.cycle_seq
+                       ) ORDER BY l.ts_end, l.cycle_seq
                    ) FILTER (WHERE l.id IS NOT NULL), '[]'::jsonb) AS cycles
             FROM mes_plc_configs p
             LEFT JOIN mes_submachine_ct_log l
@@ -421,7 +431,7 @@ def wallboard_cycles(
                        COALESCE(is_ng, FALSE) AS is_ng
                 FROM {main_table}
                 WHERE record_date = %s AND shift_name = %s
-                ORDER BY cycle_seq
+                ORDER BY ts, cycle_seq          -- see the note above
             """, (today, shift))
             main_cycles = [
                 {"cycle_seq": r["cycle_seq"],

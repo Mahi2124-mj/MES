@@ -2527,38 +2527,38 @@
       "machine_name": "Upr Rail Inspection M/C",
       "zone_name": "Sub-Assembly",
       "line_name": "YNC-SA-6WAY"
+    },
+    {
+      "id": "bind_sixsigma_4_cam1",
+      "machine_id": "sixsigma:4:cam1",
+      "camera_id": "cam_ysd_ss_ball_guide_01_camera_1_1790265370",
+      "plc_id": "",
+      "plc_ip": "",
+      "trigger_type": "SUB",
+      "ok_bit": "",
+      "ng_bit": "",
+      "m_bit_address": "",
+      "target_time": 15,
+      "extract_per_cycle": false,
+      "machine_name": "Ball Guide-01 \u00b7 Camera 1",
+      "zone_name": "SEAT SLIDER",
+      "line_name": "YSD-SS"
+    },
+    {
+      "id": "bind_sixsigma_4_cam2",
+      "machine_id": "sixsigma:4:cam2",
+      "camera_id": "cam_ysd_ss_ball_guide_01_camera_2_1790265370",
+      "plc_id": "",
+      "plc_ip": "",
+      "trigger_type": "SUB",
+      "ok_bit": "",
+      "ng_bit": "",
+      "m_bit_address": "",
+      "target_time": 15,
+      "extract_per_cycle": false,
+      "machine_name": "Ball Guide-01 \u00b7 Camera 2",
+      "zone_name": "SEAT SLIDER",
+      "line_name": "YSD-SS"
     }
-  ],
-  "bind_sixsigma_4_cam1": {
-    "id": "bind_sixsigma_4_cam1",
-    "machine_id": "sixsigma:4:cam1",
-    "camera_id": "cam_ysd_ss_ball_guide_01_camera_1_1790265370",
-    "plc_id": "",
-    "plc_ip": "",
-    "trigger_type": "SUB",
-    "ok_bit": "",
-    "ng_bit": "",
-    "m_bit_address": "",
-    "target_time": 15,
-    "extract_per_cycle": false,
-    "machine_name": "Ball Guide-01 \u00b7 Camera 1",
-    "zone_name": "SEAT SLIDER",
-    "line_name": "YSD-SS"
-  },
-  "bind_sixsigma_4_cam2": {
-    "id": "bind_sixsigma_4_cam2",
-    "machine_id": "sixsigma:4:cam2",
-    "camera_id": "cam_ysd_ss_ball_guide_01_camera_2_1790265370",
-    "plc_id": "",
-    "plc_ip": "",
-    "trigger_type": "SUB",
-    "ok_bit": "",
-    "ng_bit": "",
-    "m_bit_address": "",
-    "target_time": 15,
-    "extract_per_cycle": false,
-    "machine_name": "Ball Guide-01 \u00b7 Camera 2",
-    "zone_name": "SEAT SLIDER",
-    "line_name": "YSD-SS"
-  }
+  ]
 }

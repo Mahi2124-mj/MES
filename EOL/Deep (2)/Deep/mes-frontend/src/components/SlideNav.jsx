@@ -13,7 +13,7 @@ import { versionStatus } from "../api/appVersion";
 // historical record browser + bulk Excel import/export.  The old
 // "Overview" + "Data" sections were merged into this single Production
 // section so the slide-nav reads as a clean role-grouped list.
-const NAV_ITEMS = [
+export const NAV_ITEMS = [
   {
     section: "Production",
     items: [
