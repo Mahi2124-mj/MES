@@ -151,27 +151,73 @@ EOF
   exit 1
 fi
 
-# --- PHASE 1: cleanup stale services ----------------------------
-# Port 5656 is EXCLUDED, same as the .bat (2026-06-18 hardening):
-# it is owned by the static-dist server / reverse proxy, and killing
-# it would also drop :443/:8443.
-echo " [PHASE 1/4]  Cleaning up stale services..."
-echo "               - port-bound (8080, 5555, 5575, 5000, 8050, 5173)   [5656 EXCLUDED]"
-for port in 8080 5555 5575 5000 8050 5173; do
-  # fuser is the closest Linux equivalent of the .bat's netstat -ano | Stop-Process
+# --- PHASE 1: STOP EVERYTHING, THEN START -----------------------
+# 2026-09-26 — operator: "jab bhi start_everything ya boot.sh chale, pehle
+# saare process kill ho, fir start ho — taaki conflict na ho."
+#
+# The old Phase 1 freed six ports and the collectors, but left three things
+# running that this script is about to start again:
+#   * :5656 / :5700 (serve_prod) were deliberately excluded — a stale one kept
+#     serving an old dist while the new one failed to bind;
+#   * the CMS's camera ffmpeg children survive when only :5555 is freed, so a
+#     second CMS came up beside ~130 orphan recorders all holding the cameras;
+#   * nothing waited for the cameras to let go (see the quiet window below).
+#
+# Everything this script starts is now stopped first, in dependency order.
+# Anything this script does NOT own is left alone — BinVision (:8090) and the
+# Maintenance stack have their own units.
+echo " [PHASE 1/4]  Stopping everything this script starts..."
+
+# 1a. collectors first — they hold DB locks and PLC sessions.
+echo "               - collectors"
+pkill -f "$MES_DIR/.venv-linux/bin/python.*collector_" >/dev/null 2>&1
+pkill -f "never-die.*collector_" >/dev/null 2>&1
+
+# 1b. the CMS's camera recorders.  Freeing :5555 kills the API but NOT the
+#     ffmpeg it spawned; those keep the cameras' single RTSP session open and
+#     the next CMS can then never connect.  Match on argv[0] being ffmpeg so
+#     this can never select the script that is running it, and skip anything
+#     under Bin-Filling — that stack is not ours to stop.
+echo "               - camera recorders (CMS ffmpeg children)"
+_cms_ffmpeg=0
+for _p in /proc/[0-9]*; do
+  _pid="${_p#/proc/}"
+  [[ "$_pid" == "$$" ]] && continue
+  [[ -r "$_p/cmdline" ]] || continue
+  _argv0="$(tr '\0' '\n' < "$_p/cmdline" 2>/dev/null | head -1)"
+  case "$_argv0" in *ffmpeg*) ;; *) continue ;; esac
+  _full="$(tr '\0' ' ' < "$_p/cmdline" 2>/dev/null)"
+  case "$_full" in *rtsp://*) ;; *) continue ;; esac
+  case "$_full" in *Bin-Filling*) continue ;; esac
+  kill -TERM "$_pid" 2>/dev/null && _cms_ffmpeg=$((_cms_ffmpeg+1))
+done
+echo "                 stopped $_cms_ffmpeg recorder(s)"
+
+# 1c. port-bound services — 5656 and 5700 INCLUDED now, because this script
+#     starts them and a survivor would keep serving a stale dist.
+echo "               - port-bound (8080, 5555, 5656, 5700, 5575, 5000, 8050, 5173)"
+for port in 8080 5555 5656 5700 5575 5000 8050 5173; do
   fuser -k -TERM "${port}/tcp" >/dev/null 2>&1
 done
-sleep 1
-for port in 8080 5555 5575 5000 8050 5173; do
+sleep 2
+for port in 8080 5555 5656 5700 5575 5000 8050 5173; do
   fuser -k -KILL "${port}/tcp" >/dev/null 2>&1
 done
 
-echo "               - collector python tree (parent + children)"
-# pkill -f matches the full command line, so this catches the venv
-# python running collector_*.py without needing the shim-vs-child
-# distinction the Windows version had to work around.
-pkill -f "$MES_DIR/.venv-linux/bin/python.*collector_" >/dev/null 2>&1
-echo "               Done."
+# 1d. QUIET WINDOW — the one that decides whether video comes back.
+#     These cameras allow ONE RTSP session and only drop a dead one after an
+#     idle timeout.  Restarting the CMS straight away re-connects before that
+#     timeout expires, the camera refuses, and the recorder retries forever:
+#     measured 26-Sep, 3,378 launches and 258 that ever wrote a byte.  With a
+#     90 s pause first, 104 cameras came back at once.  Same value the manual
+#     restart_cms.py uses.  Skipped when no recorder was running (nothing to
+#     release) and overridable with CMS_QUIET_SECONDS=0.
+_quiet="${CMS_QUIET_SECONDS:-90}"
+if [[ "$_cms_ffmpeg" -gt 0 && "$_quiet" -gt 0 ]]; then
+  echo "               - quiet window: ${_quiet}s for the cameras to release their RTSP sessions"
+  sleep "$_quiet"
+fi
+echo "               Done — clean slate."
 echo
 
 # --- PHASE 2 + collectors gate ----------------------------------

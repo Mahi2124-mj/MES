@@ -1463,3 +1463,341 @@ def camera_log_export(date_from: Optional[str] = Query(None), date_to: Optional[
     name = f"camera_status_{d0.isoformat()}_{d1.isoformat()}.xlsx"
     return StreamingResponse(buf, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                              headers={"Content-Disposition": f'attachment; filename="{name}"'})
+
+
+# ── Fix a hung camera, on click ─────────────────────────────────────────────
+# Operator 26-Sep: "hung wale par click karun to wo camera theek ho jaye — sirf
+# click par, auto nahi."  Deliberately manual: nothing here runs on a timer,
+# and it only ever touches the ONE camera the operator asked for.
+#
+# A hung camera answers ping but no longer serves RTSP, because the session of
+# a recorder that died is still held.  So the button does the two things that
+# can free it, in order, and then says honestly which one worked:
+#
+#   1. stop that camera's recorder on this box, so our half of the stale
+#      session is definitely gone (the CMS watchdog respawns it by itself);
+#   2. ask the camera to reboot through whatever management port answers
+#      (camera_revive: Sofia first, then ONVIF).
+#
+# If neither works the camera has dropped its whole TCP stack and only a
+# power-cycle at the panel will bring it back — which the reply says in as many
+# words, so nobody stands there clicking.
+#  routers/ -> Phase2/ -> Deep/ -> "Deep (2)"/ -> EOL/, where the CMS lives
+#  beside it.  Same location restart_cms.py uses; override with CMS_BACKEND_DIR.
+_CMS_BACKEND = os.environ.get(
+    "CMS_BACKEND_DIR",
+    os.path.join(
+        os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(
+            os.path.dirname(os.path.abspath(__file__)))))),
+        "New folder (2)", "New folder (2)", "backend"))
+
+
+def _recorder_pids_for(camera_id: str, ip: str):
+    """PIDs of the ffmpeg recording THIS camera.  Looks only — kills nothing.
+
+    Matches argv[0] ending in ffmpeg plus the camera's own id or ip in the
+    command line — never a shell, never another camera, and never this process.
+    """
+    found = []
+    me = os.getpid()
+    for pid_s in os.listdir("/proc"):
+        if not pid_s.isdigit() or int(pid_s) == me:
+            continue
+        try:
+            with open(f"/proc/{pid_s}/cmdline", "rb") as fh:
+                argv = fh.read().split(b"\0")
+        except OSError:
+            continue
+        if not argv or b"ffmpeg" not in os.path.basename(argv[0] or b""):
+            continue
+        full = b" ".join(argv).decode("utf-8", "ignore")
+        if "rtsp://" not in full:
+            continue
+        if camera_id not in full and (not ip or ip not in full):
+            continue
+        found.append(int(pid_s))
+    return found
+
+
+def _kill_recorder_for(camera_id: str, ip: str):
+    """TERM the recorder(s) for this camera.  Returns the pids actually signalled."""
+    stopped = []
+    for pid in _recorder_pids_for(camera_id, ip):
+        try:
+            os.kill(pid, 15)
+            stopped.append(pid)
+        except OSError:
+            pass
+    return stopped
+
+
+CMS_BASE = os.environ.get("CYCLE_VIDEO_BASE_URL", "http://127.0.0.1:5555")
+#  How long a camera is left completely alone.  Sized from measurement, not
+#  taste: a 90 s quiet window at CMS restart brought 104 cameras back at once,
+#  and a failed ffmpeg attempt still holds the camera for its own 45 s connect
+#  timeout — so anything under ~135 s gives the camera less real silence than
+#  the 90 s that is known to work.
+QUIET_SECONDS = float(os.environ.get("CAM_RECOVER_QUIET_S", "150") or 150)
+
+
+def _cms_quiet(camera_ids, seconds=None):
+    """Ask the CMS to leave these cameras alone — no probe, no respawn."""
+    import requests
+    try:
+        r = requests.post(f"{CMS_BASE}/api/cameras/quiet",
+                          json={"camera_ids": list(camera_ids),
+                                "seconds": seconds or QUIET_SECONDS},
+                          timeout=20)
+        if r.status_code >= 400:
+            return 0, f"CMS refused: {r.text[:120]}"
+        return int(r.json().get("quieted") or 0), ""
+    except Exception as exc:
+        return 0, f"CMS unreachable: {exc}"
+
+
+def _cms_retry_now(camera_ids):
+    """Ask the CMS to try these cameras again immediately.
+
+    2026-09-27 — this replaces _cms_quiet() for the buttons.  Measured that
+    night: the quiet-window recover moved exactly ONE camera, while letting the
+    CMS attempt "unreachable" cameras again took recording from 34 to 111.
+    Quieting is now the wrong move — it stops the recorder and blocks the retry
+    for the whole window.  Returns the CMS's own per-reason breakdown.
+    """
+    import requests
+    try:
+        r = requests.post(f"{CMS_BASE}/api/cameras/retry-now",
+                          json={"camera_ids": list(camera_ids)}, timeout=30)
+        if r.status_code >= 400:
+            return None, f"CMS refused: {r.text[:160]}"
+        return r.json(), ""
+    except Exception as exc:
+        return None, f"CMS unreachable: {exc}"
+
+
+def _probe_camera(ip: str, cam: dict):
+    """What is actually wrong with this camera?  ping → TCP → a real RTSP pull.
+
+    'Ping OK' is not health: ICMP is answered low in the firmware, so a camera
+    whose whole TCP stack has locked up still replies to ping while refusing
+    every connection.  That is why the old wording ("no management port
+    answered") read as wrong to the operator — the camera was plainly alive.
+    Each check below is what it says, and the verdict names the one that failed.
+    """
+    out = {"ping": False, "tcp554": "", "rtsp": False, "rtsp_error": ""}
+    try:
+        out["ping"] = subprocess.run(["ping", "-c", "2", "-W", "2", ip],
+                                     capture_output=True, timeout=12).returncode == 0
+    except Exception:
+        pass
+    sk = socket.socket()
+    sk.settimeout(3.0)
+    try:
+        sk.connect((ip, 554)); out["tcp554"] = "open"
+    except socket.timeout:
+        out["tcp554"] = "silent"        # no SYN-ACK and no RST → stack locked
+    except ConnectionRefusedError:
+        out["tcp554"] = "refused"       # stack alive, RTSP service down
+    except Exception as exc:
+        out["tcp554"] = type(exc).__name__
+    finally:
+        sk.close()
+
+    if out["tcp554"] == "open":
+        import tempfile
+        tmp = tempfile.mktemp(suffix=".ts")
+        url = (cam.get("rtsp_url") or cam.get("url") or
+               f"rtsp://{cam.get('username')}:{cam.get('password')}@{ip}:554/"
+               f"{str(cam.get('path') or '').lstrip('/')}")
+        try:
+            r = subprocess.run(
+                ["ffmpeg", "-hide_banner", "-nostdin", "-rtsp_transport", "tcp",
+                 "-timeout", "12000000", "-i", url, "-t", "3", "-c", "copy",
+                 "-f", "mpegts", tmp], capture_output=True, text=True, timeout=45)
+            out["rtsp"] = r.returncode == 0 and os.path.getsize(tmp) > 0
+            if not out["rtsp"]:
+                bad = [l for l in r.stderr.splitlines() if "Error" in l or "Connection" in l]
+                out["rtsp_error"] = re.sub(r"rtsp://[^@]*@", "rtsp://***@",
+                                           bad[-1] if bad else "no video came back")[:160]
+        except Exception as exc:
+            out["rtsp_error"] = str(exc)[:160]
+        finally:
+            try: os.unlink(tmp)
+            except OSError: pass
+    return out
+
+
+@router.post("/camera/fix")
+def camera_fix(camera_id: str = Query(..., min_length=1),
+               user=Depends(get_current_user)):
+    """Try to bring one hung camera back.  Manual only — never called on a timer.
+
+    It TESTS first and then does the one thing that can help, so the operator is
+    never told to walk to a panel for a camera that is actually fine, and never
+    left clicking a button for one that only a power-cycle will fix.
+    """
+    if (user.get("role") or "") not in ("admin", "plant_head", "section_incharge",
+                                        "production_incharge", "shift_incharge"):
+        raise HTTPException(403, "You are not allowed to restart a camera")
+
+    import sys
+    cms_dir = os.path.normpath(_CMS_BACKEND)
+    if cms_dir not in sys.path:
+        sys.path.insert(0, cms_dir)
+    try:
+        import camera_config                      # noqa: E402
+        cam = next((c for c in (camera_config.list_cameras() or [])
+                    if str(c.get("id") or "") == camera_id), None)
+    except Exception as exc:
+        raise HTTPException(503, f"Camera list unavailable: {exc}")
+    if cam is None:
+        raise HTTPException(404, f"No camera configured with id {camera_id}")
+    ip = str(cam.get("ip") or "").strip()
+
+    live = _recorder_pids_for(camera_id, ip)
+    if live:
+        # Its recorder is up.  Do NOT open a second RTSP session to test it —
+        # these cameras allow exactly one, so the probe would fail and this
+        # would report a healthy camera as broken.
+        probe = {"ping": True, "tcp554": "held by our recorder",
+                 "rtsp": True, "rtsp_error": ""}
+    else:
+        probe = _probe_camera(ip, cam)
+    killed = []
+    rebooted, why = False, ""
+
+    if not probe["ping"]:
+        detail = ("This camera is not on the network at all — it does not even "
+                  "answer a ping. Check its power and its switch port; nothing "
+                  "here can reach it.")
+        state = "no_network"
+
+    elif probe["rtsp"]:
+        # The camera is serving video right now, so whatever was stuck is on our
+        # side: drop the recorder and let the CMS watchdog start a fresh one.
+        _r, _rerr = _cms_retry_now([camera_id])
+        killed = list(range(int((_r or {}).get("killed_stale") or 0)))
+        _bits = []
+        if _r:
+            if _r.get("already_recording"):
+                _bits.append("it is already recording, so it was left alone")
+            if _r.get("killed_stale"):
+                _why = ", ".join(f"{n} because {w}"
+                                 for w, n in (_r.get("kill_reasons") or {}).items())
+                _bits.append(f"stopped {_r['killed_stale']} stuck recorder ({_why})")
+            if _r.get("backoff_cleared"):
+                _bits.append("cleared its retry back-off")
+            if _r.get("unreachable_cleared"):
+                _bits.append("took it off the unreachable list")
+            if _r.get("quiet_cleared"):
+                _bits.append("ended its quiet window")
+        detail = ("This camera is healthy — it served video on demand just now. "
+                  + ((", ".join(_bits) + ". ") if _bits else "")
+                  + ("A fresh recorder starts within about a minute."
+                     if not _rerr else f"CMS did not answer: {_rerr}"))
+        detail = detail[0].upper() + detail[1:]
+        state = "healthy"
+
+    elif probe["tcp554"] == "refused":
+        killed = _kill_recorder_for(camera_id, ip)
+        #  2026-09-27 — retry, not quiet: quieting blocks the one mechanism
+        #  that actually recovers cameras (see _cms_retry_now).
+        _cms_retry_now([camera_id])
+        try:
+            import camera_revive                  # noqa: E402
+            rebooted, why = camera_revive.revive_camera(cam, log=lambda m: None)
+        except Exception as exc:
+            why = str(exc)[:120]
+        detail = ("The camera is on the network but its video service is not "
+                  "running. " + ("A reboot was sent — give it about a minute."
+                                 if rebooted else
+                                 f"It could not be rebooted remotely ({why}); it "
+                                 "needs a power-cycle at the panel."))
+        state = "rtsp_down"
+
+    else:
+        # ping answers, every TCP port is silent: ICMP is handled low in the
+        # firmware, the TCP stack is not.  Nothing over the network can help.
+        killed = _kill_recorder_for(camera_id, ip)
+        #  The camera is holding the session of a recorder that died.  Silence
+        #  is what frees it, so stop touching it for QUIET_SECONDS — a reboot
+        #  is only attempted as well, in case a management port answers.
+        _cms_retry_now([camera_id])
+        try:
+            import camera_revive                  # noqa: E402
+            rebooted, why = camera_revive.revive_camera(cam, log=lambda m: None)
+        except Exception as exc:
+            why = str(exc)[:120]
+        detail = (("A reboot was sent — give it about a minute."
+                   if rebooted else
+                   "The camera answers ping but has stopped answering every TCP "
+                   "port — video, web page and management all time out. Ping is "
+                   "handled deep in the camera's firmware, so it keeps replying "
+                   "even after the rest has locked up. Nothing over the network "
+                   "can reach it now. Its stuck recorder and retry back-off "
+                   "have been cleared, so the CMS will keep attempting it every "
+                   "minute; if it is still hung after a few minutes it needs a "
+                   "power-cycle at the panel."))
+        state = "stack_locked"
+
+    print(f"[VCOV-FIX] {camera_id} ({ip}) by {user.get('username')}: "
+          f"state={state} ping={probe['ping']} tcp554={probe['tcp554']} "
+          f"rtsp={probe['rtsp']} killed={len(killed)} rebooted={rebooted}", flush=True)
+    return {"camera_id": camera_id, "ip": ip, "state": state, "probe": probe,
+            "recorders_stopped": len(killed), "rebooted": rebooted,
+            "detail": detail}
+
+
+@router.post("/cameras/recover-hung")
+def recover_hung(user=Depends(get_current_user)):
+    """Try every currently-hung camera again, right now.
+
+    2026-09-27 — this used to open a quiet window instead, and the operator was
+    right that it did nothing: it moved ONE camera.  What actually works is
+    letting the CMS attempt the cameras its probe has written off — that took
+    recording from 34 to 111 the same night.  So the button now clears every
+    reason the watchdog skips a camera (stuck recorder, retry back-off,
+    unreachable flag, leftover quiet window) and reports what it did.
+
+    2026-09-26 — the manual half of "method 2".  A hung camera is one that
+    answers ping but no longer serves RTSP, because it still holds the session
+    of a recorder that died.  The only thing that reliably frees it is silence:
+    a 90 s quiet window at CMS restart brought 104 cameras back at once.  The
+    shift rotation already tries to give each camera that pause, but the
+    reachability probe reconnects every 5 s and takes the session straight
+    back — which is why a wave of cameras comes back hung after every shift
+    boundary, with no power cut involved.
+
+    This presses that pause deliberately, for every hung camera at once.  It is
+    never called on a timer: the operator presses the button.
+    """
+    if (user.get("role") or "") not in ("admin", "plant_head", "section_incharge",
+                                        "production_incharge", "shift_incharge"):
+        raise HTTPException(403, "You are not allowed to recover cameras")
+
+    with get_conn() as conn:
+        cur = dict_cursor(conn)
+        allowed = set(_scope(cur, user, None))
+        st = _camera_status(cur, allowed,
+                            include_unassigned=(user.get("role") == "admin"))
+        conn.rollback()
+
+    hung = []
+    for z in st.get("zones", []):
+        for ln in z.get("lines", []):
+            for c in ln.get("cameras_list", []):
+                if c.get("state") == "camera_hung" and c.get("camera_id"):
+                    hung.append(c["camera_id"])
+    hung = sorted(set(hung))
+    if not hung:
+        return {"hung": 0, "quieted": 0,
+                "detail": "No camera is hung right now — nothing to recover."}
+
+    res, err = _cms_retry_now(hung)
+    if err:
+        raise HTTPException(502, err)
+    print(f"[VCOV-RECOVER] {user.get('username')} retried {len(hung)} hung camera(s): "
+          f"killed {res.get('killed_stale')} stuck recorder(s), cleared "
+          f"{res.get('backoff_cleared')} back-off(s)", flush=True)
+    res["hung"] = len(hung)
+    return res

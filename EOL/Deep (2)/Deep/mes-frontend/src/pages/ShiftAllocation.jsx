@@ -188,18 +188,22 @@ export default function ShiftAllocation() {
   const [dropHover, setDropHover] = useState(null);    // process_id or 'pool'
   const [carriedFrom, setCarriedFrom] = useState(null); // date this shift's crew was carried from (unsaved suggestion)
 
-  // 2026-09-13 — LINE LEADER for this shift (like manpower). Shift incharge &
-  // above pick which leader runs this line for the date+shift.
-  const canLead = ["admin", "plant_head", "section_incharge", "shift_incharge",
-                   "production_incharge"].includes(user?.role);
+  // 2026-09-13 — LINE LEADER for this shift (like manpower): which leader runs
+  // this line for the date+shift.
   // 2026-09-21 — the Line Leader dropdown is shown to EVERY user (operator:
   // "sabhi user id par show hona chahiye"); it is enabled only for users who can
-  // edit this page (`writable`).  canLead above still decides who must pick a
-  // leader before saving, so nobody who could save before is blocked now.
+  // edit this page (`writable`).
   const showLead = true;
   const [leaders, setLeaders]         = useState([]);
   const [shiftLeader, setShiftLeader] = useState("");
   const [leaderBusy, setLeaderBusy]   = useState(false);
+  // 2026-09-25 — NOBODY saves a crew without a leader on it (operator: "jab tak
+  // leader assign na ho tab tak save nahi hona chahiye").  It used to be gated
+  // on canLead, so every other role could save a shift that nobody owned, and
+  // everything that later asks who ran this line — cycle comments, Shift
+  // Compile, escalation — had no name.  The backend refuses it as well, so an
+  // old page or another client cannot slip past this.
+  const needLeader = !shiftLeader;
   // 2026-09-21 — the full list mixed every zone, and similar names in different
   // zones ("Jatin" in Seat Slider, "Jatin Khurana" in Recliner) were picked by
   // mistake.  Default to the selected line's zone and show the employee code;
@@ -437,6 +441,10 @@ export default function ShiftAllocation() {
   // ── Save ─────────────────────────────────────────────────────────
   const save = async () => {
     if (locked) { showToast("Shift is locked — cannot save", "err"); return; }
+    if (needLeader) {
+      showToast("Assign a Line Leader for this shift before saving", "err");
+      return;
+    }
     const empty = processes.filter(p => !(pending[p.id] || []).some(id => !!id));
     if (empty.length) {
       const ids = new Set(empty.map(p => p.id));
@@ -634,15 +642,15 @@ export default function ShiftAllocation() {
               <button onClick={refresh} disabled={loading} style={glassBtn}>↻ {loading ? "…" : "Refresh"}</button>
               {!locked && writable && (
                 <button onClick={save}
-                        disabled={saving || (canLead && !shiftLeader)}
-                        title={(canLead && !shiftLeader) ? "Assign a Line Leader first" : ""}
-                        style={{ ...primaryBtn, opacity: (saving || (canLead && !shiftLeader)) ? 0.55 : 1,
-                                 cursor: (saving || (canLead && !shiftLeader)) ? "not-allowed" : "pointer" }}>
+                        disabled={saving || needLeader}
+                        title={needLeader ? "Assign a Line Leader first" : ""}
+                        style={{ ...primaryBtn, opacity: (saving || needLeader) ? 0.55 : 1,
+                                 cursor: (saving || needLeader) ? "not-allowed" : "pointer" }}>
                   {saving ? "Saving…" : "💾 Save Allocation"}
                 </button>
               )}
             </div>
-            {!locked && writable && canLead && !shiftLeader && (
+            {!locked && writable && needLeader && (
               <div style={{ fontSize: 11.5, color: "#b91c1c", fontWeight: 600, marginTop: 6 }}>
                 ⚠ Assign a <b>Line Leader</b> before saving.
               </div>

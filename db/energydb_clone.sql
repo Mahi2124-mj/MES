@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict brMpE4camAv6b1M8EVaYyXRD8aBJ4qkvW7kZGf1BgAAzYIJFVlOeoFBFAEyVf1P
+\restrict QDI7qvqw2QgKyNlJRpHumhHeKzGWLC3UfpcUhYKkF5ZlZ99BnbhvwGHkAGCa47R
 
 -- Dumped from database version 18.6 (Ubuntu 18.6-0ubuntu0.26.04.1)
 -- Dumped by pg_dump version 18.6 (Ubuntu 18.6-0ubuntu0.26.04.1)
@@ -154,6 +154,7 @@ DROP INDEX IF EXISTS public.uq_processes_line_machine;
 DROP INDEX IF EXISTS public.uq_pm_filled_record_serial;
 DROP INDEX IF EXISTS public.uq_mkt_kpi;
 DROP INDEX IF EXISTS public.uq_machine_serial;
+DROP INDEX IF EXISTS public.uq_fault_hist_open;
 DROP INDEX IF EXISTS public.uq_capa_thresh_machine;
 DROP INDEX IF EXISTS public.uq_capa_thresh_line;
 DROP INDEX IF EXISTS public.uq_capa_thresh_global;
@@ -175,6 +176,7 @@ DROP INDEX IF EXISTS public.loop_pipe_dashboard_03_ct_log_date_shift;
 DROP INDEX IF EXISTS public.loop_pipe_dashboard_01_ct_log_ts_idx;
 DROP INDEX IF EXISTS public.loop_pipe_dashboard_01_ct_log_record_date_shift_name_idx;
 DROP INDEX IF EXISTS public.loop_pipe_dashboard_01_ct_log_date_shift;
+DROP INDEX IF EXISTS public.locationpin_lps3_dashboard_ct_log_date_shift;
 DROP INDEX IF EXISTS public.ix_ui_timing_ts;
 DROP INDEX IF EXISTS public.ix_ui_timing_kind;
 DROP INDEX IF EXISTS public.ix_station_py;
@@ -197,6 +199,10 @@ DROP INDEX IF EXISTS public.ix_mes_machine_process_pulses_pid_ts;
 DROP INDEX IF EXISTS public.ix_mes_machine_process_log_pid_ts;
 DROP INDEX IF EXISTS public.ix_machine_dmc_rev;
 DROP INDEX IF EXISTS public.ix_machine_dmc_filled;
+DROP INDEX IF EXISTS public.ix_fault_hist_started;
+DROP INDEX IF EXISTS public.ix_fault_hist_machine;
+DROP INDEX IF EXISTS public.ix_fault_hist_line;
+DROP INDEX IF EXISTS public.ix_fault_hist_date;
 DROP INDEX IF EXISTS public.ix_dmc_ng_month;
 DROP INDEX IF EXISTS public.ix_dmc_ng_machine;
 DROP INDEX IF EXISTS public.idx_ywd_ss_dashboard_date_shift;
@@ -328,6 +334,8 @@ DROP INDEX IF EXISTS public.idx_loop_pipe_dashboard_03_date_shift;
 DROP INDEX IF EXISTS public.idx_loop_pipe_dashboard_03_active;
 DROP INDEX IF EXISTS public.idx_loop_pipe_dashboard_01_date_shift;
 DROP INDEX IF EXISTS public.idx_loop_pipe_dashboard_01_active;
+DROP INDEX IF EXISTS public.idx_locationpin_lps3_dashboard_date_shift;
+DROP INDEX IF EXISTS public.idx_locationpin_lps3_dashboard_active;
 DROP INDEX IF EXISTS public.idx_load_status;
 DROP INDEX IF EXISTS public.idx_lhp_date;
 DROP INDEX IF EXISTS public.idx_l6_ur_ts;
@@ -476,6 +484,7 @@ ALTER TABLE IF EXISTS ONLY public.nut_lifting_dashboard DROP CONSTRAINT IF EXIST
 ALTER TABLE IF EXISTS ONLY public.nut_lifting_dashboard_ct_log DROP CONSTRAINT IF EXISTS nut_lifting_dashboard_ct_log_pkey;
 ALTER TABLE IF EXISTS ONLY public.mes_zones DROP CONSTRAINT IF EXISTS mes_zones_plant_id_zone_code_key;
 ALTER TABLE IF EXISTS ONLY public.mes_zones DROP CONSTRAINT IF EXISTS mes_zones_pkey;
+ALTER TABLE IF EXISTS ONLY public.mes_zone_escalation_shift DROP CONSTRAINT IF EXISTS mes_zone_escalation_shift_pkey;
 ALTER TABLE IF EXISTS ONLY public.mes_zone_escalation DROP CONSTRAINT IF EXISTS mes_zone_escalation_pkey;
 ALTER TABLE IF EXISTS ONLY public.mes_weld_master DROP CONSTRAINT IF EXISTS mes_weld_master_station_key;
 ALTER TABLE IF EXISTS ONLY public.mes_weld_master DROP CONSTRAINT IF EXISTS mes_weld_master_pkey;
@@ -580,10 +589,12 @@ ALTER TABLE IF EXISTS ONLY public.mes_py_model_columns DROP CONSTRAINT IF EXISTS
 ALTER TABLE IF EXISTS ONLY public.mes_py_model_columns DROP CONSTRAINT IF EXISTS mes_py_model_columns_col_key_key;
 ALTER TABLE IF EXISTS ONLY public.mes_py_master DROP CONSTRAINT IF EXISTS mes_py_master_py_no_key;
 ALTER TABLE IF EXISTS ONLY public.mes_py_master DROP CONSTRAINT IF EXISTS mes_py_master_pkey;
+ALTER TABLE IF EXISTS ONLY public.mes_py_manual_bypass DROP CONSTRAINT IF EXISTS mes_py_manual_bypass_pkey;
 ALTER TABLE IF EXISTS ONLY public.mes_py_instructions DROP CONSTRAINT IF EXISTS mes_py_instructions_py_no_line_id_key;
 ALTER TABLE IF EXISTS ONLY public.mes_py_instructions DROP CONSTRAINT IF EXISTS mes_py_instructions_pkey;
 ALTER TABLE IF EXISTS ONLY public.mes_py_images DROP CONSTRAINT IF EXISTS mes_py_images_pkey;
 ALTER TABLE IF EXISTS ONLY public.mes_py_config DROP CONSTRAINT IF EXISTS mes_py_config_pkey;
+ALTER TABLE IF EXISTS ONLY public.mes_py_bypass_mail DROP CONSTRAINT IF EXISTS mes_py_bypass_mail_pkey;
 ALTER TABLE IF EXISTS ONLY public.mes_py_bypass_cases DROP CONSTRAINT IF EXISTS mes_py_bypass_cases_pkey;
 ALTER TABLE IF EXISTS ONLY public.mes_py_bypass_bits DROP CONSTRAINT IF EXISTS mes_py_bypass_bits_pkey;
 ALTER TABLE IF EXISTS ONLY public.mes_py_assignments DROP CONSTRAINT IF EXISTS mes_py_assignments_py_id_model_id_key;
@@ -669,6 +680,7 @@ ALTER TABLE IF EXISTS ONLY public.mes_fg_parts DROP CONSTRAINT IF EXISTS mes_fg_
 ALTER TABLE IF EXISTS ONLY public.mes_fg_parts DROP CONSTRAINT IF EXISTS mes_fg_parts_pkey;
 ALTER TABLE IF EXISTS ONLY public.mes_fg_model_link DROP CONSTRAINT IF EXISTS mes_fg_model_link_pkey;
 ALTER TABLE IF EXISTS ONLY public.mes_fg_model_link DROP CONSTRAINT IF EXISTS mes_fg_model_link_line_id_model_number_key;
+ALTER TABLE IF EXISTS ONLY public.mes_fault_history DROP CONSTRAINT IF EXISTS mes_fault_history_pkey;
 ALTER TABLE IF EXISTS ONLY public.mes_fault_config DROP CONSTRAINT IF EXISTS mes_fault_config_pkey;
 ALTER TABLE IF EXISTS ONLY public.mes_dispatch_lots DROP CONSTRAINT IF EXISTS mes_dispatch_lots_pkey;
 ALTER TABLE IF EXISTS ONLY public.mes_dispatch_lots DROP CONSTRAINT IF EXISTS mes_dispatch_lots_lot_no_key;
@@ -738,6 +750,8 @@ ALTER TABLE IF EXISTS ONLY public.loop_pipe_dashboard_03 DROP CONSTRAINT IF EXIS
 ALTER TABLE IF EXISTS ONLY public.loop_pipe_dashboard_03_ct_log DROP CONSTRAINT IF EXISTS loop_pipe_dashboard_03_ct_log_pkey;
 ALTER TABLE IF EXISTS ONLY public.loop_pipe_dashboard_01 DROP CONSTRAINT IF EXISTS loop_pipe_dashboard_01_pkey;
 ALTER TABLE IF EXISTS ONLY public.loop_pipe_dashboard_01_ct_log DROP CONSTRAINT IF EXISTS loop_pipe_dashboard_01_ct_log_pkey;
+ALTER TABLE IF EXISTS ONLY public.locationpin_lps3_dashboard DROP CONSTRAINT IF EXISTS locationpin_lps3_dashboard_pkey;
+ALTER TABLE IF EXISTS ONLY public.locationpin_lps3_dashboard_ct_log DROP CONSTRAINT IF EXISTS locationpin_lps3_dashboard_ct_log_pkey;
 ALTER TABLE IF EXISTS ONLY public.lines DROP CONSTRAINT IF EXISTS lines_pkey;
 ALTER TABLE IF EXISTS ONLY public.lines DROP CONSTRAINT IF EXISTS lines_line_number_key;
 ALTER TABLE IF EXISTS ONLY public.line_stops DROP CONSTRAINT IF EXISTS line_stops_pkey;
@@ -959,6 +973,7 @@ ALTER TABLE IF EXISTS public.mes_global_status ALTER COLUMN id DROP DEFAULT;
 ALTER TABLE IF EXISTS public.mes_gas_log ALTER COLUMN id DROP DEFAULT;
 ALTER TABLE IF EXISTS public.mes_fg_parts ALTER COLUMN id DROP DEFAULT;
 ALTER TABLE IF EXISTS public.mes_fg_model_link ALTER COLUMN id DROP DEFAULT;
+ALTER TABLE IF EXISTS public.mes_fault_history ALTER COLUMN id DROP DEFAULT;
 ALTER TABLE IF EXISTS public.mes_fault_config ALTER COLUMN id DROP DEFAULT;
 ALTER TABLE IF EXISTS public.mes_dispatch_lots ALTER COLUMN id DROP DEFAULT;
 ALTER TABLE IF EXISTS public.mes_dispatch_loads ALTER COLUMN id DROP DEFAULT;
@@ -1005,6 +1020,8 @@ ALTER TABLE IF EXISTS public.loop_pipe_dashboard_03_ct_log ALTER COLUMN id DROP 
 ALTER TABLE IF EXISTS public.loop_pipe_dashboard_03 ALTER COLUMN id DROP DEFAULT;
 ALTER TABLE IF EXISTS public.loop_pipe_dashboard_01 ALTER COLUMN id DROP DEFAULT;
 ALTER TABLE IF EXISTS public.loop_pipe_dashboard ALTER COLUMN id DROP DEFAULT;
+ALTER TABLE IF EXISTS public.locationpin_lps3_dashboard_ct_log ALTER COLUMN id DROP DEFAULT;
+ALTER TABLE IF EXISTS public.locationpin_lps3_dashboard ALTER COLUMN id DROP DEFAULT;
 ALTER TABLE IF EXISTS public.lines ALTER COLUMN id DROP DEFAULT;
 ALTER TABLE IF EXISTS public.line_stops ALTER COLUMN id DROP DEFAULT;
 ALTER TABLE IF EXISTS public.line_hourly_production ALTER COLUMN id DROP DEFAULT;
@@ -1192,6 +1209,7 @@ DROP TABLE IF EXISTS public.nut_lifting_dashboard_ct_log;
 DROP TABLE IF EXISTS public.nut_lifting_dashboard;
 DROP SEQUENCE IF EXISTS public.mes_zones_id_seq;
 DROP TABLE IF EXISTS public.mes_zones;
+DROP TABLE IF EXISTS public.mes_zone_escalation_shift;
 DROP TABLE IF EXISTS public.mes_zone_escalation;
 DROP SEQUENCE IF EXISTS public.mes_weld_master_id_seq;
 DROP TABLE IF EXISTS public.mes_weld_master;
@@ -1315,6 +1333,7 @@ DROP SEQUENCE IF EXISTS public.mes_py_model_columns_id_seq;
 DROP TABLE IF EXISTS public.mes_py_model_columns;
 DROP SEQUENCE IF EXISTS public.mes_py_master_id_seq;
 DROP TABLE IF EXISTS public.mes_py_master;
+DROP TABLE IF EXISTS public.mes_py_manual_bypass;
 DROP SEQUENCE IF EXISTS public.mes_py_instructions_id_seq;
 DROP TABLE IF EXISTS public.mes_py_instructions;
 DROP SEQUENCE IF EXISTS public.mes_py_images_id_seq;
@@ -1322,6 +1341,7 @@ DROP TABLE IF EXISTS public.mes_py_images;
 DROP TABLE IF EXISTS public.mes_py_config_live;
 DROP SEQUENCE IF EXISTS public.mes_py_config_id_seq;
 DROP TABLE IF EXISTS public.mes_py_config;
+DROP TABLE IF EXISTS public.mes_py_bypass_mail;
 DROP SEQUENCE IF EXISTS public.mes_py_bypass_cases_id_seq;
 DROP TABLE IF EXISTS public.mes_py_bypass_cases;
 DROP TABLE IF EXISTS public.mes_py_bypass_bits;
@@ -1435,6 +1455,8 @@ DROP SEQUENCE IF EXISTS public.mes_fg_parts_id_seq;
 DROP TABLE IF EXISTS public.mes_fg_parts;
 DROP SEQUENCE IF EXISTS public.mes_fg_model_link_id_seq;
 DROP TABLE IF EXISTS public.mes_fg_model_link;
+DROP SEQUENCE IF EXISTS public.mes_fault_history_id_seq;
+DROP TABLE IF EXISTS public.mes_fault_history;
 DROP SEQUENCE IF EXISTS public.mes_fault_config_id_seq;
 DROP TABLE IF EXISTS public.mes_fault_config;
 DROP SEQUENCE IF EXISTS public.mes_dispatch_lots_id_seq;
@@ -1535,6 +1557,10 @@ DROP SEQUENCE IF EXISTS public.loop_pipe_dashboard_ct_log_id_seq;
 DROP TABLE IF EXISTS public.loop_pipe_dashboard_ct_log;
 DROP TABLE IF EXISTS public.loop_pipe_dashboard_01;
 DROP TABLE IF EXISTS public.loop_pipe_dashboard;
+DROP SEQUENCE IF EXISTS public.locationpin_lps3_dashboard_id_seq;
+DROP SEQUENCE IF EXISTS public.locationpin_lps3_dashboard_ct_log_id_seq;
+DROP TABLE IF EXISTS public.locationpin_lps3_dashboard_ct_log;
+DROP TABLE IF EXISTS public.locationpin_lps3_dashboard;
 DROP SEQUENCE IF EXISTS public.lines_id_seq;
 DROP TABLE IF EXISTS public.lines;
 DROP SEQUENCE IF EXISTS public.line_stops_id_seq;
@@ -1569,11 +1595,13 @@ DROP TABLE IF EXISTS public.daily_hourly_production_backup;
 DROP TABLE IF EXISTS public.daily_hourly_production;
 DROP SEQUENCE IF EXISTS public.biometric_attendance_id_seq;
 DROP TABLE IF EXISTS public.biometric_attendance;
+DROP TABLE IF EXISTS public.bak_zone_escalation_20260927;
 DROP TABLE IF EXISTS public.bak_ync_sa_6way_phantom_20260923;
 DROP TABLE IF EXISTS public.bak_lp3_b2_fake_ng_20260922;
 DROP TABLE IF EXISTS public.bak_lp2_hourly_20260922;
 DROP TABLE IF EXISTS public.bak_lp2_dup_sub_ct_log_20260921;
 DROP TABLE IF EXISTS public.bak_lp2_dup_main_ct_log_20260921;
+DROP TABLE IF EXISTS public.bak_break_configs_20260926;
 DROP SEQUENCE IF EXISTS public.attendance_final_id_seq;
 DROP TABLE IF EXISTS public.attendance_final;
 DROP SEQUENCE IF EXISTS public.andon_zones_id_seq;
@@ -1637,6 +1665,7 @@ DROP FUNCTION IF EXISTS public.sync_insert_attendance();
 DROP FUNCTION IF EXISTS public.sync_emp_master_update();
 DROP FUNCTION IF EXISTS public.sync_attendance_final();
 DROP FUNCTION IF EXISTS public.mes_ng_never_decrease();
+DROP FUNCTION IF EXISTS public.mes_esc_chain(p_zone integer, p_shift text);
 DROP FUNCTION IF EXISTS public.log_status_timeline();
 DROP FUNCTION IF EXISTS public.line_current_model();
 DROP FUNCTION IF EXISTS public.fix_stroke_counts_sequence();
@@ -1847,6 +1876,25 @@ BEGIN
 
 END;
 $$;
+
+
+--
+-- Name: mes_esc_chain(integer, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.mes_esc_chain(p_zone integer, p_shift text) RETURNS TABLE(level_no integer, admin_id integer)
+    LANGUAGE sql STABLE
+    AS $$
+                SELECT level_no, admin_id
+                  FROM mes_zone_escalation_shift
+                 WHERE zone_id = p_zone AND shift_name = p_shift
+                UNION ALL
+                SELECT level_no, admin_id
+                  FROM mes_zone_escalation
+                 WHERE zone_id = p_zone
+                   AND NOT EXISTS (SELECT 1 FROM mes_zone_escalation_shift
+                                    WHERE zone_id = p_zone AND shift_name = p_shift)
+            $$;
 
 
 --
@@ -3333,6 +3381,21 @@ ALTER SEQUENCE public.attendance_final_id_seq OWNED BY public.attendance_final.i
 
 
 --
+-- Name: bak_break_configs_20260926; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.bak_break_configs_20260926 (
+    id integer,
+    line_id integer,
+    break_name character varying(50),
+    start_time time without time zone,
+    end_time time without time zone,
+    crosses_midnight boolean,
+    applies_to_shifts character varying(50)
+);
+
+
+--
 -- Name: bak_lp2_dup_main_ct_log_20260921; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -3563,6 +3626,17 @@ CREATE TABLE public.bak_ync_sa_6way_phantom_20260923 (
     cycle_seq integer,
     part_code character varying(64),
     is_ng boolean
+);
+
+
+--
+-- Name: bak_zone_escalation_20260927; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.bak_zone_escalation_20260927 (
+    zone_id integer,
+    level_no integer,
+    admin_id integer
 );
 
 
@@ -4362,6 +4436,222 @@ CREATE SEQUENCE public.lines_id_seq
 --
 
 ALTER SEQUENCE public.lines_id_seq OWNED BY public.lines.id;
+
+
+--
+-- Name: locationpin_lps3_dashboard; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.locationpin_lps3_dashboard (
+    id integer NOT NULL,
+    "timestamp" timestamp without time zone DEFAULT now(),
+    record_date date,
+    shift_name character varying(20),
+    shift_start_time time without time zone,
+    shift_end_time time without time zone,
+    line_name character varying(100),
+    current_model_number integer,
+    current_model_name character varying(100),
+    ok_count integer DEFAULT 0,
+    ng_count integer DEFAULT 0,
+    shift_plan integer DEFAULT 1860,
+    shift_plan_remaining integer DEFAULT 1860,
+    shift_plan_completed integer DEFAULT 0,
+    cycle_time_plan numeric(5,2) DEFAULT 15.00,
+    cycle_time_actual numeric(5,2) DEFAULT 0.00,
+    operating_status character varying(30),
+    availability numeric(5,2) DEFAULT 0.00,
+    performance numeric(5,2) DEFAULT 0.00,
+    quality_oee numeric(5,2) DEFAULT 0.00,
+    overall_oee numeric(5,2) DEFAULT 0.00,
+    oee_grade character varying(20),
+    is_shift_completed boolean DEFAULT false,
+    period_type character varying(10),
+    is_gap_time boolean DEFAULT false,
+    loss_breakdown_seconds integer DEFAULT 0,
+    loss_quality_seconds integer DEFAULT 0,
+    loss_setup_seconds integer DEFAULT 0,
+    loss_material_seconds integer DEFAULT 0,
+    loss_others_seconds integer DEFAULT 0,
+    loss_speed_seconds integer DEFAULT 0,
+    loss_change_over_seconds integer DEFAULT 0,
+    loss_breakdown character varying(20) DEFAULT '00:00:00'::character varying,
+    loss_quality character varying(20) DEFAULT '00:00:00'::character varying,
+    loss_setup character varying(20) DEFAULT '00:00:00'::character varying,
+    loss_material character varying(20) DEFAULT '00:00:00'::character varying,
+    loss_others character varying(20) DEFAULT '00:00:00'::character varying,
+    loss_speed character varying(20) DEFAULT '00:00:00'::character varying,
+    loss_change_over character varying(20) DEFAULT '00:00:00'::character varying,
+    total_loss character varying(20) DEFAULT '00:00:00'::character varying,
+    ct1 numeric(7,2),
+    ct2 numeric(7,2),
+    ct3 numeric(7,2),
+    ct4 numeric(7,2),
+    ct5 numeric(7,2),
+    ct6 numeric(7,2),
+    ct7 numeric(7,2),
+    ct8 numeric(7,2),
+    ct9 numeric(7,2),
+    ct10 numeric(7,2),
+    ct11 numeric(7,2),
+    ct12 numeric(7,2),
+    ct13 numeric(7,2),
+    ct14 numeric(7,2),
+    ct15 numeric(7,2),
+    ct16 numeric(7,2),
+    ct17 numeric(7,2),
+    ct18 numeric(7,2),
+    ct19 numeric(7,2),
+    ct20 numeric(7,2),
+    ct_avg_20 numeric(7,2),
+    min_ct numeric(7,2),
+    max_ct numeric(7,2),
+    std_dev_ct numeric(7,2),
+    hour_0830_0930_plan integer DEFAULT 0,
+    hour_0830_0930_actual integer DEFAULT 0,
+    hour_0830_0930_variance integer DEFAULT 0,
+    hour_0830_0930_ok integer DEFAULT 0,
+    hour_0830_0930_ng integer DEFAULT 0,
+    hour_0930_1030_plan integer DEFAULT 0,
+    hour_0930_1030_actual integer DEFAULT 0,
+    hour_0930_1030_variance integer DEFAULT 0,
+    hour_0930_1030_ok integer DEFAULT 0,
+    hour_0930_1030_ng integer DEFAULT 0,
+    hour_1030_1130_plan integer DEFAULT 0,
+    hour_1030_1130_actual integer DEFAULT 0,
+    hour_1030_1130_variance integer DEFAULT 0,
+    hour_1030_1130_ok integer DEFAULT 0,
+    hour_1030_1130_ng integer DEFAULT 0,
+    hour_1130_1305_plan integer DEFAULT 0,
+    hour_1130_1305_actual integer DEFAULT 0,
+    hour_1130_1305_variance integer DEFAULT 0,
+    hour_1130_1305_ok integer DEFAULT 0,
+    hour_1130_1305_ng integer DEFAULT 0,
+    hour_1305_1405_plan integer DEFAULT 0,
+    hour_1305_1405_actual integer DEFAULT 0,
+    hour_1305_1405_variance integer DEFAULT 0,
+    hour_1305_1405_ok integer DEFAULT 0,
+    hour_1305_1405_ng integer DEFAULT 0,
+    hour_1405_1505_plan integer DEFAULT 0,
+    hour_1405_1505_actual integer DEFAULT 0,
+    hour_1405_1505_variance integer DEFAULT 0,
+    hour_1405_1505_ok integer DEFAULT 0,
+    hour_1405_1505_ng integer DEFAULT 0,
+    hour_1505_1605_plan integer DEFAULT 0,
+    hour_1505_1605_actual integer DEFAULT 0,
+    hour_1505_1605_variance integer DEFAULT 0,
+    hour_1505_1605_ok integer DEFAULT 0,
+    hour_1505_1605_ng integer DEFAULT 0,
+    hour_1605_1715_plan integer DEFAULT 0,
+    hour_1605_1715_actual integer DEFAULT 0,
+    hour_1605_1715_variance integer DEFAULT 0,
+    hour_1605_1715_ok integer DEFAULT 0,
+    hour_1605_1715_ng integer DEFAULT 0,
+    hour_1830_1930_plan integer DEFAULT 0,
+    hour_1830_1930_actual integer DEFAULT 0,
+    hour_1830_1930_variance integer DEFAULT 0,
+    hour_1830_1930_ok integer DEFAULT 0,
+    hour_1830_1930_ng integer DEFAULT 0,
+    hour_1930_2030_plan integer DEFAULT 0,
+    hour_1930_2030_actual integer DEFAULT 0,
+    hour_1930_2030_variance integer DEFAULT 0,
+    hour_1930_2030_ok integer DEFAULT 0,
+    hour_1930_2030_ng integer DEFAULT 0,
+    hour_2030_2130_plan integer DEFAULT 0,
+    hour_2030_2130_actual integer DEFAULT 0,
+    hour_2030_2130_variance integer DEFAULT 0,
+    hour_2030_2130_ok integer DEFAULT 0,
+    hour_2030_2130_ng integer DEFAULT 0,
+    hour_2130_2305_plan integer DEFAULT 0,
+    hour_2130_2305_actual integer DEFAULT 0,
+    hour_2130_2305_variance integer DEFAULT 0,
+    hour_2130_2305_ok integer DEFAULT 0,
+    hour_2130_2305_ng integer DEFAULT 0,
+    hour_2305_0005_plan integer DEFAULT 0,
+    hour_2305_0005_actual integer DEFAULT 0,
+    hour_2305_0005_variance integer DEFAULT 0,
+    hour_2305_0005_ok integer DEFAULT 0,
+    hour_2305_0005_ng integer DEFAULT 0,
+    hour_0005_0105_plan integer DEFAULT 0,
+    hour_0005_0105_actual integer DEFAULT 0,
+    hour_0005_0105_variance integer DEFAULT 0,
+    hour_0005_0105_ok integer DEFAULT 0,
+    hour_0005_0105_ng integer DEFAULT 0,
+    hour_0105_0205_plan integer DEFAULT 0,
+    hour_0105_0205_actual integer DEFAULT 0,
+    hour_0105_0205_variance integer DEFAULT 0,
+    hour_0105_0205_ok integer DEFAULT 0,
+    hour_0105_0205_ng integer DEFAULT 0,
+    hour_0205_0315_plan integer DEFAULT 0,
+    hour_0205_0315_actual integer DEFAULT 0,
+    hour_0205_0315_variance integer DEFAULT 0,
+    hour_0205_0315_ok integer DEFAULT 0,
+    hour_0205_0315_ng integer DEFAULT 0,
+    hour_1715_1830_actual integer DEFAULT 0,
+    hour_1715_1830_ok integer DEFAULT 0,
+    hour_1715_1830_ng integer DEFAULT 0,
+    hour_0315_0415_actual integer DEFAULT 0,
+    hour_0315_0415_ok integer DEFAULT 0,
+    hour_0315_0415_ng integer DEFAULT 0,
+    created_at timestamp without time zone DEFAULT now(),
+    updated_at timestamp without time zone DEFAULT now()
+);
+
+
+--
+-- Name: locationpin_lps3_dashboard_ct_log; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.locationpin_lps3_dashboard_ct_log (
+    id integer NOT NULL,
+    ts timestamp without time zone NOT NULL,
+    record_date date NOT NULL,
+    shift_name character varying(20),
+    ct_value numeric(7,2) NOT NULL,
+    cycle_seq integer,
+    part_code character varying(64),
+    is_ng boolean DEFAULT false
+);
+
+
+--
+-- Name: locationpin_lps3_dashboard_ct_log_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.locationpin_lps3_dashboard_ct_log_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: locationpin_lps3_dashboard_ct_log_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.locationpin_lps3_dashboard_ct_log_id_seq OWNED BY public.locationpin_lps3_dashboard_ct_log.id;
+
+
+--
+-- Name: locationpin_lps3_dashboard_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.locationpin_lps3_dashboard_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: locationpin_lps3_dashboard_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.locationpin_lps3_dashboard_id_seq OWNED BY public.locationpin_lps3_dashboard.id;
 
 
 --
@@ -6812,6 +7102,48 @@ ALTER SEQUENCE public.mes_fault_config_id_seq OWNED BY public.mes_fault_config.i
 
 
 --
+-- Name: mes_fault_history; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.mes_fault_history (
+    id bigint NOT NULL,
+    fault_id integer,
+    machine_id integer NOT NULL,
+    line_id integer,
+    zone_id integer,
+    machine_name text,
+    fault_name text NOT NULL,
+    source_type text,
+    address text,
+    trigger_value integer,
+    started_at timestamp with time zone DEFAULT now() NOT NULL,
+    ended_at timestamp with time zone,
+    duration_s numeric(12,2),
+    record_date date,
+    shift_name text
+);
+
+
+--
+-- Name: mes_fault_history_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.mes_fault_history_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: mes_fault_history_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.mes_fault_history_id_seq OWNED BY public.mes_fault_history.id;
+
+
+--
 -- Name: mes_fg_model_link; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -8934,7 +9266,8 @@ CREATE TABLE public.mes_py_bypass_bits (
     active boolean DEFAULT true NOT NULL,
     note text,
     updated_by text,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    bypass_bit_addr text DEFAULT ''::text NOT NULL
 );
 
 
@@ -8993,6 +9326,20 @@ CREATE SEQUENCE public.mes_py_bypass_cases_id_seq
 --
 
 ALTER SEQUENCE public.mes_py_bypass_cases_id_seq OWNED BY public.mes_py_bypass_cases.id;
+
+
+--
+-- Name: mes_py_bypass_mail; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.mes_py_bypass_mail (
+    line_id integer NOT NULL,
+    shift_name text DEFAULT ''::text NOT NULL,
+    to_addrs text DEFAULT ''::text NOT NULL,
+    cc_addrs text DEFAULT ''::text NOT NULL,
+    updated_by text,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
 
 
 --
@@ -9144,6 +9491,20 @@ CREATE SEQUENCE public.mes_py_instructions_id_seq
 --
 
 ALTER SEQUENCE public.mes_py_instructions_id_seq OWNED BY public.mes_py_instructions.id;
+
+
+--
+-- Name: mes_py_manual_bypass; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.mes_py_manual_bypass (
+    line_id integer NOT NULL,
+    machine_key text DEFAULT ''::text NOT NULL,
+    is_on boolean DEFAULT false NOT NULL,
+    reason text,
+    turned_by text,
+    turned_at timestamp with time zone DEFAULT now() NOT NULL
+);
 
 
 --
@@ -10288,7 +10649,8 @@ CREATE TABLE public.mes_sixsigma_config (
     updated_by text,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
     cam1_cid text,
-    cam2_cid text
+    cam2_cid text,
+    machine_plc_id integer
 );
 
 
@@ -11582,6 +11944,18 @@ ALTER SEQUENCE public.mes_weld_master_id_seq OWNED BY public.mes_weld_master.id;
 
 CREATE TABLE public.mes_zone_escalation (
     zone_id integer NOT NULL,
+    level_no integer NOT NULL,
+    admin_id integer NOT NULL
+);
+
+
+--
+-- Name: mes_zone_escalation_shift; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.mes_zone_escalation_shift (
+    zone_id integer NOT NULL,
+    shift_name character varying(10) NOT NULL,
     level_no integer NOT NULL,
     admin_id integer NOT NULL
 );
@@ -18989,6 +19363,20 @@ ALTER TABLE ONLY public.lines ALTER COLUMN id SET DEFAULT nextval('public.lines_
 
 
 --
+-- Name: locationpin_lps3_dashboard id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.locationpin_lps3_dashboard ALTER COLUMN id SET DEFAULT nextval('public.locationpin_lps3_dashboard_id_seq'::regclass);
+
+
+--
+-- Name: locationpin_lps3_dashboard_ct_log id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.locationpin_lps3_dashboard_ct_log ALTER COLUMN id SET DEFAULT nextval('public.locationpin_lps3_dashboard_ct_log_id_seq'::regclass);
+
+
+--
 -- Name: loop_pipe_dashboard id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -19308,6 +19696,13 @@ ALTER TABLE ONLY public.mes_dispatch_lots ALTER COLUMN id SET DEFAULT nextval('p
 --
 
 ALTER TABLE ONLY public.mes_fault_config ALTER COLUMN id SET DEFAULT nextval('public.mes_fault_config_id_seq'::regclass);
+
+
+--
+-- Name: mes_fault_history id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.mes_fault_history ALTER COLUMN id SET DEFAULT nextval('public.mes_fault_history_id_seq'::regclass);
 
 
 --
@@ -21633,6 +22028,38 @@ COPY public.andon_zones (id, name, created_at) FROM stdin;
 
 
 --
+-- Data for Name: bak_break_configs_20260926; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.bak_break_configs_20260926 (id, line_id, break_name, start_time, end_time, crosses_midnight, applies_to_shifts) FROM stdin;
+617	33	Night Tea Break	01:00:00	01:10:00	t	B
+618	33	Early Morning Break	04:00:00	04:10:00	t	B
+625	34	Night Tea Break	01:00:00	01:10:00	t	B
+626	34	Early Morning Break	04:00:00	04:10:00	t	B
+633	35	Night Tea Break	01:00:00	01:10:00	t	B
+634	35	Early Morning Break	04:00:00	04:10:00	t	B
+239	30	Night Tea Break	01:00:00	01:10:00	t	B
+240	30	Early Morning Break	04:00:00	04:10:00	t	B
+247	21	Night Tea Break	01:00:00	01:10:00	t	B
+248	21	Early Morning Break	04:00:00	04:10:00	t	B
+255	31	Night Tea Break	01:00:00	01:10:00	t	B
+256	31	Early Morning Break	04:00:00	04:10:00	t	B
+641	36	Night Tea Break	01:00:00	01:10:00	t	B
+642	36	Early Morning Break	04:00:00	04:10:00	t	B
+649	37	Night Tea Break	01:00:00	01:10:00	t	B
+650	37	Early Morning Break	04:00:00	04:10:00	t	B
+657	38	Night Tea Break	01:00:00	01:10:00	t	B
+658	38	Early Morning Break	04:00:00	04:10:00	t	B
+665	39	Night Tea Break	01:00:00	01:10:00	t	B
+666	39	Early Morning Break	04:00:00	04:10:00	t	B
+673	40	Night Tea Break	01:00:00	01:10:00	t	B
+674	40	Early Morning Break	04:00:00	04:10:00	t	B
+681	41	Night Tea Break	01:00:00	01:10:00	t	B
+682	41	Early Morning Break	04:00:00	04:10:00	t	B
+\.
+
+
+--
 -- Data for Name: bak_lp2_hourly_20260922; Type: TABLE DATA; Schema: public; Owner: -
 --
 
@@ -22263,6 +22690,25 @@ COPY public.bak_ync_sa_6way_phantom_20260923 (id, ts, record_date, shift_name, c
 5040	2026-09-23 12:21:32.524912	2026-09-23	A	0.00	64	\N	f
 5041	2026-09-23 12:21:32.524912	2026-09-23	A	0.00	65	\N	f
 5042	2026-09-23 12:21:32.524912	2026-09-23	A	0.00	66	\N	f
+\.
+
+
+--
+-- Data for Name: bak_zone_escalation_20260927; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.bak_zone_escalation_20260927 (zone_id, level_no, admin_id) FROM stdin;
+1	1	8
+1	2	21
+1	3	20
+1	4	18
+3	1	52
+3	2	32
+3	3	18
+2	1	16
+2	2	27
+2	3	25
+2	4	18
 \.
 
 
@@ -24562,6 +25008,25 @@ COPY public.lines (id, line_number, line_name, created_at) FROM stdin;
 
 
 --
+-- Data for Name: locationpin_lps3_dashboard; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.locationpin_lps3_dashboard (id, "timestamp", record_date, shift_name, shift_start_time, shift_end_time, line_name, current_model_number, current_model_name, ok_count, ng_count, shift_plan, shift_plan_remaining, shift_plan_completed, cycle_time_plan, cycle_time_actual, operating_status, availability, performance, quality_oee, overall_oee, oee_grade, is_shift_completed, period_type, is_gap_time, loss_breakdown_seconds, loss_quality_seconds, loss_setup_seconds, loss_material_seconds, loss_others_seconds, loss_speed_seconds, loss_change_over_seconds, loss_breakdown, loss_quality, loss_setup, loss_material, loss_others, loss_speed, loss_change_over, total_loss, ct1, ct2, ct3, ct4, ct5, ct6, ct7, ct8, ct9, ct10, ct11, ct12, ct13, ct14, ct15, ct16, ct17, ct18, ct19, ct20, ct_avg_20, min_ct, max_ct, std_dev_ct, hour_0830_0930_plan, hour_0830_0930_actual, hour_0830_0930_variance, hour_0830_0930_ok, hour_0830_0930_ng, hour_0930_1030_plan, hour_0930_1030_actual, hour_0930_1030_variance, hour_0930_1030_ok, hour_0930_1030_ng, hour_1030_1130_plan, hour_1030_1130_actual, hour_1030_1130_variance, hour_1030_1130_ok, hour_1030_1130_ng, hour_1130_1305_plan, hour_1130_1305_actual, hour_1130_1305_variance, hour_1130_1305_ok, hour_1130_1305_ng, hour_1305_1405_plan, hour_1305_1405_actual, hour_1305_1405_variance, hour_1305_1405_ok, hour_1305_1405_ng, hour_1405_1505_plan, hour_1405_1505_actual, hour_1405_1505_variance, hour_1405_1505_ok, hour_1405_1505_ng, hour_1505_1605_plan, hour_1505_1605_actual, hour_1505_1605_variance, hour_1505_1605_ok, hour_1505_1605_ng, hour_1605_1715_plan, hour_1605_1715_actual, hour_1605_1715_variance, hour_1605_1715_ok, hour_1605_1715_ng, hour_1830_1930_plan, hour_1830_1930_actual, hour_1830_1930_variance, hour_1830_1930_ok, hour_1830_1930_ng, hour_1930_2030_plan, hour_1930_2030_actual, hour_1930_2030_variance, hour_1930_2030_ok, hour_1930_2030_ng, hour_2030_2130_plan, hour_2030_2130_actual, hour_2030_2130_variance, hour_2030_2130_ok, hour_2030_2130_ng, hour_2130_2305_plan, hour_2130_2305_actual, hour_2130_2305_variance, hour_2130_2305_ok, hour_2130_2305_ng, hour_2305_0005_plan, hour_2305_0005_actual, hour_2305_0005_variance, hour_2305_0005_ok, hour_2305_0005_ng, hour_0005_0105_plan, hour_0005_0105_actual, hour_0005_0105_variance, hour_0005_0105_ok, hour_0005_0105_ng, hour_0105_0205_plan, hour_0105_0205_actual, hour_0105_0205_variance, hour_0105_0205_ok, hour_0105_0205_ng, hour_0205_0315_plan, hour_0205_0315_actual, hour_0205_0315_variance, hour_0205_0315_ok, hour_0205_0315_ng, hour_1715_1830_actual, hour_1715_1830_ok, hour_1715_1830_ng, hour_0315_0415_actual, hour_0315_0415_ok, hour_0315_0415_ng, created_at, updated_at) FROM stdin;
+1	2026-09-25 14:44:41.386889	2026-09-25	A	08:30:00	\N	LOCATION PIN STACKING - LPS-3	\N	\N	0	0	2475	2475	0	2.90	0.00	IDLE	0.00	0.00	0.00	0.00	\N	t	SHIFT	f	0	0	0	0	0	0	0	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2026-09-25 14:44:41.386889	2026-09-25 17:15:00.07307
+2	2026-09-25 17:15:00.079438	2026-09-25	GAP_AB	17:15:00	\N	LOCATION PIN STACKING - LPS-3	\N	\N	0	0	0	0	0	2.90	0.00	0	0.00	0.00	0.00	0.00	\N	t	GAP	t	0	0	0	0	0	0	0	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2026-09-25 17:15:00.079438	2026-09-25 18:30:00.048925
+8	2026-09-27 03:15:00.023256	2026-09-27	GAP_BA	03:15:00	\N	LOCATION PIN STACKING - LPS-3	\N	\N	0	0	0	0	0	2.90	0.00	IDLE	0.00	0.00	0.00	0.00	\N	t	GAP	t	0	0	0	0	0	0	0	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2026-09-27 03:15:00.023256	2026-09-27 08:30:00.047922
+9	2026-09-27 08:30:00.057676	2026-09-27	A	08:30:00	\N	LOCATION PIN STACKING - LPS-3	\N	\N	0	0	2475	2475	0	2.90	0.00	IDLE	0.00	0.00	0.00	0.00	\N	t	SHIFT	f	0	0	0	0	0	0	0	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2026-09-27 08:30:00.057676	2026-09-27 17:15:00.068415
+3	2026-09-26 03:14:58.685	2026-09-25	B	18:30:00	\N	LOCATION PIN STACKING - LPS-3	1	Unknown	3405	0	2475	2475	0	2.90	2.90	BREAK	99.99	99.99	99.99	99.99	EXCELLENT	t	SHIFT	f	0	0	0	0	0	0	0	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2.90	2.90	2.90	0.00	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2026-09-25 18:30:00.054719	2026-09-26 03:14:58.685
+7	2026-09-27 03:14:58.357796	2026-09-26	B	18:30:00	\N	LOCATION PIN STACKING - LPS-3	1	Unknown	3240	0	2475	0	2475	2.90	8.04	IDLE	99.99	0.00	99.99	0.00	POOR	t	SHIFT	f	0	0	0	0	0	24177	0	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	06:42:57	00:00:00	06:42:57	9.59	14.72	5.50	7.72	5.19	14.95	5.03	6.12	5.07	5.44	11.22	5.26	5.36	5.60	5.25	17.05	10.91	5.08	5.50	10.29	8.04	5.03	17.05	3.88	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2026-09-26 18:30:00.047426	2026-09-27 03:14:58.357796
+10	2026-09-27 17:15:00.075964	2026-09-27	GAP_AB	17:15:00	\N	LOCATION PIN STACKING - LPS-3	\N	\N	0	0	0	0	0	2.90	0.00	IDLE	0.00	0.00	0.00	0.00	\N	t	GAP	t	0	0	0	0	0	0	0	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2026-09-27 17:15:00.075964	2026-09-27 18:30:00.052108
+11	2026-09-27 18:30:00.064302	2026-09-27	B	18:30:00	\N	LOCATION PIN STACKING - LPS-3	\N	\N	0	0	2475	2475	0	2.90	0.00	IDLE	0.00	0.00	0.00	0.00	\N	f	SHIFT	f	0	0	0	0	0	0	0	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2026-09-27 18:30:00.064302	2026-09-27 18:30:00.064302
+4	2026-09-26 03:15:00.034822	2026-09-26	GAP_BA	03:15:00	\N	LOCATION PIN STACKING - LPS-3	\N	\N	0	0	0	0	0	2.90	0.00	0	0.00	0.00	0.00	0.00	\N	t	GAP	t	0	0	0	0	0	0	0	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2026-09-26 03:15:00.034822	2026-09-26 08:30:00.039208
+5	2026-09-26 08:30:00.046282	2026-09-26	A	08:30:00	\N	LOCATION PIN STACKING - LPS-3	\N	\N	0	0	2475	2475	0	2.90	0.00	0	0.00	0.00	0.00	0.00	\N	t	SHIFT	f	0	0	0	0	0	0	0	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2026-09-26 08:30:00.046282	2026-09-26 17:15:01.966403
+6	2026-09-26 17:15:01.975251	2026-09-26	GAP_AB	17:15:00	\N	LOCATION PIN STACKING - LPS-3	\N	\N	0	0	0	0	0	2.90	0.00	BREAK	0.00	0.00	0.00	0.00	\N	t	GAP	t	0	0	0	0	0	0	0	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	00:00:00	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2026-09-26 17:15:01.975251	2026-09-26 18:30:00.038537
+\.
+
+
+--
 -- Data for Name: machine_dmc_fill_ng_point; Type: TABLE DATA; Schema: public; Owner: -
 --
 
@@ -25424,32 +25889,30 @@ COPY public.mes_5s_photos (id, audit_id, pillar, photo_data, photo_url, caption,
 --
 
 COPY public.mes_admin (id, username, password_hash, last_login, created_at, role, department_id, password_plain) FROM stdin;
+30	sanjay	$2b$12$.tgUM4sVjGaQzkKYZ7.v8eLXX72eWszLAKO7NN7jXDSH4waIp6L6S	2026-09-25 18:46:24.8204	2026-08-27 11:49:44.323913	shift_incharge	\N	Sanjay@1990
 65	pradeep	$2b$12$E0G55rZh.ojzBAYRZy.bxOom9rFtElpYf0cR5/sujMrVsLz98YcXS	2026-09-25 09:48:32.292224	2026-09-21 10:26:04.078106	quality_incharge	\N	pradeep146
 59	Jatin Khurana	$2b$12$/dynLUaarR29faYC/weBOeL81zUFqspItbTFfeZgqeSKPTs5Tx/hm	\N	2026-09-19 15:15:20.959862	leader	\N	0332
 9	Quality	$2b$12$oS/dvtXyxf9xmGw7N4czg.4vsySsmHIWyHEXyvE6NkGgWyam/nCkW	2026-06-20 12:09:38.480951	2026-05-01 12:35:48.339698	department	2	\N
 34	ysd	$2b$12$TinuYTW21G.csn/KQlgtCub6uE59sfbNFT9veurXBwIadH77hMzi2	2026-09-13 22:36:08.127571	2026-09-13 17:32:54.799356	operator	\N	ysd
 60	Deepak	$2b$12$8Rw2tYpSL0DDljummLg2IeYPprC6d6zS78nyRvuYbPsep4Cz90qc2	\N	2026-09-19 15:15:38.812639	leader	\N	0397
 32	jitender	$2b$12$xrMU4hcnj0/ip9CGI.IVmu23QG8wuOdteUNZbz2ONX.LzgiaLG7aO	2026-09-10 12:10:07.18684	2026-09-08 14:02:08.864456	section_incharge	\N	jitender@1987
-69	6sigma	$2b$12$1p4RMqnFphq2pAUrNI5u1Ohvbtw5/SzX3LMXsPnpdsrR7s5etx7bO	2026-09-25 12:43:44.976568	2026-09-25 09:50:39.011918	quality_incharge	\N	sigma@123
-18	shrawan	$2b$12$xAEM5JX3gRvrNgO5s2hscu7Q0m7R7S/ljpcCj1JrIrc02Ws0jieWq	2026-09-25 10:06:48.940497	2026-08-14 11:03:39.007327	production_incharge	\N	shrawan@123
 67	Jony Singh	$2b$12$pLD9IsKkep/UlL3kfkS4u.FXk5D6r5qn8v84atgk9smDaAg73rj2i	\N	2026-09-23 08:58:35.635909	leader	\N	0194
 66	sa	$2b$12$ZRyvxyWsNOWj//xJq4wgqeoJ6jhWiWpB.zUoDv6QJvJ1FX3.gjP0i	2026-09-22 10:21:49.636538	2026-09-22 10:20:01.855279	production	\N	sa123
 27	jony	$2b$12$PiUkniDyGnHLHCHPRHSHCe1PNaUTXPzV1brmopBnpg2e/U68uy5KW	2026-09-21 17:12:28.297927	2026-08-21 14:25:07.701129	shift_incharge	\N	jony@123
+21	himanshu	$2b$12$L7umW1/AQ9p4i9GCztx45eYxPEfywOU6fOdHYnxScC9gpexd8Hfw.	2026-09-26 11:30:04.839737	2026-08-21 14:04:22.715309	shift_incharge	\N	himanshu123
 23	rakesh	$2b$12$oytWyaptEEI7KfIMgBwoY.fsOeyIFA4ygFFoTL.Vnosw3A5hcLapu	\N	2026-08-21 14:12:36.103216	production	\N	rakesh123
-17	ywd	$2b$12$yEEbC2a0HOr8fPXydCm/oemmUlfjN9WAfc51LGWQ7K0GkUE.xfPrK	2026-09-25 08:27:22.969808	2026-08-07 16:00:51.564004	operator	\N	ywd123
-1	admin	$2b$12$h1YEAzXWeMldMWYpo3YaWOc.orY7n1sqTo8MRTV8Yjj9Dc3B3QzKW	2026-09-25 13:49:06.605202	2026-03-23 11:13:37.45489	admin	\N	\N
+26	lp	$2b$12$5QmHbU5e67vmcNuTT0uP4e8r6sbEL8WCG9b7Hz2SVAQMVeeGxMh9y	2026-09-26 09:11:29.432128	2026-08-21 14:24:11.099501	operator	\N	lp123
 61	Dinesh	$2b$12$V4pII8SEXOC8LC3HbjsYwurSr.s5TzSvs2OPBfQyLeVLPdbKy7dLi	\N	2026-09-19 15:16:01.388974	leader	\N	0384
+38	ss	$2b$12$dfoX4chP0XJ928JvMaVV8OYwPN87VkySEwN/Vs6TJSTRQ1GLjxR9u	2026-09-27 19:54:47.328763	2026-09-15 11:31:50.490713	operator	\N	ss123
 62	Sagar	$2b$12$SZQW/BC8MezLzqpN6dfBJ.eAXV558Xoqt2r8gFR8BWJf1O3BadM4q	\N	2026-09-19 15:16:30.628894	leader	\N	0399
 28	sandeep	$2b$12$t24eh1vTCv392qlIAk/y6.jT.TQfcrcx6e4GNtNdBQ2GjUx/jEMhm	2026-09-02 11:57:36.214822	2026-08-21 14:26:17.802385	shift_incharge	\N	sandeep@123
-16	rc	$2b$12$wA9DbNxlUgQYM.BVR5/NDO1o2kLsUP6xYk3V00JOhVHWcTmYy1Jzq	2026-09-25 10:13:28.007416	2026-08-07 10:22:11.231535	operator	\N	rc123
+17	ywd	$2b$12$yEEbC2a0HOr8fPXydCm/oemmUlfjN9WAfc51LGWQ7K0GkUE.xfPrK	2026-09-26 08:44:21.849793	2026-08-07 16:00:51.564004	operator	\N	ywd123
 41	Arunesh	$2b$12$VwSNBCw.yuEq4Imy3rhGfu7C4ML50Y7TmgZ5bpzNKkC19ao9h0IHO	\N	2026-09-15 13:56:18.805102	leader	\N	0271
-21	himanshu	$2b$12$L7umW1/AQ9p4i9GCztx45eYxPEfywOU6fOdHYnxScC9gpexd8Hfw.	2026-09-25 09:12:59.84581	2026-08-21 14:04:22.715309	shift_incharge	\N	himanshu123
-38	ss	$2b$12$dfoX4chP0XJ928JvMaVV8OYwPN87VkySEwN/Vs6TJSTRQ1GLjxR9u	2026-09-25 13:59:38.015059	2026-09-15 11:31:50.490713	operator	\N	ss123
-26	lp	$2b$12$5QmHbU5e67vmcNuTT0uP4e8r6sbEL8WCG9b7Hz2SVAQMVeeGxMh9y	2026-09-18 10:43:24.61905	2026-08-21 14:24:11.099501	operator	\N	lp123
+1	admin	$2b$12$h1YEAzXWeMldMWYpo3YaWOc.orY7n1sqTo8MRTV8Yjj9Dc3B3QzKW	2026-09-27 20:41:49.794725	2026-03-23 11:13:37.45489	admin	\N	\N
+16	rc	$2b$12$wA9DbNxlUgQYM.BVR5/NDO1o2kLsUP6xYk3V00JOhVHWcTmYy1Jzq	2026-09-27 12:07:57.552147	2026-08-07 10:22:11.231535	operator	\N	rc123
 43	Bhagat	$2b$12$R2Mco5/bcqeBGGINp0we/eS5zz2V44JfF.AdhTPdYJduoh4pt6bdK	2026-09-16 22:46:43.738854	2026-09-15 13:58:34.406715	leader	\N	0344
 25	nagender	$2b$12$FwaHwkFHMvumlXQSHMiFEuhi4jP.XYztpqDv9jT9nTBv4Ci09wYna	2026-09-07 13:30:26.299449	2026-08-21 14:20:40.359777	section_incharge	\N	nagender@123
 31	satish	$2b$12$wviFxoQL61mJXp9oFHTI6ukb9KheEDq5AswWVGFiplAHQWWSsagyS	2026-09-07 14:00:08.6195	2026-09-07 13:21:15.858887	production	\N	satish@123
-11	pankaj	$2b$12$at.JqzSodIl7qDa7UzpzEO5VcIfSM7x8FV0zHh2WH1xavj/QTwETu	2026-09-25 14:01:57.780457	2026-06-16 14:54:06.760368	production	\N	pankaj
 53	surender	$2b$12$rWY5nvJnpyugDFREiuXwQ.z/HmstFvqM/N3lyo0coVSX9X8vcHMH.	2026-09-15 15:41:38.459864	2026-09-15 15:26:56.965946	section_incharge	\N	surender123
 40	Sunil	$2b$12$IXGfyN2rnrTZVBuZ3/k/N.W/z8xrWNvsf1E7SiwoHIzclT3emhIrq	\N	2026-09-15 13:56:01.761793	leader	\N	0383
 44	Jatin	$2b$12$YyTCulCUbNxmN0SiDsrll.q.bwBQqQs2v7s3PB773IRLtcAqtnEAi	\N	2026-09-15 13:58:49.33067	leader	\N	0376
@@ -25461,10 +25924,12 @@ COPY public.mes_admin (id, username, password_hash, last_login, created_at, role
 45	Manu Dev	$2b$12$Iwqyune/K0NIBNBI.hnqKu3lEheX2Hzgh4UZcRz1swQUtxajvcgq2	\N	2026-09-15 13:59:13.218125	leader	\N	0305
 22	naveen	$2b$12$rD/uLA.Fw0ZtJsfE/TWequJ2pbb0GUqUpcHFHfXZU5S/G0EkNfuxW	2026-09-19 17:17:43.781854	2026-08-21 14:06:21.091617	shift_incharge	\N	naveen123
 46	Siddhant	$2b$12$ffrsKot5WKs3TMXI0vAYzeFXWtjSDO7Q0ZPmxg7R0FoJ1.zivHLNm	\N	2026-09-15 13:59:40.540429	leader	\N	0353
-20	sanjeev	$2b$12$0zQA4bTDG0Pl2A9uN8p.jecEGIyMuFfV5OJ0ceAZFshxfUWbuNDrq	2026-09-23 15:57:48.768354	2026-08-21 13:57:24.448184	section_incharge	\N	sanjeev123
+20	sanjeev	$2b$12$0zQA4bTDG0Pl2A9uN8p.jecEGIyMuFfV5OJ0ceAZFshxfUWbuNDrq	2026-09-25 17:39:55.936343	2026-08-21 13:57:24.448184	section_incharge	\N	sanjeev123
+11	pankaj	$2b$12$at.JqzSodIl7qDa7UzpzEO5VcIfSM7x8FV0zHh2WH1xavj/QTwETu	2026-09-26 14:42:14.390534	2026-06-16 14:54:06.760368	production	\N	pankaj
+18	shrawan	$2b$12$xAEM5JX3gRvrNgO5s2hscu7Q0m7R7S/ljpcCj1JrIrc02Ws0jieWq	2026-09-26 21:40:23.419662	2026-08-14 11:03:39.007327	production_incharge	\N	shrawan@123
 47	Yogesh	$2b$12$1fiM65aDsPh/ya5HDcNusuX7Q24P9M3k5eJEYJgsqGZdeEfPdOP6a	\N	2026-09-15 13:59:56.620371	leader	\N	0285
+69	6sigma	$2b$12$1p4RMqnFphq2pAUrNI5u1Ohvbtw5/SzX3LMXsPnpdsrR7s5etx7bO	2026-09-26 10:31:13.156752	2026-09-25 09:50:39.011918	quality_incharge	\N	sigma@123
 64	Kanhaiya	$2b$12$pqbnSOMyxB1r9eWVBSQhn.4I5dCbcJFoeq9B.Nm5dRry7KCUp1rpS	\N	2026-09-19 15:17:12.004586	leader	\N	0436
-30	sanjay	$2b$12$.tgUM4sVjGaQzkKYZ7.v8eLXX72eWszLAKO7NN7jXDSH4waIp6L6S	2026-09-25 12:27:44.121059	2026-08-27 11:49:44.323913	shift_incharge	\N	Sanjay@1990
 58	Shubham	$2b$12$nNNt3OgAMrZePxt/p60T/ea/Yb6LP0YarbmiaiwjtbJ.cfSA54/y6	\N	2026-09-19 15:12:53.80255	leader	\N	0405
 \.
 
@@ -25490,8 +25955,6 @@ COPY public.mes_break_configs (id, line_id, break_name, start_time, end_time, cr
 46	2	Dinner Break 1	18:00:00	18:10:00	f	A,B
 47	2	Tea Break	20:00:00	20:10:00	f	A,B
 48	2	Dinner Break 2	22:00:00	22:35:00	f	A,B
-617	33	Night Tea Break	01:00:00	01:10:00	t	B
-618	33	Early Morning Break	04:00:00	04:10:00	t	B
 619	33	Morning Tea Break	10:00:00	10:10:00	f	A
 620	33	Lunch Break	12:00:00	12:35:00	f	A
 621	33	Evening Tea Break	14:30:00	14:40:00	f	A
@@ -25626,16 +26089,12 @@ COPY public.mes_break_configs (id, line_id, break_name, start_time, end_time, cr
 200	20	Early Morning Break	04:00:00	04:10:00	f	B
 207	5	Night Tea Break	01:00:00	01:10:00	f	B
 208	5	Early Morning Break	04:00:00	04:10:00	f	B
-625	34	Night Tea Break	01:00:00	01:10:00	t	B
-626	34	Early Morning Break	04:00:00	04:10:00	t	B
 627	34	Morning Tea Break	10:00:00	10:10:00	f	A
 628	34	Lunch Break	12:00:00	12:35:00	f	A
 629	34	Evening Tea Break	14:30:00	14:40:00	f	A
 630	34	Dinner Break 1	18:00:00	18:10:00	f	B
 631	34	Tea Break	20:00:00	20:10:00	f	B
 632	34	Dinner Break 2	22:00:00	22:35:00	f	B
-633	35	Night Tea Break	01:00:00	01:10:00	t	B
-634	35	Early Morning Break	04:00:00	04:10:00	t	B
 635	35	Morning Tea Break	10:00:00	10:10:00	f	A
 636	35	Lunch Break	12:00:00	12:35:00	f	A
 637	35	Evening Tea Break	14:30:00	14:40:00	f	A
@@ -25648,72 +26107,78 @@ COPY public.mes_break_configs (id, line_id, break_name, start_time, end_time, cr
 236	30	Dinner Break 1	18:00:00	18:10:00	f	B
 237	30	Tea Break	20:00:00	20:10:00	f	B
 238	30	Dinner Break 2	22:00:00	22:35:00	f	B
-239	30	Night Tea Break	01:00:00	01:10:00	t	B
-240	30	Early Morning Break	04:00:00	04:10:00	t	B
 241	21	Morning Tea Break	10:00:00	10:10:00	f	A
 242	21	Lunch Break	12:00:00	12:35:00	f	A
 243	21	Evening Tea Break	14:30:00	14:40:00	f	A
 244	21	Dinner Break 1	18:00:00	18:10:00	f	B
 245	21	Tea Break	20:00:00	20:10:00	f	B
 246	21	Dinner Break 2	22:00:00	22:35:00	f	B
-247	21	Night Tea Break	01:00:00	01:10:00	t	B
-248	21	Early Morning Break	04:00:00	04:10:00	t	B
 249	31	Morning Tea Break	10:00:00	10:10:00	f	A
 250	31	Lunch Break	12:00:00	12:35:00	f	A
 251	31	Evening Tea Break	14:30:00	14:40:00	f	A
 252	31	Dinner Break 1	18:00:00	18:10:00	f	B
 253	31	Tea Break	20:00:00	20:10:00	f	B
 254	31	Dinner Break 2	22:00:00	22:35:00	f	B
-255	31	Night Tea Break	01:00:00	01:10:00	t	B
-256	31	Early Morning Break	04:00:00	04:10:00	t	B
-641	36	Night Tea Break	01:00:00	01:10:00	t	B
-642	36	Early Morning Break	04:00:00	04:10:00	t	B
 643	36	Morning Tea Break	10:00:00	10:10:00	f	A
 644	36	Lunch Break	12:00:00	12:35:00	f	A
 645	36	Evening Tea Break	14:30:00	14:40:00	f	A
 646	36	Dinner Break 1	18:00:00	18:10:00	f	B
 647	36	Tea Break	20:00:00	20:10:00	f	B
 648	36	Dinner Break 2	22:00:00	22:35:00	f	B
-649	37	Night Tea Break	01:00:00	01:10:00	t	B
-650	37	Early Morning Break	04:00:00	04:10:00	t	B
 651	37	Morning Tea Break	10:00:00	10:10:00	f	A
 652	37	Lunch Break	12:00:00	12:35:00	f	A
 653	37	Evening Tea Break	14:30:00	14:40:00	f	A
 654	37	Dinner Break 1	18:00:00	18:10:00	f	B
 655	37	Tea Break	20:00:00	20:10:00	f	B
 656	37	Dinner Break 2	22:00:00	22:35:00	f	B
-657	38	Night Tea Break	01:00:00	01:10:00	t	B
-658	38	Early Morning Break	04:00:00	04:10:00	t	B
 659	38	Morning Tea Break	10:00:00	10:10:00	f	A
 660	38	Lunch Break	12:00:00	12:35:00	f	A
 661	38	Evening Tea Break	14:30:00	14:40:00	f	A
 662	38	Dinner Break 1	18:00:00	18:10:00	f	B
 663	38	Tea Break	20:00:00	20:10:00	f	B
 664	38	Dinner Break 2	22:00:00	22:35:00	f	B
-665	39	Night Tea Break	01:00:00	01:10:00	t	B
-666	39	Early Morning Break	04:00:00	04:10:00	t	B
 667	39	Morning Tea Break	10:00:00	10:10:00	f	A
 668	39	Lunch Break	12:00:00	12:35:00	f	A
 669	39	Evening Tea Break	14:30:00	14:40:00	f	A
 670	39	Dinner Break 1	18:00:00	18:10:00	f	B
 671	39	Tea Break	20:00:00	20:10:00	f	B
 672	39	Dinner Break 2	22:00:00	22:35:00	f	B
-673	40	Night Tea Break	01:00:00	01:10:00	t	B
-674	40	Early Morning Break	04:00:00	04:10:00	t	B
 675	40	Morning Tea Break	10:00:00	10:10:00	f	A
 676	40	Lunch Break	12:00:00	12:35:00	f	A
 677	40	Evening Tea Break	14:30:00	14:40:00	f	A
 678	40	Dinner Break 1	18:00:00	18:10:00	f	B
 679	40	Tea Break	20:00:00	20:10:00	f	B
 680	40	Dinner Break 2	22:00:00	22:35:00	f	B
-681	41	Night Tea Break	01:00:00	01:10:00	t	B
-682	41	Early Morning Break	04:00:00	04:10:00	t	B
 683	41	Morning Tea Break	10:00:00	10:10:00	f	A
 684	41	Lunch Break	12:00:00	12:35:00	f	A
 685	41	Evening Tea Break	14:30:00	14:40:00	f	A
 686	41	Dinner Break 1	18:00:00	18:10:00	f	B
 687	41	Tea Break	20:00:00	20:10:00	f	B
 688	41	Dinner Break 2	22:00:00	22:35:00	f	B
+617	33	Night Tea Break	01:00:00	01:10:00	f	B
+618	33	Early Morning Break	04:00:00	04:10:00	f	B
+625	34	Night Tea Break	01:00:00	01:10:00	f	B
+626	34	Early Morning Break	04:00:00	04:10:00	f	B
+633	35	Night Tea Break	01:00:00	01:10:00	f	B
+634	35	Early Morning Break	04:00:00	04:10:00	f	B
+239	30	Night Tea Break	01:00:00	01:10:00	f	B
+240	30	Early Morning Break	04:00:00	04:10:00	f	B
+247	21	Night Tea Break	01:00:00	01:10:00	f	B
+248	21	Early Morning Break	04:00:00	04:10:00	f	B
+255	31	Night Tea Break	01:00:00	01:10:00	f	B
+256	31	Early Morning Break	04:00:00	04:10:00	f	B
+641	36	Night Tea Break	01:00:00	01:10:00	f	B
+642	36	Early Morning Break	04:00:00	04:10:00	f	B
+649	37	Night Tea Break	01:00:00	01:10:00	f	B
+650	37	Early Morning Break	04:00:00	04:10:00	f	B
+657	38	Night Tea Break	01:00:00	01:10:00	f	B
+658	38	Early Morning Break	04:00:00	04:10:00	f	B
+665	39	Night Tea Break	01:00:00	01:10:00	f	B
+666	39	Early Morning Break	04:00:00	04:10:00	f	B
+673	40	Night Tea Break	01:00:00	01:10:00	f	B
+674	40	Early Morning Break	04:00:00	04:10:00	f	B
+681	41	Night Tea Break	01:00:00	01:10:00	f	B
+682	41	Early Morning Break	04:00:00	04:10:00	f	B
 \.
 
 
@@ -25785,35 +26250,36 @@ COPY public.mes_clip_priority (id, config, updated_by, updated_at) FROM stdin;
 --
 
 COPY public.mes_collector_locks (line_id, hostname, pid, heartbeat_at) FROM stdin;
-10	server-ThinkSystem-ST650-V3	20310	2026-09-25 14:02:12.745359+05:30
-6	server-ThinkSystem-ST650-V3	20409	2026-09-25 14:02:13.864786+05:30
-20	server-ThinkSystem-ST650-V3	18927	2026-09-25 14:02:14.701704+05:30
-8	server-ThinkSystem-ST650-V3	14960	2026-09-25 14:02:15.389904+05:30
-31	server-ThinkSystem-ST650-V3	16480	2026-09-25 14:02:15.397965+05:30
-30	server-ThinkSystem-ST650-V3	16114	2026-09-25 14:02:13.368487+05:30
-19	server-ThinkSystem-ST650-V3	19075	2026-09-25 14:02:15.663915+05:30
-9	server-ThinkSystem-ST650-V3	16713	2026-09-25 14:02:16.247569+05:30
-33	server-ThinkSystem-ST650-V3	15140	2026-09-25 14:02:17.384797+05:30
-34	server-ThinkSystem-ST650-V3	15220	2026-09-25 14:02:18.142631+05:30
-12	server-ThinkSystem-ST650-V3	17586	2026-09-25 14:02:19.412503+05:30
-35	server-ThinkSystem-ST650-V3	15359	2026-09-25 14:02:19.578267+05:30
-38	server-ThinkSystem-ST650-V3	15823	2026-09-25 14:02:21.306964+05:30
-27	server-ThinkSystem-ST650-V3	18699	2026-09-25 14:02:22.383608+05:30
-13	server-ThinkSystem-ST650-V3	18780	2026-09-25 14:02:13.493591+05:30
-21	server-ThinkSystem-ST650-V3	16243	2026-09-25 14:02:14.352567+05:30
-28	server-ThinkSystem-ST650-V3	19255	2026-09-25 14:02:16.246697+05:30
-7	server-ThinkSystem-ST650-V3	15043	2026-09-25 14:02:16.277953+05:30
-41	server-ThinkSystem-ST650-V3	16968	2026-09-25 14:02:17.373165+05:30
-2	server-ThinkSystem-ST650-V3	19451	2026-09-25 14:02:17.39209+05:30
-15	server-ThinkSystem-ST650-V3	17177	2026-09-25 14:02:18.397642+05:30
-5	server-ThinkSystem-ST650-V3	19635	2026-09-25 14:02:18.428693+05:30
-18	server-ThinkSystem-ST650-V3	19805	2026-09-25 14:02:19.987603+05:30
-14	server-ThinkSystem-ST650-V3	18062	2026-09-25 14:02:20.450058+05:30
-36	server-ThinkSystem-ST650-V3	15501	2026-09-25 14:02:20.457945+05:30
-4	server-ThinkSystem-ST650-V3	19999	2026-09-25 14:02:20.861521+05:30
-11	server-ThinkSystem-ST650-V3	18377	2026-09-25 14:02:21.319213+05:30
-29	server-ThinkSystem-ST650-V3	20220	2026-09-25 14:02:21.931673+05:30
-39	server-ThinkSystem-ST650-V3	15983	2026-09-25 14:02:22.462204+05:30
+6	server-ThinkSystem-ST650-V3	68022	2026-09-27 21:42:57.57232+05:30
+11	server-ThinkSystem-ST650-V3	858184	2026-09-27 21:42:59.248378+05:30
+33	server-ThinkSystem-ST650-V3	50377	2026-09-27 21:43:00.151981+05:30
+5	server-ThinkSystem-ST650-V3	65126	2026-09-27 21:43:02.193091+05:30
+4	server-ThinkSystem-ST650-V3	66474	2026-09-27 21:43:04.396169+05:30
+31	server-ThinkSystem-ST650-V3	55662	2026-09-27 21:42:57.570646+05:30
+7	server-ThinkSystem-ST650-V3	49272	2026-09-27 21:42:59.584184+05:30
+2	server-ThinkSystem-ST650-V3	856438	2026-09-27 21:43:01.050272+05:30
+15	server-ThinkSystem-ST650-V3	58829	2026-09-27 21:43:02.397973+05:30
+38	server-ThinkSystem-ST650-V3	52982	2026-09-27 21:43:05.323327+05:30
+8	server-ThinkSystem-ST650-V3	48784	2026-09-27 21:42:57.840144+05:30
+19	server-ThinkSystem-ST650-V3	63951	2026-09-27 21:42:59.516429+05:30
+34	server-ThinkSystem-ST650-V3	50957	2026-09-27 21:43:01.036383+05:30
+36	server-ThinkSystem-ST650-V3	52263	2026-09-27 21:43:02.963439+05:30
+29	server-ThinkSystem-ST650-V3	66835	2026-09-27 21:43:05.462995+05:30
+20	server-ThinkSystem-ST650-V3	62878	2026-09-27 21:42:58.152978+05:30
+9	server-ThinkSystem-ST650-V3	57334	2026-09-27 21:43:00.02901+05:30
+41	server-ThinkSystem-ST650-V3	58192	2026-09-27 21:43:01.558362+05:30
+18	server-ThinkSystem-ST650-V3	65928	2026-09-27 21:43:03.442704+05:30
+39	server-ThinkSystem-ST650-V3	53718	2026-09-27 21:43:05.497042+05:30
+12	server-ThinkSystem-ST650-V3	859328	2026-09-27 21:42:57.563173+05:30
+40	server-ThinkSystem-ST650-V3	56668	2026-09-27 21:42:58.348167+05:30
+28	server-ThinkSystem-ST650-V3	64439	2026-09-27 21:42:59.993259+05:30
+35	server-ThinkSystem-ST650-V3	51681	2026-09-27 21:43:02.13774+05:30
+14	server-ThinkSystem-ST650-V3	862123	2026-09-27 21:43:04.211305+05:30
+21	server-ThinkSystem-ST650-V3	54936	2026-09-27 21:43:06.907945+05:30
+10	server-ThinkSystem-ST650-V3	67289	2026-09-27 21:43:07.044902+05:30
+27	server-ThinkSystem-ST650-V3	61605	2026-09-27 21:43:05.680374+05:30
+13	server-ThinkSystem-ST650-V3	860816	2026-09-27 21:43:05.964043+05:30
+30	server-ThinkSystem-ST650-V3	54200	2026-09-27 21:43:05.97251+05:30
 \.
 
 
@@ -25842,63 +26308,63 @@ COPY public.mes_departments (id, name, slug, description, created_at, updated_at
 --
 
 COPY public.mes_device_registry (device_id, first_seen, last_seen, checkin_count, app_source, app_version, web_version, user_agent, model, os, screen, last_user, last_ip) FROM stdin;
-7f895d19-42ac-474d-9e6c-40c61794ea4e	2026-09-03 09:12:44.962198+05:30	2026-09-25 14:01:58.94165+05:30	361	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0	\N	Windows	1280x720	pankaj	103.81.15.246
+488060d7-8b8e-47f8-b9d9-88da78bb9a72	2026-09-23 10:35:46.604289+05:30	2026-09-26 17:20:10.870379+05:30	136	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0	\N	Windows	1280x720	admin	123.63.167.242
 1789129414265-437110caa828b8	2026-09-11 17:53:35.215597+05:30	2026-09-12 11:51:03.342488+05:30	98	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:155.0) Gecko/20100101 Firefox/155.0	\N	Linux	1920x1080	admin	103.81.15.245
-4ea513c7-03db-47fc-984b-21024bc72a61	2026-09-02 23:27:48.332502+05:30	2026-09-21 19:57:02.925347+05:30	59	pwa	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36	\N	Android 10	1098x686	rc	103.81.15.245
+4ea513c7-03db-47fc-984b-21024bc72a61	2026-09-02 23:27:48.332502+05:30	2026-09-26 01:54:35.192689+05:30	69	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36	\N	Android 10	1098x686	rc	103.81.15.246
 045d8941-a789-4f47-b491-1a13aebba0fc	2026-09-16 13:57:24.84568+05:30	2026-09-22 14:28:52.125778+05:30	147	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0	\N	Windows	1280x720	ss	123.63.167.242
 aba993c9-2ff1-4f89-9f00-6fec908c5445	2026-09-08 16:18:34.093182+05:30	2026-09-08 16:58:35.301985+05:30	3	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36 Edg/152.0.0.0	\N	Windows	1366x768	admin	123.63.167.242
-a2faab23-77d1-47e5-bf18-bea648715506	2026-09-25 09:39:45.40112+05:30	2026-09-25 13:30:53.985953+05:30	10	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0	\N	Windows	1280x800	6sigma	123.63.167.242
-4a27b041-8009-45b1-96f4-ee39c7250aa9	2026-09-22 10:21:50.27071+05:30	2026-09-22 21:17:55.657056+05:30	12	capacitor	2.0.8	2026-09-02	Mozilla/5.0 (Linux; Android 16; CPH2521 Build/BP2A.250605.015; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/151.0.7922.199 Mobile Safari/537.36	CPH2521	Android 16	793x355	sa	2402:3a80:9f:76e5:807e:88ff:fe46:9702
-1788377246216-037f561243ed	2026-09-03 00:57:36.837857+05:30	2026-09-04 03:44:58.493873+05:30	114	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36	\N	Linux	720x1280	ss	127.0.0.1
-4a9e022d-f68d-41fa-ad56-97d58f21805a	2026-09-16 16:13:23.128477+05:30	2026-09-20 19:38:10.42459+05:30	9	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Mobile Safari/537.36	\N	Android 10	432x960	ss	2401:4900:b8f2:cf1d:47b:b6ff:fe94:53a8
+a2faab23-77d1-47e5-bf18-bea648715506	2026-09-25 09:39:45.40112+05:30	2026-09-26 15:16:32.285853+05:30	26	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36 Edg/154.0.0.0	\N	Windows	1280x800	6sigma	103.81.15.246
+4a27b041-8009-45b1-96f4-ee39c7250aa9	2026-09-22 10:21:50.27071+05:30	2026-09-25 19:08:24.403153+05:30	14	capacitor	2.0.8	2026-09-02	Mozilla/5.0 (Linux; Android 16; CPH2521 Build/BP2A.250605.015; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/151.0.7922.199 Mobile Safari/537.36	CPH2521	Android 16	355x793	sa	114.31.179.202
+a5e9b4f2-ff8c-4320-a501-682709398302	2026-09-12 15:15:17.050578+05:30	2026-09-27 03:20:40.499033+05:30	90	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36 Edg/154.0.0.0	\N	Windows	1440x900	shrawan	49.14.136.3
+4a9e022d-f68d-41fa-ad56-97d58f21805a	2026-09-16 16:13:23.128477+05:30	2026-09-26 23:36:25.559371+05:30	13	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Mobile Safari/537.36	\N	Android 10	432x960	ss	2401:4900:b8ed:ea20:74ad:5bff:fe2b:22d1
 40807d86-b522-4b61-b175-5fd63280667f	2026-09-18 21:23:24.883275+05:30	2026-09-18 21:23:24.883275+05:30	1	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36	\N	Linux	720x1280	ss	103.81.15.245
 1789188325584-5b872302a42a88	2026-09-12 10:15:38.190261+05:30	2026-09-18 09:16:56.435337+05:30	22	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0	\N	Windows	1280x720	ss	192.168.30.68
-45a4dcd6-bb3b-4bae-b908-b9d508f189fc	2026-09-18 15:15:29.911831+05:30	2026-09-25 00:00:59.50324+05:30	160	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0	\N	Windows	1600x900	ss	123.63.167.242
-6278bff5-d379-4f41-9126-895f62381adb	2026-09-02 23:37:49.239369+05:30	2026-09-20 07:53:10.480923+05:30	19	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36	\N	Linux	360x804	admin	2401:4900:5d2e:ae4e:b49b:74ff:fe4d:b967
-a5e9b4f2-ff8c-4320-a501-682709398302	2026-09-12 15:15:17.050578+05:30	2026-09-25 12:37:14.953821+05:30	47	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0	\N	Windows	1440x900	shrawan	103.81.15.246
+1788377246216-037f561243ed	2026-09-03 00:57:36.837857+05:30	2026-09-27 04:44:43.941454+05:30	117	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36	\N	Linux	720x1280	ss	192.168.30.247
+6278bff5-d379-4f41-9126-895f62381adb	2026-09-02 23:37:49.239369+05:30	2026-09-26 06:57:31.120843+05:30	21	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36	\N	Linux	360x804	admin	2401:4900:5f2b:4260:446:a9ff:fe3e:211a
+45a4dcd6-bb3b-4bae-b908-b9d508f189fc	2026-09-18 15:15:29.911831+05:30	2026-09-27 01:49:46.10787+05:30	210	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36 Edg/154.0.0.0	\N	Windows	1600x900	ss	103.81.15.246
 dd3741d1-31b9-4a1e-a479-39c5f1d581fc	2026-09-02 23:59:15.977226+05:30	2026-09-03 06:30:04.276598+05:30	39	apk	1.0.2	2026-09-02	Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Mobile Safari/537.36	Pixel 8	Android 14	375x812	admin	103.81.15.245
 1789578061365-fe6e81cdeabaf8	2026-09-16 22:31:01.389877+05:30	2026-09-16 23:07:35.425485+05:30	3	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Claude/1.46388.2 Chrome/148.0.7778.280 Safari/537.36	\N	Linux	0x0	admin	192.168.30.15
 54fc103e-a149-4612-ae73-9866edd7207c	2026-09-02 22:48:41.909223+05:30	2026-09-08 09:54:13.153966+05:30	7	apk	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36	\N	Linux	393x876	admin	2401:4900:4628:4f60:38f1:63ac:e439:a9c
-7e000d12-f99f-454f-8e70-a03bc2302f7f	2026-09-16 23:40:11.229008+05:30	2026-09-24 13:55:57.690435+05:30	119	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Mobile Safari/537.36	\N	Android 10	393x873	ss	2401:4900:a371:e29e:981c:8aff:fe7c:83f0
+7e000d12-f99f-454f-8e70-a03bc2302f7f	2026-09-16 23:40:11.229008+05:30	2026-09-25 16:54:49.288039+05:30	121	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Mobile Safari/537.36	\N	Android 10	393x873	ss	2401:4900:d9ec:7727:84da:22ff:fe8d:196
 dfc2789c-ad2e-4799-b411-adc18690d176	2026-09-24 13:04:38.049855+05:30	2026-09-24 13:24:38.371429+05:30	7	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.2 Safari/605.1.15	\N	macOS	1180x692	ss	103.81.15.246
 bcb277be-ad55-4bba-a079-3f83c56ca93e	2026-09-12 16:11:40.226567+05:30	2026-09-19 15:55:03.048851+05:30	21	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36 Edg/152.0.0.0	\N	Windows	1314x739	sanjay	103.81.15.246
 72a04ebd-e98c-4065-89cf-2b8e14058446	2026-09-18 09:25:27.829647+05:30	2026-09-18 22:01:51.205621+05:30	25	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36	\N	Linux	720x1280	ss	103.81.15.245
 2a940f72-e834-40a9-bb7a-75d0cf712504	2026-09-03 13:16:04.174938+05:30	2026-09-03 14:46:05.311234+05:30	16	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Mobile Safari/537.36	Pixel 8	Android 14	375x812	admin	103.81.15.245
 1790314026465-e9bf6627b559b8	2026-09-25 10:57:35.368029+05:30	2026-09-25 11:08:03.143953+05:30	6	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0	\N	Windows	1280x720	admin	192.168.30.48
-488060d7-8b8e-47f8-b9d9-88da78bb9a72	2026-09-23 10:35:46.604289+05:30	2026-09-25 11:03:13.155262+05:30	89	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0	\N	Windows	1280x720	admin	123.63.167.242
+7f895d19-42ac-474d-9e6c-40c61794ea4e	2026-09-03 09:12:44.962198+05:30	2026-09-25 19:06:09.06367+05:30	398	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0	\N	Windows	1280x720	pankaj	103.81.15.246
 f378a1c3-d988-4b18-982c-1b2d8e0d15ee	2026-09-18 00:48:39.60872+05:30	2026-09-18 00:48:39.60872+05:30	1	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:155.0) Gecko/20100101 Firefox/155.0	\N	Linux	1366x768	admin	127.0.0.1
-9a79d376-6b8f-4a4b-8650-19c709e9c6b3	2026-09-20 09:54:10.722225+05:30	2026-09-25 13:17:44.473457+05:30	461	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:156.0) Gecko/20100101 Firefox/156.0	\N	Linux	1920x1080	6sigma	103.81.15.245
 83328fec-78c2-40fa-9490-8ebaa177d4db	2026-09-10 09:07:59.04087+05:30	2026-09-10 12:38:29.585045+05:30	8	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36 Edg/152.0.0.0	\N	Windows	1280x720	ss	123.63.167.242
-956ff837-4f7c-41fc-a34f-91f9ea80f7ae	2026-09-15 16:02:15.788883+05:30	2026-09-24 21:15:43.733076+05:30	138	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0	\N	Windows	1280x800	ss	103.81.15.246
+9f429af8-3776-4b36-8bad-ce8172bd77e8	2026-09-05 12:05:41.86911+05:30	2026-09-26 12:43:31.908229+05:30	41	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:155.0) Gecko/20100101 Firefox/155.0	\N	Linux	1920x1080	admin	103.81.15.245
 0a2b85ff-5d09-4218-bad3-497fdc2b2d2d	2026-09-05 09:27:42.939221+05:30	2026-09-11 09:58:32.244808+05:30	49	capacitor	2.0.8	2026-09-02	Mozilla/5.0 (Linux; Android 16; LXX525 Build/BP2A.250605.031.A3; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/151.0.7922.200 Mobile Safari/537.36	LXX525	Android 16	407x904	admin	117.237.6.55
 1788936004642-4f7bf2f07b2e4	2026-09-09 12:10:10.418276+05:30	2026-09-09 13:32:50.057427+05:30	3	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36 Edg/152.0.0.0	\N	Windows	1280x720	admin	127.0.0.1
 1788431624464-5355c8a0778708	2026-09-03 16:03:47.395423+05:30	2026-09-21 16:56:52.566465+05:30	161	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36	\N	Linux	720x1280	ss	192.168.31.236
 4fd40ef1-409f-493f-8f74-b47c7449ccde	2026-09-05 15:04:31.563674+05:30	2026-09-07 16:07:54.466995+05:30	25	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36 Edg/152.0.0.0	\N	Windows	1280x720	admin	103.81.15.246
-5b467527-691b-404c-bdc8-923f87b202f5	2026-09-16 14:28:08.913661+05:30	2026-09-21 12:24:31.396862+05:30	93	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36	\N	Linux	393x876	ss	111.223.30.35
-3d08c17b-c3e9-4d4e-ad2e-217b1c993497	2026-09-03 00:18:17.037778+05:30	2026-09-25 13:59:11.507272+05:30	1153	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0	\N	Windows	1280x720	himanshu	123.63.167.242
 15e8aede-cdfe-4378-a5d1-5dea2155e86f	2026-09-03 16:44:52.485725+05:30	2026-09-06 00:58:52.905435+05:30	176	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Mobile Safari/537.36	Pixel 8	Android 14	375x812	admin	103.81.15.245
 1788380891803-8c01fe699ecca	2026-09-03 01:58:30.641747+05:30	2026-09-24 11:17:22.519295+05:30	2077	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36	\N	Android 10	720x1280	ss	192.168.31.232
 56e1991c-11d7-4539-8941-fe3a3c924c69	2026-09-03 17:43:37.561672+05:30	2026-09-07 10:47:35.464019+05:30	2	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36	\N	Linux	407x904	admin	103.81.15.245
 d2893dea-fc76-4ab8-82fa-5ed8ffffa943	2026-09-03 16:31:12.320217+05:30	2026-09-03 16:31:50.157923+05:30	2	capacitor	2.0.0	2026-09-02	Mozilla/5.0 (Linux; Android 16; 2406ERN9CI Build/BP2A.250605.031.A3; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/151.0.7922.199 Mobile Safari/537.36	2406ERN9CI	Android 16	393x895	admin	2402:3a80:9d:594c:3835:a9ff:fe33:73d2
 7fb53728-d6b8-43ee-a701-93cded3f2b06	2026-09-03 16:37:11.647731+05:30	2026-09-03 16:37:11.647731+05:30	1	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Mobile Safari/537.36	Pixel 8	Android 14	375x812	admin	103.81.15.245
+5b467527-691b-404c-bdc8-923f87b202f5	2026-09-16 14:28:08.913661+05:30	2026-09-26 08:32:05.640996+05:30	100	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36	\N	Linux	393x876	ss	2401:4900:5d16:418:7c04:a3ff:fe83:e60f
 1788431577281-73c2d9827d8df8	2026-09-03 16:03:06.939197+05:30	2026-09-13 14:02:23.044996+05:30	324	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36	\N	Linux	720x1280	ss	127.0.0.1
 a152aef6-90c5-4d04-bdeb-6b391375f130	2026-09-16 23:48:23.417441+05:30	2026-09-16 23:49:26.681536+05:30	3	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.2 Safari/605.1.15	\N	macOS	1180x692	ss	103.81.15.246
 1789035425075-21c7a736444508	2026-09-10 15:47:05.237311+05:30	2026-09-25 13:16:21.025083+05:30	1570	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:156.0) Gecko/20100101 Firefox/156.0	\N	Linux	1920x1080	6sigma	192.168.30.15
-9f429af8-3776-4b36-8bad-ce8172bd77e8	2026-09-05 12:05:41.86911+05:30	2026-09-05 16:16:04.107713+05:30	26	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:154.0) Gecko/20100101 Firefox/154.0	\N	Linux	1920x1080	ss	103.81.15.245
+a8d3e4a2-bcd2-4126-8c60-1a8316cfac51	2026-09-27 16:25:27.613069+05:30	2026-09-27 16:26:05.024216+05:30	2	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36 Edg/151.0.0.0	\N	Windows	1536x864	ss	2401:4900:5d33:ccd3:b9a8:1c1a:e54f:a339
 1788770056284-33c208f8dd6bf	2026-09-07 14:04:16.607369+05:30	2026-09-07 14:24:42.58524+05:30	3	capacitor	2.0.8	2026-09-02	Mozilla/5.0 (Linux; Android 14; sdk_gphone64_x86_64 Build/UE1A.230829.050; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/113.0.5672.136 Mobile Safari/537.36	sdk_gphone64_x86_64	Android 14	393x851	admin	127.0.0.1
-1788379573440-57cbf02645b188	2026-09-03 01:36:13.983293+05:30	2026-09-25 14:01:02.265923+05:30	2430	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36	\N	Android 10	720x1280	ss	192.168.31.237
 f07cc57f-99de-4e88-81d8-5da3cea7f108	2026-09-17 14:30:24.242619+05:30	2026-09-18 12:16:58.45989+05:30	321	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Claude/1.46388.2 Chrome/148.0.7778.280 Electron/42.10.0 Safari/537.36	\N	Linux	1920x1080	Karan	127.0.0.1
 1788431617075-7b479a6975082	2026-09-03 16:04:10.272611+05:30	2026-09-04 06:55:18.144992+05:30	147	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36	\N	Linux	720x1280	ss	127.0.0.1
 89e941f2-ee92-4dd4-9e28-6266e4aa5a5d	2026-09-18 09:26:28.960036+05:30	2026-09-19 10:35:49.934467+05:30	84	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36	\N	Android 10	720x1280	ss	103.81.15.245
 70d34485-f02e-4e8c-9545-8edd4b0f115c	2026-09-18 01:19:15.504308+05:30	2026-09-18 01:19:15.504308+05:30	1	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:155.0) Gecko/20100101 Firefox/155.0	\N	Linux	1366x768	admin	127.0.0.1
 274e3b9d-3057-4463-9658-a52eae1b8393	2026-09-25 12:43:46.941021+05:30	2026-09-25 12:43:46.941021+05:30	1	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0	\N	Windows	1280x720	6sigma	123.63.167.242
 2f707b0b-4d97-447b-a294-fb42c88ef764	2026-09-18 21:12:01.742812+05:30	2026-09-18 21:12:17.629217+05:30	2	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36	\N	Linux	720x1280	ss	2401:4900:d9d9:ef9a:cdd4:bdee:9413:79b0
-1788368547541-b66a53e616afe8	2026-09-02 22:34:49.003625+05:30	2026-09-25 14:01:27.812079+05:30	1995	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36	\N	Android 10	720x1280	ss	192.168.31.248
+1790413935156-10564edf093b6	2026-09-26 14:42:15.890833+05:30	2026-09-26 14:42:15.890833+05:30	1	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 13; V2055) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/131.0.6778.200 Mobile Safari/537.36 VivoBrowser/16.3.6.1	V2055	Android 13	393x873	pankaj	2401:4900:d9e5:af94::b5e8:820
+39a8e53c-8358-4460-873c-fe687adcdf21	2026-09-26 10:31:13.647261+05:30	2026-09-26 14:50:46.823739+05:30	20	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36 Edg/154.0.0.0	\N	Windows	1280x720	ss	103.81.15.246
+956ff837-4f7c-41fc-a34f-91f9ea80f7ae	2026-09-15 16:02:15.788883+05:30	2026-09-27 02:31:18.007984+05:30	153	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0	\N	Windows	1280x800	ss	103.81.15.246
+1788368547541-b66a53e616afe8	2026-09-02 22:34:49.003625+05:30	2026-09-27 17:16:40.294872+05:30	2297	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36	\N	Android 10	720x1280	ss	192.168.30.248
 4f7554b8-1e63-4c3d-bc2a-50442c12b203	2026-09-08 12:14:32.525531+05:30	2026-09-21 11:29:22.320434+05:30	9	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36	\N	macOS	1680x1050	admin	2a09:bac1:3680:1b8::2a8:c
 94d0824f-36d4-4c4e-8193-d6510dcdc3fd	2026-09-03 23:08:10.117704+05:30	2026-09-25 09:48:53.021746+05:30	46	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0	\N	Windows	1366x768	pradeep	123.63.167.242
 f84045de-26e2-4c36-b208-c6d74fb7e4a2	2026-09-08 10:56:50.147564+05:30	2026-09-08 12:36:48.445119+05:30	13	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36 Edg/152.0.0.0	\N	Windows	1280x720	ss	123.63.167.242
 1788766127691-aa6d0bb73c28	2026-09-07 12:58:48.030341+05:30	2026-09-07 12:58:48.030341+05:30	1	capacitor	2.0.8	2026-09-02	Mozilla/5.0 (Linux; Android 14; sdk_gphone64_x86_64 Build/UE1A.230829.050; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/113.0.5672.136 Mobile Safari/537.36	sdk_gphone64_x86_64	Android 14	393x851	admin	127.0.0.1
-e08b3bc8-c9fc-4923-8d0d-342bc7da043c	2026-09-18 20:38:28.213227+05:30	2026-09-25 00:48:24.146031+05:30	200	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Mobile Safari/537.36	\N	Android 10	384x851	ss	2401:4900:5f3a:fcb7:2c84:d8ff:fe62:5669
+e08b3bc8-c9fc-4923-8d0d-342bc7da043c	2026-09-18 20:38:28.213227+05:30	2026-09-27 03:33:37.189706+05:30	263	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Mobile Safari/537.36	\N	Android 10	384x851	ss	2401:4900:5f17:17ce:441a:18ff:fe9d:94e3
 f98b2385-4686-461b-9356-4a30e44eb683	2026-09-07 12:59:10.356242+05:30	2026-09-07 14:08:17.049581+05:30	5	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36 Edg/152.0.0.0	\N	Windows	1280x800	admin	103.81.15.246
 1fd8a0de-4f78-4f7e-a011-b8eba4b122bb	2026-09-07 15:00:36.617038+05:30	2026-09-07 15:33:51.234571+05:30	4	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36 Edg/152.0.0.0	\N	Windows	1366x768	ss	103.81.15.246
 405c38e7-9ad5-4c6d-bba4-5a392b782ae7	2026-09-06 10:46:03.093203+05:30	2026-09-06 10:46:40.499382+05:30	2	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Mobile Safari/537.36	\N	Android 10	534x854	admin	2401:4900:5d23:75a:e062:cd19:18c3:4907
@@ -25928,8 +26394,7 @@ d2d1660c-9bc4-49da-a166-edae37b4d23b	2026-09-18 01:22:51.854674+05:30	2026-09-18
 1788405619030-a691ae2f1641a8	2026-09-03 08:50:37.77511+05:30	2026-09-16 20:14:21.87372+05:30	1191	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36	\N	Android 10	720x1280	ss	192.168.31.243
 1788405924742-268a19269c417	2026-09-03 08:55:35.51057+05:30	2026-09-16 23:55:15.747567+05:30	1306	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36	\N	Android 10	720x1280	ss	192.168.31.230
 308b960a-8c31-432a-af6c-3f6fd9cee708	2026-09-12 19:04:30.362612+05:30	2026-09-21 14:18:24.589282+05:30	20	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36	\N	Windows	1366x768	himanshu	103.253.173.150
-f96b63e1-6869-4af8-8af3-dc3540c74549	2026-09-03 14:11:04.552686+05:30	2026-09-18 18:22:07.030492+05:30	93	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0	\N	Windows	1280x720	ss	103.81.15.246
-9320796e-ddf0-47a0-86e9-5dab6ab3ea86	2026-09-23 13:45:33.895922+05:30	2026-09-24 12:54:53.608797+05:30	6	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Mobile Safari/537.36	\N	Android 10	450x1000	admin	2401:4900:5f11:6b98:efe8:f826:a9b4:7b1b
+f96b63e1-6869-4af8-8af3-dc3540c74549	2026-09-03 14:11:04.552686+05:30	2026-09-25 16:19:04.467562+05:30	97	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0	\N	Windows	1280x720	admin	123.63.167.242
 1789580844922-ba9cf6fdc71cc8	2026-09-16 23:17:24.941111+05:30	2026-09-17 00:28:58.876061+05:30	9	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Claude/1.46388.2 Chrome/148.0.7778.280 Safari/537.36	\N	Linux	1920x1080	ss	192.168.30.15
 c0cab73d-8dac-415d-a796-40fc94fa30b7	2026-09-12 15:58:22.126248+05:30	2026-09-20 21:17:09.583677+05:30	35	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Mobile Safari/537.36	\N	Android 10	360x804	himanshu	117.99.132.244
 18fa3967-05e9-434c-b238-7e8e70e26096	2026-09-19 18:13:30.548655+05:30	2026-09-24 20:08:14.417588+05:30	19	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36	\N	Linux	360x800	ss	2401:4900:5f15:d6f8:9343:d045:b257:ae4d
@@ -25941,9 +26406,10 @@ a04fe722-acd4-4c74-a83b-94cb82466551	2026-09-16 20:34:37.407006+05:30	2026-09-16
 10573f20-5dc5-45ae-acdd-ca4ae50ca5e5	2026-09-17 14:30:25.056436+05:30	2026-09-18 12:16:53.492746+05:30	314	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Claude/1.46388.2 Chrome/148.0.7778.280 Electron/42.10.0 Safari/537.36	\N	Linux	1920x1080	Bhagat	127.0.0.1
 8b3712fd-efb5-4d7f-9b21-2709ed2a233d	2026-09-24 16:50:47.083521+05:30	2026-09-24 17:04:10.799092+05:30	4	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.2 Safari/605.1.15	\N	macOS	1180x692	ss	103.81.15.246
 8f5aadd4-346b-4c1c-88b1-c3f36ef7ad13	2026-09-21 10:44:46.507338+05:30	2026-09-21 10:45:00.804234+05:30	2	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0	\N	Windows	1366x768	pradeep	123.63.167.242
-8b27014c-d5a9-49cc-a9d7-beba06f88f28	2026-09-12 15:50:33.297611+05:30	2026-09-20 16:36:19.303235+05:30	46	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Mobile Safari/537.36	\N	Android 10	360x793	sanjeev	202.141.94.96
+8b27014c-d5a9-49cc-a9d7-beba06f88f28	2026-09-12 15:50:33.297611+05:30	2026-09-25 17:39:56.503452+05:30	54	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36	\N	Linux	360x793	sanjeev	2409:40d6:1003:bd06:4083:c7ff:fe8d:1f4a
 c4660daf-05f6-4bb7-8787-e7da0cce3480	2026-09-25 11:01:08.387401+05:30	2026-09-25 11:06:28.770602+05:30	4	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Mobile Safari/537.36	\N	Android 10	384x857	ss	2401:4900:b8ef:ba40::b568:1e0e
-1789798486596-a6be0992ffcac	2026-09-19 11:44:47.282705+05:30	2026-09-25 14:01:54.772092+05:30	690	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36	\N	Android 10	720x1280	ss	192.168.31.247
+d8735772-5273-4ce6-a58d-bb8c56ff01ab	2026-09-25 16:24:10.425452+05:30	2026-09-25 16:24:10.425452+05:30	1	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0	\N	Windows	1280x720	admin	103.81.15.246
+9320796e-ddf0-47a0-86e9-5dab6ab3ea86	2026-09-23 13:45:33.895922+05:30	2026-09-27 17:31:02.411344+05:30	7	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Mobile Safari/537.36	\N	Android 10	450x1000	admin	2401:4900:5f2b:5d6:c59e:b1f7:6ac6:37d2
 1789811000226-00be197ce1856	2026-09-19 15:13:20.654204+05:30	2026-09-19 15:13:20.654204+05:30	1	browser	2026-09-02	2026-09-02	Mozilla/5.0 (iPhone; CPU iPhone OS 26_6_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/153.0.8010.24 Mobile/15E148 Safari/604.1	iPhone	iOS	390x844	sanjay	103.81.15.246
 1789300484733-5dfce34a67064	2026-09-13 17:24:44.835663+05:30	2026-09-13 17:56:35.686635+05:30	7	capacitor	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 16; bytello_edla Build/BP2A.250605.031.A3; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/150.0.7871.181 Safari/537.36	bytello_edla	Android 16	720x1280	ysd	192.168.100.70
 1789379408454-53c02ba220b108	2026-09-14 15:20:08.482798+05:30	2026-09-16 22:19:53.249898+05:30	101	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Claude/1.46388.2 Chrome/148.0.7778.280 Safari/537.36	\N	Linux	0x0	admin	192.168.30.15
@@ -25962,7 +26428,7 @@ d3844241-5dd4-48e2-8952-1696139817c1	2026-09-13 07:59:11.864194+05:30	2026-09-15
 516d3fb9-37a9-4226-a8af-462f68537c58	2026-09-16 20:36:37.864979+05:30	2026-09-16 20:37:55.182039+05:30	11	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.2 Safari/605.1.15	\N	macOS	820x1180	ss	103.81.15.246
 cb0ac429-ffa4-4086-9ff5-fbdddb22569b	2026-09-17 00:25:07.49288+05:30	2026-09-17 01:15:46.820838+05:30	10	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.2 Safari/605.1.15	\N	macOS	820x1052	ss	103.81.15.246
 1789304697999-9b3dcb8b200b5	2026-09-13 18:34:58.408452+05:30	2026-09-14 11:20:44.202238+05:30	20	capacitor	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 16; bytello_edla Build/BP2A.250605.031.A3; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/151.0.7922.199 Safari/537.36	bytello_edla	Android 16	1280x720	ysd	192.168.100.70
-698bc5b5-3b90-4377-8fcc-972bd6e50081	2026-09-03 15:44:05.503026+05:30	2026-09-24 09:18:31.256909+05:30	89	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36	\N	Linux	360x780	admin	2401:4900:a1b3:a2ce::23da:5b7a
+698bc5b5-3b90-4377-8fcc-972bd6e50081	2026-09-03 15:44:05.503026+05:30	2026-09-25 18:27:16.000125+05:30	90	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36	\N	Linux	360x780	admin	2401:4900:a201:f202::2481:581a
 a95d6d83-f4f9-46cd-aaad-f84d780788e4	2026-09-15 15:23:23.903578+05:30	2026-09-15 16:59:54.375578+05:30	17	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0	\N	Windows	1280x800	surender	103.81.15.246
 f07390b7-3a14-4bbb-abb4-2fc96e296ed6	2026-09-16 23:26:28.793613+05:30	2026-09-17 02:35:19.973829+05:30	8	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/30.0 Chrome/143.0.0.0 Safari/537.36	\N	Linux	800x1280	ss	103.81.15.246
 a25c1ce9-4370-4be3-aa2d-a3e3aa56f76a	2026-09-18 23:19:13.166152+05:30	2026-09-19 01:44:18.131199+05:30	15	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.2 Safari/605.1.15	\N	macOS	820x1052	ss	103.81.15.246
@@ -25970,7 +26436,7 @@ b95eb854-4dd5-4d4c-a477-973e0fae595f	2026-09-24 10:57:15.296038+05:30	2026-09-24
 6d95145d-dc2c-4d8c-aea7-a1b261c49145	2026-09-20 12:28:19.998309+05:30	2026-09-20 14:34:03.646462+05:30	26	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.2 Safari/605.1.15	\N	macOS	820x1052	ss	103.81.15.246
 3261b99d-1ef5-4900-96f8-405546ce77fd	2026-09-19 18:55:12.990702+05:30	2026-09-23 16:22:25.989637+05:30	12	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 13; V2055) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/131.0.6778.200 Mobile Safari/537.36 VivoBrowser/16.3.6.1	V2055	Android 13	393x873	pankaj	2401:4900:a2f7:e8eb::3ffa:2f50
 5e132b32-0cd5-4dd8-98a7-756de619462e	2026-09-19 15:17:04.59329+05:30	2026-09-19 15:18:26.561173+05:30	4	capacitor	2.0.8	2026-09-02	Mozilla/5.0 (Linux; Android 16; motorola edge 50 fusion Build/W1UUIS36H.110-42-3; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/152.0.7977.86 Mobile Safari/537.36	motorola edge 50 fusion	Android 16	432x960	sanjay	2402:8100:2b47:456f:6ccc:ddff:fe0d:c55a
-1788368685428-2fc47e13c4ab18	2026-09-02 22:34:46.255503+05:30	2026-09-25 13:54:08.245932+05:30	1145	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36	\N	Android 10	720x1280	ywd	192.168.31.240
+d82b68da-f626-4bd7-a074-5d40c0cb91c5	2026-09-17 02:59:06.508207+05:30	2026-09-26 17:17:37.906667+05:30	211	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Mobile Safari/537.36	\N	Android 10	360x780	ss	2402:3a80:ae:7692::bc44:f6d5
 2e2bbe35-de40-472c-87eb-2354fe254096	2026-09-21 12:06:04.423443+05:30	2026-09-24 10:56:28.666986+05:30	30	capacitor	2.0.8	2026-09-02	Mozilla/5.0 (Linux; Android 16; LXX525 Build/BP2A.250605.031.A3; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/152.0.7977.88 Mobile Safari/537.36	LXX525	Android 16	407x904	admin	117.234.26.244
 1789487390273-f4a21b1e3303d8	2026-09-15 21:19:51.466194+05:30	2026-09-16 01:13:05.058546+05:30	3	browser	2026-09-02	2026-09-02	Mozilla/5.0 (iPhone; CPU iPhone OS 26_0_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/151.0.7922.112 Mobile/15E148 Safari/604.1	iPhone	iOS	390x844	himanshu	103.81.15.246
 0d47a8a3-dd8d-4577-a10e-388ef9103442	2026-09-17 14:30:22.388375+05:30	2026-09-18 12:42:49.827375+05:30	402	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Claude/1.46388.2 Chrome/148.0.7778.280 Electron/42.10.0 Safari/537.36	\N	Linux	1920x1080	himanshu	127.0.0.1
@@ -25987,13 +26453,13 @@ b0bdfd2b-8ef4-4ec9-a044-89b0813ec477	2026-09-18 09:34:34.688095+05:30	2026-09-18
 4e1b20bd-6458-4df7-8be9-bc76e502c299	2026-09-18 09:27:14.52377+05:30	2026-09-18 09:27:14.52377+05:30	1	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36	\N	Linux	720x1280	ywd	103.81.15.245
 65ab4988-695e-44d7-8279-6b2a5a1bad21	2026-09-07 19:27:36.63658+05:30	2026-09-25 09:28:32.712783+05:30	145	capacitor	2.0.8	2026-09-02	Mozilla/5.0 (Linux; Android 16; motorola edge 60 stylus Build/W1VBS36.62-22-17-9; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/154.0.8037.57 Mobile Safari/537.36	motorola edge 60 stylus	Android 16	511x1136	jony	2409:40d6:114a:b894:d815:19ff:fec7:97e1
 1788368614919-a079a51006d4a8	2026-09-02 22:34:48.321353+05:30	2026-09-24 11:29:22.901158+05:30	1592	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36	\N	Android 10	720x1280	rc	192.168.33.244
-a4208568-5f65-44b3-9bdf-7ee4c10a72ba	2026-09-03 23:11:15.857383+05:30	2026-09-24 19:04:09.124964+05:30	228	capacitor	2.0.8	2026-09-02	Mozilla/5.0 (Linux; Android 16; RMX3842 Build/BP2A.250605.015; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/154.0.8037.22 Mobile Safari/537.36	RMX3842	Android 16	360x804	admin	2401:4900:5f12:5c55:50f7:ffff:feb7:948
-38f8b5ab-cf00-4827-bb96-91232e35bea0	2026-09-22 14:14:52.056399+05:30	2026-09-24 15:58:49.95726+05:30	187	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0	\N	Windows	1280x720	ss	103.81.15.246
+3d08c17b-c3e9-4d4e-ad2e-217b1c993497	2026-09-03 00:18:17.037778+05:30	2026-09-26 13:50:06.182302+05:30	1218	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0	\N	Windows	1280x720	himanshu	103.81.15.246
 c028a7c6-5417-482e-b803-6fdaf44bddfc	2026-09-24 23:10:53.979622+05:30	2026-09-24 23:10:58.825839+05:30	2	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.2 Safari/605.1.15	\N	macOS	840x692	ss	103.81.15.245
-1789569916326-5a0f66f71c7788	2026-09-16 20:15:50.153813+05:30	2026-09-25 13:59:41.921536+05:30	526	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36	\N	Android 10	720x1280	ss	192.168.31.243
-b493a873-1373-4d1d-97fa-e51470a6898f	2026-09-25 12:03:44.301401+05:30	2026-09-25 12:59:32.694106+05:30	6	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Mobile Safari/537.36	\N	Android 10	393x873	6sigma	223.228.177.128
+b493a873-1373-4d1d-97fa-e51470a6898f	2026-09-25 12:03:44.301401+05:30	2026-09-25 17:43:08.049038+05:30	8	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Mobile Safari/537.36	\N	Android 10	393x873	6sigma	2401:4900:d9d3:b344::24a5:ce62
+1790470850694-e30bb4d2e3fd58	2026-09-26 09:01:50.214386+05:30	2026-09-27 11:58:17.829814+05:30	151	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36	\N	Android 10	720x1280	ss	192.168.30.251
+b9be5fdd-05b4-4944-bdba-509c7e3c6da3	2026-09-03 08:30:29.437691+05:30	2026-09-27 21:42:55.865909+05:30	11937	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:156.0) Gecko/20100101 Firefox/156.0	\N	Linux	1920x1080	admin	127.0.0.1
 9e1e6613-c785-480c-bec0-e61ae586d833	2026-09-18 09:29:35.759772+05:30	2026-09-18 19:42:48.398055+05:30	32	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36	\N	Linux	720x1280	ss	103.81.15.245
-d82b68da-f626-4bd7-a074-5d40c0cb91c5	2026-09-17 02:59:06.508207+05:30	2026-09-24 20:10:11.228844+05:30	181	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Mobile Safari/537.36	\N	Android 10	360x780	ss	2402:3a80:ad:258e::bb4c:f2f8
+1789569916326-5a0f66f71c7788	2026-09-16 20:15:50.153813+05:30	2026-09-26 16:44:59.903145+05:30	607	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36	\N	Android 10	720x1280	ss	192.168.30.243
 b42e2001-1b71-45e7-afe8-0e60794e0c2d	2026-09-18 09:41:25.895479+05:30	2026-09-19 11:34:09.922217+05:30	78	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36	\N	Android 10	848x1506	ss	103.81.15.245
 fe975137-1bd5-4960-90bb-443753bfec13	2026-09-18 00:40:13.116721+05:30	2026-09-18 00:40:13.116721+05:30	1	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:155.0) Gecko/20100101 Firefox/155.0	\N	Linux	1366x768	admin	127.0.0.1
 29fa412a-6e50-4c0e-8624-77e483f4f4a3	2026-09-18 00:54:55.36627+05:30	2026-09-18 00:54:55.36627+05:30	1	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:155.0) Gecko/20100101 Firefox/155.0	\N	Linux	1366x768	admin	127.0.0.1
@@ -26017,21 +26483,28 @@ bab581de-cbff-4090-873b-69fff31ddcbe	2026-09-17 14:30:16.210226+05:30	2026-09-18
 cb1f9f6c-6903-4989-b349-aa31ea8ba0b8	2026-09-18 16:28:05.772823+05:30	2026-09-23 09:59:25.863689+05:30	22	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0	\N	Windows	1280x720	admin	103.81.15.246
 a923ac62-921f-44c0-9039-ea7ba1035d99	2026-09-19 22:48:24.881355+05:30	2026-09-19 22:51:17.779723+05:30	2	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Mobile Safari/537.36	Pixel 8	Android 14	375x812	admin	127.0.0.1
 1de704a8-27ae-404a-b16c-ea53f02cd15b	2026-09-23 14:26:59.979642+05:30	2026-09-23 15:47:43.010109+05:30	4	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0	\N	Windows	1280x720	admin	103.81.15.246
-1790230485150-f0ab06b11fec5	2026-09-24 11:46:45.567634+05:30	2026-09-25 14:01:15.006458+05:30	85	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36	\N	Android 10	720x1280	rc	192.168.33.244
+2b07b958-7e51-4889-94fe-29dbba60c000	2026-09-25 18:46:25.737295+05:30	2026-09-26 06:22:17.316597+05:30	75	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36	\N	Android 10	720x1280	sanjay	103.81.15.245
 9745457a-588c-468b-9b6b-a0f167f6731b	2026-09-25 12:06:03.558938+05:30	2026-09-25 12:06:03.558938+05:30	1	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0	\N	Windows	1280x720	6sigma	123.63.167.242
-3a2c0b6f-0928-45de-8019-ca60b4419fcd	2026-09-03 13:55:01.98875+05:30	2026-09-25 13:49:59.956283+05:30	581	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0	\N	Windows	1280x720	admin	103.81.15.246
-ff668027-9c2a-49d1-af1a-9db3baa5d831	2026-09-22 20:34:37.383204+05:30	2026-09-25 11:59:07.600954+05:30	47	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Mobile Safari/537.36	\N	Android 10	407x904	6sigma	117.225.78.176
-1788380940391-bb6da457455768	2026-09-03 01:59:12.177191+05:30	2026-09-25 13:55:41.47477+05:30	2030	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36	\N	Android 10	720x1280	ss	192.168.31.241
-e90c24ef-094b-4a01-a187-8fdd85a55a5d	2026-09-25 12:10:33.832149+05:30	2026-09-25 14:01:09.806231+05:30	5	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0	\N	Windows	1280x800	6sigma	103.81.15.245
-1790306143987-2bed6dff732628	2026-09-25 08:45:49.234807+05:30	2026-09-25 14:01:20.67143+05:30	44	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36	\N	Android 10	720x1280	ss	192.168.31.251
+1789798486596-a6be0992ffcac	2026-09-19 11:44:47.282705+05:30	2026-09-26 17:03:18.290651+05:30	848	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36	\N	Android 10	720x1280	ss	192.168.30.247
+1790306143987-2bed6dff732628	2026-09-25 08:45:49.234807+05:30	2026-09-26 08:52:34.10629+05:30	81	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36	\N	Android 10	720x1280	ss	192.168.31.251
+ff668027-9c2a-49d1-af1a-9db3baa5d831	2026-09-22 20:34:37.383204+05:30	2026-09-27 19:04:27.79848+05:30	65	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Mobile Safari/537.36	\N	Android 10	407x904	admin	117.237.6.131
 aaa9fcf7-d0b0-47f9-8040-e62c6f27a62b	2026-09-23 15:24:40.625838+05:30	2026-09-24 10:00:48.574559+05:30	10	browser	2026-09-02	2026-09-02	Mozilla/5.0 (iPhone; CPU iPhone OS 27_0_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/153.0.8010.24 Mobile/15E148 Safari/604.1	iPhone	iOS	390x844	ss	103.81.15.245
 0852ef4d-8659-4847-be88-b909f8e1598b	2026-09-18 11:54:28.549743+05:30	2026-09-23 08:38:15.410263+05:30	320	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36	\N	Android 10	720x1280	ss	103.81.15.245
-3e1171d6-80fd-4c5a-ae46-7449ada58b4a	2026-09-07 13:30:27.433397+05:30	2026-09-25 10:03:11.51076+05:30	57	capacitor	2.0.8	2026-09-02	Mozilla/5.0 (Linux; Android 16; motorola edge 50 fusion Build/W1UUIS36H.110-42-3; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/153.0.8010.36 Mobile Safari/537.36	motorola edge 50 fusion	Android 16	432x960	nagender	2401:4900:b8e1:addb:2c20:5ff:fe00:911
+1788368685428-2fc47e13c4ab18	2026-09-02 22:34:46.255503+05:30	2026-09-26 17:09:38.632188+05:30	1214	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36	\N	Android 10	720x1280	ywd	192.168.31.240
 ed3f9f53-fd84-4f31-b12f-817dbde57423	2026-09-24 14:41:33.377659+05:30	2026-09-24 16:33:55.930401+05:30	14	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:156.0) Gecko/20100101 Firefox/156.0	\N	Linux	1920x1080	admin	103.81.15.245
-545c8d6c-b679-496e-b432-f15d405d5c3e	2026-09-19 23:28:46.617033+05:30	2026-09-24 14:19:45.68594+05:30	18	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0	\N	Windows	1280x720	admin	103.81.15.245
+38f8b5ab-cf00-4827-bb96-91232e35bea0	2026-09-22 14:14:52.056399+05:30	2026-09-27 09:57:52.554558+05:30	350	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36 Edg/154.0.0.0	\N	Windows	1280x720	ss	2405:201:402c:f822:9c:41a8:7253:8e4
+1788380940391-bb6da457455768	2026-09-03 01:59:12.177191+05:30	2026-09-27 12:46:15.359488+05:30	2206	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36	\N	Android 10	720x1280	ss	192.168.30.252
+a4208568-5f65-44b3-9bdf-7ee4c10a72ba	2026-09-03 23:11:15.857383+05:30	2026-09-27 21:29:44.678963+05:30	239	capacitor	2.0.8	2026-09-02	Mozilla/5.0 (Linux; Android 16; RMX3842 Build/BP2A.250605.015; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/154.0.8037.22 Mobile Safari/537.36	RMX3842	Android 16	360x804	admin	2401:4900:5f26:166a:b0f3:99ff:feff:1bd9
+9a79d376-6b8f-4a4b-8650-19c709e9c6b3	2026-09-20 09:54:10.722225+05:30	2026-09-27 21:41:51.881069+05:30	495	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:156.0) Gecko/20100101 Firefox/156.0	\N	Linux	1920x1080	admin	103.81.15.245
+e6d3d137-cf5e-465b-a7c4-c0c3aacf368c	2026-09-27 19:51:03.468727+05:30	2026-09-27 20:15:14.026296+05:30	9	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36	\N	Windows	1440x900	ss	223.184.235.12
+3e1171d6-80fd-4c5a-ae46-7449ada58b4a	2026-09-07 13:30:27.433397+05:30	2026-09-27 14:52:42.392772+05:30	63	capacitor	2.0.8	2026-09-02	Mozilla/5.0 (Linux; Android 16; motorola edge 50 fusion Build/W1UUIS36H.110-42-3; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/153.0.8010.36 Mobile Safari/537.36	motorola edge 50 fusion	Android 16	432x960	nagender	2401:4900:a301:a625:24d2:d8ff:fe68:f045
+e90c24ef-094b-4a01-a187-8fdd85a55a5d	2026-09-25 12:10:33.832149+05:30	2026-09-25 17:02:49.261426+05:30	19	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0	\N	Windows	1280x800	6sigma	103.81.15.245
+3a2c0b6f-0928-45de-8019-ca60b4419fcd	2026-09-03 13:55:01.98875+05:30	2026-09-26 17:17:27.340441+05:30	595	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0	\N	Windows	1280x720	admin	103.81.15.246
+1788405467814-7fc97370df82a	2026-09-03 08:47:50.436592+05:30	2026-09-27 13:05:36.644648+05:30	2671	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36	\N	Android 10	848x1506	ss	192.168.30.246
 1789199309961-212cbce8ead128	2026-09-12 13:18:29.792981+05:30	2026-09-24 12:02:27.264555+05:30	91	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36	\N	Linux	720x1280	ss	192.168.31.241
 ae88bf0c-ba9c-40a0-bbcb-9978eb03eecd	2026-09-18 19:57:48.664221+05:30	2026-09-21 10:55:49.737652+05:30	30	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36	\N	Android 10	720x1280	ss	103.81.15.245
 0f1a37a3-b6e5-4905-8337-269f4497f871	2026-09-24 16:38:41.514105+05:30	2026-09-24 16:38:48.849943+05:30	2	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.2 Safari/605.1.15	\N	macOS	1180x692	ss	103.81.15.246
+55c19f0c-9c10-4851-86e2-8f9e892152ef	2026-09-25 10:11:30.704001+05:30	2026-09-27 03:34:56.523042+05:30	75	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36 Edg/154.0.0.0	\N	Windows	1366x768	ss	123.63.167.242
 83f94c9e-62b7-4b89-9c23-3c519bd6972f	2026-09-18 18:59:14.03143+05:30	2026-09-18 19:03:07.671111+05:30	3	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.2 Safari/605.1.15	\N	macOS	820x1052	ss	103.81.15.246
 2fb53455-ad1f-45ab-817d-344f2b78b938	2026-09-17 14:30:26.862073+05:30	2026-09-18 12:16:41.367678+05:30	301	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Claude/1.46388.2 Chrome/148.0.7778.280 Electron/42.10.0 Safari/537.36	\N	Linux	1920x1080	Manu Dev	127.0.0.1
 42dcc1e5-60be-4427-9452-f5698479b1ba	2026-09-17 14:30:23.244616+05:30	2026-09-18 12:42:37.365862+05:30	391	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Claude/1.46388.2 Chrome/148.0.7778.280 Electron/42.10.0 Safari/537.36	\N	Linux	1920x1080	himanshu	127.0.0.1
@@ -26042,34 +26515,37 @@ ae88bf0c-ba9c-40a0-bbcb-9978eb03eecd	2026-09-18 19:57:48.664221+05:30	2026-09-21
 fb14de3f-80ae-4aac-9cc7-dd51ccc52611	2026-09-20 03:38:13.316934+05:30	2026-09-24 09:29:14.345321+05:30	17	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36	\N	Linux	362x795	admin	2401:4900:7ef3:387d:c414:2cff:feeb:f03f
 a01cd099-3a9d-4980-887b-4174ee8662d4	2026-09-18 13:17:28.717452+05:30	2026-09-25 11:39:04.100518+05:30	229	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36	\N	Linux	720x1280	ss	103.81.15.245
 893e67b9-4c0c-47ad-86cf-c4d54055b278	2026-09-18 15:03:43.558383+05:30	2026-09-18 15:03:43.558383+05:30	1	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/152.0.0.0 Safari/537.36 Edg/152.0.0.0	\N	Linux	800x600	admin	127.0.0.1
-1789009189723-57bd7159a7f838	2026-09-10 08:29:56.17781+05:30	2026-09-25 13:49:21.505741+05:30	349	capacitor	2.0.8	2026-09-02	Mozilla/5.0 (Linux; Android 16; bytello_edla Build/BP2A.250605.031.A3; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/153.0.8010.36 Safari/537.36	bytello_edla	Android 16	720x1280	ss	192.168.31.236
+1789009189723-57bd7159a7f838	2026-09-10 08:29:56.17781+05:30	2026-09-25 19:41:19.288321+05:30	351	capacitor	2.0.8	2026-09-02	Mozilla/5.0 (Linux; Android 16; bytello_edla Build/BP2A.250605.031.A3; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/153.0.8010.36 Safari/537.36	bytello_edla	Android 16	720x1280	ss	192.168.31.236
 fa2d4bf9-fbaa-46bf-9911-62d8d6d66896	2026-09-18 15:09:16.402187+05:30	2026-09-19 16:20:48.062233+05:30	25	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0	\N	Windows	1280x720	ss	103.81.15.246
 30ad466f-290f-47d3-b001-ea03862d2cdb	2026-09-20 14:54:45.741974+05:30	2026-09-21 08:23:23.822924+05:30	38	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.2 Safari/605.1.15	\N	macOS	820x1052	ss	123.63.167.242
-1788432566693-53f4ce1cda57a	2026-09-03 16:19:26.674102+05:30	2026-09-25 06:33:35.493942+05:30	347	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36	\N	Linux	720x1280	ss	192.168.31.243
+1788432566693-53f4ce1cda57a	2026-09-03 16:19:26.674102+05:30	2026-09-27 17:15:37.876703+05:30	459	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36	\N	Linux	720x1280	ss	192.168.30.243
 e1446afa-e9d9-4b8a-9fa5-1135032b6de6	2026-09-19 17:17:44.547869+05:30	2026-09-19 17:17:44.547869+05:30	1	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0	\N	Windows	1280x720	naveen	103.81.15.246
 9bdcda11-a319-4424-b0c9-da3c1ff8c1d1	2026-09-17 03:13:46.879459+05:30	2026-09-19 23:52:26.11142+05:30	701	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Claude/2.2553.1 Chrome/152.0.7977.76 Safari/537.36	\N	Linux	1920x1080	admin	127.0.0.1
 ae9259dd-482a-4405-ac76-f2a4a5b2e22d	2026-09-22 21:00:24.496644+05:30	2026-09-22 21:00:36.355547+05:30	2	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Mobile Safari/537.36	\N	Android 10	432x960	ss	2409:40d4:110d:25c6:afc3:5202:f518:7514
-1788368654596-0430fca2d05cc8	2026-09-02 22:34:46.506671+05:30	2026-09-24 17:17:53.1049+05:30	2491	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36	\N	Android 10	720x1280	ss	192.168.31.235
-55c19f0c-9c10-4851-86e2-8f9e892152ef	2026-09-25 10:11:30.704001+05:30	2026-09-25 10:12:07.203316+05:30	2	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0	\N	Windows	1366x768	ss	103.81.15.245
-1788405467814-7fc97370df82a	2026-09-03 08:47:50.436592+05:30	2026-09-25 13:55:39.910167+05:30	2385	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36	\N	Android 10	848x1506	ss	192.168.31.246
-1788405452590-5524a7e2a8c048	2026-09-03 08:47:34.8823+05:30	2026-09-25 14:01:29.364079+05:30	1570	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36	\N	Android 10	720x1280	ss	192.168.31.236
+545c8d6c-b679-496e-b432-f15d405d5c3e	2026-09-19 23:28:46.617033+05:30	2026-09-25 17:33:27.898744+05:30	23	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0	\N	Windows	1280x720	admin	103.81.15.246
+1788405452590-5524a7e2a8c048	2026-09-03 08:47:34.8823+05:30	2026-09-27 17:13:33.435772+05:30	1780	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36	\N	Android 10	720x1280	ss	192.168.30.236
+1790230485150-f0ab06b11fec5	2026-09-24 11:46:45.567634+05:30	2026-09-26 15:44:39.757529+05:30	226	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36	\N	Android 10	720x1280	rc	192.168.33.244
 c2233c73-1df2-4c5f-bd37-40d9c8b21695	2026-09-21 15:44:06.751306+05:30	2026-09-21 17:19:05.122806+05:30	16	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.2 Safari/605.1.15	\N	macOS	820x1094	ss	103.81.15.246
-765a02cb-46ee-4b41-91c3-27aa9f077256	2026-09-07 16:12:20.060962+05:30	2026-09-25 13:42:15.595678+05:30	276	capacitor	2.0.8	2026-09-02	Mozilla/5.0 (Linux; Android 16; SM-S921B Build/BP4A.251205.006; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/155.0.8059.16 Mobile Safari/537.36	SM-S921B	Android 16	360x780	admin	2401:4900:a201:f202::2481:581a
+d8fa769e-20a4-47f6-b340-511b28fe125f	2026-09-21 20:11:01.977439+05:30	2026-09-25 21:35:15.637605+05:30	13	pwa	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Mobile Safari/537.36	\N	Android 10	384x832	rc	2409:40d6:1010:6ed1:8000::
+3d0dbeec-d547-48e8-9cb1-ef9af7a72280	2026-09-03 11:17:29.482934+05:30	2026-09-27 07:14:54.994718+05:30	168	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36	\N	Linux	393x876	ss	2401:4900:80ab:97bf:75:eff:fe82:a7c6
+d85a5e75-9ce0-410d-9ed1-83f20938f71c	2026-09-21 19:57:59.108135+05:30	2026-09-27 12:08:11.36249+05:30	38	pwa	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Mobile Safari/537.36	\N	Android 10	394x853	rc	163.223.103.136
 86066110-e176-4b7c-8ec2-173080ac943a	2026-09-21 16:36:24.061111+05:30	2026-09-21 16:38:52.90919+05:30	2	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0	\N	Windows	1280x720	admin	103.81.15.246
-5616e070-a146-48b0-9226-622303349c19	2026-09-02 22:56:18.664644+05:30	2026-09-24 12:03:03.713158+05:30	913	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0	\N	Windows	1280x720	admin	103.81.15.245
+5616e070-a146-48b0-9226-622303349c19	2026-09-02 22:56:18.664644+05:30	2026-09-27 21:41:03.410429+05:30	1141	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0	\N	Windows	1280x720	admin	2401:4900:5f26:166a:5453:82b0:a959:9da6
 07592011-ed58-4560-89c9-e3fd7bbb9e58	2026-09-25 09:37:06.996367+05:30	2026-09-25 09:37:18.717651+05:30	2	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0	\N	Windows	1280x800	priyanka	123.63.167.242
 a9e74142-7d32-4e2a-9cdb-d0872fda1e01	2026-09-21 15:58:55.131547+05:30	2026-09-24 10:54:04.833337+05:30	10	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Mobile Safari/537.36	\N	Android 10	393x876	ss	2401:4900:5f1c:dbbe:f5b7:6b46:20f1:d6c7
+1788379573440-57cbf02645b188	2026-09-03 01:36:13.983293+05:30	2026-09-27 12:59:12.336064+05:30	2555	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36	\N	Android 10	720x1280	ss	192.168.30.237
 eb7d4d88-3930-4321-861d-caffbd87b180	2026-09-16 23:36:27.163232+05:30	2026-09-25 01:58:41.545761+05:30	53	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.5.2 Safari/605.1.15	\N	macOS	820x1180	ss	103.81.15.245
-d85a5e75-9ce0-410d-9ed1-83f20938f71c	2026-09-21 19:57:59.108135+05:30	2026-09-25 03:08:38.563676+05:30	32	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Mobile Safari/537.36	\N	Android 10	394x853	rc	2409:40d6:115f:ff75:8067:5dff:fe70:9dc5
+1790329294272-3c1fd653a058b	2026-09-25 15:11:35.710319+05:30	2026-09-26 13:15:37.573073+05:30	128	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36	\N	Android 10	720x1280	ss	192.168.30.250
 3e1c8d19-c0a0-4c49-9b77-5b246cae3ff3	2026-09-15 14:48:02.094593+05:30	2026-09-23 17:07:59.032396+05:30	47	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0	\N	Windows	1280x720	sanjeev	123.63.167.242
-1788855490747-52f3054a41235	2026-09-08 13:48:11.757553+05:30	2026-09-25 13:59:28.583262+05:30	1544	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36	\N	Android 10	720x1280	sanjay	192.168.37.241
 1790233809260-a4a8132684b87	2026-09-24 12:40:13.481227+05:30	2026-09-25 06:32:23.430463+05:30	117	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36	\N	Android 10	720x1280	ss	192.168.31.251
-d8fa769e-20a4-47f6-b340-511b28fe125f	2026-09-21 20:11:01.977439+05:30	2026-09-23 14:24:30.7133+05:30	12	pwa	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Mobile Safari/537.36	\N	Android 10	384x832	rc	144.16.30.77
-3d0dbeec-d547-48e8-9cb1-ef9af7a72280	2026-09-03 11:17:29.482934+05:30	2026-09-25 10:19:23.33135+05:30	144	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36	\N	Linux	393x876	ss	2401:4900:bb25:f8f1:7ccd:4dff:feec:fe2b
-93c23d76-e538-433e-b802-1b4e93ba11ed	2026-09-23 00:21:22.958559+05:30	2026-09-25 11:13:31.859904+05:30	10	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36	\N	Linux	393x870	ss	2401:4900:5ba8:b910:c942:e877:55da:139f
-f4f045a4-fcf5-4f6b-b341-6efa4f3fa592	2026-09-11 10:35:10.702109+05:30	2026-09-25 14:00:33.88696+05:30	603	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0	\N	Windows	1280x720	admin	123.63.167.242
-b9be5fdd-05b4-4944-bdba-509c7e3c6da3	2026-09-03 08:30:29.437691+05:30	2026-09-25 14:00:51.126626+05:30	10446	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:156.0) Gecko/20100101 Firefox/156.0	\N	Linux	1920x1080	admin	127.0.0.1
-08ed24a9-4a72-42b8-9f0a-672a33a0f5a6	2026-09-15 08:40:18.393647+05:30	2026-09-25 14:00:57.607838+05:30	389	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0	\N	Windows	1280x800	admin	103.81.15.245
+1788855490747-52f3054a41235	2026-09-08 13:48:11.757553+05:30	2026-09-26 15:42:43.355734+05:30	1592	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36	\N	Android 10	720x1280	lp	192.168.37.241
+1788368654596-0430fca2d05cc8	2026-09-02 22:34:46.506671+05:30	2026-09-27 05:28:56.879492+05:30	2691	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36	\N	Android 10	720x1280	ss	192.168.30.235
+93c23d76-e538-433e-b802-1b4e93ba11ed	2026-09-23 00:21:22.958559+05:30	2026-09-26 13:24:28.717319+05:30	12	browser	2026-09-02	2026-09-02	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36	\N	Linux	393x870	ss	2409:40d4:1110:b37f:e4d3:5637:9952:50a0
+c111bdbc-9b28-4624-a0ce-ac4a8ec89cbd	2026-09-26 16:09:23.879422+05:30	2026-09-26 16:14:39.077544+05:30	12	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36 Edg/154.0.0.0	\N	Windows	1280x720	admin	103.172.231.218
+6f66c967-54cf-4177-94a2-592e386739bc	2026-09-26 09:54:40.56101+05:30	2026-09-26 09:54:40.56101+05:30	1	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36	\N	Windows	1280x720	6sigma	103.81.15.246
+08ed24a9-4a72-42b8-9f0a-672a33a0f5a6	2026-09-15 08:40:18.393647+05:30	2026-09-26 17:14:47.794475+05:30	497	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0	\N	Windows	1280x800	admin	103.81.15.246
+f4f045a4-fcf5-4f6b-b341-6efa4f3fa592	2026-09-11 10:35:10.702109+05:30	2026-09-27 15:49:04.562802+05:30	655	browser	2026-09-02	2026-09-02	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0	\N	Windows	1280x720	admin	114.31.182.97
+765a02cb-46ee-4b41-91c3-27aa9f077256	2026-09-07 16:12:20.060962+05:30	2026-09-27 19:01:38.774242+05:30	323	capacitor	2.0.8	2026-09-02	Mozilla/5.0 (Linux; Android 16; SM-S921B Build/BP4A.251205.006; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/155.0.8059.16 Mobile Safari/537.36	SM-S921B	Android 16	360x780	admin	2401:4900:b8e1:9835::b668:b31f
 \.
 
 
@@ -26252,6 +26728,177 @@ COPY public.mes_fault_config (id, zone_id, line_id, machine_id, machine_name, fa
 690	1	2	2	Final Inspection	HARNESS BKT PROCESS MISS	bit	M3075	1	t	2026-09-16 16:35:15.08001+05:30	2026-09-16 16:35:15.08001+05:30
 691	1	2	2	Final Inspection	YTB HARNESS BKT NG	bit	M3076	1	t	2026-09-16 16:35:15.08001+05:30	2026-09-16 16:35:15.08001+05:30
 692	1	2	2	Final Inspection	POP-RIVET JIG NG	bit	M3077	1	t	2026-09-16 16:35:15.08001+05:30	2026-09-16 16:35:15.08001+05:30
+\.
+
+
+--
+-- Data for Name: mes_fault_history; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.mes_fault_history (id, fault_id, machine_id, line_id, zone_id, machine_name, fault_name, source_type, address, trigger_value, started_at, ended_at, duration_s, record_date, shift_name) FROM stdin;
+113	660	2	2	1	Final Inspection	AREA SENSOR X2	bit	M1051	1	2026-09-27 18:40:51.370784+05:30	2026-09-27 18:40:53.897558+05:30	2.53	2026-09-27	B
+114	672	2	2	1	Final Inspection	WORK SET/LOCATE PIN SENSOR FAULT X15	bit	M3051	1	2026-09-27 18:40:51.370784+05:30	2026-09-27 18:40:53.897558+05:30	2.53	2026-09-27	B
+2	660	2	2	1	Final Inspection	AREA SENSOR X2	bit	M1051	1	2026-09-27 16:06:03.469893+05:30	2026-09-27 16:06:09.381681+05:30	5.91	2026-09-27	A
+3	672	2	2	1	Final Inspection	WORK SET/LOCATE PIN SENSOR FAULT X15	bit	M3051	1	2026-09-27 16:06:06.748343+05:30	2026-09-27 16:06:14.68761+05:30	7.94	2026-09-27	A
+5	660	2	2	1	Final Inspection	AREA SENSOR X2	bit	M1051	1	2026-09-27 16:06:11.876294+05:30	2026-09-27 16:06:16.838069+05:30	4.96	2026-09-27	A
+115	660	2	2	1	Final Inspection	AREA SENSOR X2	bit	M1051	1	2026-09-27 18:40:58.788416+05:30	2026-09-27 18:41:01.198236+05:30	2.41	2026-09-27	B
+6	672	2	2	1	Final Inspection	WORK SET/LOCATE PIN SENSOR FAULT X15	bit	M3051	1	2026-09-27 16:06:16.838069+05:30	2026-09-27 16:06:19.518728+05:30	2.68	2026-09-27	A
+56	164	62	14	1	Final Inspection M/c	PLZ. RELEASE EMG. P.B FINAL M/C OR E-RING M/C	bit	M3074	1	2026-09-27 16:31:06.752126+05:30	2026-09-27 17:16:03.324749+05:30	2696.57	2026-09-27	A
+57	129	62	14	1	Final Inspection M/c	AREA SENSOR X2	bit	M1051	1	2026-09-27 17:16:03.324749+05:30	2026-09-27 17:16:05.391909+05:30	2.07	2026-09-27	GAP_AB
+58	130	62	14	1	Final Inspection M/c	LWR. PROTECTOR FAULT X02/X21/X22	bit	M1053	1	2026-09-27 17:16:03.324749+05:30	2026-09-27 17:16:05.391909+05:30	2.07	2026-09-27	GAP_AB
+59	131	62	14	1	Final Inspection M/c	UPR. PROTECTOR FAULT X2A/X2B/X2C	bit	M1055	1	2026-09-27 17:16:03.324749+05:30	2026-09-27 17:16:05.391909+05:30	2.07	2026-09-27	GAP_AB
+60	135	62	14	1	Final Inspection M/c	LIGHTER-2 PROTECTOR FAULT X1C/X1D	bit	M1057	1	2026-09-27 17:16:03.324749+05:30	2026-09-27 17:16:05.391909+05:30	2.07	2026-09-27	GAP_AB
+61	137	62	14	1	Final Inspection M/c	POP RIVET FAULT X1A/X1B	bit	M1059	1	2026-09-27 17:16:03.324749+05:30	2026-09-27 17:16:05.391909+05:30	2.07	2026-09-27	GAP_AB
+62	138	62	14	1	Final Inspection M/c	EJECT LIFT UP FAULT X30/X31	bit	M1060	1	2026-09-27 17:16:03.324749+05:30	2026-09-27 17:16:05.391909+05:30	2.07	2026-09-27	GAP_AB
+116	672	2	2	1	Final Inspection	WORK SET/LOCATE PIN SENSOR FAULT X15	bit	M3051	1	2026-09-27 18:40:58.788416+05:30	2026-09-27 18:41:01.198236+05:30	2.41	2026-09-27	B
+9	662	2	2	1	Final Inspection	LWR. PROTECTOR FAULT X20/X21/X22	bit	M1053	1	2026-09-27 16:06:36.90077+05:30	2026-09-27 16:06:39.327804+05:30	2.43	2026-09-27	A
+10	664	2	2	1	Final Inspection	UPR. PROTECTOR FAULT X2A/X2B/X2C	bit	M1055	1	2026-09-27 16:06:36.90077+05:30	2026-09-27 16:06:39.327804+05:30	2.43	2026-09-27	A
+11	665	2	2	1	Final Inspection	LIGHTER-1 PROTECTOR FAULT X18/X19	bit	M1056	1	2026-09-27 16:06:36.90077+05:30	2026-09-27 16:06:39.327804+05:30	2.43	2026-09-27	A
+12	669	2	2	1	Final Inspection	LIGHTER-2 PROTECTOR FAULT X1C/X1D	bit	M1057	1	2026-09-27 16:06:36.90077+05:30	2026-09-27 16:06:39.327804+05:30	2.43	2026-09-27	A
+13	670	2	2	1	Final Inspection	LIGHTER-3 PROTECTOR FAULT X38/X39	bit	M1058	1	2026-09-27 16:06:36.90077+05:30	2026-09-27 16:06:39.327804+05:30	2.43	2026-09-27	A
+14	671	2	2	1	Final Inspection	POP RIVET FAULT X1A/X1B	bit	M1059	1	2026-09-27 16:06:36.90077+05:30	2026-09-27 16:06:39.327804+05:30	2.43	2026-09-27	A
+8	672	2	2	1	Final Inspection	WORK SET/LOCATE PIN SENSOR FAULT X15	bit	M3051	1	2026-09-27 16:06:34.881565+05:30	2026-09-27 16:06:41.943708+05:30	7.06	2026-09-27	A
+7	660	2	2	1	Final Inspection	AREA SENSOR X2	bit	M1051	1	2026-09-27 16:06:29.313464+05:30	2026-09-27 16:06:47.168105+05:30	17.85	2026-09-27	A
+15	672	2	2	1	Final Inspection	WORK SET/LOCATE PIN SENSOR FAULT X15	bit	M3051	1	2026-09-27 16:06:47.168105+05:30	2026-09-27 16:06:49.733259+05:30	2.57	2026-09-27	A
+118	660	2	2	1	Final Inspection	AREA SENSOR X2	bit	M1051	1	2026-09-27 18:41:07.583992+05:30	2026-09-27 18:41:24.533719+05:30	16.95	2026-09-27	B
+17	672	2	2	1	Final Inspection	WORK SET/LOCATE PIN SENSOR FAULT X15	bit	M3051	1	2026-09-27 16:06:52.392396+05:30	2026-09-27 16:06:59.619042+05:30	7.23	2026-09-27	A
+16	660	2	2	1	Final Inspection	AREA SENSOR X2	bit	M1051	1	2026-09-27 16:06:49.733259+05:30	2026-09-27 16:07:05.593501+05:30	15.86	2026-09-27	A
+63	164	62	14	1	Final Inspection M/c	PLZ. RELEASE EMG. P.B FINAL M/C OR E-RING M/C	bit	M3074	1	2026-09-27 17:16:09.560453+05:30	2026-09-27 17:34:02.684653+05:30	1073.12	2026-09-27	GAP_AB
+64	129	62	14	1	Final Inspection M/c	AREA SENSOR X2	bit	M1051	1	2026-09-27 17:34:02.684653+05:30	2026-09-27 17:34:04.753886+05:30	2.07	2026-09-27	GAP_AB
+65	130	62	14	1	Final Inspection M/c	LWR. PROTECTOR FAULT X02/X21/X22	bit	M1053	1	2026-09-27 17:34:02.684653+05:30	2026-09-27 17:34:04.753886+05:30	2.07	2026-09-27	GAP_AB
+66	131	62	14	1	Final Inspection M/c	UPR. PROTECTOR FAULT X2A/X2B/X2C	bit	M1055	1	2026-09-27 17:34:02.684653+05:30	2026-09-27 17:34:04.753886+05:30	2.07	2026-09-27	GAP_AB
+67	135	62	14	1	Final Inspection M/c	LIGHTER-2 PROTECTOR FAULT X1C/X1D	bit	M1057	1	2026-09-27 17:34:02.684653+05:30	2026-09-27 17:34:04.753886+05:30	2.07	2026-09-27	GAP_AB
+68	137	62	14	1	Final Inspection M/c	POP RIVET FAULT X1A/X1B	bit	M1059	1	2026-09-27 17:34:02.684653+05:30	2026-09-27 17:34:04.753886+05:30	2.07	2026-09-27	GAP_AB
+69	138	62	14	1	Final Inspection M/c	EJECT LIFT UP FAULT X30/X31	bit	M1060	1	2026-09-27 17:34:02.684653+05:30	2026-09-27 17:34:04.753886+05:30	2.07	2026-09-27	GAP_AB
+70	164	62	14	1	Final Inspection M/c	PLZ. RELEASE EMG. P.B FINAL M/C OR E-RING M/C	bit	M3074	1	2026-09-27 17:34:27.38574+05:30	2026-09-27 17:45:03.10434+05:30	635.72	2026-09-27	GAP_AB
+71	129	62	14	1	Final Inspection M/c	AREA SENSOR X2	bit	M1051	1	2026-09-27 17:45:03.10434+05:30	2026-09-27 17:45:05.168463+05:30	2.06	2026-09-27	GAP_AB
+72	130	62	14	1	Final Inspection M/c	LWR. PROTECTOR FAULT X02/X21/X22	bit	M1053	1	2026-09-27 17:45:03.10434+05:30	2026-09-27 17:45:05.168463+05:30	2.06	2026-09-27	GAP_AB
+73	131	62	14	1	Final Inspection M/c	UPR. PROTECTOR FAULT X2A/X2B/X2C	bit	M1055	1	2026-09-27 17:45:03.10434+05:30	2026-09-27 17:45:05.168463+05:30	2.06	2026-09-27	GAP_AB
+74	135	62	14	1	Final Inspection M/c	LIGHTER-2 PROTECTOR FAULT X1C/X1D	bit	M1057	1	2026-09-27 17:45:03.10434+05:30	2026-09-27 17:45:05.168463+05:30	2.06	2026-09-27	GAP_AB
+75	137	62	14	1	Final Inspection M/c	POP RIVET FAULT X1A/X1B	bit	M1059	1	2026-09-27 17:45:03.10434+05:30	2026-09-27 17:45:05.168463+05:30	2.06	2026-09-27	GAP_AB
+76	138	62	14	1	Final Inspection M/c	EJECT LIFT UP FAULT X30/X31	bit	M1060	1	2026-09-27 17:45:03.10434+05:30	2026-09-27 17:45:05.168463+05:30	2.06	2026-09-27	GAP_AB
+48	660	2	2	1	Final Inspection	AREA SENSOR X2	bit	M1051	1	2026-09-27 16:28:30.819406+05:30	2026-09-27 16:28:33.887353+05:30	3.07	2026-09-27	A
+49	672	2	2	1	Final Inspection	WORK SET/LOCATE PIN SENSOR FAULT X15	bit	M3051	1	2026-09-27 16:28:30.819406+05:30	2026-09-27 16:28:33.887353+05:30	3.07	2026-09-27	A
+4	164	62	14	1	Final Inspection M/c	PLZ. RELEASE EMG. P.B FINAL M/C OR E-RING M/C	bit	M3074	1	2026-09-27 16:06:07.224885+05:30	2026-09-27 16:31:02.580219+05:30	1495.36	2026-09-27	A
+50	129	62	14	1	Final Inspection M/c	AREA SENSOR X2	bit	M1051	1	2026-09-27 16:31:02.580219+05:30	2026-09-27 16:31:04.683009+05:30	2.10	2026-09-27	A
+51	130	62	14	1	Final Inspection M/c	LWR. PROTECTOR FAULT X02/X21/X22	bit	M1053	1	2026-09-27 16:31:02.580219+05:30	2026-09-27 16:31:04.683009+05:30	2.10	2026-09-27	A
+52	131	62	14	1	Final Inspection M/c	UPR. PROTECTOR FAULT X2A/X2B/X2C	bit	M1055	1	2026-09-27 16:31:02.580219+05:30	2026-09-27 16:31:04.683009+05:30	2.10	2026-09-27	A
+53	135	62	14	1	Final Inspection M/c	LIGHTER-2 PROTECTOR FAULT X1C/X1D	bit	M1057	1	2026-09-27 16:31:02.580219+05:30	2026-09-27 16:31:04.683009+05:30	2.10	2026-09-27	A
+54	137	62	14	1	Final Inspection M/c	POP RIVET FAULT X1A/X1B	bit	M1059	1	2026-09-27 16:31:02.580219+05:30	2026-09-27 16:31:04.683009+05:30	2.10	2026-09-27	A
+55	138	62	14	1	Final Inspection M/c	EJECT LIFT UP FAULT X30/X31	bit	M1060	1	2026-09-27 16:31:02.580219+05:30	2026-09-27 16:31:04.683009+05:30	2.10	2026-09-27	A
+78	129	62	14	1	Final Inspection M/c	AREA SENSOR X2	bit	M1051	1	2026-09-27 17:57:02.630311+05:30	2026-09-27 17:57:04.693797+05:30	2.06	2026-09-27	GAP_AB
+77	164	62	14	1	Final Inspection M/c	PLZ. RELEASE EMG. P.B FINAL M/C OR E-RING M/C	bit	M3074	1	2026-09-27 17:45:27.855391+05:30	2026-09-27 17:57:02.630311+05:30	694.77	2026-09-27	GAP_AB
+79	130	62	14	1	Final Inspection M/c	LWR. PROTECTOR FAULT X02/X21/X22	bit	M1053	1	2026-09-27 17:57:02.630311+05:30	2026-09-27 17:57:04.693797+05:30	2.06	2026-09-27	GAP_AB
+80	131	62	14	1	Final Inspection M/c	UPR. PROTECTOR FAULT X2A/X2B/X2C	bit	M1055	1	2026-09-27 17:57:02.630311+05:30	2026-09-27 17:57:04.693797+05:30	2.06	2026-09-27	GAP_AB
+81	135	62	14	1	Final Inspection M/c	LIGHTER-2 PROTECTOR FAULT X1C/X1D	bit	M1057	1	2026-09-27 17:57:02.630311+05:30	2026-09-27 17:57:04.693797+05:30	2.06	2026-09-27	GAP_AB
+82	137	62	14	1	Final Inspection M/c	POP RIVET FAULT X1A/X1B	bit	M1059	1	2026-09-27 17:57:02.630311+05:30	2026-09-27 17:57:04.693797+05:30	2.06	2026-09-27	GAP_AB
+83	138	62	14	1	Final Inspection M/c	EJECT LIFT UP FAULT X30/X31	bit	M1060	1	2026-09-27 17:57:02.630311+05:30	2026-09-27 17:57:04.693797+05:30	2.06	2026-09-27	GAP_AB
+117	672	2	2	1	Final Inspection	WORK SET/LOCATE PIN SENSOR FAULT X15	bit	M3051	1	2026-09-27 18:41:05.377798+05:30	2026-09-27 18:41:12.272684+05:30	6.89	2026-09-27	B
+84	164	62	14	1	Final Inspection M/c	PLZ. RELEASE EMG. P.B FINAL M/C OR E-RING M/C	bit	M3074	1	2026-09-27 17:57:29.381936+05:30	2026-09-27 18:00:35.714436+05:30	186.33	2026-09-27	GAP_AB
+85	129	62	14	1	Final Inspection M/c	AREA SENSOR X2	bit	M1051	1	2026-09-27 18:00:35.714436+05:30	2026-09-27 18:00:37.780829+05:30	2.07	2026-09-27	GAP_AB
+86	130	62	14	1	Final Inspection M/c	LWR. PROTECTOR FAULT X02/X21/X22	bit	M1053	1	2026-09-27 18:00:35.714436+05:30	2026-09-27 18:00:37.780829+05:30	2.07	2026-09-27	GAP_AB
+87	131	62	14	1	Final Inspection M/c	UPR. PROTECTOR FAULT X2A/X2B/X2C	bit	M1055	1	2026-09-27 18:00:35.714436+05:30	2026-09-27 18:00:37.780829+05:30	2.07	2026-09-27	GAP_AB
+88	135	62	14	1	Final Inspection M/c	LIGHTER-2 PROTECTOR FAULT X1C/X1D	bit	M1057	1	2026-09-27 18:00:35.714436+05:30	2026-09-27 18:00:37.780829+05:30	2.07	2026-09-27	GAP_AB
+89	137	62	14	1	Final Inspection M/c	POP RIVET FAULT X1A/X1B	bit	M1059	1	2026-09-27 18:00:35.714436+05:30	2026-09-27 18:00:37.780829+05:30	2.07	2026-09-27	GAP_AB
+90	138	62	14	1	Final Inspection M/c	EJECT LIFT UP FAULT X30/X31	bit	M1060	1	2026-09-27 18:00:35.714436+05:30	2026-09-27 18:00:37.780829+05:30	2.07	2026-09-27	GAP_AB
+119	662	2	2	1	Final Inspection	LWR. PROTECTOR FAULT X20/X21/X22	bit	M1053	1	2026-09-27 18:41:14.566776+05:30	2026-09-27 18:41:17.004446+05:30	2.44	2026-09-27	B
+120	664	2	2	1	Final Inspection	UPR. PROTECTOR FAULT X2A/X2B/X2C	bit	M1055	1	2026-09-27 18:41:14.566776+05:30	2026-09-27 18:41:17.004446+05:30	2.44	2026-09-27	B
+121	665	2	2	1	Final Inspection	LIGHTER-1 PROTECTOR FAULT X18/X19	bit	M1056	1	2026-09-27 18:41:14.566776+05:30	2026-09-27 18:41:17.004446+05:30	2.44	2026-09-27	B
+122	669	2	2	1	Final Inspection	LIGHTER-2 PROTECTOR FAULT X1C/X1D	bit	M1057	1	2026-09-27 18:41:14.566776+05:30	2026-09-27 18:41:17.004446+05:30	2.44	2026-09-27	B
+123	670	2	2	1	Final Inspection	LIGHTER-3 PROTECTOR FAULT X38/X39	bit	M1058	1	2026-09-27 18:41:14.566776+05:30	2026-09-27 18:41:17.004446+05:30	2.44	2026-09-27	B
+124	671	2	2	1	Final Inspection	POP RIVET FAULT X1A/X1B	bit	M1059	1	2026-09-27 18:41:14.566776+05:30	2026-09-27 18:41:17.004446+05:30	2.44	2026-09-27	B
+91	164	62	14	1	Final Inspection M/c	PLZ. RELEASE EMG. P.B FINAL M/C OR E-RING M/C	bit	M3074	1	2026-09-27 18:00:39.905102+05:30	2026-09-27 18:20:03.116502+05:30	1163.21	2026-09-27	GAP_AB
+92	129	62	14	1	Final Inspection M/c	AREA SENSOR X2	bit	M1051	1	2026-09-27 18:20:03.116502+05:30	2026-09-27 18:20:05.180676+05:30	2.06	2026-09-27	GAP_AB
+93	130	62	14	1	Final Inspection M/c	LWR. PROTECTOR FAULT X02/X21/X22	bit	M1053	1	2026-09-27 18:20:03.116502+05:30	2026-09-27 18:20:05.180676+05:30	2.06	2026-09-27	GAP_AB
+94	131	62	14	1	Final Inspection M/c	UPR. PROTECTOR FAULT X2A/X2B/X2C	bit	M1055	1	2026-09-27 18:20:03.116502+05:30	2026-09-27 18:20:05.180676+05:30	2.06	2026-09-27	GAP_AB
+95	135	62	14	1	Final Inspection M/c	LIGHTER-2 PROTECTOR FAULT X1C/X1D	bit	M1057	1	2026-09-27 18:20:03.116502+05:30	2026-09-27 18:20:05.180676+05:30	2.06	2026-09-27	GAP_AB
+96	137	62	14	1	Final Inspection M/c	POP RIVET FAULT X1A/X1B	bit	M1059	1	2026-09-27 18:20:03.116502+05:30	2026-09-27 18:20:05.180676+05:30	2.06	2026-09-27	GAP_AB
+97	138	62	14	1	Final Inspection M/c	EJECT LIFT UP FAULT X30/X31	bit	M1060	1	2026-09-27 18:20:03.116502+05:30	2026-09-27 18:20:05.180676+05:30	2.06	2026-09-27	GAP_AB
+125	672	2	2	1	Final Inspection	WORK SET/LOCATE PIN SENSOR FAULT X15	bit	M3051	1	2026-09-27 18:41:17.004446+05:30	2026-09-27 18:41:22.135323+05:30	5.13	2026-09-27	B
+98	164	62	14	1	Final Inspection M/c	PLZ. RELEASE EMG. P.B FINAL M/C OR E-RING M/C	bit	M3074	1	2026-09-27 18:20:31.97451+05:30	2026-09-27 18:40:03.166548+05:30	1171.19	2026-09-27	GAP_AB
+126	660	2	2	1	Final Inspection	AREA SENSOR X2	bit	M1051	1	2026-09-27 18:41:27.548005+05:30	2026-09-27 18:41:30.012891+05:30	2.46	2026-09-27	B
+99	673	2	2	1	Final Inspection	HARNESS BKT SENSOR FAULT X16	bit	M3052	1	2026-09-27 18:40:06.32318+05:30	2026-09-27 18:40:08.84884+05:30	2.53	2026-09-27	B
+101	672	2	2	1	Final Inspection	WORK SET/LOCATE PIN SENSOR FAULT X15	bit	M3051	1	2026-09-27 18:40:08.84884+05:30	2026-09-27 18:40:11.032179+05:30	2.18	2026-09-27	B
+100	660	2	2	1	Final Inspection	AREA SENSOR X2	bit	M1051	1	2026-09-27 18:40:08.84884+05:30	2026-09-27 18:40:13.241682+05:30	4.39	2026-09-27	B
+127	672	2	2	1	Final Inspection	WORK SET/LOCATE PIN SENSOR FAULT X15	bit	M3051	1	2026-09-27 18:41:27.548005+05:30	2026-09-27 18:41:30.012891+05:30	2.46	2026-09-27	B
+103	660	2	2	1	Final Inspection	AREA SENSOR X2	bit	M1051	1	2026-09-27 18:40:15.622764+05:30	2026-09-27 18:40:18.370686+05:30	2.75	2026-09-27	B
+104	672	2	2	1	Final Inspection	WORK SET/LOCATE PIN SENSOR FAULT X15	bit	M3051	1	2026-09-27 18:40:15.622764+05:30	2026-09-27 18:40:18.370686+05:30	2.75	2026-09-27	B
+128	660	2	2	1	Final Inspection	AREA SENSOR X2	bit	M1051	1	2026-09-27 18:41:39.43297+05:30	2026-09-27 18:41:41.781266+05:30	2.35	2026-09-27	B
+105	660	2	2	1	Final Inspection	AREA SENSOR X2	bit	M1051	1	2026-09-27 18:40:22.660839+05:30	2026-09-27 18:40:27.305185+05:30	4.64	2026-09-27	B
+106	672	2	2	1	Final Inspection	WORK SET/LOCATE PIN SENSOR FAULT X15	bit	M3051	1	2026-09-27 18:40:22.660839+05:30	2026-09-27 18:40:27.305185+05:30	4.64	2026-09-27	B
+129	672	2	2	1	Final Inspection	WORK SET/LOCATE PIN SENSOR FAULT X15	bit	M3051	1	2026-09-27 18:41:39.43297+05:30	2026-09-27 18:41:41.781266+05:30	2.35	2026-09-27	B
+107	660	2	2	1	Final Inspection	AREA SENSOR X2	bit	M1051	1	2026-09-27 18:40:29.801891+05:30	2026-09-27 18:40:32.327565+05:30	2.53	2026-09-27	B
+108	672	2	2	1	Final Inspection	WORK SET/LOCATE PIN SENSOR FAULT X15	bit	M3051	1	2026-09-27 18:40:29.801891+05:30	2026-09-27 18:40:32.327565+05:30	2.53	2026-09-27	B
+130	660	2	2	1	Final Inspection	AREA SENSOR X2	bit	M1051	1	2026-09-27 18:41:46.657351+05:30	2026-09-27 18:41:49.004561+05:30	2.35	2026-09-27	B
+110	660	2	2	1	Final Inspection	AREA SENSOR X2	bit	M1051	1	2026-09-27 18:40:39.101443+05:30	2026-09-27 18:40:41.526577+05:30	2.43	2026-09-27	B
+109	672	2	2	1	Final Inspection	WORK SET/LOCATE PIN SENSOR FAULT X15	bit	M3051	1	2026-09-27 18:40:36.807973+05:30	2026-09-27 18:40:41.526577+05:30	4.72	2026-09-27	B
+131	660	2	2	1	Final Inspection	AREA SENSOR X2	bit	M1051	1	2026-09-27 18:41:51.87364+05:30	2026-09-27 18:41:54.126586+05:30	2.25	2026-09-27	B
+111	660	2	2	1	Final Inspection	AREA SENSOR X2	bit	M1051	1	2026-09-27 18:40:43.252021+05:30	2026-09-27 18:40:48.657814+05:30	5.41	2026-09-27	B
+112	672	2	2	1	Final Inspection	WORK SET/LOCATE PIN SENSOR FAULT X15	bit	M3051	1	2026-09-27 18:40:44.045145+05:30	2026-09-27 18:40:48.657814+05:30	4.61	2026-09-27	B
+132	672	2	2	1	Final Inspection	WORK SET/LOCATE PIN SENSOR FAULT X15	bit	M3051	1	2026-09-27 18:41:51.87364+05:30	2026-09-27 18:41:54.126586+05:30	2.25	2026-09-27	B
+133	660	2	2	1	Final Inspection	AREA SENSOR X2	bit	M1051	1	2026-09-27 18:41:59.159705+05:30	2026-09-27 18:42:01.656113+05:30	2.50	2026-09-27	B
+102	164	62	14	1	Final Inspection M/c	PLZ. RELEASE EMG. P.B FINAL M/C OR E-RING M/C	bit	M3074	1	2026-09-27 18:40:09.414355+05:30	2026-09-27 18:54:02.685696+05:30	833.27	2026-09-27	B
+134	672	2	2	1	Final Inspection	WORK SET/LOCATE PIN SENSOR FAULT X15	bit	M3051	1	2026-09-27 18:41:59.159705+05:30	2026-09-27 18:42:01.656113+05:30	2.50	2026-09-27	B
+135	660	2	2	1	Final Inspection	AREA SENSOR X2	bit	M1051	1	2026-09-27 18:42:06.440007+05:30	2026-09-27 18:42:08.845721+05:30	2.41	2026-09-27	B
+136	672	2	2	1	Final Inspection	WORK SET/LOCATE PIN SENSOR FAULT X15	bit	M3051	1	2026-09-27 18:42:06.440007+05:30	2026-09-27 18:42:08.845721+05:30	2.41	2026-09-27	B
+137	660	2	2	1	Final Inspection	AREA SENSOR X2	bit	M1051	1	2026-09-27 18:42:16.317593+05:30	2026-09-27 18:42:19.066937+05:30	2.75	2026-09-27	B
+138	672	2	2	1	Final Inspection	WORK SET/LOCATE PIN SENSOR FAULT X15	bit	M3051	1	2026-09-27 18:42:16.317593+05:30	2026-09-27 18:42:19.066937+05:30	2.75	2026-09-27	B
+140	660	2	2	1	Final Inspection	AREA SENSOR X2	bit	M1051	1	2026-09-27 18:42:26.667073+05:30	2026-09-27 18:42:31.359297+05:30	4.69	2026-09-27	B
+139	672	2	2	1	Final Inspection	WORK SET/LOCATE PIN SENSOR FAULT X15	bit	M3051	1	2026-09-27 18:42:23.808358+05:30	2026-09-27 18:42:31.359297+05:30	7.55	2026-09-27	B
+141	660	2	2	1	Final Inspection	AREA SENSOR X2	bit	M1051	1	2026-09-27 18:42:34.17723+05:30	2026-09-27 18:42:36.677104+05:30	2.50	2026-09-27	B
+142	672	2	2	1	Final Inspection	WORK SET/LOCATE PIN SENSOR FAULT X15	bit	M3051	1	2026-09-27 18:42:34.17723+05:30	2026-09-27 18:42:36.677104+05:30	2.50	2026-09-27	B
+143	164	62	14	1	Final Inspection M/c	PLZ. RELEASE EMG. P.B FINAL M/C OR E-RING M/C	bit	M3074	1	2026-09-27 18:54:11.078141+05:30	2026-09-27 19:04:03.066715+05:30	591.99	2026-09-27	B
+144	164	62	14	1	Final Inspection M/c	PLZ. RELEASE EMG. P.B FINAL M/C OR E-RING M/C	bit	M3074	1	2026-09-27 19:04:07.325649+05:30	2026-09-27 19:10:09.606038+05:30	362.28	2026-09-27	B
+146	672	2	2	1	Final Inspection	WORK SET/LOCATE PIN SENSOR FAULT X15	bit	M3051	1	2026-09-27 19:52:03.100545+05:30	2026-09-27 19:52:05.531432+05:30	2.43	2026-09-27	B
+147	660	2	2	1	Final Inspection	AREA SENSOR X2	bit	M1051	1	2026-09-27 19:52:08.229481+05:30	2026-09-27 19:52:10.659999+05:30	2.43	2026-09-27	B
+148	672	2	2	1	Final Inspection	WORK SET/LOCATE PIN SENSOR FAULT X15	bit	M3051	1	2026-09-27 19:52:08.229481+05:30	2026-09-27 19:52:10.659999+05:30	2.43	2026-09-27	B
+149	672	2	2	1	Final Inspection	WORK SET/LOCATE PIN SENSOR FAULT X15	bit	M3051	1	2026-09-27 19:52:15.809588+05:30	2026-09-27 19:52:18.211205+05:30	2.40	2026-09-27	B
+151	672	2	2	1	Final Inspection	WORK SET/LOCATE PIN SENSOR FAULT X15	bit	M3051	1	2026-09-27 19:52:20.656473+05:30	2026-09-27 19:52:23.066499+05:30	2.41	2026-09-27	B
+150	660	2	2	1	Final Inspection	AREA SENSOR X2	bit	M1051	1	2026-09-27 19:52:20.656473+05:30	2026-09-27 19:52:25.683973+05:30	5.03	2026-09-27	B
+152	660	2	2	1	Final Inspection	AREA SENSOR X2	bit	M1051	1	2026-09-27 19:52:27.664641+05:30	2026-09-27 19:52:30.408485+05:30	2.74	2026-09-27	B
+153	662	2	2	1	Final Inspection	LWR. PROTECTOR FAULT X20/X21/X22	bit	M1053	1	2026-09-27 19:52:27.664641+05:30	2026-09-27 19:52:30.408485+05:30	2.74	2026-09-27	B
+154	664	2	2	1	Final Inspection	UPR. PROTECTOR FAULT X2A/X2B/X2C	bit	M1055	1	2026-09-27 19:52:27.664641+05:30	2026-09-27 19:52:30.408485+05:30	2.74	2026-09-27	B
+155	665	2	2	1	Final Inspection	LIGHTER-1 PROTECTOR FAULT X18/X19	bit	M1056	1	2026-09-27 19:52:27.664641+05:30	2026-09-27 19:52:30.408485+05:30	2.74	2026-09-27	B
+156	669	2	2	1	Final Inspection	LIGHTER-2 PROTECTOR FAULT X1C/X1D	bit	M1057	1	2026-09-27 19:52:27.664641+05:30	2026-09-27 19:52:30.408485+05:30	2.74	2026-09-27	B
+157	670	2	2	1	Final Inspection	LIGHTER-3 PROTECTOR FAULT X38/X39	bit	M1058	1	2026-09-27 19:52:27.664641+05:30	2026-09-27 19:52:30.408485+05:30	2.74	2026-09-27	B
+158	671	2	2	1	Final Inspection	POP RIVET FAULT X1A/X1B	bit	M1059	1	2026-09-27 19:52:27.664641+05:30	2026-09-27 19:52:30.408485+05:30	2.74	2026-09-27	B
+145	164	62	14	1	Final Inspection M/c	PLZ. RELEASE EMG. P.B FINAL M/C OR E-RING M/C	bit	M3074	1	2026-09-27 19:10:15.803109+05:30	2026-09-27 20:00:02.636058+05:30	2986.83	2026-09-27	B
+159	129	62	14	1	Final Inspection M/c	AREA SENSOR X2	bit	M1051	1	2026-09-27 20:00:06.886697+05:30	2026-09-27 20:00:08.919612+05:30	2.03	2026-09-27	B
+160	130	62	14	1	Final Inspection M/c	LWR. PROTECTOR FAULT X02/X21/X22	bit	M1053	1	2026-09-27 20:00:06.886697+05:30	2026-09-27 20:00:08.919612+05:30	2.03	2026-09-27	B
+161	131	62	14	1	Final Inspection M/c	UPR. PROTECTOR FAULT X2A/X2B/X2C	bit	M1055	1	2026-09-27 20:00:06.886697+05:30	2026-09-27 20:00:08.919612+05:30	2.03	2026-09-27	B
+162	135	62	14	1	Final Inspection M/c	LIGHTER-2 PROTECTOR FAULT X1C/X1D	bit	M1057	1	2026-09-27 20:00:06.886697+05:30	2026-09-27 20:00:08.919612+05:30	2.03	2026-09-27	B
+163	137	62	14	1	Final Inspection M/c	POP RIVET FAULT X1A/X1B	bit	M1059	1	2026-09-27 20:00:06.886697+05:30	2026-09-27 20:00:08.919612+05:30	2.03	2026-09-27	B
+164	138	62	14	1	Final Inspection M/c	EJECT LIFT UP FAULT X30/X31	bit	M1060	1	2026-09-27 20:00:06.886697+05:30	2026-09-27 20:00:08.919612+05:30	2.03	2026-09-27	B
+165	164	62	14	1	Final Inspection M/c	PLZ. RELEASE EMG. P.B FINAL M/C OR E-RING M/C	bit	M3074	1	2026-09-27 20:00:08.919612+05:30	2026-09-27 20:11:02.743839+05:30	653.82	2026-09-27	B
+166	164	62	14	1	Final Inspection M/c	PLZ. RELEASE EMG. P.B FINAL M/C OR E-RING M/C	bit	M3074	1	2026-09-27 20:11:06.987055+05:30	2026-09-27 20:50:03.187146+05:30	2336.20	2026-09-27	B
+167	129	62	14	1	Final Inspection M/c	AREA SENSOR X2	bit	M1051	1	2026-09-27 20:50:09.724525+05:30	2026-09-27 20:50:14.000633+05:30	4.28	2026-09-27	B
+168	130	62	14	1	Final Inspection M/c	LWR. PROTECTOR FAULT X02/X21/X22	bit	M1053	1	2026-09-27 20:50:09.724525+05:30	2026-09-27 20:50:14.000633+05:30	4.28	2026-09-27	B
+169	131	62	14	1	Final Inspection M/c	UPR. PROTECTOR FAULT X2A/X2B/X2C	bit	M1055	1	2026-09-27 20:50:09.724525+05:30	2026-09-27 20:50:14.000633+05:30	4.28	2026-09-27	B
+170	135	62	14	1	Final Inspection M/c	LIGHTER-2 PROTECTOR FAULT X1C/X1D	bit	M1057	1	2026-09-27 20:50:09.724525+05:30	2026-09-27 20:50:14.000633+05:30	4.28	2026-09-27	B
+171	137	62	14	1	Final Inspection M/c	POP RIVET FAULT X1A/X1B	bit	M1059	1	2026-09-27 20:50:09.724525+05:30	2026-09-27 20:50:14.000633+05:30	4.28	2026-09-27	B
+172	138	62	14	1	Final Inspection M/c	EJECT LIFT UP FAULT X30/X31	bit	M1060	1	2026-09-27 20:50:09.724525+05:30	2026-09-27 20:50:14.000633+05:30	4.28	2026-09-27	B
+173	164	62	14	1	Final Inspection M/c	PLZ. RELEASE EMG. P.B FINAL M/C OR E-RING M/C	bit	M3074	1	2026-09-27 20:50:18.397199+05:30	2026-09-27 20:53:52.00871+05:30	213.61	2026-09-27	B
+175	660	2	2	1	Final Inspection	AREA SENSOR X2	bit	M1051	1	2026-09-27 21:00:09.154472+05:30	2026-09-27 21:00:11.356357+05:30	2.20	2026-09-27	B
+176	660	2	2	1	Final Inspection	AREA SENSOR X2	bit	M1051	1	2026-09-27 21:00:15.621914+05:30	2026-09-27 21:00:18.15173+05:30	2.53	2026-09-27	B
+177	672	2	2	1	Final Inspection	WORK SET/LOCATE PIN SENSOR FAULT X15	bit	M3051	1	2026-09-27 21:00:15.621914+05:30	2026-09-27 21:00:18.15173+05:30	2.53	2026-09-27	B
+174	164	62	14	1	Final Inspection M/c	PLZ. RELEASE EMG. P.B FINAL M/C OR E-RING M/C	bit	M3074	1	2026-09-27 20:53:58.260084+05:30	2026-09-27 21:07:15.967345+05:30	797.71	2026-09-27	B
+178	660	2	2	1	Final Inspection	AREA SENSOR X2	bit	M1051	1	2026-09-27 21:07:20.663867+05:30	2026-09-27 21:07:24.972975+05:30	4.31	2026-09-27	B
+179	672	2	2	1	Final Inspection	WORK SET/LOCATE PIN SENSOR FAULT X15	bit	M3051	1	2026-09-27 21:07:20.663867+05:30	2026-09-27 21:07:24.972975+05:30	4.31	2026-09-27	B
+180	164	62	14	1	Final Inspection M/c	PLZ. RELEASE EMG. P.B FINAL M/C OR E-RING M/C	bit	M3074	1	2026-09-27 21:07:22.325067+05:30	2026-09-27 21:22:03.229273+05:30	880.90	2026-09-27	B
+181	164	62	14	1	Final Inspection M/c	PLZ. RELEASE EMG. P.B FINAL M/C OR E-RING M/C	bit	M3074	1	2026-09-27 21:22:05.262325+05:30	2026-09-27 21:29:13.24205+05:30	427.98	2026-09-27	B
+182	129	62	14	1	Final Inspection M/c	AREA SENSOR X2	bit	M1051	1	2026-09-27 21:29:15.300502+05:30	2026-09-27 21:29:17.3577+05:30	2.06	2026-09-27	B
+183	130	62	14	1	Final Inspection M/c	LWR. PROTECTOR FAULT X02/X21/X22	bit	M1053	1	2026-09-27 21:29:15.300502+05:30	2026-09-27 21:29:17.3577+05:30	2.06	2026-09-27	B
+184	131	62	14	1	Final Inspection M/c	UPR. PROTECTOR FAULT X2A/X2B/X2C	bit	M1055	1	2026-09-27 21:29:15.300502+05:30	2026-09-27 21:29:17.3577+05:30	2.06	2026-09-27	B
+185	135	62	14	1	Final Inspection M/c	LIGHTER-2 PROTECTOR FAULT X1C/X1D	bit	M1057	1	2026-09-27 21:29:15.300502+05:30	2026-09-27 21:29:17.3577+05:30	2.06	2026-09-27	B
+186	137	62	14	1	Final Inspection M/c	POP RIVET FAULT X1A/X1B	bit	M1059	1	2026-09-27 21:29:15.300502+05:30	2026-09-27 21:29:17.3577+05:30	2.06	2026-09-27	B
+187	138	62	14	1	Final Inspection M/c	EJECT LIFT UP FAULT X30/X31	bit	M1060	1	2026-09-27 21:29:15.300502+05:30	2026-09-27 21:29:17.3577+05:30	2.06	2026-09-27	B
+188	164	62	14	1	Final Inspection M/c	PLZ. RELEASE EMG. P.B FINAL M/C OR E-RING M/C	bit	M3074	1	2026-09-27 21:29:17.3577+05:30	2026-09-27 21:43:03.000953+05:30	825.64	2026-09-27	B
+189	129	62	14	1	Final Inspection M/c	AREA SENSOR X2	bit	M1051	1	2026-09-27 21:43:05.129249+05:30	\N	\N	2026-09-27	B
+190	130	62	14	1	Final Inspection M/c	LWR. PROTECTOR FAULT X02/X21/X22	bit	M1053	1	2026-09-27 21:43:05.129249+05:30	\N	\N	2026-09-27	B
+191	131	62	14	1	Final Inspection M/c	UPR. PROTECTOR FAULT X2A/X2B/X2C	bit	M1055	1	2026-09-27 21:43:05.129249+05:30	\N	\N	2026-09-27	B
+192	135	62	14	1	Final Inspection M/c	LIGHTER-2 PROTECTOR FAULT X1C/X1D	bit	M1057	1	2026-09-27 21:43:05.129249+05:30	\N	\N	2026-09-27	B
+193	137	62	14	1	Final Inspection M/c	POP RIVET FAULT X1A/X1B	bit	M1059	1	2026-09-27 21:43:05.129249+05:30	\N	\N	2026-09-27	B
+194	138	62	14	1	Final Inspection M/c	EJECT LIFT UP FAULT X30/X31	bit	M1060	1	2026-09-27 21:43:05.129249+05:30	\N	\N	2026-09-27	B
 \.
 
 
@@ -27249,6 +27896,11 @@ COPY public.mes_kanban_log (id, fg_part_id, line_id, log_date, window_name, cycl
 262	1	2	2026-09-24	12PM	708	1	360	2026-09-24 12:00:09.519081	auto	auto-fired 04:00→12:00
 263	1	2	2026-09-24	SHIFT_A	965	2	720	2026-09-24 17:15:05.964334	auto	auto-fired 12:00→17:15
 264	1	2	2026-09-25	12PM	688	1	360	2026-09-25 12:00:36.231733	auto	auto-fired 04:00→12:00
+265	1	2	2026-09-25	SHIFT_A	1132	3	1080	2026-09-25 17:15:22.341104	auto	auto-fired 12:00→17:15
+266	1	2	2026-09-26	12PM	814	2	720	2026-09-26 12:00:14.817399	auto	auto-fired 04:00→12:00
+267	1	2	2026-09-26	SHIFT_A	960	2	720	2026-09-26 17:15:15.778519	auto	auto-fired 12:00→17:15
+268	1	2	2026-09-27	12PM	2	0	0	2026-09-27 12:00:13.090827	auto	auto-fired 04:00→12:00
+269	1	2	2026-09-27	SHIFT_A	18	0	0	2026-09-27 17:15:17.004234	auto	auto-fired 12:00→17:15
 \.
 
 
@@ -27321,6 +27973,15 @@ COPY public.mes_leader_shift_alloc (line_id, shift_date, shift_name, leader_id, 
 11	2026-09-24	B	43	ss	2026-09-24 19:17:51.677751+05:30
 18	2026-09-25	A	46	ss	2026-09-25 08:42:24.557224+05:30
 12	2026-09-25	A	46	ss	2026-09-25 08:42:46.804766+05:30
+4	2026-09-25	A	45	admin	2026-09-25 16:07:29.360037+05:30
+11	2026-09-25	A	43	ss	2026-09-25 23:20:59.420521+05:30
+11	2026-09-25	B	43	ss	2026-09-25 23:21:40.719319+05:30
+4	2026-09-25	B	43	ss	2026-09-25 23:22:10.268973+05:30
+18	2026-09-26	A	46	ss	2026-09-26 09:01:01.183273+05:30
+12	2026-09-26	A	46	ss	2026-09-26 09:02:40.030378+05:30
+11	2026-09-26	A	45	ss	2026-09-26 17:50:27.757003+05:30
+4	2026-09-26	B	43	ss	2026-09-26 18:40:04.057736+05:30
+11	2026-09-26	B	43	ss	2026-09-26 18:42:47.279976+05:30
 \.
 
 
@@ -27403,6 +28064,7 @@ COPY public.mes_loss_remarks (id, line_id, record_date, shift_name, slot_label, 
 74	2	2026-08-31		11:30-13:05	breakdown	Rivet stacking gun not working properly	production	[]	2026-08-31 14:23:32.176024+05:30	2026-08-31 14:23:32.176024+05:30
 75	2	2026-09-01		08:30-09:30	breakdown	Matrix code ng alarm	production	[]	2026-09-01 10:46:54.16304+05:30	2026-09-01 10:46:54.16304+05:30
 76	13	2026-09-23		08:30-09:30	breakdown	SS05 breakdown (part present sensor not work )	production	[]	2026-09-23 09:03:11.775132+05:30	2026-09-23 09:03:11.775132+05:30
+77	4	2026-09-26		16:05-17:15	breakdown	Ball guide broken issue at sso5	production	[]	2026-09-26 17:06:41.132829+05:30	2026-09-26 17:06:41.132829+05:30
 \.
 
 
@@ -27929,8 +28591,6 @@ COPY public.mes_machines (id, source_id, zone_name, line_name, machine_no, machi
 --
 
 COPY public.mes_mail_config (key, value, description, updated_at, updated_by) FROM stdin;
-hourly_section_to	\N	Hourly slot report — Section head To addresses	2026-08-15 07:56:05.395016+05:30	\N
-hourly_section_cc	\N	Hourly slot report — Section head Cc addresses	2026-08-15 07:56:05.395016+05:30	\N
 guardian_to	\N	Guardian hourly report — email address (blank = no email)	2026-09-17 16:04:32.091067+05:30	\N
 guardian_alert_to	\N	Bot alerts — comma-separated usernames. Blank = admin + plant/production/section/shift incharge	2026-09-17 22:08:22.71416+05:30	\N
 bypass_to	\N	Poka-Yoke Bypass alerts — To addresses (comma-separated)	2026-04-24 15:27:36.249131+05:30	\N
@@ -27943,6 +28603,8 @@ hourly_to		Hourly slot report — To addresses	2026-05-02 17:08:44.850587+05:30	
 hourly_cc		Hourly slot report — Cc addresses	2026-05-02 11:09:28.805861+05:30	admin
 hourly_zone_to	\N	Hourly slot report — Zone head To addresses	2026-08-15 07:56:05.395016+05:30	\N
 hourly_zone_cc	\N	Hourly slot report — Zone head Cc addresses	2026-08-15 07:56:05.395016+05:30	\N
+hourly_section_to	\N	Hourly slot report — Section head To addresses	2026-08-15 07:56:05.395016+05:30	\N
+hourly_section_cc	\N	Hourly slot report — Section head Cc addresses	2026-08-15 07:56:05.395016+05:30	\N
 \.
 
 
@@ -28344,6 +29006,88 @@ COPY public.mes_manpower_allocations (id, line_id, shift_date, shift_name, proce
 367	12	2026-09-25	A	68	137	t	1	1	ss	2026-09-25 08:42:41.421251	\N	\N	\N
 368	12	2026-09-25	A	134	84	t	2	2	ss	2026-09-25 08:42:41.421251	\N	\N	\N
 369	12	2026-09-25	A	61	85	t	2	2	ss	2026-09-25 08:42:41.421251	\N	\N	\N
+370	4	2026-09-25	A	115	77	t	2	2	admin	2026-09-25 15:44:41.716309	\N	\N	\N
+371	4	2026-09-25	A	116	116	t	2	1	admin	2026-09-25 15:44:41.716309	\N	\N	\N
+372	4	2026-09-25	A	120	80	t	2	1	admin	2026-09-25 15:44:41.716309	\N	\N	\N
+373	4	2026-09-25	A	132	115	t	2	2	admin	2026-09-25 15:44:41.716309	\N	\N	\N
+374	4	2026-09-25	A	119	116	t	2	1	admin	2026-09-25 15:44:41.716309	\N	\N	\N
+375	4	2026-09-25	A	114	77	t	2	2	admin	2026-09-25 15:44:41.716309	\N	\N	\N
+376	4	2026-09-25	A	121	92	t	2	2	admin	2026-09-25 15:44:41.716309	\N	\N	\N
+377	4	2026-09-25	A	117	102	t	2	2	admin	2026-09-25 15:44:41.716309	\N	\N	\N
+378	4	2026-09-25	A	118	102	t	2	2	admin	2026-09-25 15:44:41.716309	\N	\N	\N
+379	11	2026-09-25	A	133	114	t	2	2	admin	2026-09-25 16:30:03.82795	\N	\N	\N
+380	11	2026-09-25	A	84	110	t	2	2	admin	2026-09-25 16:30:03.82795	\N	\N	\N
+381	11	2026-09-25	A	80	120	t	2	2	admin	2026-09-25 16:30:03.82795	\N	\N	\N
+382	11	2026-09-25	A	81	120	t	2	2	admin	2026-09-25 16:30:03.82795	\N	\N	\N
+383	11	2026-09-25	A	78	100	t	2	2	admin	2026-09-25 16:30:03.82795	\N	\N	\N
+384	11	2026-09-25	A	82	25	t	2	1	admin	2026-09-25 16:30:03.82795	\N	\N	\N
+385	11	2026-09-25	A	77	100	t	2	2	admin	2026-09-25 16:30:03.82795	\N	\N	\N
+386	11	2026-09-25	A	79	25	t	2	1	admin	2026-09-25 16:30:03.82795	\N	\N	\N
+387	11	2026-09-25	A	83	104	t	2	1	admin	2026-09-25 16:30:03.82795	\N	\N	\N
+388	11	2026-09-25	B	79	24	t	2	1	ss	2026-09-25 23:21:46.068079	\N	\N	\N
+389	11	2026-09-25	B	81	21	t	2	2	ss	2026-09-25 23:21:46.068079	\N	\N	\N
+390	11	2026-09-25	B	83	49	t	2	1	ss	2026-09-25 23:21:46.068079	\N	\N	\N
+391	11	2026-09-25	B	133	53	t	2	2	ss	2026-09-25 23:21:46.068079	\N	\N	\N
+392	11	2026-09-25	B	78	54	t	2	2	ss	2026-09-25 23:21:46.068079	\N	\N	\N
+393	11	2026-09-25	B	84	22	t	2	2	ss	2026-09-25 23:21:46.068079	\N	\N	\N
+394	11	2026-09-25	B	82	24	t	2	1	ss	2026-09-25 23:21:46.068079	\N	\N	\N
+395	11	2026-09-25	B	77	54	t	2	2	ss	2026-09-25 23:21:46.068079	\N	\N	\N
+396	11	2026-09-25	B	80	21	t	2	2	ss	2026-09-25 23:21:46.068079	\N	\N	\N
+397	4	2026-09-25	B	121	20	t	2	2	ss	2026-09-25 23:22:31.888611	\N	\N	\N
+398	4	2026-09-25	B	120	23	t	2	1	ss	2026-09-25 23:22:31.888611	\N	\N	\N
+399	4	2026-09-25	B	115	42	t	2	2	ss	2026-09-25 23:22:31.888611	\N	\N	\N
+400	4	2026-09-25	B	119	40	t	2	1	ss	2026-09-25 23:22:31.888611	\N	\N	\N
+401	4	2026-09-25	B	117	13	t	2	2	ss	2026-09-25 23:22:31.888611	\N	\N	\N
+402	4	2026-09-25	B	118	13	t	2	2	ss	2026-09-25 23:22:31.888611	\N	\N	\N
+403	4	2026-09-25	B	114	42	t	2	2	ss	2026-09-25 23:22:31.888611	\N	\N	\N
+404	4	2026-09-25	B	132	34	t	2	2	ss	2026-09-25 23:22:31.888611	\N	\N	\N
+405	4	2026-09-25	B	116	40	t	2	1	ss	2026-09-25 23:22:31.888611	\N	\N	\N
+406	18	2026-09-26	A	113	87	t	2	2	ss	2026-09-26 09:01:06.288766	\N	\N	\N
+407	18	2026-09-26	A	104	81	t	2	2	ss	2026-09-26 09:01:06.288766	\N	\N	\N
+409	18	2026-09-26	A	108	90	t	2	2	ss	2026-09-26 09:01:06.288766	\N	\N	\N
+410	18	2026-09-26	A	105	81	t	2	2	ss	2026-09-26 09:01:06.288766	\N	\N	\N
+412	18	2026-09-26	A	111	93	t	2	1	ss	2026-09-26 09:01:06.288766	\N	\N	\N
+414	18	2026-09-26	A	109	93	t	2	2	ss	2026-09-26 09:01:06.288766	\N	\N	\N
+415	18	2026-09-26	A	112	87	t	2	2	ss	2026-09-26 09:01:06.288766	\N	\N	\N
+416	18	2026-09-26	A	106	90	t	2	1	ss	2026-09-26 09:01:06.288766	\N	\N	\N
+417	18	2026-09-26	A	107	90	t	2	2	ss	2026-09-26 09:01:06.288766	\N	\N	\N
+418	18	2026-09-26	A	110	93	t	2	1	ss	2026-09-26 09:01:06.288766	\N	\N	\N
+419	18	2026-09-26	A	139	82	t	2	2	ss	2026-09-26 09:01:06.288766	\N	\N	\N
+408	18	2026-09-26	A	101	94	t	2	2	ss	2026-09-26 09:01:06.288766	2026-09-26 09:02:14.131446	ss	\N
+411	18	2026-09-26	A	102	94	t	2	2	ss	2026-09-26 09:01:06.288766	2026-09-26 09:02:14.131446	ss	\N
+413	18	2026-09-26	A	103	94	t	2	2	ss	2026-09-26 09:01:06.288766	2026-09-26 09:02:14.131446	ss	\N
+420	18	2026-09-26	A	102	180	t	2	2	ss	2026-09-26 09:02:14.131446	\N	\N	\N
+421	18	2026-09-26	A	103	180	t	2	2	ss	2026-09-26 09:02:14.131446	\N	\N	\N
+422	18	2026-09-26	A	101	180	t	2	2	ss	2026-09-26 09:02:14.131446	\N	\N	\N
+423	12	2026-09-26	A	64	95	t	2	2	ss	2026-09-26 09:02:43.230281	\N	\N	\N
+424	12	2026-09-26	A	62	129	t	2	1	ss	2026-09-26 09:02:43.230281	\N	\N	\N
+425	12	2026-09-26	A	60	85	t	2	2	ss	2026-09-26 09:02:43.230281	\N	\N	\N
+426	12	2026-09-26	A	65	129	t	2	1	ss	2026-09-26 09:02:43.230281	\N	\N	\N
+427	12	2026-09-26	A	63	95	t	2	2	ss	2026-09-26 09:02:43.230281	\N	\N	\N
+428	12	2026-09-26	A	67	140	t	3	2	ss	2026-09-26 09:02:43.230281	\N	\N	\N
+429	12	2026-09-26	A	66	140	t	3	1	ss	2026-09-26 09:02:43.230281	\N	\N	\N
+430	12	2026-09-26	A	68	137	t	1	1	ss	2026-09-26 09:02:43.230281	\N	\N	\N
+431	12	2026-09-26	A	134	84	t	2	2	ss	2026-09-26 09:02:43.230281	\N	\N	\N
+432	12	2026-09-26	A	61	85	t	2	2	ss	2026-09-26 09:02:43.230281	\N	\N	\N
+434	4	2026-09-26	B	120	23	t	2	1	ss	2026-09-26 18:40:27.197899	\N	\N	\N
+435	4	2026-09-26	B	115	42	t	2	2	ss	2026-09-26 18:40:27.197899	\N	\N	\N
+436	4	2026-09-26	B	119	40	t	2	1	ss	2026-09-26 18:40:27.197899	\N	\N	\N
+437	4	2026-09-26	B	117	13	t	2	2	ss	2026-09-26 18:40:27.197899	\N	\N	\N
+438	4	2026-09-26	B	118	13	t	2	2	ss	2026-09-26 18:40:27.197899	\N	\N	\N
+439	4	2026-09-26	B	114	42	t	2	2	ss	2026-09-26 18:40:27.197899	\N	\N	\N
+440	4	2026-09-26	B	132	34	t	2	2	ss	2026-09-26 18:40:27.197899	\N	\N	\N
+441	4	2026-09-26	B	116	40	t	2	1	ss	2026-09-26 18:40:27.197899	\N	\N	\N
+433	4	2026-09-26	B	121	20	t	2	2	ss	2026-09-26 18:40:27.197899	2026-09-26 18:42:09.980868	ss	\N
+442	4	2026-09-26	B	121	17	t	2	2	ss	2026-09-26 18:42:09.980868	\N	\N	\N
+443	11	2026-09-26	B	79	24	t	2	1	ss	2026-09-26 18:42:51.867619	\N	\N	\N
+444	11	2026-09-26	B	81	21	t	2	2	ss	2026-09-26 18:42:51.867619	\N	\N	\N
+445	11	2026-09-26	B	83	49	t	2	1	ss	2026-09-26 18:42:51.867619	\N	\N	\N
+446	11	2026-09-26	B	133	53	t	2	2	ss	2026-09-26 18:42:51.867619	\N	\N	\N
+447	11	2026-09-26	B	78	54	t	2	2	ss	2026-09-26 18:42:51.867619	\N	\N	\N
+448	11	2026-09-26	B	84	22	t	2	2	ss	2026-09-26 18:42:51.867619	\N	\N	\N
+449	11	2026-09-26	B	82	24	t	2	1	ss	2026-09-26 18:42:51.867619	\N	\N	\N
+450	11	2026-09-26	B	77	54	t	2	2	ss	2026-09-26 18:42:51.867619	\N	\N	\N
+451	11	2026-09-26	B	80	21	t	2	2	ss	2026-09-26 18:42:51.867619	\N	\N	\N
 \.
 
 
@@ -28633,461 +29377,6 @@ COPY public.mes_monthly_plan (id, fg_part_id, year_month, shift_a_plan, shift_b_
 
 
 --
--- Data for Name: mes_ng_process_remarks; Type: TABLE DATA; Schema: public; Owner: -
---
-
-COPY public.mes_ng_process_remarks (id, part_code, line_id, machine_id, machine_name, remark_text, shift_name, record_date, created_at, created_by, updated_at) FROM stdin;
-1	M8-C1-2026-05-27	2	8	Upper Rail Greasing Machine	dklsgjlSFLKGBLXnklsndkBSFKJBKLSfLBKNXCM,NVM,ZN	UNKNOWN	2026-05-27	2026-05-27 15:05:55.737433	\N	2026-05-27 15:05:55.737433
-2	M8-C134-2026-06-01	2	8	Upper Rail Greasing Machine	Child part feed	UNKNOWN	2026-06-01	2026-06-01 09:18:54.86967	\N	2026-06-01 09:18:54.86967
-3	M12-C414-2026-06-01	2	12	Semi-Auto	2nd station ng	UNKNOWN	2026-06-01	2026-06-01 10:41:27.661282	\N	2026-06-01 10:41:48.508335
-5	M8-C156-2026-06-01	2	8	Upper Rail Greasing Machine	Lower rail operator going for water  drinking	UNKNOWN	2026-06-01	2026-06-01 10:52:27.966513	\N	2026-06-01 10:52:27.966513
-6	M16-C154-2026-06-01	2	16	Lock Bar insert Machine	Operator going for water drinking	UNKNOWN	2026-06-01	2026-06-01 10:55:06.925676	\N	2026-06-01 10:55:06.925676
-8	M16-C698-2026-06-01	2	16	Lock Bar insert Machine	Upper rail bin & kanban change	UNKNOWN	2026-06-01	2026-06-01 11:58:03.241626	\N	2026-06-01 11:58:03.241626
-7	M16-C689-2026-06-01	2	16	Lock Bar insert Machine	To confirm area sensor selection	UNKNOWN	2026-06-01	2026-06-01 11:52:55.926284	\N	2026-06-01 12:07:42.035876
-10	M16-C116-2026-06-01	2	16	Lock Bar insert Machine	Seat Track Operator feed Ball Guide in bin	UNKNOWN	2026-06-01	2026-06-01 12:30:41.929626	\N	2026-06-01 12:30:41.929626
-11	M8-C118-2026-06-01	2	8	Upper Rail Greasing Machine	Seat Track Operor feed ball guide(Child part) in bin	UNKNOWN	2026-06-01	2026-06-01 12:32:45.976211	\N	2026-06-01 12:32:45.976211
-12	M17-C115-2026-06-01	2	17	LOWER RAIL GREASING	Seat Track operator feed Ball Guide (Child part )in bins	UNKNOWN	2026-06-01	2026-06-01 12:34:32.948667	\N	2026-06-01 12:34:32.948667
-13	M13-C56-2026-06-01	2	13	Ball Guide Insert Machine	Seat track operator feed ball Guide  (child parts)in bins	UNKNOWN	2026-06-01	2026-06-01 12:36:47.352071	\N	2026-06-01 12:36:47.352071
-14	M8-C75-2026-06-02	2	8	Upper Rail Greasing Machine	Bin Change	UNKNOWN	2026-06-02	2026-06-02 09:04:28.170303	\N	2026-06-02 09:04:28.170303
-15	M16-C84-2026-06-02	2	16	Lock Bar insert Machine	Lock Bar NG Alarm	UNKNOWN	2026-06-02	2026-06-02 09:08:51.348948	\N	2026-06-02 09:08:51.348948
-47	M13-C148-2026-06-03	2	13	Ball Guide Insert Machine	Waiting From final Process	UNKNOWN	2026-06-03	2026-06-03 10:30:01.736786	\N	2026-06-03 10:30:01.736786
-48	M8-C302-2026-06-03	2	8	Upper Rail Greasing Machine	Bin Change upper rail	UNKNOWN	2026-06-03	2026-06-03 10:32:48.418987	\N	2026-06-03 10:32:48.418987
-49	M8-C333-2026-06-03	2	8	Upper Rail Greasing Machine	Lockbar feed on M/C	UNKNOWN	2026-06-03	2026-06-03 10:38:18.248971	\N	2026-06-03 10:38:18.248971
-16	M8-C109-2026-06-02	2	8	Upper Rail Greasing Machine	Child Part Fall down	UNKNOWN	2026-06-02	2026-06-02 09:15:20.307433	\N	2026-06-02 09:15:34.348434
-21	M8-C195-2026-06-02	2	8	Upper Rail Greasing Machine	Upper Rail Bin Change	UNKNOWN	2026-06-02	2026-06-02 09:34:29.943578	\N	2026-06-02 09:34:29.943578
-22	M8-C210-2026-06-02	2	8	Upper Rail Greasing Machine	Upper rail bin Change	UNKNOWN	2026-06-02	2026-06-02 09:39:13.104093	\N	2026-06-02 09:39:13.104093
-23	M13-C123-2026-06-02	2	13	Ball Guide Insert Machine	Ball Guide(Child Part) Bin Change	UNKNOWN	2026-06-02	2026-06-02 09:48:19.389173	\N	2026-06-02 09:48:19.389173
-24	M8-C248-2026-06-02	2	8	Upper Rail Greasing Machine	Seat Track operator Feed Ball guide(Child Part) in bin & Upper Rail Bin Change	UNKNOWN	2026-06-02	2026-06-02 09:52:36.134487	\N	2026-06-02 09:52:36.134487
-25	M16-C394-2026-06-02	2	16	Lock Bar insert Machine	E-ring fill at Light ejector process	UNKNOWN	2026-06-02	2026-06-02 10:59:29.114811	\N	2026-06-02 10:59:29.114811
-26	M17-C394-2026-06-02	2	17	LOWER RAIL GREASING	Lower rail Bin Change & E-ring fill at Light Ejector Proess	UNKNOWN	2026-06-02	2026-06-02 11:05:19.127915	\N	2026-06-02 11:05:19.127915
-27	M8-C992-2026-06-02	2	8	Upper Rail Greasing Machine	Bin Change	UNKNOWN	2026-06-02	2026-06-02 14:05:04.102074	\N	2026-06-02 14:05:04.102074
-28	M8-C1003-2026-06-02	2	8	Upper Rail Greasing Machine	Upper rail Bin Separator Change	UNKNOWN	2026-06-02	2026-06-02 14:06:51.357647	\N	2026-06-02 14:06:51.357647
-29	M14-C512-2026-06-02	2	14	Ball Guide Insert Machine	Waiting For Part	UNKNOWN	2026-06-02	2026-06-02 14:10:13.054034	\N	2026-06-02 14:10:13.054034
-30	M12-C1103-2026-06-02	2	12	Semi-Auto	ok running	UNKNOWN	2026-06-02	2026-06-02 14:27:26.273939	\N	2026-06-02 14:27:26.273939
-31	M8-C1417-2026-06-02	2	8	Upper Rail Greasing Machine	Upper Rail & Spring support bin Change	UNKNOWN	2026-06-02	2026-06-02 16:10:33.302597	\N	2026-06-02 16:10:33.302597
-32	M8-C1433-2026-06-02	2	8	Upper Rail Greasing Machine	Upper Rail Bin change	UNKNOWN	2026-06-02	2026-06-02 16:13:25.307697	\N	2026-06-02 16:13:25.307697
-33	M17-C1413-2026-06-02	2	17	LOWER RAIL GREASING	Lower rail Bin Change	UNKNOWN	2026-06-02	2026-06-02 16:15:37.162362	\N	2026-06-02 16:15:37.162362
-34	M13-C713-2026-06-02	2	13	Ball Guide Insert Machine	Bin Change at Lower rail process	UNKNOWN	2026-06-02	2026-06-02 16:16:14.567987	\N	2026-06-02 16:16:14.567987
-35	M14-C712-2026-06-02	2	14	Ball Guide Insert Machine	Bin change at lower Rail Process	UNKNOWN	2026-06-02	2026-06-02 16:16:48.850881	\N	2026-06-02 16:16:48.850881
-36	M8-C1463-2026-06-02	2	8	Upper Rail Greasing Machine	upper rail material short on line	UNKNOWN	2026-06-02	2026-06-02 16:22:13.132523	\N	2026-06-02 16:22:13.132523
-37	M13-C734-2026-06-02	2	13	Ball Guide Insert Machine	Material Short at upper Rail	UNKNOWN	2026-06-02	2026-06-02 16:27:28.45869	\N	2026-06-02 16:27:36.392358
-39	M8-C1505-2026-06-02	2	8	Upper Rail Greasing Machine	Lcokbar Ng alarm in lockbar fitment M/C	UNKNOWN	2026-06-02	2026-06-02 16:33:42.551152	\N	2026-06-02 16:33:42.551152
-40	M16-C1504-2026-06-02	2	16	Lock Bar insert Machine	Lock Bar Fitment ng Alarm in M/C	UNKNOWN	2026-06-02	2026-06-02 16:34:27.344638	\N	2026-06-02 16:34:27.344638
-41	M17-C1495-2026-06-02	2	17	LOWER RAIL GREASING	Lock Bar fitment Ng Alarm In lockbar fitment M/C	UNKNOWN	2026-06-02	2026-06-02 16:35:31.371606	\N	2026-06-02 16:35:31.371606
-42	M13-C754-2026-06-02	2	13	Ball Guide Insert Machine	Lock Bar Fitment Ng Alarmn In Lockbar Fitment M/C	UNKNOWN	2026-06-02	2026-06-02 16:36:46.729547	\N	2026-06-02 16:36:46.729547
-43	M14-C753-2026-06-02	2	14	Ball Guide Insert Machine	Waiting Due to lock bar fitment NG alarm in Lockbar fitment M/C	UNKNOWN	2026-06-02	2026-06-02 16:37:43.324366	\N	2026-06-02 16:37:43.324366
-44	M12-C312-2026-06-03	2	12	Semi-Auto	waiting from final process	UNKNOWN	2026-06-03	2026-06-03 10:28:18.877289	\N	2026-06-03 10:28:24.527559
-46	M14-C147-2026-06-03	2	14	Ball Guide Insert Machine	waiting From Final Process	UNKNOWN	2026-06-03	2026-06-03 10:29:33.448098	\N	2026-06-03 10:29:33.448098
-50	M8-C837-2026-06-03	2	8	Upper Rail Greasing Machine	Error shown in Lockbar m/c	UNKNOWN	2026-06-03	2026-06-03 13:31:14.808884	\N	2026-06-03 13:31:14.808884
-51	M17-C840-2026-06-03	2	17	LOWER RAIL GREASING	Lock bar fitment NG alarm	UNKNOWN	2026-06-03	2026-06-03 13:31:57.690168	\N	2026-06-03 13:31:57.690168
-52	M8-C871-2026-06-03	2	8	Upper Rail Greasing Machine	bin change	UNKNOWN	2026-06-03	2026-06-03 13:40:25.598006	\N	2026-06-03 13:40:25.598006
-53	M16-C873-2026-06-03	2	16	Lock Bar insert Machine	waiting from 1st process	UNKNOWN	2026-06-03	2026-06-03 13:41:03.29287	\N	2026-06-03 13:41:03.29287
-54	M8-C901-2026-06-03	2	8	Upper Rail Greasing Machine	Lower rail Bin Change	UNKNOWN	2026-06-03	2026-06-03 13:48:50.356244	\N	2026-06-03 13:48:50.356244
-55	M8-C984-2026-06-03	2	8	Upper Rail Greasing Machine	Lock bar Feed on machine from bin	UNKNOWN	2026-06-03	2026-06-03 14:10:00.006519	\N	2026-06-03 14:10:00.006519
-56	M16-C986-2026-06-03	2	16	Lock Bar insert Machine	waiting from 1st process	UNKNOWN	2026-06-03	2026-06-03 14:11:22.62773	\N	2026-06-03 14:11:22.62773
-57	M17-C992-2026-06-03	2	17	LOWER RAIL GREASING	Waiting from 2nd process	UNKNOWN	2026-06-03	2026-06-03 14:11:57.636354	\N	2026-06-03 14:11:57.636354
-58	M14-C496-2026-06-03	2	14	Ball Guide Insert Machine	Error shown in Machine panel	UNKNOWN	2026-06-03	2026-06-03 14:12:44.44894	\N	2026-06-03 14:12:44.44894
-59	M8-C1033-2026-06-03	2	8	Upper Rail Greasing Machine	Bin Change	UNKNOWN	2026-06-03	2026-06-03 14:19:54.109837	\N	2026-06-03 14:19:54.109837
-60	M16-C1034-2026-06-03	2	16	Lock Bar insert Machine	Waiting from 1st process	UNKNOWN	2026-06-03	2026-06-03 14:20:41.668766	\N	2026-06-03 14:20:41.668766
-61	M8-C1032-2026-06-03	2	8	Upper Rail Greasing Machine	Bin Change & Lock bar feed at 2nd process	UNKNOWN	2026-06-03	2026-06-03 14:21:35.038169	\N	2026-06-03 14:21:35.038169
-62	M17-C1036-2026-06-03	2	17	LOWER RAIL GREASING	Waiting From 2nd process	UNKNOWN	2026-06-03	2026-06-03 14:22:13.277783	\N	2026-06-03 14:22:13.277783
-63	M8-C1277-2026-06-03	2	8	Upper Rail Greasing Machine	Waiting From Final Operator	UNKNOWN	2026-06-03	2026-06-03 15:40:12.425411	\N	2026-06-03 15:40:12.425411
-64	M16-C1278-2026-06-03	2	16	Lock Bar insert Machine	Waiting From Final Operator	UNKNOWN	2026-06-03	2026-06-03 15:40:45.113358	\N	2026-06-03 15:40:45.113358
-65	M17-C1278-2026-06-03	2	17	LOWER RAIL GREASING	waiting from final operator	UNKNOWN	2026-06-03	2026-06-03 15:41:10.331862	\N	2026-06-03 15:41:10.331862
-66	M16-C1326-2026-06-03	2	16	Lock Bar insert Machine	Waiting at 3rd process	UNKNOWN	2026-06-03	2026-06-03 15:52:48.388542	\N	2026-06-03 15:52:50.03847
-68	M17-C1326-2026-06-03	2	17	LOWER RAIL GREASING	Error Shown in Machine panel	UNKNOWN	2026-06-03	2026-06-03 15:56:44.023023	\N	2026-06-03 15:56:44.023023
-69	M8-C1325-2026-06-03	2	8	Upper Rail Greasing Machine	Lock bar Bin Change & Waiting from 3rd process operator	UNKNOWN	2026-06-03	2026-06-03 15:58:47.506729	\N	2026-06-03 15:58:47.506729
-70	M14-C676-2026-06-03	2	14	Ball Guide Insert Machine	Operator Going For drinking Water	UNKNOWN	2026-06-03	2026-06-03 16:07:23.779605	\N	2026-06-03 16:07:23.779605
-71	M17-C1349-2026-06-03	2	17	LOWER RAIL GREASING	Waiting From Final Machine	UNKNOWN	2026-06-03	2026-06-03 16:15:20.027626	\N	2026-06-03 16:15:20.027626
-72	M8-C1392-2026-06-03	2	8	Upper Rail Greasing Machine	Upper rail Bin Change	UNKNOWN	2026-06-03	2026-06-03 16:15:53.895935	\N	2026-06-03 16:15:53.895935
-73	M8-C1542-2026-06-03	2	8	Upper Rail Greasing Machine	upper rail Bin Change	UNKNOWN	2026-06-03	2026-06-03 16:53:23.717306	\N	2026-06-03 16:53:23.717306
-74	M8-C195-2026-06-04	2	8	Upper Rail Greasing Machine	upper rail bin change	UNKNOWN	2026-06-04	2026-06-04 09:30:25.714583	\N	2026-06-04 09:31:58.101909
-76	M8-C225-2026-06-04	2	8	Upper Rail Greasing Machine	Upper rail Bin Change	UNKNOWN	2026-06-04	2026-06-04 09:42:17.586813	\N	2026-06-04 09:42:17.586813
-77	M14-C117-2026-06-04	2	14	Ball Guide Insert Machine	Ball Guide Bin Change	UNKNOWN	2026-06-04	2026-06-04 09:45:23.770635	\N	2026-06-04 09:45:23.770635
-78	M14-C122-2026-06-04	2	14	Ball Guide Insert Machine	ball guide bin change	UNKNOWN	2026-06-04	2026-06-04 09:47:39.203923	\N	2026-06-04 09:47:39.203923
-79	M8-C436-2026-06-04	2	8	Upper Rail Greasing Machine	Upper rail Bin change	UNKNOWN	2026-06-04	2026-06-04 10:42:53.006826	\N	2026-06-04 10:42:53.006826
-80	M17-C402-2026-06-04	2	17	LOWER RAIL GREASING	Waiting from previous process	UNKNOWN	2026-06-04	2026-06-04 10:45:16.358817	\N	2026-06-04 10:45:16.358817
-81	M13-C201-2026-06-04	2	13	Ball Guide Insert Machine	Waiting from previous process	UNKNOWN	2026-06-04	2026-06-04 10:50:19.845697	\N	2026-06-04 10:50:19.845697
-82	M8-C404-2026-06-04	2	8	Upper Rail Greasing Machine	UPPER RAIL BUR SUSPECTED PART (MACHINE ERROR SHOW)	UNKNOWN	2026-06-04	2026-06-04 11:02:28.997652	\N	2026-06-04 11:02:28.997652
-83	M16-C817-2026-06-04	2	16	Lock Bar insert Machine	Waiting from next process	UNKNOWN	2026-06-04	2026-06-04 12:57:22.555205	\N	2026-06-04 12:57:22.555205
-84	M14-C408-2026-06-04	2	14	Ball Guide Insert Machine	Waiting from previous process	UNKNOWN	2026-06-04	2026-06-04 12:58:03.786036	\N	2026-06-04 12:58:03.786036
-85	M17-C815-2026-06-04	2	17	LOWER RAIL GREASING	Double Barcode error shown in panel	UNKNOWN	2026-06-04	2026-06-04 12:59:00.268949	\N	2026-06-04 12:59:00.268949
-86	M8-C29-2026-06-08	2	8	Upper Rail Greasing Machine	waiting from next process	UNKNOWN	2026-06-08	2026-06-08 09:02:42.377535	\N	2026-06-08 09:02:42.377535
-87	M16-C18-2026-06-08	2	16	Lock Bar insert Machine	PY check	UNKNOWN	2026-06-08	2026-06-08 09:04:19.561657	\N	2026-06-08 09:04:19.561657
-88	M14-C178-2026-06-08	2	14	Ball Guide Insert Machine	Front insert Fault Alarm	UNKNOWN	2026-06-08	2026-06-08 10:31:03.462312	\N	2026-06-08 10:31:03.462312
-89	M14-C180-2026-06-08	2	14	Ball Guide Insert Machine	Front Insert fault alarm( Maintenance person working on it)	UNKNOWN	2026-06-08	2026-06-08 10:41:50.057164	\N	2026-06-08 10:41:50.057164
-90	M14-C157-2026-06-09	2	14	Ball Guide Insert Machine	Waiting From next process	A	2026-06-09	2026-06-09 10:37:00.686025	\N	2026-06-09 10:37:00.686025
-91	M13-C158-2026-06-09	2	13	Ball Guide Insert Machine	Waiting From next Process	A	2026-06-09	2026-06-09 10:37:45.926084	\N	2026-06-09 10:37:45.926084
-92	M8-C431-2026-06-11	2	8	Upper Rail Greasing Machine	Waiting from next process	A	2026-06-11	2026-06-11 15:56:14.593374	\N	2026-06-11 15:57:01.966351
-94	M8-C30-2026-06-11	2	8	Upper Rail Greasing Machine	PY Check at Next process	A	2026-06-11	2026-06-11 15:57:54.473133	\N	2026-06-11 15:57:54.473133
-95	M8-C102-2026-06-11	2	8	Upper Rail Greasing Machine	Waiting from next process	A	2026-06-11	2026-06-11 15:58:23.568882	\N	2026-06-11 15:58:23.568882
-96	M8-C1053-2026-06-11	2	8	Upper Rail Greasing Machine	Waiting at next process	A	2026-06-11	2026-06-11 15:59:04.665474	\N	2026-06-11 15:59:04.665474
-97	M13-C1125-2026-06-12	2	13	Ball Guide Insert Machine	Ball guide NG alarm in panel	A	2026-06-12	2026-06-12 10:42:49.695449	\N	2026-06-12 10:43:20.072199
-99	M8-C2585-2026-06-12	2	8	Upper Rail Greasing Machine	Bin Change	A	2026-06-12	2026-06-12 12:15:29.874748	\N	2026-06-12 12:15:29.874748
-100	M8-C2583-2026-06-12	2	8	Upper Rail Greasing Machine	Some error shown in next process HMI panel	A	2026-06-12	2026-06-12 12:16:19.677678	\N	2026-06-12 12:16:19.677678
-101	M8-C2580-2026-06-12	2	8	Upper Rail Greasing Machine	Bin separator open	A	2026-06-12	2026-06-12 12:16:51.4301	\N	2026-06-12 12:16:51.4301
-102	M8-C2177-2026-06-12	2	8	Upper Rail Greasing Machine	Waiting at next process	A	2026-06-12	2026-06-12 12:18:49.724952	\N	2026-06-12 12:18:49.724952
-103	M8-C2471-2026-06-12	2	8	Upper Rail Greasing Machine	waiting at next process (Child part fill in machine )	A	2026-06-12	2026-06-12 12:19:21.884068	\N	2026-06-12 12:19:21.884068
-104	M8-C1815-2026-06-12	2	8	Upper Rail Greasing Machine	Waiting at next process	A	2026-06-12	2026-06-12 12:19:52.786775	\N	2026-06-12 12:19:52.786775
-105	M8-C2152-2026-06-12	2	8	Upper Rail Greasing Machine	Waiting at next process	A	2026-06-12	2026-06-12 12:20:01.899504	\N	2026-06-12 12:20:01.899504
-106	M8-C1980-2026-06-12	2	8	Upper Rail Greasing Machine	Waiting at next process	A	2026-06-12	2026-06-12 12:20:10.318673	\N	2026-06-12 12:20:10.318673
-107	M8-C1820-2026-06-12	2	8	Upper Rail Greasing Machine	Bin Change	A	2026-06-12	2026-06-12 12:20:32.839669	\N	2026-06-12 12:20:32.839669
-108	M16-C2853-2026-06-12	2	16	Lock Bar insert Machine	Double barcode error in next process	A	2026-06-12	2026-06-12 13:39:04.206943	\N	2026-06-12 13:39:33.892464
-110	M17-C2840-2026-06-12	2	17	LOWER RAIL GREASING	Double barcode error in HMI panel	A	2026-06-12	2026-06-12 13:40:02.664311	\N	2026-06-12 13:40:02.664311
-111	M8-C1495-2026-08-07	2	8	Upper Rail Greasing Machine	Bin Change	A	2026-08-07	2026-08-07 15:41:05.057414	\N	2026-08-07 15:41:05.057414
-112	M14-C741-2026-08-07	2	14	Ball Guide Insert Machine	Waiting from previous process	A	2026-08-07	2026-08-07 15:41:40.418785	\N	2026-08-07 15:41:40.418785
-113	M16-C1536-2026-08-07	2	16	Lock Bar insert Machine	Waiting from previous process (Some trouble in SS02)	A	2026-08-07	2026-08-07 15:50:12.67744	\N	2026-08-07 15:50:12.67744
-114	M38-C598-2026-08-18	4	38	Lower Rail Grease & Bar Coding M/c	Poka yoke sensor issue	A	2026-08-18	2026-08-18 11:28:50.141378	\N	2026-08-18 11:28:50.141378
-115	M98-C31722-2026-08-18	20	98	SP Insert Fixture with Machine	Spring insert issue	A	2026-08-18	2026-08-18 11:36:18.883149	\N	2026-08-18 11:36:18.883149
-116	M98-C31644-2026-08-18	20	98	SP Insert Fixture with Machine	Spring insert issue	A	2026-08-18	2026-08-18 11:36:39.189292	\N	2026-08-18 11:36:53.216366
-119	M98-C31727-2026-08-18	20	98	SP Insert Fixture with Machine	Spring insert issue	A	2026-08-18	2026-08-18 11:39:48.979845	\N	2026-08-18 11:39:48.979845
-120	M98-C31728-2026-08-18	20	98	SP Insert Fixture with Machine	Spring insert issue	A	2026-08-18	2026-08-18 11:40:05.597188	\N	2026-08-18 11:40:05.597188
-121	M98-C31731-2026-08-18	20	98	SP Insert Fixture with Machine	Spring insert issue	A	2026-08-18	2026-08-18 11:40:14.169876	\N	2026-08-18 11:40:14.169876
-122	M98-C31703-2026-08-18	20	98	SP Insert Fixture with Machine	Spring insert issue	A	2026-08-18	2026-08-18 11:40:43.166144	\N	2026-08-18 11:40:43.166144
-123	M98-C31560-2026-08-18	20	98	SP Insert Fixture with Machine	Spring insert issue	A	2026-08-18	2026-08-18 11:41:19.170032	\N	2026-08-18 11:41:19.170032
-124	M98-C31573-2026-08-18	20	98	SP Insert Fixture with Machine	Spring insert issue	A	2026-08-18	2026-08-18 11:41:54.164941	\N	2026-08-18 11:41:54.164941
-125	M98-C31645-2026-08-18	20	98	SP Insert Fixture with Machine	Spring insert issue	A	2026-08-18	2026-08-18 11:42:16.832019	\N	2026-08-18 11:42:16.832019
-126	M98-C31571-2026-08-18	20	98	SP Insert Fixture with Machine	Spring insert issue	A	2026-08-18	2026-08-18 12:05:10.127243	\N	2026-08-18 12:05:14.160469
-128	M57-C577-2026-08-18	13	57	Upper Rail Greasing m/c	Waiting for next process	A	2026-08-18	2026-08-18 12:43:07.928861	\N	2026-08-18 12:43:07.928861
-129	M40-C32-2026-08-19	4	40	Rail Assy M/c # 02	Ball guide fill	A	2026-08-19	2026-08-19 09:15:45.024369	\N	2026-08-19 09:15:45.024369
-131	M37-C249-2026-08-19	4	37	Lock Bar Insert M/c	Lockbar tag scane	A	2026-08-19	2026-08-19 09:51:51.970656	\N	2026-08-19 09:51:51.970656
-132	M37-C549-2026-08-19	4	37	Lock Bar Insert M/c	Empty bin change	A	2026-08-19	2026-08-19 11:16:29.781975	\N	2026-08-19 11:16:29.781975
-133	M37-C558-2026-08-19	4	37	Lock Bar Insert M/c	Lock bar tag scane	A	2026-08-19	2026-08-19 11:17:08.07727	\N	2026-08-19 11:17:08.07727
-134	M37-C559-2026-08-19	4	37	Lock Bar Insert M/c	Lock bar sensor issue	A	2026-08-19	2026-08-19 11:17:48.183988	\N	2026-08-19 11:17:48.183988
-135	M29-C742-2026-08-19	11	29	Upper Rail Greasing m/c	Lock bar tag scane	A	2026-08-19	2026-08-19 11:49:34.008054	\N	2026-08-19 11:49:34.008054
-130	M38-C122-2026-08-19	4	38	Lower Rail Grease & Bar Coding M/c	Bin change	A	2026-08-19	2026-08-19 09:16:39.337566	\N	2026-08-19 12:42:41.232233
-140	M36-C451-2026-08-31	4	36	Upper Rail Greasing m/c	Bolt-01 sensor issue	A	2026-08-31	2026-08-31 11:09:42.205381	\N	2026-08-31 11:09:42.205381
-137	M97-C23-2026-08-25	20	97	Mag Welding Relese x Hinge Pin	nozel clean	A	2026-08-25	2026-08-25 15:23:23.142938	\N	2026-08-25 15:23:37.222212
-141	M37-C698-2026-08-31	4	37	Lock Bar Insert M/c	Part present sensor issue	A	2026-08-31	2026-08-31 12:51:50.140089	\N	2026-08-31 12:51:50.140089
-142	M97-C681-2026-08-31	20	97	Mag Welding Relese x Hinge Pin	Nozzle cleaning	A	2026-08-31	2026-08-31 13:45:30.527005	\N	2026-08-31 13:45:30.527005
-143	M97-C695-2026-08-31	20	97	Mag Welding Relese x Hinge Pin	Final machine operator going to drink water	A	2026-08-31	2026-08-31 13:48:58.201797	\N	2026-08-31 13:48:58.201797
-144	M74-C851-2026-09-02	15	74	Rail Assy M/c #02	WI not empty so waiting time more.	A	2026-09-02	2026-09-02 16:24:39.181189	\N	2026-09-02 16:24:39.181189
-145	M33-C133-2026-09-02	11	33	Rail Assy M/c # 02	Machine not run	B	2026-09-02	2026-09-02 19:56:20.259523	\N	2026-09-02 19:56:20.259523
-146	M96-C3112-2026-09-03	20	96	Press in REC with PIN Hinge & Date Code Stamping	Part stucking problem	A	2026-09-03	2026-09-03 13:55:57.88495	\N	2026-09-03 13:55:57.88495
-147	M72-C217-2026-09-03	15	72	Lower Rail Grease & Bar Coding M/c	Bin change	B	2026-09-03	2026-09-03 19:28:09.886777	\N	2026-09-03 19:28:09.886777
-148	M71-C218-2026-09-03	15	71	Lock Bar Insert M/c	Bin change	B	2026-09-03	2026-09-03 19:28:48.015304	\N	2026-09-03 19:28:48.015304
-149	M70-C224-2026-09-03	15	70	Upper Rail Greasing M/c	Bin change	B	2026-09-03	2026-09-03 19:29:14.064037	\N	2026-09-03 19:29:14.064037
-150	M66-C109-2026-09-03	14	66	Rail Assy M/c #01	Waiting from previous process	B	2026-09-03	2026-09-03 19:33:56.8786	\N	2026-09-03 19:33:56.8786
-151	M67-C140-2026-09-03	14	67	Rail Assy M/c #02	Ai camera response delay	B	2026-09-03	2026-09-03 19:53:14.274696	\N	2026-09-03 19:53:14.274696
-162	M14-C571-2026-09-11	2	14	Ball Guide Insert Machine 2	ball guide bin change	A	2026-09-11	2026-09-11 14:37:16.865461	\N	2026-09-11 14:37:16.865461
-163	M75-C613-2026-09-15	15	75	Semi-Automatic & Bending M/c	no issue	A	2026-09-15	2026-09-15 11:26:45.192324	admin	2026-09-15 11:26:45.192324
-164	M47-C68-2026-09-15	12	47	Rail Assy M/c # 02	Ball guide refill	B	2026-09-15	2026-09-15 19:13:33.246254	ss	2026-09-15 19:13:33.246254
-152	M98-C11973-2026-09-07	20	98	SP Insert Fixture with Machine	Part n/a from previous process	A	2026-09-07	2026-09-07 11:12:51.587397	\N	2026-09-07 11:13:06.662785
-157	M73-C684-2026-09-07	15	73	Rail Assy M/c #01	Camera delay response	A	2026-09-07	2026-09-07 15:43:50.240757	\N	2026-09-07 15:43:50.240757
-158	M73-C690-2026-09-07	15	73	Rail Assy M/c #01	Camera delay response	A	2026-09-07	2026-09-07 15:44:27.977503	\N	2026-09-07 15:44:27.977503
-159	M29-C192-2026-09-08	11	29	Upper Rail Greasing m/c	Machine not run part put in to red bin	A	2026-09-08	2026-09-08 09:40:03.266678	\N	2026-09-08 09:40:03.266678
-160	M29-C179-2026-09-08	11	29	Upper Rail Greasing m/c	Machine not run	A	2026-09-08	2026-09-08 09:41:37.482493	\N	2026-09-08 09:41:37.482493
-161	M87-C130-2026-09-08	19	87	Lock Bar Insert M/c	Lock bar NG Sensor fault	A	2026-09-08	2026-09-08 09:52:53.295325	\N	2026-09-08 09:52:53.295325
-165	M95-C4015-2026-09-16	20	95	MAG Welding of  Lwr Hook with Lwr Arrm	L/p not working	A	2026-09-16	2026-09-16 11:48:18.573538	rc	2026-09-16 11:48:18.573538
-166	M95-C4011-2026-09-16	20	95	MAG Welding of  Lwr Hook with Lwr Arrm	Robot hold problam	A	2026-09-16	2026-09-16 11:52:32.438652	rc	2026-09-16 11:52:37.99316
-168	M95-C4014-2026-09-16	20	95	MAG Welding of  Lwr Hook with Lwr Arrm	L/p not working	A	2026-09-16	2026-09-16 11:56:07.324269	rc	2026-09-16 11:56:07.324269
-169	M95-C4032-2026-09-16	20	95	MAG Welding of  Lwr Hook with Lwr Arrm	Robot hold problam	A	2026-09-16	2026-09-16 11:59:14.679336	rc	2026-09-16 11:59:14.679336
-170	M95-C4088-2026-09-16	20	95	MAG Welding of  Lwr Hook with Lwr Arrm	Robot hold problam	A	2026-09-16	2026-09-16 11:59:35.205851	rc	2026-09-16 11:59:35.205851
-171	M95-C4097-2026-09-16	20	95	MAG Welding of  Lwr Hook with Lwr Arrm	Clamp not working	A	2026-09-16	2026-09-16 12:00:40.39885	rc	2026-09-16 12:00:40.39885
-172	M95-C4095-2026-09-16	20	95	MAG Welding of  Lwr Hook with Lwr Arrm	Clamp not working	A	2026-09-16	2026-09-16 12:01:08.389871	rc	2026-09-16 12:01:08.389871
-173	M95-C4055-2026-09-16	20	95	MAG Welding of  Lwr Hook with Lwr Arrm	Robot hold problam	A	2026-09-16	2026-09-16 12:01:24.494799	rc	2026-09-16 12:01:24.494799
-174	M46-C375-2026-09-19	12	46	Rail Assy M/c # 01	Wait for previous part	B	2026-09-19	2026-09-19 21:53:38.150838	ss	2026-09-19 21:53:45.745356
-176	M97-C1465-2026-09-24	20	97	Mag Welding Relese x Hinge Pin	Nozzle cleaning	B	2026-09-24	2026-09-25 03:08:06.329135	rc	2026-09-25 03:08:06.329135
-177	M31-C15-2026-09-25	11	31	Lower Rail Grease & Bar Coding M/c	QUALITY PY CHECK	A	2026-09-25	2026-09-25 09:04:07.716657	ss	2026-09-25 09:04:07.716657
-178	M16-C100-2026-09-25	2	16	Lock Bar insert Machine	Operator talking	A	2026-09-25	2026-09-25 09:12:02.27558	ss	2026-09-25 09:12:02.27558
-179	M16-C95-2026-09-25	2	16	Lock Bar insert Machine	Speed loss	A	2026-09-25	2026-09-25 09:13:41.404423	ss	2026-09-25 09:13:41.404423
-180	M16-C87-2026-09-25	2	16	Lock Bar insert Machine	Speed loss	A	2026-09-25	2026-09-25 09:14:00.844077	ss	2026-09-25 09:14:00.844077
-181	M16-C83-2026-09-25	2	16	Lock Bar insert Machine	Speed loss	A	2026-09-25	2026-09-25 09:14:15.106934	ss	2026-09-25 09:14:15.106934
-182	M16-C81-2026-09-25	2	16	Lock Bar insert Machine	Speed loss	A	2026-09-25	2026-09-25 09:14:28.2911	ss	2026-09-25 09:14:28.2911
-183	M16-C77-2026-09-25	2	16	Lock Bar insert Machine	Speed loss	A	2026-09-25	2026-09-25 09:14:56.699554	ss	2026-09-25 09:14:56.699554
-184	M16-C75-2026-09-25	2	16	Lock Bar insert Machine	Speed loss	A	2026-09-25	2026-09-25 09:15:07.966823	ss	2026-09-25 09:15:07.966823
-185	M16-C63-2026-09-25	2	16	Lock Bar insert Machine	See inside	A	2026-09-25	2026-09-25 09:15:32.394017	ss	2026-09-25 09:15:32.394017
-186	M16-C28-2026-09-25	2	16	Lock Bar insert Machine	MENPOWER speed loss	A	2026-09-25	2026-09-25 09:23:20.283939	ss	2026-09-25 09:23:20.283939
-187	M16-C105-2026-09-25	2	16	Lock Bar insert Machine	Speeld loss	A	2026-09-25	2026-09-25 09:43:02.830153	ss	2026-09-25 09:43:02.830153
-238	M8-C24-2026-09-25	2	8	Upper Rail Greasing Machine	Waiting at next process	A	2026-09-25	2026-09-25 12:54:30.582633	ss	2026-09-25 12:54:30.582633
-188	M16-C147-2026-09-25	2	16	Lock Bar insert Machine	Waiting from next process	A	2026-09-25	2026-09-25 09:55:53.338597	ss	2026-09-25 09:55:59.942173
-191	M8-C176-2026-09-25	2	8	Upper Rail Greasing Machine	Lock bar fill	A	2026-09-25	2026-09-25 09:58:50.683314	ss	2026-09-25 09:58:50.683314
-192	M8-C227-2026-09-25	2	8	Upper Rail Greasing Machine	Waiting at next process	A	2026-09-25	2026-09-25 10:23:21.262791	ss	2026-09-25 10:23:21.262791
-193	M8-C51-2026-09-25	2	8	Upper Rail Greasing Machine	Bin Change	A	2026-09-25	2026-09-25 10:24:30.287956	ss	2026-09-25 10:24:30.287956
-194	M8-C21-2026-09-25	2	8	Upper Rail Greasing Machine	Waiting from next process	A	2026-09-25	2026-09-25 10:24:47.153064	ss	2026-09-25 10:24:55.080054
-196	M8-C228-2026-09-25	2	8	Upper Rail Greasing Machine	Glitch in video	A	2026-09-25	2026-09-25 10:28:45.571443	ss	2026-09-25 10:28:45.571443
-197	M8-C36-2026-09-25	2	8	Upper Rail Greasing Machine	Bin Change	A	2026-09-25	2026-09-25 10:31:48.358421	ss	2026-09-25 10:31:48.358421
-198	M8-C35-2026-09-25	2	8	Upper Rail Greasing Machine	Waiting at next process	A	2026-09-25	2026-09-25 10:32:47.278705	ss	2026-09-25 10:32:47.278705
-199	M8-C32-2026-09-25	2	8	Upper Rail Greasing Machine	Waiting at next process	A	2026-09-25	2026-09-25 10:33:02.912067	ss	2026-09-25 10:33:02.912067
-200	M8-C30-2026-09-25	2	8	Upper Rail Greasing Machine	Waiting at next process	A	2026-09-25	2026-09-25 10:33:31.479278	ss	2026-09-25 10:33:31.479278
-201	M8-C26-2026-09-25	2	8	Upper Rail Greasing Machine	Waiting at next process	A	2026-09-25	2026-09-25 10:34:10.065422	ss	2026-09-25 10:34:10.065422
-202	M30-C14-2026-09-25	11	30	Lock Bar Insert M/c	WI FULL	A	2026-09-25	2026-09-25 11:19:10.872145	ss	2026-09-25 11:19:10.872145
-203	M30-C15-2026-09-25	11	30	Lock Bar Insert M/c	SS06 MACHINE B/D	A	2026-09-25	2026-09-25 11:23:04.640878	ss	2026-09-25 11:23:04.640878
-204	M30-C16-2026-09-25	11	30	Lock Bar Insert M/c	PY CHECK	A	2026-09-25	2026-09-25 11:23:29.210224	ss	2026-09-25 11:23:29.210224
-205	M30-C17-2026-09-25	11	30	Lock Bar Insert M/c	WI FULL	A	2026-09-25	2026-09-25 11:26:09.537979	ss	2026-09-25 11:26:19.628031
-207	M30-C20-2026-09-25	11	30	Lock Bar Insert M/c	WI FULL	A	2026-09-25	2026-09-25 11:26:37.524732	ss	2026-09-25 11:26:37.524732
-208	M30-C49-2026-09-25	11	30	Lock Bar Insert M/c	SS-01 DELAY	A	2026-09-25	2026-09-25 11:27:12.473789	ss	2026-09-25 11:27:12.473789
-209	M30-C45-2026-09-25	11	30	Lock Bar Insert M/c	SS-01 DELAY	A	2026-09-25	2026-09-25 11:27:41.412952	ss	2026-09-25 11:27:41.412952
-210	M30-C30-2026-09-25	11	30	Lock Bar Insert M/c	SS06 DEALY	A	2026-09-25	2026-09-25 11:28:52.736841	ss	2026-09-25 11:28:52.736841
-211	M30-C69-2026-09-25	11	30	Lock Bar Insert M/c	SS06 DELAY	A	2026-09-25	2026-09-25 11:29:15.535052	ss	2026-09-25 11:29:15.535052
-212	M30-C27-2026-09-25	11	30	Lock Bar Insert M/c	SS-01 DELAY	A	2026-09-25	2026-09-25 11:29:48.421181	ss	2026-09-25 11:29:48.421181
-213	M30-C60-2026-09-25	11	30	Lock Bar Insert M/c	BIN CHANGE	A	2026-09-25	2026-09-25 11:31:42.529759	ss	2026-09-25 11:31:42.529759
-214	M30-C114-2026-09-25	11	30	Lock Bar Insert M/c	SSO6 DELAY	A	2026-09-25	2026-09-25 11:35:28.813752	ss	2026-09-25 11:35:28.813752
-215	M30-C26-2026-09-25	11	30	Lock Bar Insert M/c	SS06 DELAY	A	2026-09-25	2026-09-25 11:50:52.401209	ss	2026-09-25 11:50:52.401209
-216	M30-C19-2026-09-25	11	30	Lock Bar Insert M/c	WI FULL	A	2026-09-25	2026-09-25 11:57:57.427369	ss	2026-09-25 11:57:57.427369
-217	M30-C101-2026-09-25	11	30	Lock Bar Insert M/c	WI FULL	A	2026-09-25	2026-09-25 11:58:11.934009	ss	2026-09-25 11:58:11.934009
-218	M30-C113-2026-09-25	11	30	Lock Bar Insert M/c	WI FULL	A	2026-09-25	2026-09-25 11:58:38.913183	ss	2026-09-25 11:58:38.913183
-219	M30-C112-2026-09-25	11	30	Lock Bar Insert M/c	MATERIALS CHANGE	A	2026-09-25	2026-09-25 12:29:25.337859	ss	2026-09-25 12:29:25.337859
-220	M30-C111-2026-09-25	11	30	Lock Bar Insert M/c	WI FULL	A	2026-09-25	2026-09-25 12:29:47.08443	ss	2026-09-25 12:30:08.21727
-222	M30-C106-2026-09-25	11	30	Lock Bar Insert M/c	BIN CHANGE	A	2026-09-25	2026-09-25 12:30:33.541997	ss	2026-09-25 12:30:33.541997
-223	M30-C90-2026-09-25	11	30	Lock Bar Insert M/c	BIN CHANGE	A	2026-09-25	2026-09-25 12:30:59.621743	ss	2026-09-25 12:30:59.621743
-224	M30-C99-2026-09-25	11	30	Lock Bar Insert M/c	WI FULL	A	2026-09-25	2026-09-25 12:31:56.113156	ss	2026-09-25 12:31:56.113156
-225	M30-C87-2026-09-25	11	30	Lock Bar Insert M/c	WI FULL	A	2026-09-25	2026-09-25 12:32:49.392467	ss	2026-09-25 12:32:49.392467
-226	M30-C72-2026-09-25	11	30	Lock Bar Insert M/c	SS06 DELAY	A	2026-09-25	2026-09-25 12:33:10.473685	ss	2026-09-25 12:33:10.473685
-227	M30-C75-2026-09-25	11	30	Lock Bar Insert M/c	SPEED LOSS	A	2026-09-25	2026-09-25 12:34:06.016852	ss	2026-09-25 12:34:06.016852
-228	M30-C120-2026-09-25	11	30	Lock Bar Insert M/c	WI FULL	A	2026-09-25	2026-09-25 12:34:18.313847	ss	2026-09-25 12:34:18.313847
-229	M30-C70-2026-09-25	11	30	Lock Bar Insert M/c	WI FULL	A	2026-09-25	2026-09-25 12:34:32.185493	ss	2026-09-25 12:34:32.185493
-230	M30-C249-2026-09-25	11	30	Lock Bar Insert M/c	SPEED SLOW	A	2026-09-25	2026-09-25 12:35:12.777811	ss	2026-09-25 12:35:12.777811
-231	M30-C788-2026-09-25	11	30	Lock Bar Insert M/c	PART NOT FIT IN TO MACHINE	A	2026-09-25	2026-09-25 12:50:26.064628	ss	2026-09-25 12:50:26.064628
-232	M30-C815-2026-09-25	11	30	Lock Bar Insert M/c	SS-01 DELAY	A	2026-09-25	2026-09-25 12:50:59.783632	ss	2026-09-25 12:50:59.783632
-233	M30-C744-2026-09-25	11	30	Lock Bar Insert M/c	WI FULL	A	2026-09-25	2026-09-25 12:51:39.052324	ss	2026-09-25 12:51:39.052324
-234	M30-C785-2026-09-25	11	30	Lock Bar Insert M/c	SS06 DELAY	A	2026-09-25	2026-09-25 12:51:55.825705	ss	2026-09-25 12:51:55.825705
-235	M30-C751-2026-09-25	11	30	Lock Bar Insert M/c	SS-01 DELAY	A	2026-09-25	2026-09-25 12:52:44.180713	ss	2026-09-25 12:52:44.180713
-236	M30-C760-2026-09-25	11	30	Lock Bar Insert M/c	SS-01 DELAY	A	2026-09-25	2026-09-25 12:52:59.645645	ss	2026-09-25 12:52:59.645645
-237	M30-C770-2026-09-25	11	30	Lock Bar Insert M/c	CHANGE OVER	A	2026-09-25	2026-09-25 12:54:27.345191	ss	2026-09-25 12:54:27.345191
-239	M30-C759-2026-09-25	11	30	Lock Bar Insert M/c	LUNCH BREAK	A	2026-09-25	2026-09-25 12:54:59.637614	ss	2026-09-25 12:54:59.637614
-240	M8-C23-2026-09-25	2	8	Upper Rail Greasing Machine	Waiting at next PROCESS	A	2026-09-25	2026-09-25 12:55:13.142061	ss	2026-09-25 12:55:13.142061
-241	M30-C766-2026-09-25	11	30	Lock Bar Insert M/c	SS-02 DELAY	A	2026-09-25	2026-09-25 12:55:47.172786	ss	2026-09-25 12:55:47.172786
-242	M30-C722-2026-09-25	11	30	Lock Bar Insert M/c	SS-02  DELAY	A	2026-09-25	2026-09-25 12:57:44.875693	ss	2026-09-25 12:57:44.875693
-243	M30-C706-2026-09-25	11	30	Lock Bar Insert M/c	SPEED LOSS	A	2026-09-25	2026-09-25 12:58:05.46099	ss	2026-09-25 12:58:05.46099
-244	M30-C721-2026-09-25	11	30	Lock Bar Insert M/c	SS DELAY	A	2026-09-25	2026-09-25 12:58:31.108547	ss	2026-09-25 12:58:31.108547
-245	M30-C717-2026-09-25	11	30	Lock Bar Insert M/c	TRAING FOR WI BY LEADER	A	2026-09-25	2026-09-25 12:59:00.679383	ss	2026-09-25 12:59:31.575623
-247	M30-C705-2026-09-25	11	30	Lock Bar Insert M/c	SS-01 DELAY	A	2026-09-25	2026-09-25 13:00:25.781507	ss	2026-09-25 13:00:25.781507
-248	M30-C697-2026-09-25	11	30	Lock Bar Insert M/c	DISCUSS	A	2026-09-25	2026-09-25 13:00:59.71461	ss	2026-09-25 13:00:59.71461
-249	M30-C694-2026-09-25	11	30	Lock Bar Insert M/c	SS-2 DELAY	A	2026-09-25	2026-09-25 13:01:17.223505	ss	2026-09-25 13:01:24.364165
-251	M30-C689-2026-09-25	11	30	Lock Bar Insert M/c	IPMROVEMENT WORK	A	2026-09-25	2026-09-25 13:02:01.294986	ss	2026-09-25 13:02:01.294986
-252	M30-C691-2026-09-25	11	30	Lock Bar Insert M/c	IPMPROVEMENT WORK	A	2026-09-25	2026-09-25 13:02:18.069891	ss	2026-09-25 13:02:18.069891
-253	M30-C692-2026-09-25	11	30	Lock Bar Insert M/c	IPROVEMENT WORK	A	2026-09-25	2026-09-25 13:02:38.529464	ss	2026-09-25 13:02:38.529464
-254	M8-C22-2026-09-25	2	8	Upper Rail Greasing Machine	Waiting at next process	A	2026-09-25	2026-09-25 13:02:50.627329	ss	2026-09-25 13:02:50.627329
-255	M30-C674-2026-09-25	11	30	Lock Bar Insert M/c	WI FULL	A	2026-09-25	2026-09-25 13:02:58.520506	ss	2026-09-25 13:02:58.520506
-256	M30-C871-2026-09-25	11	30	Lock Bar Insert M/c	SS-02 DELAY	A	2026-09-25	2026-09-25 13:03:53.86082	ss	2026-09-25 13:03:53.86082
-258	M30-C841-2026-09-25	11	30	Lock Bar Insert M/c	DELAYSS02	A	2026-09-25	2026-09-25 13:06:27.440368	ss	2026-09-25 13:06:27.440368
-259	M8-C40-2026-09-25	2	8	Upper Rail Greasing Machine	Look aside	A	2026-09-25	2026-09-25 13:06:31.139271	ss	2026-09-25 13:06:31.139271
-257	M8-C45-2026-09-25	2	8	Upper Rail Greasing Machine	Waiting at next process	A	2026-09-25	2026-09-25 13:04:40.152694	ss	2026-09-25 13:06:39.555074
-261	M30-C890-2026-09-25	11	30	Lock Bar Insert M/c	DELAY-SS02	A	2026-09-25	2026-09-25 13:07:01.050598	ss	2026-09-25 13:07:01.050598
-262	M30-C895-2026-09-25	11	30	Lock Bar Insert M/c	LOCK BAR ADD	A	2026-09-25	2026-09-25 13:07:41.014485	ss	2026-09-25 13:08:00.15219
-264	M30-C898-2026-09-25	11	30	Lock Bar Insert M/c	SPEED LOSS	A	2026-09-25	2026-09-25 13:09:06.233647	ss	2026-09-25 13:09:06.233647
-265	M30-C629-2026-09-25	11	30	Lock Bar Insert M/c	WI FULL	A	2026-09-25	2026-09-25 13:09:20.114134	ss	2026-09-25 13:09:20.114134
-266	M30-C641-2026-09-25	11	30	Lock Bar Insert M/c	WI FULL	A	2026-09-25	2026-09-25 13:09:32.050741	ss	2026-09-25 13:09:32.050741
-267	M30-C603-2026-09-25	11	30	Lock Bar Insert M/c	SS06 DELAY	A	2026-09-25	2026-09-25 13:09:46.698074	ss	2026-09-25 13:09:46.698074
-268	M8-C786-2026-09-25	2	8	Upper Rail Greasing Machine	Bin Change	A	2026-09-25	2026-09-25 13:09:51.380133	ss	2026-09-25 13:10:13.743859
-270	M30-C586-2026-09-25	11	30	Lock Bar Insert M/c	BIN CHANGE	A	2026-09-25	2026-09-25 13:10:16.725975	ss	2026-09-25 13:10:16.725975
-271	M8-C816-2026-09-25	2	8	Upper Rail Greasing Machine	Bin Change	A	2026-09-25	2026-09-25 13:10:24.103842	ss	2026-09-25 13:10:24.103842
-272	M30-C612-2026-09-25	11	30	Lock Bar Insert M/c	DOSCUSS	A	2026-09-25	2026-09-25 13:10:33.486329	ss	2026-09-25 13:10:33.486329
-273	M30-C594-2026-09-25	11	30	Lock Bar Insert M/c	LOCK BAR ADD	A	2026-09-25	2026-09-25 13:10:49.531631	ss	2026-09-25 13:10:58.178811
-275	M30-C644-2026-09-25	11	30	Lock Bar Insert M/c	SPEED LOSSES	A	2026-09-25	2026-09-25 13:11:21.572686	ss	2026-09-25 13:11:21.572686
-276	M8-C750-2026-09-25	2	8	Upper Rail Greasing Machine	Bin Change	A	2026-09-25	2026-09-25 13:11:31.214646	ss	2026-09-25 13:11:31.214646
-277	M30-C599-2026-09-25	11	30	Lock Bar Insert M/c	WI FULL	A	2026-09-25	2026-09-25 13:11:33.715763	ss	2026-09-25 13:11:33.715763
-278	M30-C664-2026-09-25	11	30	Lock Bar Insert M/c	WI FULL	A	2026-09-25	2026-09-25 13:11:52.6486	ss	2026-09-25 13:11:52.6486
-279	M30-C659-2026-09-25	11	30	Lock Bar Insert M/c	SS-01 DELAY	A	2026-09-25	2026-09-25 13:12:08.590766	ss	2026-09-25 13:12:08.590766
-280	M30-C645-2026-09-25	11	30	Lock Bar Insert M/c	SS-01 DELAYSS02 DELAY	A	2026-09-25	2026-09-25 13:12:36.348668	ss	2026-09-25 13:12:36.348668
-281	M30-C544-2026-09-25	11	30	Lock Bar Insert M/c	SS-01 DELAY	A	2026-09-25	2026-09-25 13:14:34.048491	ss	2026-09-25 13:14:34.048491
-282	M30-C527-2026-09-25	11	30	Lock Bar Insert M/c	WI FULL	A	2026-09-25	2026-09-25 13:14:50.802661	ss	2026-09-25 13:14:50.802661
-283	M30-C497-2026-09-25	11	30	Lock Bar Insert M/c	WI FULL	A	2026-09-25	2026-09-25 13:14:59.2623	ss	2026-09-25 13:14:59.2623
-284	M30-C472-2026-09-25	11	30	Lock Bar Insert M/c	SS06 DELAY	A	2026-09-25	2026-09-25 13:15:08.273063	ss	2026-09-25 13:15:08.273063
-285	M8-C779-2026-09-25	2	8	Upper Rail Greasing Machine	Speed loss	A	2026-09-25	2026-09-25 13:15:13.523229	ss	2026-09-25 13:15:13.523229
-286	M30-C509-2026-09-25	11	30	Lock Bar Insert M/c	SS06 DELAY	A	2026-09-25	2026-09-25 13:15:16.813409	ss	2026-09-25 13:15:16.813409
-287	M30-C524-2026-09-25	11	30	Lock Bar Insert M/c	SS06 DELAY	A	2026-09-25	2026-09-25 13:15:38.544894	ss	2026-09-25 13:15:38.544894
-288	M30-C435-2026-09-25	11	30	Lock Bar Insert M/c	SS06 DELAY	A	2026-09-25	2026-09-25 13:15:49.036737	ss	2026-09-25 13:16:37.027841
-290	M8-C771-2026-09-25	2	8	Upper Rail Greasing Machine	Upper rail bin change	A	2026-09-25	2026-09-25 13:16:39.755354	ss	2026-09-25 13:16:39.755354
-291	M30-C450-2026-09-25	11	30	Lock Bar Insert M/c	BIN CHANGE	A	2026-09-25	2026-09-25 13:17:00.672272	ss	2026-09-25 13:17:00.672272
-292	M30-C465-2026-09-25	11	30	Lock Bar Insert M/c	SS06 DELAY	A	2026-09-25	2026-09-25 13:17:21.040412	ss	2026-09-25 13:17:21.040412
-293	M8-C818-2026-09-25	2	8	Upper Rail Greasing Machine	Waiting at next process	A	2026-09-25	2026-09-25 13:17:42.417685	ss	2026-09-25 13:17:42.417685
-294	M8-C831-2026-09-25	2	8	Upper Rail Greasing Machine	Waiting at next process	A	2026-09-25	2026-09-25 13:17:57.537094	ss	2026-09-25 13:17:57.537094
-295	M30-C471-2026-09-25	11	30	Lock Bar Insert M/c	LOCK BAR NG	A	2026-09-25	2026-09-25 13:18:05.656411	ss	2026-09-25 13:18:05.656411
-296	M30-C584-2026-09-25	11	30	Lock Bar Insert M/c	SS06 DELAY	A	2026-09-25	2026-09-25 13:18:16.814904	ss	2026-09-25 13:18:16.814904
-297	M8-C828-2026-09-25	2	8	Upper Rail Greasing Machine	Speed loss	A	2026-09-25	2026-09-25 13:18:34.821103	ss	2026-09-25 13:18:34.821103
-298	M8-C836-2026-09-25	2	8	Upper Rail Greasing Machine	Speed loss	A	2026-09-25	2026-09-25 13:19:40.24459	ss	2026-09-25 13:19:40.24459
-299	M8-C711-2026-09-25	2	8	Upper Rail Greasing Machine	Upper rail bin change	A	2026-09-25	2026-09-25 13:20:06.814243	ss	2026-09-25 13:20:06.814243
-300	M30-C569-2026-09-25	11	30	Lock Bar Insert M/c	SS06 DELAY	A	2026-09-25	2026-09-25 13:25:00.864597	ss	2026-09-25 13:25:00.864597
-301	M30-C135-2026-09-25	11	30	Lock Bar Insert M/c	SS06 DELAY	A	2026-09-25	2026-09-25 13:25:09.220433	ss	2026-09-25 13:25:09.220433
-302	M30-C128-2026-09-25	11	30	Lock Bar Insert M/c	SS06 DELAY	A	2026-09-25	2026-09-25 13:25:14.309536	ss	2026-09-25 13:25:14.309536
-303	M30-C255-2026-09-25	11	30	Lock Bar Insert M/c	SS06 DELAY	A	2026-09-25	2026-09-25 13:25:21.580079	ss	2026-09-25 13:25:21.580079
-304	M30-C193-2026-09-25	11	30	Lock Bar Insert M/c	SS06 DELAY	A	2026-09-25	2026-09-25 13:25:27.900843	ss	2026-09-25 13:25:27.900843
-305	M30-C123-2026-09-25	11	30	Lock Bar Insert M/c	SS06 DELAY	A	2026-09-25	2026-09-25 13:25:40.042897	ss	2026-09-25 13:25:40.042897
-306	M30-C129-2026-09-25	11	30	Lock Bar Insert M/c	SS-01 DELAY	A	2026-09-25	2026-09-25 13:25:46.693257	ss	2026-09-25 13:25:52.474769
-308	M30-C131-2026-09-25	11	30	Lock Bar Insert M/c	SS06 DELAY	A	2026-09-25	2026-09-25 13:25:59.035923	ss	2026-09-25 13:25:59.035923
-309	M30-C12-2026-09-25	11	30	Lock Bar Insert M/c	SS06 DELAY	A	2026-09-25	2026-09-25 13:26:12.820197	ss	2026-09-25 13:26:12.820197
-310	M30-C10-2026-09-25	11	30	Lock Bar Insert M/c	SS06 DELAY	A	2026-09-25	2026-09-25 13:26:20.395297	ss	2026-09-25 13:26:20.395297
-311	M8-C702-2026-09-25	2	8	Upper Rail Greasing Machine	Talking	A	2026-09-25	2026-09-25 13:26:21.165617	ss	2026-09-25 13:26:21.165617
-312	M30-C122-2026-09-25	11	30	Lock Bar Insert M/c	SS06 DELAY	A	2026-09-25	2026-09-25 13:26:30.615169	ss	2026-09-25 13:26:30.615169
-313	M30-C241-2026-09-25	11	30	Lock Bar Insert M/c	SS06 DELAY	A	2026-09-25	2026-09-25 13:26:38.047399	ss	2026-09-25 13:26:38.047399
-314	M30-C239-2026-09-25	11	30	Lock Bar Insert M/c	SS06 DELAY	A	2026-09-25	2026-09-25 13:26:44.557008	ss	2026-09-25 13:26:44.557008
-315	M30-C195-2026-09-25	11	30	Lock Bar Insert M/c	SS06 DELAY	A	2026-09-25	2026-09-25 13:26:50.091619	ss	2026-09-25 13:26:50.091619
-316	M30-C210-2026-09-25	11	30	Lock Bar Insert M/c	SS-01 DELAY	A	2026-09-25	2026-09-25 13:26:56.409846	ss	2026-09-25 13:26:56.409846
-317	M30-C225-2026-09-25	11	30	Lock Bar Insert M/c	WI FULL	A	2026-09-25	2026-09-25 13:27:01.877545	ss	2026-09-25 13:27:01.877545
-318	M30-C240-2026-09-25	11	30	Lock Bar Insert M/c	SS-01 DELAY	A	2026-09-25	2026-09-25 13:27:07.103707	ss	2026-09-25 13:27:07.103707
-319	M30-C189-2026-09-25	11	30	Lock Bar Insert M/c	WI FULL	A	2026-09-25	2026-09-25 13:27:12.908837	ss	2026-09-25 13:27:12.908837
-320	M30-C165-2026-09-25	11	30	Lock Bar Insert M/c	SS-01 DELAY	A	2026-09-25	2026-09-25 13:27:19.03211	ss	2026-09-25 13:27:19.03211
-321	M8-C801-2026-09-25	2	8	Upper Rail Greasing Machine	Upper rail bin change	A	2026-09-25	2026-09-25 13:27:20.544299	ss	2026-09-25 13:27:20.544299
-322	M30-C200-2026-09-25	11	30	Lock Bar Insert M/c	SS-01 DELAY	A	2026-09-25	2026-09-25 13:27:25.423955	ss	2026-09-25 13:27:25.423955
-323	M30-C192-2026-09-25	11	30	Lock Bar Insert M/c	WI FULL	A	2026-09-25	2026-09-25 13:27:36.209604	ss	2026-09-25 13:27:36.209604
-324	M30-C180-2026-09-25	11	30	Lock Bar Insert M/c	SS-01 DELAY	A	2026-09-25	2026-09-25 13:27:53.549009	ss	2026-09-25 13:28:00.371513
-326	M30-C149-2026-09-25	11	30	Lock Bar Insert M/c	SS06 DELAY	A	2026-09-25	2026-09-25 13:28:07.14466	ss	2026-09-25 13:28:07.14466
-327	M30-C150-2026-09-25	11	30	Lock Bar Insert M/c	SS-01 DELAY	A	2026-09-25	2026-09-25 13:28:17.332043	ss	2026-09-25 13:28:17.332043
-328	M30-C526-2026-09-25	11	30	Lock Bar Insert M/c	SS06 DELAY	A	2026-09-25	2026-09-25 13:28:37.810303	ss	2026-09-25 13:28:37.810303
-329	M30-C539-2026-09-25	11	30	Lock Bar Insert M/c	SS06 DELAY	A	2026-09-25	2026-09-25 13:28:44.443985	ss	2026-09-25 13:28:49.72358
-331	M30-C560-2026-09-25	11	30	Lock Bar Insert M/c	WI FULL	A	2026-09-25	2026-09-25 13:28:56.882462	ss	2026-09-25 13:28:56.882462
-332	M8-C855-2026-09-25	2	8	Upper Rail Greasing Machine	Speed loss	A	2026-09-25	2026-09-25 13:29:02.177915	ss	2026-09-25 13:29:02.177915
-333	M30-C554-2026-09-25	11	30	Lock Bar Insert M/c	BIN CHANGE	A	2026-09-25	2026-09-25 13:29:05.523824	ss	2026-09-25 13:29:12.313872
-335	M30-C537-2026-09-25	11	30	Lock Bar Insert M/c	SS06 DELAY	A	2026-09-25	2026-09-25 13:29:18.246908	ss	2026-09-25 13:29:18.246908
-336	M8-C783-2026-09-25	2	8	Upper Rail Greasing Machine	Waiting at next process	A	2026-09-25	2026-09-25 13:29:28.011439	ss	2026-09-25 13:29:28.011439
-337	M30-C479-2026-09-25	11	30	Lock Bar Insert M/c	SS06 DELAY	A	2026-09-25	2026-09-25 13:29:36.619727	ss	2026-09-25 13:29:36.619727
-338	M30-C493-2026-09-25	11	30	Lock Bar Insert M/c	SS06 DELAY	A	2026-09-25	2026-09-25 13:29:44.337853	ss	2026-09-25 13:29:44.337853
-339	M30-C494-2026-09-25	11	30	Lock Bar Insert M/c	SS06 DELAY	A	2026-09-25	2026-09-25 13:29:52.448652	ss	2026-09-25 13:29:52.448652
-340	M30-C491-2026-09-25	11	30	Lock Bar Insert M/c	SS-01 DELAY	A	2026-09-25	2026-09-25 13:29:58.57724	ss	2026-09-25 13:29:58.57724
-341	M8-C860-2026-09-25	2	8	Upper Rail Greasing Machine	Video not eun	A	2026-09-25	2026-09-25 13:30:08.278207	ss	2026-09-25 13:30:08.278207
-342	M30-C360-2026-09-25	11	30	Lock Bar Insert M/c	BIN CHNAGE	A	2026-09-25	2026-09-25 13:30:12.301031	ss	2026-09-25 13:30:12.301031
-343	M30-C300-2026-09-25	11	30	Lock Bar Insert M/c	WI FULL	A	2026-09-25	2026-09-25 13:30:17.694655	ss	2026-09-25 13:30:17.694655
-344	M30-C404-2026-09-25	11	30	Lock Bar Insert M/c	SS-01 DELAY	A	2026-09-25	2026-09-25 13:30:28.271457	ss	2026-09-25 13:30:35.166211
-346	M8-C867-2026-09-25	2	8	Upper Rail Greasing Machine	talking	A	2026-09-25	2026-09-25 13:30:36.60816	ss	2026-09-25 13:30:36.60816
-347	M30-C420-2026-09-25	11	30	Lock Bar Insert M/c	SS06 DELAY	A	2026-09-25	2026-09-25 13:30:41.896026	ss	2026-09-25 13:30:48.15345
-349	M8-C792-2026-09-25	2	8	Upper Rail Greasing Machine	Waiting at next process	A	2026-09-25	2026-09-25 13:30:51.281659	ss	2026-09-25 13:30:51.281659
-350	M30-C375-2026-09-25	11	30	Lock Bar Insert M/c	WI FULL	A	2026-09-25	2026-09-25 13:30:54.279088	ss	2026-09-25 13:30:54.279088
-351	M30-C390-2026-09-25	11	30	Lock Bar Insert M/c	SS-01 DELAY	A	2026-09-25	2026-09-25 13:30:59.360161	ss	2026-09-25 13:30:59.360161
-352	M30-C395-2026-09-25	11	30	Lock Bar Insert M/c	BIN CHANGE	A	2026-09-25	2026-09-25 13:31:05.068019	ss	2026-09-25 13:31:10.766605
-354	M8-C758-2026-09-25	2	8	Upper Rail Greasing Machine	Video not run	A	2026-09-25	2026-09-25 13:31:11.391247	ss	2026-09-25 13:31:11.391247
-355	M30-C282-2026-09-25	11	30	Lock Bar Insert M/c	WI FULL	A	2026-09-25	2026-09-25 13:31:18.131957	ss	2026-09-25 13:31:18.131957
-356	M30-C285-2026-09-25	11	30	Lock Bar Insert M/c	SS-01 DELAY	A	2026-09-25	2026-09-25 13:31:24.275381	ss	2026-09-25 13:31:24.275381
-357	M8-C756-2026-09-25	2	8	Upper Rail Greasing Machine	Upper rail bin change	A	2026-09-25	2026-09-25 13:31:28.329537	ss	2026-09-25 13:31:28.329537
-358	M30-C270-2026-09-25	11	30	Lock Bar Insert M/c	SS06 DELAY	A	2026-09-25	2026-09-25 13:31:30.278612	ss	2026-09-25 13:31:30.278612
-359	M30-C299-2026-09-25	11	30	Lock Bar Insert M/c	SS06 DELAY	A	2026-09-25	2026-09-25 13:31:38.172023	ss	2026-09-25 13:31:38.172023
-360	M8-C854-2026-09-25	2	8	Upper Rail Greasing Machine	Speed loss	A	2026-09-25	2026-09-25 13:31:43.701149	ss	2026-09-25 13:31:43.701149
-361	M30-C330-2026-09-25	11	30	Lock Bar Insert M/c	SS06 DELAY	A	2026-09-25	2026-09-25 13:32:04.769999	ss	2026-09-25 13:32:04.769999
-362	M30-C345-2026-09-25	11	30	Lock Bar Insert M/c	SS-01 DELAY	A	2026-09-25	2026-09-25 13:32:15.753184	ss	2026-09-25 13:32:15.753184
-363	M8-C871-2026-09-25	2	8	Upper Rail Greasing Machine	Waiting at next process	A	2026-09-25	2026-09-25 13:32:19.778914	ss	2026-09-25 13:32:19.778914
-364	M30-C320-2026-09-25	11	30	Lock Bar Insert M/c	SS06 DELAY	A	2026-09-25	2026-09-25 13:32:21.39021	ss	2026-09-25 13:32:21.39021
-365	M8-C876-2026-09-25	2	8	Upper Rail Greasing Machine	Waiting at next process	A	2026-09-25	2026-09-25 13:32:36.560071	ss	2026-09-25 13:32:36.560071
-366	M8-C846-2026-09-25	2	8	Upper Rail Greasing Machine	Upper rail bin change	A	2026-09-25	2026-09-25 13:32:48.329064	ss	2026-09-25 13:32:48.329064
-367	M30-C840-2026-09-25	11	30	Lock Bar Insert M/c	SS-01 DELAY	A	2026-09-25	2026-09-25 13:32:48.854647	ss	2026-09-25 13:32:48.854647
-368	M8-C676-2026-09-25	2	8	Upper Rail Greasing Machine	Upper rail bin change	A	2026-09-25	2026-09-25 13:33:03.92983	ss	2026-09-25 13:33:03.92983
-369	M8-C696-2026-09-25	2	8	Upper Rail Greasing Machine	Upper rail bin change	A	2026-09-25	2026-09-25 13:33:21.23484	ss	2026-09-25 13:33:21.23484
-370	M8-C726-2026-09-25	2	8	Upper Rail Greasing Machine	Upper rail bin change	A	2026-09-25	2026-09-25 13:33:36.745497	ss	2026-09-25 13:33:36.745497
-371	M30-C869-2026-09-25	11	30	Lock Bar Insert M/c	SS-01 DELAY	A	2026-09-25	2026-09-25 13:33:53.040211	ss	2026-09-25 13:33:53.040211
-372	M30-C865-2026-09-25	11	30	Lock Bar Insert M/c	SS-01 DELAY	A	2026-09-25	2026-09-25 13:34:00.126886	ss	2026-09-25 13:34:00.126886
-373	M8-C870-2026-09-25	2	8	Upper Rail Greasing Machine	Speed loss	A	2026-09-25	2026-09-25 13:34:03.238452	ss	2026-09-25 13:34:03.238452
-374	M30-C823-2026-09-25	11	30	Lock Bar Insert M/c	SS-01 DELAY	A	2026-09-25	2026-09-25 13:34:07.426913	ss	2026-09-25 13:34:07.426913
-375	M30-C824-2026-09-25	11	30	Lock Bar Insert M/c	SS-01 DELAY	A	2026-09-25	2026-09-25 13:34:38.459002	ss	2026-09-25 13:34:38.459002
-376	M8-C687-2026-09-25	2	8	Upper Rail Greasing Machine	Speed loss	A	2026-09-25	2026-09-25 13:34:39.296391	ss	2026-09-25 13:34:39.296391
-377	M30-C856-2026-09-25	11	30	Lock Bar Insert M/c	SS-01 DELAY	A	2026-09-25	2026-09-25 13:34:53.079133	ss	2026-09-25 13:34:53.079133
-378	M8-C666-2026-09-25	2	8	Upper Rail Greasing Machine	Upper rail bin change	A	2026-09-25	2026-09-25 13:34:56.180357	ss	2026-09-25 13:34:56.180357
-379	M30-C945-2026-09-25	11	30	Lock Bar Insert M/c	SS-01 DELAY	A	2026-09-25	2026-09-25 13:35:04.145192	ss	2026-09-25 13:35:04.145192
-380	M8-C683-2026-09-25	2	8	Upper Rail Greasing Machine	Waiting at next process	A	2026-09-25	2026-09-25 13:35:08.642018	ss	2026-09-25 13:35:08.642018
-381	M30-C943-2026-09-25	11	30	Lock Bar Insert M/c	BALL GUIDE CHANGE	A	2026-09-25	2026-09-25 13:35:39.344209	ss	2026-09-25 13:35:39.344209
-382	M8-C884-2026-09-25	2	8	Upper Rail Greasing Machine	Drink water	A	2026-09-25	2026-09-25 13:36:48.571124	ss	2026-09-25 13:36:48.571124
-383	M8-C757-2026-09-25	2	8	Upper Rail Greasing Machine	Waiting at next process	A	2026-09-25	2026-09-25 13:37:05.073713	ss	2026-09-25 13:37:05.073713
-384	M8-C688-2026-09-25	2	8	Upper Rail Greasing Machine	Talking	A	2026-09-25	2026-09-25 13:37:24.951051	ss	2026-09-25 13:37:24.951051
-385	M8-C877-2026-09-25	2	8	Upper Rail Greasing Machine	Upper rail bin change	A	2026-09-25	2026-09-25 13:37:42.644221	ss	2026-09-25 13:37:42.644221
-386	M8-C665-2026-09-25	2	8	Upper Rail Greasing Machine	Speed loss	A	2026-09-25	2026-09-25 13:38:03.474178	ss	2026-09-25 13:38:03.474178
-387	M8-C655-2026-09-25	2	8	Upper Rail Greasing Machine	Looking aside	A	2026-09-25	2026-09-25 13:38:46.499311	ss	2026-09-25 13:38:46.499311
-388	M30-C938-2026-09-25	11	30	Lock Bar Insert M/c	SS-01 DELAY	A	2026-09-25	2026-09-25 13:39:01.207672	ss	2026-09-25 13:39:01.207672
-389	M8-C692-2026-09-25	2	8	Upper Rail Greasing Machine	Talking	A	2026-09-25	2026-09-25 13:39:03.623364	ss	2026-09-25 13:39:03.623364
-390	M30-C901-2026-09-25	11	30	Lock Bar Insert M/c	SS-01 DELAY	A	2026-09-25	2026-09-25 13:39:15.468262	ss	2026-09-25 13:39:15.468262
-391	M8-C671-2026-09-25	2	8	Upper Rail Greasing Machine	Speed loss	A	2026-09-25	2026-09-25 13:39:27.530181	ss	2026-09-25 13:39:27.530181
-392	M8-C674-2026-09-25	2	8	Upper Rail Greasing Machine	Speed loss	A	2026-09-25	2026-09-25 13:39:55.599389	ss	2026-09-25 13:39:55.599389
-393	M30-C931-2026-09-25	11	30	Lock Bar Insert M/c	SS-01 DELAY	A	2026-09-25	2026-09-25 13:39:57.342507	ss	2026-09-25 13:39:57.342507
-394	M8-C636-2026-09-25	2	8	Upper Rail Greasing Machine	Waiting at next process	A	2026-09-25	2026-09-25 13:40:15.348337	ss	2026-09-25 13:40:15.348337
-395	M8-C632-2026-09-25	2	8	Upper Rail Greasing Machine	Waiting at next process	A	2026-09-25	2026-09-25 13:40:21.467068	ss	2026-09-25 13:40:21.467068
-396	M8-C689-2026-09-25	2	8	Upper Rail Greasing Machine	Waiting at next process	A	2026-09-25	2026-09-25 13:40:29.764305	ss	2026-09-25 13:40:29.764305
-397	M8-C617-2026-09-25	2	8	Upper Rail Greasing Machine	Upper rail bin change	A	2026-09-25	2026-09-25 13:40:34.203431	ss	2026-09-25 13:40:34.203431
-399	M8-C640-2026-09-25	2	8	Upper Rail Greasing Machine	Waiting at next process	A	2026-09-25	2026-09-25 13:40:48.313709	ss	2026-09-25 13:40:48.313709
-400	M8-C606-2026-09-25	2	8	Upper Rail Greasing Machine	Upper rail bin change	A	2026-09-25	2026-09-25 13:40:57.120048	ss	2026-09-25 13:40:57.120048
-401	M8-C630-2026-09-25	2	8	Upper Rail Greasing Machine	Waiting at next process	A	2026-09-25	2026-09-25 13:41:05.700544	ss	2026-09-25 13:41:05.700544
-402	M8-C644-2026-09-25	2	8	Upper Rail Greasing Machine	Waiting at next process	A	2026-09-25	2026-09-25 13:41:17.389245	ss	2026-09-25 13:41:17.389245
-398	M30-C993-2026-09-25	11	30	Lock Bar Insert M/c	KANBAN SCAN	A	2026-09-25	2026-09-25 13:40:44.366814	ss	2026-09-25 13:41:21.556434
-404	M8-C896-2026-09-25	2	8	Upper Rail Greasing Machine	Upper rail bin change	A	2026-09-25	2026-09-25 13:41:30.338134	ss	2026-09-25 13:41:30.338134
-405	M8-C861-2026-09-25	2	8	Upper Rail Greasing Machine	Upper rail bin change	A	2026-09-25	2026-09-25 13:41:43.238832	ss	2026-09-25 13:41:43.238832
-406	M30-C991-2026-09-25	11	30	Lock Bar Insert M/c	SS-01 DELAY	A	2026-09-25	2026-09-25 13:41:44.548761	ss	2026-09-25 13:41:50.606272
-408	M8-C677-2026-09-25	2	8	Upper Rail Greasing Machine	Waiting at next process	A	2026-09-25	2026-09-25 13:42:12.653343	ss	2026-09-25 13:42:12.653343
-409	M30-C979-2026-09-25	11	30	Lock Bar Insert M/c	WI FULL	A	2026-09-25	2026-09-25 13:42:18.666019	ss	2026-09-25 13:42:18.666019
-410	M8-C806-2026-09-25	2	8	Upper Rail Greasing Machine	Waiting at next process	A	2026-09-25	2026-09-25 13:42:23.558211	ss	2026-09-25 13:42:23.558211
-411	M8-C886-2026-09-25	2	8	Upper Rail Greasing Machine	Discuss with leader	A	2026-09-25	2026-09-25 13:42:48.183457	ss	2026-09-25 13:42:48.183457
-412	M30-C1021-2026-09-25	11	30	Lock Bar Insert M/c	SS-01 DELAY	A	2026-09-25	2026-09-25 13:42:52.897714	ss	2026-09-25 13:42:52.897714
-413	M8-C906-2026-09-25	2	8	Upper Rail Greasing Machine	Waiting at next process	A	2026-09-25	2026-09-25 13:43:00.462513	ss	2026-09-25 13:43:00.462513
-414	M8-C791-2026-09-25	2	8	Upper Rail Greasing Machine	Upper rail bin change	A	2026-09-25	2026-09-25 13:43:18.059165	ss	2026-09-25 13:43:18.059165
-415	M8-C654-2026-09-25	2	8	Upper Rail Greasing Machine	Waiting at next process	A	2026-09-25	2026-09-25 13:43:18.733033	ss	2026-09-25 13:43:18.733033
-416	M30-C1036-2026-09-25	11	30	Lock Bar Insert M/c	SS-01 DELAY	A	2026-09-25	2026-09-25 13:45:10.889764	ss	2026-09-25 13:45:10.889764
-417	M8-C701-2026-09-25	2	8	Upper Rail Greasing Machine	Speed loss	A	2026-09-25	2026-09-25 13:45:13.36675	ss	2026-09-25 13:45:13.36675
-418	M8-C661-2026-09-25	2	8	Upper Rail Greasing Machine	Waiting at next process	A	2026-09-25	2026-09-25 13:45:22.384003	ss	2026-09-25 13:45:22.384003
-419	M8-C591-2026-09-25	2	8	Upper Rail Greasing Machine	Waiting at next process	A	2026-09-25	2026-09-25 13:45:26.13793	ss	2026-09-25 13:45:26.13793
-420	M8-C603-2026-09-25	2	8	Upper Rail Greasing Machine	Upper rail bin change	A	2026-09-25	2026-09-25 13:45:33.420981	ss	2026-09-25 13:45:33.420981
-421	M30-C1047-2026-09-25	11	30	Lock Bar Insert M/c	SS-01 DELAY	A	2026-09-25	2026-09-25 13:45:35.499174	ss	2026-09-25 13:45:35.499174
-422	M8-C949-2026-09-25	2	8	Upper Rail Greasing Machine	Waiting at next process	A	2026-09-25	2026-09-25 13:45:43.565976	ss	2026-09-25 13:45:43.565976
-423	M8-C926-2026-09-25	2	8	Upper Rail Greasing Machine	Waiting at next process	A	2026-09-25	2026-09-25 13:45:51.284018	ss	2026-09-25 13:45:51.284018
-424	M8-C626-2026-09-25	2	8	Upper Rail Greasing Machine	Waiting at next process	A	2026-09-25	2026-09-25 13:46:07.01185	ss	2026-09-25 13:46:07.01185
-425	M8-C601-2026-09-25	2	8	Upper Rail Greasing Machine	Upper rail bin change	A	2026-09-25	2026-09-25 13:46:07.100801	ss	2026-09-25 13:46:07.100801
-426	M8-C612-2026-09-25	2	8	Upper Rail Greasing Machine	Speed loss	A	2026-09-25	2026-09-25 13:46:11.973216	ss	2026-09-25 13:46:11.973216
-427	M30-C1051-2026-09-25	11	30	Lock Bar Insert M/c	SS-01 DELAY	A	2026-09-25	2026-09-25 13:46:13.516424	ss	2026-09-25 13:46:13.516424
-428	M8-C651-2026-09-25	2	8	Upper Rail Greasing Machine	Upper rail bin change	A	2026-09-25	2026-09-25 13:46:16.525988	ss	2026-09-25 13:46:16.525988
-429	M8-C948-2026-09-25	2	8	Upper Rail Greasing Machine	Speed loss	A	2026-09-25	2026-09-25 13:46:25.701213	ss	2026-09-25 13:46:25.701213
-430	M8-C624-2026-09-25	2	8	Upper Rail Greasing Machine	Waiting at next process	A	2026-09-25	2026-09-25 13:46:33.572621	ss	2026-09-25 13:46:33.572621
-431	M8-C532-2026-09-25	2	8	Upper Rail Greasing Machine	Waiting at next process	A	2026-09-25	2026-09-25 13:46:40.635743	ss	2026-09-25 13:46:40.635743
-433	M8-C598-2026-09-25	2	8	Upper Rail Greasing Machine	Speed loss	A	2026-09-25	2026-09-25 13:47:03.331854	ss	2026-09-25 13:47:03.331854
-432	M8-C611-2026-09-25	2	8	Upper Rail Greasing Machine	Upper rail bin change	A	2026-09-25	2026-09-25 13:46:47.255153	ss	2026-09-25 13:47:03.424838
-435	M8-C621-2026-09-25	2	8	Upper Rail Greasing Machine	Upper rail bin change	A	2026-09-25	2026-09-25 13:47:05.406848	ss	2026-09-25 13:47:05.406848
-436	M8-C951-2026-09-25	2	8	Upper Rail Greasing Machine	Upper rail bin change	A	2026-09-25	2026-09-25 13:47:13.213291	ss	2026-09-25 13:47:17.365012
-438	M8-C19-2026-09-25	2	8	Upper Rail Greasing Machine	Waiting at next process	A	2026-09-25	2026-09-25 13:47:31.520961	ss	2026-09-25 13:47:31.520961
-439	M8-C43-2026-09-25	2	8	Upper Rail Greasing Machine	Speed loss	A	2026-09-25	2026-09-25 13:47:36.380455	ss	2026-09-25 13:47:36.380455
-440	M8-C9-2026-09-25	2	8	Upper Rail Greasing Machine	Speed loss	A	2026-09-25	2026-09-25 13:47:44.384039	ss	2026-09-25 13:47:44.384039
-441	M8-C56-2026-09-25	2	8	Upper Rail Greasing Machine	Upper rail bin change	A	2026-09-25	2026-09-25 13:47:53.544835	ss	2026-09-25 13:47:53.544835
-442	M30-C1081-2026-09-25	11	30	Lock Bar Insert M/c	SS-01 DELAY	A	2026-09-25	2026-09-25 13:48:09.783768	ss	2026-09-25 13:48:09.783768
-443	M8-C91-2026-09-25	2	8	Upper Rail Greasing Machine	Waiting at next process	A	2026-09-25	2026-09-25 13:48:17.753399	ss	2026-09-25 13:48:17.753399
-444	M8-C84-2026-09-25	2	8	Upper Rail Greasing Machine	Waiting at next process	A	2026-09-25	2026-09-25 13:48:28.188407	ss	2026-09-25 13:48:28.188407
-445	M8-C6-2026-09-25	2	8	Upper Rail Greasing Machine	Speed loss	A	2026-09-25	2026-09-25 13:48:37.130952	ss	2026-09-25 13:48:37.130952
-446	M8-C66-2026-09-25	2	8	Upper Rail Greasing Machine	Upper rail bin change	A	2026-09-25	2026-09-25 13:48:41.914234	ss	2026-09-25 13:48:41.914234
-447	M8-C83-2026-09-25	2	8	Upper Rail Greasing Machine	Waiting at next process	A	2026-09-25	2026-09-25 13:48:47.48984	ss	2026-09-25 13:48:47.48984
-448	M8-C81-2026-09-25	2	8	Upper Rail Greasing Machine	Upper rail bin change	A	2026-09-25	2026-09-25 13:48:51.782718	ss	2026-09-25 13:48:51.782718
-449	M30-C1064-2026-09-25	11	30	Lock Bar Insert M/c	Discuss with leader	A	2026-09-25	2026-09-25 13:48:53.037123	ss	2026-09-25 13:48:53.037123
-450	M8-C102-2026-09-25	2	8	Upper Rail Greasing Machine	Upper rail bin change	A	2026-09-25	2026-09-25 13:48:56.034139	ss	2026-09-25 13:48:56.034139
-451	M8-C103-2026-09-25	2	8	Upper Rail Greasing Machine	Waiting at next process	A	2026-09-25	2026-09-25 13:49:01.426877	ss	2026-09-25 13:49:07.643846
-453	M8-C141-2026-09-25	2	8	Upper Rail Greasing Machine	Upper rail bin change	A	2026-09-25	2026-09-25 13:49:13.877785	ss	2026-09-25 13:49:13.877785
-454	M8-C150-2026-09-25	2	8	Upper Rail Greasing Machine	Waiting at next process	A	2026-09-25	2026-09-25 13:49:20.194422	ss	2026-09-25 13:49:20.194422
-455	M30-C1094-2026-09-25	11	30	Lock Bar Insert M/c	Machine original	A	2026-09-25	2026-09-25 13:53:16.884098	ss	2026-09-25 13:53:16.884098
-456	M30-C1093-2026-09-25	11	30	Lock Bar Insert M/c	SS-01 DELAY	A	2026-09-25	2026-09-25 13:54:22.031121	ss	2026-09-25 13:54:22.031121
-457	M8-C50-2026-09-25	2	8	Upper Rail Greasing Machine	Upper rail bin change	A	2026-09-25	2026-09-25 13:54:33.696163	ss	2026-09-25 13:54:33.696163
-458	M8-C71-2026-09-25	2	8	Upper Rail Greasing Machine	Speed loss	A	2026-09-25	2026-09-25 13:54:41.601309	ss	2026-09-25 13:54:41.601309
-459	M8-C74-2026-09-25	2	8	Upper Rail Greasing Machine	Waiting at next process	A	2026-09-25	2026-09-25 13:54:45.906229	ss	2026-09-25 13:54:45.906229
-460	M8-C54-2026-09-25	2	8	Upper Rail Greasing Machine	Waiting at next process	A	2026-09-25	2026-09-25 13:55:08.773612	ss	2026-09-25 13:55:08.773612
-461	M8-C114-2026-09-25	2	8	Upper Rail Greasing Machine	Waiting at next process	A	2026-09-25	2026-09-25 13:55:14.401764	ss	2026-09-25 13:55:14.401764
-462	M8-C163-2026-09-25	2	8	Upper Rail Greasing Machine	Waiting at next process	A	2026-09-25	2026-09-25 13:55:20.029975	ss	2026-09-25 13:55:20.029975
-463	M8-C168-2026-09-25	2	8	Upper Rail Greasing Machine	Waiting at next process	A	2026-09-25	2026-09-25 13:55:25.33916	ss	2026-09-25 13:55:25.33916
-464	M8-C172-2026-09-25	2	8	Upper Rail Greasing Machine	Waiting at next process	A	2026-09-25	2026-09-25 13:55:29.685055	ss	2026-09-25 13:55:29.685055
-465	M8-C52-2026-09-25	2	8	Upper Rail Greasing Machine	Waiting at next process	A	2026-09-25	2026-09-25 13:55:35.471525	ss	2026-09-25 13:55:35.471525
-466	M8-C144-2026-09-25	2	8	Upper Rail Greasing Machine	Waiting at next process	A	2026-09-25	2026-09-25 13:55:39.626991	ss	2026-09-25 13:55:39.626991
-467	M30-C1111-2026-09-25	11	30	Lock Bar Insert M/c	SS-01 DELAY	A	2026-09-25	2026-09-25 13:55:39.827018	ss	2026-09-25 13:55:39.827018
-468	M8-C111-2026-09-25	2	8	Upper Rail Greasing Machine	Upper rail bin change	A	2026-09-25	2026-09-25 13:55:48.600559	ss	2026-09-25 13:55:48.600559
-469	M8-C156-2026-09-25	2	8	Upper Rail Greasing Machine	Waiting at next process	A	2026-09-25	2026-09-25 13:55:54.882096	ss	2026-09-25 13:55:54.882096
-470	M8-C178-2026-09-25	2	8	Upper Rail Greasing Machine	Waiting at next process	A	2026-09-25	2026-09-25 13:56:20.2329	ss	2026-09-25 13:56:20.2329
-471	M8-C187-2026-09-25	2	8	Upper Rail Greasing Machine	Waiting at next process	A	2026-09-25	2026-09-25 13:56:20.647973	ss	2026-09-25 13:56:20.647973
-472	M8-C193-2026-09-25	2	8	Upper Rail Greasing Machine	Waiting at next process	A	2026-09-25	2026-09-25 13:56:21.423958	ss	2026-09-25 13:56:21.423958
-473	M8-C194-2026-09-25	2	8	Upper Rail Greasing Machine	Waiting at next process	A	2026-09-25	2026-09-25 13:56:21.925026	ss	2026-09-25 13:56:21.925026
-474	M8-C195-2026-09-25	2	8	Upper Rail Greasing Machine	Waiting at next process	A	2026-09-25	2026-09-25 13:56:23.319815	ss	2026-09-25 13:56:23.319815
-475	M8-C92-2026-09-25	2	8	Upper Rail Greasing Machine	Waiting at next process	A	2026-09-25	2026-09-25 13:56:27.967517	ss	2026-09-25 13:56:27.967517
-477	M8-C136-2026-09-25	2	8	Upper Rail Greasing Machine	Waiting at next process	A	2026-09-25	2026-09-25 13:56:41.7517	ss	2026-09-25 13:56:41.7517
-478	M8-C55-2026-09-25	2	8	Upper Rail Greasing Machine	Waiting at next process	A	2026-09-25	2026-09-25 13:56:47.566607	ss	2026-09-25 13:56:47.566607
-479	M8-C202-2026-09-25	2	8	Upper Rail Greasing Machine	Waiting at next process	A	2026-09-25	2026-09-25 13:57:12.58003	ss	2026-09-25 13:57:12.58003
-480	M8-C215-2026-09-25	2	8	Upper Rail Greasing Machine	Upper rail bin change	A	2026-09-25	2026-09-25 13:57:13.669239	ss	2026-09-25 13:57:13.669239
-481	M8-C88-2026-09-25	2	8	Upper Rail Greasing Machine	Waiting at next process	A	2026-09-25	2026-09-25 13:57:14.140781	ss	2026-09-25 13:57:14.140781
-476	M8-C18-2026-09-25	2	8	Upper Rail Greasing Machine	Waiting at next process	A	2026-09-25	2026-09-25 13:56:37.259546	ss	2026-09-25 13:57:14.994135
-483	M8-C184-2026-09-25	2	8	Upper Rail Greasing Machine	Speed loss	A	2026-09-25	2026-09-25 13:57:15.134573	ss	2026-09-25 13:57:15.134573
-484	M8-C222-2026-09-25	2	8	Upper Rail Greasing Machine	Waiting at next process	A	2026-09-25	2026-09-25 13:57:19.587723	ss	2026-09-25 13:57:19.587723
-485	M30-C1116-2026-09-25	11	30	Lock Bar Insert M/c	Drink water	A	2026-09-25	2026-09-25 13:57:21.222693	ss	2026-09-25 13:57:21.222693
-486	M8-C247-2026-09-25	2	8	Upper Rail Greasing Machine	Upper rail bin change	A	2026-09-25	2026-09-25 13:57:28.363487	ss	2026-09-25 13:57:28.363487
-487	M30-C1117-2026-09-25	11	30	Lock Bar Insert M/c	SS-01 DELAY	A	2026-09-25	2026-09-25 13:57:45.32638	ss	2026-09-25 13:57:45.32638
-488	M30-C1119-2026-09-25	11	30	Lock Bar Insert M/c	SS-01 DELAY	A	2026-09-25	2026-09-25 13:58:15.29832	ss	2026-09-25 13:58:15.29832
-489	M8-C963-2026-09-25	2	8	Upper Rail Greasing Machine	Waiting at next process	A	2026-09-25	2026-09-25 13:58:51.637211	ss	2026-09-25 13:58:51.637211
-490	M8-C616-2026-09-25	2	8	Upper Rail Greasing Machine	Waiting at next process	A	2026-09-25	2026-09-25 13:59:01.84887	ss	2026-09-25 13:59:01.84887
-491	M8-C550-2026-09-25	2	8	Upper Rail Greasing Machine	Waiting at next process	A	2026-09-25	2026-09-25 13:59:07.430786	ss	2026-09-25 13:59:07.430786
-492	M8-C960-2026-09-25	2	8	Upper Rail Greasing Machine	Waiting at next process	A	2026-09-25	2026-09-25 13:59:15.932394	ss	2026-09-25 13:59:15.932394
-493	M8-C972-2026-09-25	2	8	Upper Rail Greasing Machine	Waiting at next process	A	2026-09-25	2026-09-25 13:59:25.078699	ss	2026-09-25 13:59:25.078699
-494	M30-C1122-2026-09-25	11	30	Lock Bar Insert M/c	SS-01 DELAY	A	2026-09-25	2026-09-25 13:59:38.261156	ss	2026-09-25 13:59:38.261156
-495	M8-C966-2026-09-25	2	8	Upper Rail Greasing Machine	Upper rail bin change	A	2026-09-25	2026-09-25 13:59:45.015935	ss	2026-09-25 13:59:45.015935
-496	M8-C981-2026-09-25	2	8	Upper Rail Greasing Machine	Waiting at next process	A	2026-09-25	2026-09-25 13:59:52.651279	ss	2026-09-25 13:59:52.651279
-497	M30-C1126-2026-09-25	11	30	Lock Bar Insert M/c	SS-01 DELAY	A	2026-09-25	2026-09-25 14:00:05.837585	ss	2026-09-25 14:00:05.837585
-\.
-
-
---
 -- Data for Name: mes_ng_remarks; Type: TABLE DATA; Schema: public; Owner: -
 --
 
@@ -29188,7 +29477,7 @@ COPY public.mes_non_production_days (id, line_id, date, reason, created_by, crea
 --
 
 COPY public.mes_oee_alarm_config (line_id, threshold_pct, sustain_minutes, cooldown_minutes, to_addresses, cc_addresses, is_active, last_fired_at) FROM stdin;
-2	80	20	60	tbdi_dx@toyota-breakdown.com		t	2026-09-25 10:55:44.870564
+2	80	20	60	tbdi_dx@toyota-breakdown.com		t	2026-09-27 18:50:10.804343
 \.
 
 
@@ -29651,6 +29940,24 @@ COPY public.mes_operator_punches (id, operator_id, line_id, shift_date, shift_na
 235	93	18	2026-09-25	A	2026-09-25 08:53:43.405445
 236	82	18	2026-09-25	A	2026-09-25 08:53:51.918962
 237	87	18	2026-09-25	A	2026-09-25 08:53:59.537188
+238	180	18	2026-09-26	A	2026-09-26 09:01:18.658144
+239	90	18	2026-09-26	A	2026-09-26 09:01:24.627026
+240	81	18	2026-09-26	A	2026-09-26 09:01:32.354707
+241	93	18	2026-09-26	A	2026-09-26 09:01:40.137842
+242	82	18	2026-09-26	A	2026-09-26 09:01:45.618331
+243	87	18	2026-09-26	A	2026-09-26 09:01:52.872271
+244	85	12	2026-09-26	A	2026-09-26 09:02:58.933316
+245	129	12	2026-09-26	A	2026-09-26 09:03:04.857239
+246	95	12	2026-09-26	A	2026-09-26 09:03:15.56062
+247	137	12	2026-09-26	A	2026-09-26 09:03:22.595671
+248	84	12	2026-09-26	A	2026-09-26 09:03:30.523085
+249	140	12	2026-09-26	A	2026-09-26 09:03:37.928531
+250	17	4	2026-09-26	B	2026-09-26 18:40:39.21272
+251	42	4	2026-09-26	B	2026-09-26 18:40:53.184171
+252	40	4	2026-09-26	B	2026-09-26 18:41:06.813555
+253	13	4	2026-09-26	B	2026-09-26 18:41:25.466032
+254	23	4	2026-09-26	B	2026-09-26 18:41:33.802529
+255	34	4	2026-09-26	B	2026-09-26 18:41:40.731702
 \.
 
 
@@ -29968,6 +30275,7 @@ COPY public.mes_plc_configs (id, line_id, plc_ip, plc_port, protocol, ok_bit_add
 48	12	192.168.30.96	5002	MC4E	D101	D102	D6005	D1016				15.00	16.00	0.50	2026-06-27 12:15:44.862798	2026-08-25 23:50:36.295407	Final Inspection M/c	\N	cam_final_inspection_m_c_1782556572	\N	f			\N		\N		\N	[]	[]	f	register	D101	D102	L110	\N	\N	\N	\N	\N	\N	\N	1	2	L230	5.00	\N	\N	\N	M100
 214	39	192.168.34.92	502	MC4E	D6001	D6002	D6005	D6048				11.60	12.00	0.50	2026-09-10 15:35:17.948978	2026-09-22 13:24:02.318215	BOLT STRENGTH CHECKING (4WAY)	\N	cam_bolt_strength_checking_4way_1790063636	3	f			\N		\N		\N	[]	[]	f	register	D6001	D6002	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 194	36	192.168.34.80	502	MC4E	D6001	D6002	D6005	D6048				11.39	12.00	0.50	2026-09-08 14:45:45.593246	2026-09-09 10:39:23.198293	Rainforce Bolt PJW M/C	193	cam_rainforce_bolt_pjw_m_c_1788930501	1	f			\N		\N		\N	[]	[]	f	register	D6001	D6002	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
+218	40	192.168.34.104	502	MC4E	D6001	D6002	D6005	D6048				2.90	3.50	0.50	2026-09-25 14:44:10.260975	2026-09-25 16:45:24.308106	LOCATION PIN STACKING - LPS-3	\N	cam_location_pin_stacking_lps_3_1790334921	1	f			\N		\N		\N	[]	[]	f	register	D6001	D6002	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 156	35	192.168.34.74	502	MC4E	D6001	D6002	D6005	D6048				11.67	12.00	0.50	2026-09-03 14:28:14.702224	2026-09-10 11:18:16.109791	BOLT STRENGTH CHECKING (4WAY)	\N	cam_bolt_strength_checking_4way_1789019293	5	f			\N		\N		\N	[]	[]	f	register	D6001	D6002	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 199	34	192.168.34.60	502	MC4E	D6001	D6002	D6005	D6048				11.60	12.00	0.50	2026-09-08 15:59:03.902141	2026-09-22 13:19:03.534012	Rainforce Bolt PJW M/C	198	cam_rainforce_bolt_pjw_m_c_1790063338	1	f			\N		\N		\N	[]	[]	f	register	D6001	D6002	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 217	41	192.168.34.100	502	MC4E	D6001	D6002	D6005	D6048				9.72	10.00	0.50	2026-09-16 16:18:09.028213	2026-09-23 16:53:02.666742	Upr ×Rinforce S/A×UprINRBKT PJW　M/C (6 Way)	\N	cam_upr_rinforce_s_a_uprinrbkt_pjw_m_c_6_way_1790063841	1	f			\N		\N		\N	[]	[]	f	register	D6001	D6002	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
@@ -30014,7 +30322,6 @@ COPY public.mes_plc_configs (id, line_id, plc_ip, plc_port, protocol, ok_bit_add
 38	4	192.168.30.52	5002	MC4E	D601	D602	D6005	D6048				15.00	16.00	0.50	2026-06-26 10:15:21.211425	2026-07-24 16:18:33.699537	Lower Rail Grease & Bar Coding M/c	42	cam_lower_rail_grease_bar_coding_m_c_1782385250	3	f			\N		\N		\N	[]	[]	f	register	D601	D602	L110	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 64	14	192.168.30.151	5002	MC4E	D101	D102	D6005	D6048				15.00	16.00	0.50	2026-07-02 16:31:45.430043	2026-08-05 15:17:28.176101	Lock Bar Insert M/c	62	cam_lower_rail_cam_yfg_1783077757	2	f			\N		\N		\N	[]	[]	f	register	D101	D102	L110	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 143	29	192.168.32.94	5002	MC4E	D6001	D6002	D6005	D6048				16.00	17.00	0.50	2026-08-17 13:37:28.662694	2026-08-18 11:07:49.990447	Press in REC with PIN Hinge & Date Code Stamping	134	cam_press_in_rec_with_pin_hinge_date_code_stamping_1787031466	5	f			\N		\N		\N	[]	[]	f	register	D6001	D6002	L110	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
-23	8	192.168.30.211	502	MC4E	D601	D602	D6005	D6048				17.00	18.00	0.50	2026-06-25 11:53:21.514974	2026-08-05 15:37:56.590236	2UA	\N	cam_2ua_1782385638	\N	f			\N		\N		\N	[]	[]	f	register	D601	D602	L110	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 8	2	192.168.30.130	5002	MC4E	L108	L10	D6005	D6048		M100		15.00	16.00	0.50	2026-04-22 12:31:18.679361	2026-08-05 15:28:12.795368	Upper Rail Greasing Machine	2	cam_upper_rail_greasing_1784645280	1	f			\N		\N		\N	[]	[]	f	register	D101	D102	L110	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 28	10	192.168.30.214	502	MC4E	L108	L109	D6005	D6048				19.58	20.58	0.50	2026-06-25 12:13:23.715389	2026-07-29 15:38:36.072086	YWD RC	\N	cam_ywd_rc_1782385798	\N	f			\N		\N		\N	[]	[]	f	register	D101	D102	L110	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 196	36	192.168.34.82	502	MC4E	D6001	D6002	D6005	D6048				11.30	12.00	0.50	2026-09-08 14:48:53.282558	2026-09-09 10:43:54.416221	Upr Rail ×Bolt Fr PJW M/C  ( 4 Way )	193	cam_upr_rail_bolt_fr_pjw_m_c_4_way_1788930828	3	f			\N		\N		\N	[]	[]	f	register	D6001	D6002	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
@@ -30023,6 +30330,7 @@ COPY public.mes_plc_configs (id, line_id, plc_ip, plc_port, protocol, ok_bit_add
 207	33	192.168.34.53	502	MC4E	D6001	D6002	D6005	D6048				11.60	12.00	0.50	2026-09-08 16:49:41.170112	2026-09-22 13:26:03.425715	Upr ×Rinforce S/A×UprINRBKT PJW M/C (4 Way)	203	cam_upr_rail_bolt_fr_pjw_m_c_4_way_1790063741	4	f			\N		\N		\N	[]	[]	f	register	D6001	D6002	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 216	39	192.168.34.91	502	MC4E	D6001	D6002	D6005	D6048				11.60	12.00	0.50	2026-09-10 15:38:44.071192	2026-09-22 13:23:23.697363	"Rinforce×Bolt PJW M/C Upr  Rail ×Reinforce x Bolt PJW M/C"	214	cam_rainforce_bolt_pjw_m_c_4_way_1790063575	2	f			\N		\N		\N	[]	[]	f	register	D6001	D6002	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 39	4	192.168.30.53	5002	MC4E	D101	D102	D6005	D6048				30.00	30.00	0.50	2026-06-26 10:16:13.997559	2026-08-05 15:34:10.925727	Rail Assy M/c # 01	42	cam_rail_assy_m_c_01_1782385278	4	f			\N		\N		\N	[]	[]	f	register	D101	D102	L110	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
+23	8	192.168.30.211	502	MC4E	D601	D602	D6005	D6048				17.00	18.00	0.50	2026-06-25 11:53:21.514974	2026-09-25 17:14:23.510679	2UA	\N	cam_2ua_1782385638	\N	f			\N		\N		\N	[]	[]	f	register	D601	D602	L110	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 210	38	192.168.34.40	502	MC4E	D6001	D6002	D6005	D6048				20.88	21.00	0.50	2026-09-10 11:33:31.951375	2026-09-22 13:28:37.144709	Upr ×Rinforce S/A×UprINRBKT PJW　M/C (6 Way)	209	cam_upr_rinforce_s_a_uprinrbkt_pjw_m_c_6_way_1790063911	1	f			\N		\N		\N	[]	[]	f	register	D6001	D6002	L150	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 49	12	192.168.30.90	5002	MC4E	D101	D102	D6005	D6048				15.00	16.00	0.50	2026-06-27 12:23:06.478693	2026-08-05 15:14:04.658317	Upper Rail Grease Machine	48	cam_upper_rail_grease_machine_1782554566	1	f			\N		\N		\N	[]	[]	f	register	D101	D102	L110	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
 46	12	192.168.30.93	5002	MC4E	D101	D102	D6005	D6048				30.00	30.00	0.50	2026-06-27 12:05:03.723573	2026-08-05 15:15:10.092745	Rail Assy M/c # 01	48	cam_rail_assy_m_c_01_1782554655	4	f			\N		\N		\N	[]	[]	f	register	D101	D102	L110	\N	\N	\N	\N	\N	\N	\N	1	2	\N	2.00	\N	\N	\N	\N
@@ -30265,10 +30573,10 @@ COPY public.mes_processes (id, line_id, process_name, required_skill_level, requ
 --
 
 COPY public.mes_push_subscriptions (id, user_id, endpoint, p256dh, auth, user_agent, created_at, last_ok, fail_count) FROM stdin;
-521	1	https://fcm.googleapis.com/fcm/send/fpdVCNpvxm8:APA91bHnZTYqF5lBLANr6xqQw1HkeB5XyLCMY1Swil5f8m5-zmkrGriDEAnlF0yt8J0-Yuetd_0mznk24G2DRT26zkM8jtWoj6aOx3Y9vjSvR6adPWQBmndfFcT2eJ402brOJJzo2K0Y	BPzaeyLDbMPYhSb4_oZcPSomyf6a3SX0SunJFCbYGgRinvv7vjQwzMixxhLT4ceqXZUT8pUk1U9cXJuM9siKSsU	VbgJfiG4ioLCFRwV56K-SA	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36	2026-09-20 07:53:10.740536+05:30	2026-09-25 13:15:07.029241+05:30	0
-744	1	https://wns2-pn1p.notify.windows.com/w/?token=BQYAAADTC%2fI3qC65JKU4TAy9qbuYQdJMeWP64iayRPvuFjSA07hCSxBvMZR1ZmHRwxWQAzNA6Pam%2f7QAR0C0q05qqSRfJeWgcsHhEOqV5v5kL%2f2fElHA9ObUVL7RT7pgrezN1RR0cVcxGZV%2fJB0ENA8OQnvXLV2Ui7e4TQq5E1Qh4Ohaa0RvMp3rE73ZU1Dy%2breQhcREp3e3HokiT69q9C0qCQ%2fd5fC3IwYpp5cOzVnEA9J%2fPsDQdvvFaO%2fCZUQg1Ma7RzS3bEpqatkrJ98soh6%2bZry%2ftm1QuT2xkh87FJnxupN8JwlitUePc5hsFJa1boMwUwc%3d	BNZ1Wp3MB8tUSsa6fD79uF40PeEqCB4RoaELLAL65pUwgztmu_0tGxliHi1yJClSABj7eGENAPVgWsBLEojxarA	6uprBErpftuOqE2DiW59Ig	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0	2026-09-24 21:18:04.926884+05:30	2026-09-25 13:15:07.145547+05:30	0
-497	1	https://wns2-pn1p.notify.windows.com/w/?token=BQYAAACNjR0Ie%2f0Xc6DMrITtdVK2skzW%2bYenjDEPjvQmMIHAjInYEAf9Ki8jw1Jm0ftyZzmrhEJUIA11PzNwGHJiWiCPJq5uvfA0M32efzm%2bnmvRoT4MrAwr6Rqt3UnNY0sSohgzAYXu46dx8YZaG6esBIdQKKt1YYVg3aksuE7SUhyxOTAZCxlAZ25GWa0BAgkBjG0jErAsd6CPd0KMM83Q6cdnRHZkCxcOaH%2fsmvPlpY1covDf0xQsoTYtbJD33%2fJGKIexFIM%2fLcjEfztqmXhGOzde%2brkduwmQEbjnH7r1sK1Qxlxl%2b%2fo7BPybB5WxzyvvXdg%3d	BHzBIlu5hYAhT7BI_QJ_IhGn72A36v86fijR649ljrWxV5lkeSH0N_funyJHI1OtIfJ3pzelCY9RM4HGrWVRd4Q	0ivxGr12505pj87j7QzICA	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0	2026-09-19 19:24:27.094176+05:30	2026-09-25 13:15:06.423848+05:30	0
-17	1	https://updates.push.services.mozilla.com/wpush/v2/gAAAAABqn-zmpmhLUVLG1KHXsKY-3RvhERB75tLzDFjz1cwuYoZPSx2pD0E26sEQgnZelbuFI369m3XvtE_6_HDLJuBU260uq-gsHFbdMM0fXP1j5fU0yrYZhmGp7zYGQm7kgd4YL3qwRv_IeNR0yZTZgtWQUTwBS1Ma_w1EwChV2N_pcWg1cZY	BNVmXZOFEcMlyKvKQbsAtW-0NNItzeZg1WpOx1bmsM0BOPCibWhzBkmocA0rjCaoYWawLSkdBOirpb0DHxQAdLI	z_5fXlAeEB0GhO9tq0RYVw	Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:156.0) Gecko/20100101 Firefox/156.0	2026-09-08 16:39:30.503837+05:30	2026-09-25 13:15:07.142079+05:30	0
+521	1	https://fcm.googleapis.com/fcm/send/fpdVCNpvxm8:APA91bHnZTYqF5lBLANr6xqQw1HkeB5XyLCMY1Swil5f8m5-zmkrGriDEAnlF0yt8J0-Yuetd_0mznk24G2DRT26zkM8jtWoj6aOx3Y9vjSvR6adPWQBmndfFcT2eJ402brOJJzo2K0Y	BPzaeyLDbMPYhSb4_oZcPSomyf6a3SX0SunJFCbYGgRinvv7vjQwzMixxhLT4ceqXZUT8pUk1U9cXJuM9siKSsU	VbgJfiG4ioLCFRwV56K-SA	Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36	2026-09-20 07:53:10.740536+05:30	2026-09-27 21:15:06.1764+05:30	0
+497	1	https://wns2-pn1p.notify.windows.com/w/?token=BQYAAACNjR0Ie%2f0Xc6DMrITtdVK2skzW%2bYenjDEPjvQmMIHAjInYEAf9Ki8jw1Jm0ftyZzmrhEJUIA11PzNwGHJiWiCPJq5uvfA0M32efzm%2bnmvRoT4MrAwr6Rqt3UnNY0sSohgzAYXu46dx8YZaG6esBIdQKKt1YYVg3aksuE7SUhyxOTAZCxlAZ25GWa0BAgkBjG0jErAsd6CPd0KMM83Q6cdnRHZkCxcOaH%2fsmvPlpY1covDf0xQsoTYtbJD33%2fJGKIexFIM%2fLcjEfztqmXhGOzde%2brkduwmQEbjnH7r1sK1Qxlxl%2b%2fo7BPybB5WxzyvvXdg%3d	BHzBIlu5hYAhT7BI_QJ_IhGn72A36v86fijR649ljrWxV5lkeSH0N_funyJHI1OtIfJ3pzelCY9RM4HGrWVRd4Q	0ivxGr12505pj87j7QzICA	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0	2026-09-19 19:24:27.094176+05:30	2026-09-27 16:45:04.623345+05:30	0
+744	1	https://wns2-pn1p.notify.windows.com/w/?token=BQYAAADTC%2fI3qC65JKU4TAy9qbuYQdJMeWP64iayRPvuFjSA07hCSxBvMZR1ZmHRwxWQAzNA6Pam%2f7QAR0C0q05qqSRfJeWgcsHhEOqV5v5kL%2f2fElHA9ObUVL7RT7pgrezN1RR0cVcxGZV%2fJB0ENA8OQnvXLV2Ui7e4TQq5E1Qh4Ohaa0RvMp3rE73ZU1Dy%2breQhcREp3e3HokiT69q9C0qCQ%2fd5fC3IwYpp5cOzVnEA9J%2fPsDQdvvFaO%2fCZUQg1Ma7RzS3bEpqatkrJ98soh6%2bZry%2ftm1QuT2xkh87FJnxupN8JwlitUePc5hsFJa1boMwUwc%3d	BNZ1Wp3MB8tUSsa6fD79uF40PeEqCB4RoaELLAL65pUwgztmu_0tGxliHi1yJClSABj7eGENAPVgWsBLEojxarA	6uprBErpftuOqE2DiW59Ig	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0	2026-09-24 21:18:04.926884+05:30	2026-09-27 20:15:05.017072+05:30	0
+17	38	https://updates.push.services.mozilla.com/wpush/v2/gAAAAABqn-zmpmhLUVLG1KHXsKY-3RvhERB75tLzDFjz1cwuYoZPSx2pD0E26sEQgnZelbuFI369m3XvtE_6_HDLJuBU260uq-gsHFbdMM0fXP1j5fU0yrYZhmGp7zYGQm7kgd4YL3qwRv_IeNR0yZTZgtWQUTwBS1Ma_w1EwChV2N_pcWg1cZY	BNVmXZOFEcMlyKvKQbsAtW-0NNItzeZg1WpOx1bmsM0BOPCibWhzBkmocA0rjCaoYWawLSkdBOirpb0DHxQAdLI	z_5fXlAeEB0GhO9tq0RYVw	Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:156.0) Gecko/20100101 Firefox/156.0	2026-09-08 16:39:30.503837+05:30	2026-09-27 18:54:22.778614+05:30	0
 \.
 
 
@@ -30325,434 +30633,15 @@ COPY public.mes_py_assignments (id, py_id, model_id, py_no, py_name, side, model
 -- Data for Name: mes_py_bypass_bits; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-COPY public.mes_py_bypass_bits (line_id, machine_key, bit_addr, active, note, updated_by, updated_at) FROM stdin;
+COPY public.mes_py_bypass_bits (line_id, machine_key, bit_addr, active, note, updated_by, updated_at, bypass_bit_addr) FROM stdin;
 \.
 
 
 --
--- Data for Name: mes_py_bypass_cases; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: mes_py_bypass_mail; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-COPY public.mes_py_bypass_cases (id, event_id, line_id, line_name, zone_id, zone_name, py_no, py_name, register_addr, model_bit, shift_name, actual_value, expected_value, detected_at, status, decided_by, decided_at, decision_source, deviation_id, deviation_no, bit_addr, bit_state, mail_sent_at, reminder_at, escalated_at, closed_at, close_reason, created_at, updated_at) FROM stdin;
-34767	19067	12	YCA-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	11	A	ON	OFF	2026-09-22 14:28:09.52103+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 14:30:49.974135+05:30	PY OK again	2026-09-22 14:28:09.534734+05:30	2026-09-22 14:30:49.974135+05:30
-19849	18877	19	YMC-SS	1	SEAT SLIDER	D424	UPPER RAIL HOLE DETECTION	D424	9	A	PASS	OFF	2026-09-21 08:34:33.67267+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 09:54:22.092253+05:30	PY OK again	2026-09-21 08:34:51.152892+05:30	2026-09-22 09:54:22.092253+05:30
-22	18785	15	Y17-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	9	A	ON,ON	OFF,OFF	2026-09-20 11:05:14.588271+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-20 11:22:54.221616+05:30	PY OK again	2026-09-20 11:05:34.169706+05:30	2026-09-20 11:22:54.221616+05:30
-1	18773	11	YHB-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	9	A	ON	OFF	2026-09-20 11:04:56.766086+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-20 11:22:54.221616+05:30	PY OK again	2026-09-20 11:05:14.13964+05:30	2026-09-20 11:22:54.221616+05:30
-3	18775	11	YHB-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	9	A	ON,ON	OFF,OFF	2026-09-20 11:04:56.94965+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-20 11:22:54.221616+05:30	PY OK again	2026-09-20 11:05:14.13964+05:30	2026-09-20 11:22:54.221616+05:30
-4	18776	11	YHB-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	9	A	ON,ON	OFF,OFF	2026-09-20 11:04:57.109042+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-20 11:22:54.221616+05:30	PY OK again	2026-09-20 11:05:14.13964+05:30	2026-09-20 11:22:54.221616+05:30
-2192	18803	2	YNC-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	15	A	code12336	ON	2026-09-20 13:51:03.022204+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-20 13:51:29.477268+05:30	PY OK again	2026-09-20 13:51:09.415607+05:30	2026-09-20 13:51:29.477268+05:30
-2193	18804	2	YNC-SS	1	SEAT SLIDER	D403	LH.HARNESS-1	D403	15	A	code15	OFF	2026-09-20 13:51:03.334504+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-20 13:51:29.477268+05:30	PY OK again	2026-09-20 13:51:09.415607+05:30	2026-09-20 13:51:29.477268+05:30
-6	18778	11	YHB-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	9	A	ON,ON	OFF,OFF	2026-09-20 11:04:57.271438+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-20 11:22:54.221616+05:30	PY OK again	2026-09-20 11:05:14.13964+05:30	2026-09-20 11:22:54.221616+05:30
-1595	18794	15	Y17-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	14	A	ON	OFF	2026-09-20 13:27:21.65725+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-20 13:29:26.002171+05:30	PY OK again	2026-09-20 13:27:25.800631+05:30	2026-09-20 13:29:26.002171+05:30
-1596	18795	15	Y17-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	14	A	ON,ON	OFF,OFF	2026-09-20 13:27:22.544774+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-20 13:29:26.002171+05:30	PY OK again	2026-09-20 13:27:25.800631+05:30	2026-09-20 13:29:26.002171+05:30
-1597	18796	15	Y17-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	14	A	ON,ON	OFF,OFF	2026-09-20 13:27:22.857906+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-20 13:29:26.002171+05:30	PY OK again	2026-09-20 13:27:25.800631+05:30	2026-09-20 13:29:26.002171+05:30
-1598	18797	15	Y17-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	14	A	ON,ON	OFF,OFF	2026-09-20 13:27:23.163126+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-20 13:29:26.002171+05:30	PY OK again	2026-09-20 13:27:25.800631+05:30	2026-09-20 13:29:26.002171+05:30
-1683	18798	2	YNC-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	15	A	OFF,OFF	ON,ON	2026-09-20 13:30:02.542504+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-20 13:30:26.157565+05:30	PY OK again	2026-09-20 13:30:06.098071+05:30	2026-09-20 13:30:26.157565+05:30
-1781	18800	4	YSD-SS	1	SEAT SLIDER	D415	FR.LIGHTER PROTECTOR-3	D415	15	A	code1028	ON	2026-09-20 13:34:03.228954+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-20 13:34:26.795501+05:30	PY OK again	2026-09-20 13:34:06.712295+05:30	2026-09-20 13:34:26.795501+05:30
-1780	18799	12	YCA-SS	1	SEAT SLIDER	D403	LH.HARNESS-1	D403	10	A	code12336	OFF	2026-09-20 13:34:03.079247+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-20 13:35:06.885225+05:30	PY OK again	2026-09-20 13:34:06.712295+05:30	2026-09-20 13:35:06.885225+05:30
-2	18774	12	YCA-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	11	A	ON	OFF	2026-09-20 11:04:56.937174+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-20 11:18:53.7942+05:30	PY OK again	2026-09-20 11:05:14.13964+05:30	2026-09-20 11:18:53.7942+05:30
-5	18777	12	YCA-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	11	A	ON,ON	OFF,OFF	2026-09-20 11:04:57.186578+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-20 11:18:53.7942+05:30	PY OK again	2026-09-20 11:05:14.13964+05:30	2026-09-20 11:18:53.7942+05:30
-7	18779	12	YCA-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	11	A	ON,ON	OFF,OFF	2026-09-20 11:04:57.278896+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-20 11:18:53.7942+05:30	PY OK again	2026-09-20 11:05:14.13964+05:30	2026-09-20 11:18:53.7942+05:30
-8	18780	12	YCA-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	11	A	ON,ON	OFF,OFF	2026-09-20 11:04:57.313834+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-20 11:18:53.7942+05:30	PY OK again	2026-09-20 11:05:14.13964+05:30	2026-09-20 11:18:53.7942+05:30
-9	18782	15	Y17-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	9	A	ON	OFF	2026-09-20 11:05:13.349909+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-20 11:22:54.221616+05:30	PY OK again	2026-09-20 11:05:14.13964+05:30	2026-09-20 11:22:54.221616+05:30
-10	18783	15	Y17-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	9	A	ON,ON	OFF,OFF	2026-09-20 11:05:13.97226+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-20 11:22:54.221616+05:30	PY OK again	2026-09-20 11:05:14.13964+05:30	2026-09-20 11:22:54.221616+05:30
-21	18784	15	Y17-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	9	A	ON,ON	OFF,OFF	2026-09-20 11:05:14.279848+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-20 11:22:54.221616+05:30	PY OK again	2026-09-20 11:05:34.169706+05:30	2026-09-20 11:22:54.221616+05:30
-2218	18805	2	YNC-SS	1	SEAT SLIDER	D218	E-RING NG X12/X13	D418	15	A	OFF,OFF	OFF,ON	2026-09-20 13:52:03.01643+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-20 13:52:29.562349+05:30	PY OK again	2026-09-20 13:52:09.516649+05:30	2026-09-20 13:52:29.562349+05:30
-2219	18806	2	YNC-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	15	A	code1131	ON	2026-09-20 13:52:03.213869+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-20 13:52:29.562349+05:30	PY OK again	2026-09-20 13:52:09.516649+05:30	2026-09-20 13:52:29.562349+05:30
-2220	18807	2	YNC-SS	1	SEAT SLIDER	D402	RH.HARNESS-1	D402	15	A	code15	ON	2026-09-20 13:52:03.458512+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-20 13:52:29.562349+05:30	PY OK again	2026-09-20 13:52:09.516649+05:30	2026-09-20 13:52:29.562349+05:30
-2221	18810	2	YNC-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	15	A	OFF,OFF	ON,ON	2026-09-20 13:52:03.905396+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-20 13:52:29.562349+05:30	PY OK again	2026-09-20 13:52:09.516649+05:30	2026-09-20 13:52:29.562349+05:30
-2222	18811	2	YNC-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	15	A	code1131	ON,ON	2026-09-20 13:52:04.046467+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-20 13:52:29.562349+05:30	PY OK again	2026-09-20 13:52:09.516649+05:30	2026-09-20 13:52:29.562349+05:30
-2679	18812	11	YHB-SS	1	SEAT SLIDER	D411	PoP RIVET-1	D411	9	A	PASS	OFF	2026-09-20 14:11:03.482481+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-20 14:11:33.251495+05:30	PY OK again	2026-09-20 14:11:13.013851+05:30	2026-09-20 14:11:33.251495+05:30
-2680	18813	11	YHB-SS	1	SEAT SLIDER	D412	PoP RIVET-2	D412	9	A	code1148	OFF	2026-09-20 14:11:03.75858+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-20 14:11:33.251495+05:30	PY OK again	2026-09-20 14:11:13.013851+05:30	2026-09-20 14:11:33.251495+05:30
-3137	18814	15	Y17-SS	1	SEAT SLIDER	D402	RH.HARNESS-1	D402	14	A	code5	OFF	2026-09-20 14:30:02.451118+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-20 14:32:16.461852+05:30	PY OK again	2026-09-20 14:30:16.175119+05:30	2026-09-20 14:32:16.461852+05:30
-3138	18815	15	Y17-SS	1	SEAT SLIDER	D404	LH.HARNESS-2	D404	14	A	code14	OFF	2026-09-20 14:30:02.752633+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-20 14:32:16.461852+05:30	PY OK again	2026-09-20 14:30:16.175119+05:30	2026-09-20 14:32:16.461852+05:30
-3485	18819	2	YNC-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	15	A	OFF,OFF	ON,ON	2026-09-20 14:44:03.607724+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-20 14:44:38.640124+05:30	PY OK again	2026-09-20 14:44:18.605716+05:30	2026-09-20 14:44:38.640124+05:30
-3486	18820	2	YNC-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	15	A	code1292	ON,ON	2026-09-20 14:44:03.765864+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-20 14:44:38.640124+05:30	PY OK again	2026-09-20 14:44:18.605716+05:30	2026-09-20 14:44:38.640124+05:30
-711	18790	12	YCA-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	10	A	ON	OFF	2026-09-20 12:50:38.789759+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-20 15:05:42.09282+05:30	PY OK again	2026-09-20 12:50:40.766683+05:30	2026-09-20 15:05:42.09282+05:30
-712	18791	12	YCA-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	10	A	ON,ON	OFF,OFF	2026-09-20 12:50:38.937285+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-20 15:05:42.09282+05:30	PY OK again	2026-09-20 12:50:40.766683+05:30	2026-09-20 15:05:42.09282+05:30
-713	18792	12	YCA-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	10	A	ON,ON	OFF,OFF	2026-09-20 12:50:38.995792+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-20 15:05:42.09282+05:30	PY OK again	2026-09-20 12:50:40.766683+05:30	2026-09-20 15:05:42.09282+05:30
-20058	18878	11	YHB-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	9	A	ON	OFF	2026-09-21 08:43:23.018168+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 08:51:32.459931+05:30	PY OK again	2026-09-21 08:43:31.822814+05:30	2026-09-21 08:51:32.459931+05:30
-20059	18879	11	YHB-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	9	A	ON,ON	OFF,OFF	2026-09-21 08:43:23.192803+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 08:51:32.459931+05:30	PY OK again	2026-09-21 08:43:31.822814+05:30	2026-09-21 08:51:32.459931+05:30
-20060	18880	11	YHB-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	9	A	ON,ON	OFF,OFF	2026-09-21 08:43:23.322705+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 08:51:32.459931+05:30	PY OK again	2026-09-21 08:43:31.822814+05:30	2026-09-21 08:51:32.459931+05:30
-3487	18821	2	YNC-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	15	A	OFF,ON	ON,ON	2026-09-20 14:44:03.908461+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-20 14:44:38.640124+05:30	PY OK again	2026-09-20 14:44:18.605716+05:30	2026-09-20 14:44:38.640124+05:30
-714	18793	12	YCA-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	10	A	ON,ON	OFF,OFF	2026-09-20 12:50:39.057689+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-20 15:05:42.09282+05:30	PY OK again	2026-09-20 12:50:40.766683+05:30	2026-09-20 15:05:42.09282+05:30
-575	18786	19	YMC-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	9	A	ON,ON	OFF,OFF	2026-09-20 12:39:20.22761+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-20 15:05:42.09282+05:30	PY OK again	2026-09-20 12:39:38.8493+05:30	2026-09-20 15:05:42.09282+05:30
-576	18787	19	YMC-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	9	A	ON,ON	OFF,OFF	2026-09-20 12:39:20.360032+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-20 15:05:42.09282+05:30	PY OK again	2026-09-20 12:39:38.8493+05:30	2026-09-20 15:05:42.09282+05:30
-577	18788	19	YMC-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	9	A	ON,ON	OFF,OFF	2026-09-20 12:39:20.464778+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-20 15:05:42.09282+05:30	PY OK again	2026-09-20 12:39:38.8493+05:30	2026-09-20 15:05:42.09282+05:30
-578	18789	19	YMC-SS	1	SEAT SLIDER	D424	UPPER RAIL HOLE DETECTION	D424	9	A	PASS	OFF	2026-09-20 12:39:20.545132+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-20 15:05:42.09282+05:30	PY OK again	2026-09-20 12:39:38.8493+05:30	2026-09-20 15:05:42.09282+05:30
-3960	18832	2	YNC-SS	1	SEAT SLIDER	D422	4W INR/OTR BOLT MIXING.X41	D422	9	A	ON	OFF	2026-09-20 15:03:55.944265+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-20 15:06:02.126724+05:30	PY OK again	2026-09-20 15:04:01.674625+05:30	2026-09-20 15:06:02.126724+05:30
-22843	18913	4	YSD-SS	1	SEAT SLIDER	D416	Rr.LIGHTER PROTECTOR-1	D416	14	A	code12336	ON	2026-09-21 10:55:02.98762+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 10:55:28.328407+05:30	PY OK again	2026-09-21 10:55:08.299875+05:30	2026-09-21 10:55:28.328407+05:30
-22319	18909	15	Y17-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	14	A	ON	OFF	2026-09-21 10:33:15.355804+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 11:29:32.410382+05:30	PY OK again	2026-09-21 10:33:24.789963+05:30	2026-09-21 11:29:32.410382+05:30
-22320	18910	15	Y17-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	14	A	ON,ON	OFF,OFF	2026-09-21 10:33:16.452554+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 11:29:32.410382+05:30	PY OK again	2026-09-21 10:33:24.789963+05:30	2026-09-21 11:29:32.410382+05:30
-61595	19260	2	YNC-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	14	A	OFF,OFF	ON,ON	2026-09-24 11:50:03.583912+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 11:50:26.188718+05:30	PY OK again	2026-09-24 11:50:06.15275+05:30	2026-09-24 11:50:26.188718+05:30
-5165	18856	14	YFG-SS	1	SEAT SLIDER	D417	Rr.LIGHTER PROTECTOR-2	D417	9	A	PASS	ON	2026-09-20 17:14:02.986465+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 15:19:35.048481+05:30	PY OK again	2026-09-20 17:14:21.875609+05:30	2026-09-22 15:19:35.048481+05:30
-3998	18833	15	Y17-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	15	A	ON	OFF	2026-09-20 15:14:43.058891+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-20 15:17:02.987841+05:30	PY OK again	2026-09-20 15:15:02.818999+05:30	2026-09-20 15:17:02.987841+05:30
-3999	18835	15	Y17-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	15	A	ON,ON	OFF,OFF	2026-09-20 15:14:44.424266+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-20 15:17:02.987841+05:30	PY OK again	2026-09-20 15:15:02.818999+05:30	2026-09-20 15:17:02.987841+05:30
-4000	18836	15	Y17-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	15	A	ON,ON	OFF,OFF	2026-09-20 15:14:44.925383+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-20 15:17:02.987841+05:30	PY OK again	2026-09-20 15:15:02.818999+05:30	2026-09-20 15:17:02.987841+05:30
-4001	18837	15	Y17-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	15	A	ON,ON	OFF,OFF	2026-09-20 15:14:45.393113+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-20 15:17:02.987841+05:30	PY OK again	2026-09-20 15:15:02.818999+05:30	2026-09-20 15:17:02.987841+05:30
-4002	18838	15	Y17-SS	1	SEAT SLIDER	D413	FR.LIGHTER PROTECTOR-1	D413	15	A	ON	OFF	2026-09-20 15:14:45.699987+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-20 15:17:02.987841+05:30	PY OK again	2026-09-20 15:15:02.818999+05:30	2026-09-20 15:17:02.987841+05:30
-4003	18839	15	Y17-SS	1	SEAT SLIDER	D414	FR.LIGHTER PROTECTOR-2	D414	15	A	ON	OFF	2026-09-20 15:14:46.007978+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-20 15:17:02.987841+05:30	PY OK again	2026-09-20 15:15:02.818999+05:30	2026-09-20 15:17:02.987841+05:30
-4004	18840	15	Y17-SS	1	SEAT SLIDER	D415	FR.LIGHTER PROTECTOR-3	D415	15	A	ON	OFF	2026-09-20 15:14:46.436297+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-20 15:17:02.987841+05:30	PY OK again	2026-09-20 15:15:02.818999+05:30	2026-09-20 15:17:02.987841+05:30
-4040	18841	11	YHB-SS	1	SEAT SLIDER	D411	PoP RIVET-1	D411	9	A	PASS	OFF	2026-09-20 15:19:03.539231+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-20 15:20:03.221028+05:30	PY OK again	2026-09-20 15:19:23.187573+05:30	2026-09-20 15:20:03.221028+05:30
-4041	18842	11	YHB-SS	1	SEAT SLIDER	D412	PoP RIVET-2	D412	9	A	PASS	OFF	2026-09-20 15:19:03.713085+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-20 15:20:03.221028+05:30	PY OK again	2026-09-20 15:19:23.187573+05:30	2026-09-20 15:20:03.221028+05:30
-34883	19084	2	YNC-SS	1	SEAT SLIDER	D402	RH.HARNESS-1	D402	15	A	code10	ON	2026-09-22 16:20:03.716179+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 16:20:44.132387+05:30	PY OK again	2026-09-22 16:20:03.8433+05:30	2026-09-22 16:20:44.132387+05:30
-4044	18843	4	YSD-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	15	A	code12336	ON,ON	2026-09-20 15:53:02.958193+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-20 15:53:26.045675+05:30	PY OK again	2026-09-20 15:53:06.025197+05:30	2026-09-20 15:53:26.045675+05:30
-34800	19077	12	YCA-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	12	A	ON,ON	OFF,OFF	2026-09-22 16:13:29.417975+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 21:00:58.057725+05:30	PY OK again	2026-09-22 16:13:43.093774+05:30	2026-09-22 21:00:58.057725+05:30
-5164	18855	14	YFG-SS	1	SEAT SLIDER	D416	Rr.LIGHTER PROTECTOR-1	D416	9	A	PASS	ON	2026-09-20 17:14:02.908358+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-23 09:14:35.877002+05:30	PY OK again	2026-09-20 17:14:21.875609+05:30	2026-09-23 09:14:35.877002+05:30
-4047	18846	2	YNC-SS	1	SEAT SLIDER	D422	4W INR/OTR BOLT MIXING.X41	D422	9	A	ON	OFF	2026-09-20 15:58:08.836597+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-20 16:00:26.760469+05:30	PY OK again	2026-09-20 15:58:26.277407+05:30	2026-09-20 16:00:26.760469+05:30
-5161	18852	14	YFG-SS	1	SEAT SLIDER	D413	FR.LIGHTER PROTECTOR-1	D413	9	A	code1902	ON	2026-09-20 17:14:02.581392+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 01:52:23.238048+05:30	PY OK again	2026-09-20 17:14:21.875609+05:30	2026-09-24 01:52:23.238048+05:30
-4290	18851	15	Y17-SS	1	SEAT SLIDER	D218	E-RING NG X12/X13	D418	15	A	code5	ON,OFF	2026-09-20 16:16:03.528768+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-20 16:16:30.197038+05:30	PY OK again	2026-09-20 16:16:10.166214+05:30	2026-09-20 16:16:30.197038+05:30
-4061	18847	12	YCA-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	12	A	ON	OFF	2026-09-20 16:01:05.555544+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-20 19:38:24.543922+05:30	PY OK again	2026-09-20 16:01:06.863928+05:30	2026-09-20 19:38:24.543922+05:30
-4062	18848	12	YCA-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	12	A	ON,ON	OFF,OFF	2026-09-20 16:01:05.801892+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-20 19:38:24.543922+05:30	PY OK again	2026-09-20 16:01:06.863928+05:30	2026-09-20 19:38:24.543922+05:30
-4063	18849	12	YCA-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	12	A	ON,ON	OFF,OFF	2026-09-20 16:01:05.902437+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-20 19:38:24.543922+05:30	PY OK again	2026-09-20 16:01:06.863928+05:30	2026-09-20 19:38:24.543922+05:30
-4064	18850	12	YCA-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	12	A	ON,ON	OFF,OFF	2026-09-20 16:01:05.972732+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-20 19:38:24.543922+05:30	PY OK again	2026-09-20 16:01:06.863928+05:30	2026-09-20 19:38:24.543922+05:30
-14191	18863	2	YNC-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	9	B	code9	ON	2026-09-21 03:05:03.663761+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 08:23:10.279241+05:30	PY OK again	2026-09-21 03:05:17.249242+05:30	2026-09-21 08:23:10.279241+05:30
-14192	18864	2	YNC-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	9	B	PASS	ON,ON	2026-09-21 03:05:03.722725+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 08:23:10.279241+05:30	PY OK again	2026-09-21 03:05:17.249242+05:30	2026-09-21 08:23:10.279241+05:30
-14193	18865	2	YNC-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	9	B	PASS	ON,ON	2026-09-21 03:05:03.788884+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 08:23:10.279241+05:30	PY OK again	2026-09-21 03:05:17.249242+05:30	2026-09-21 08:23:10.279241+05:30
-14194	18866	2	YNC-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	9	B	PASS	ON,ON	2026-09-21 03:05:03.963764+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 08:23:10.279241+05:30	PY OK again	2026-09-21 03:05:17.249242+05:30	2026-09-21 08:23:10.279241+05:30
-14195	18867	2	YNC-SS	1	SEAT SLIDER	D411	PoP RIVET-1	D411	9	B	PASS	OFF	2026-09-21 03:05:04.143983+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 08:23:10.279241+05:30	PY OK again	2026-09-21 03:05:17.249242+05:30	2026-09-21 08:23:10.279241+05:30
-14196	18868	2	YNC-SS	1	SEAT SLIDER	D412	PoP RIVET-2	D412	9	B	PASS	OFF	2026-09-21 03:05:04.240824+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 08:23:10.279241+05:30	PY OK again	2026-09-21 03:05:17.249242+05:30	2026-09-21 08:23:10.279241+05:30
-19784	18873	2	YNC-SS	1	SEAT SLIDER	D422	4W INR/OTR BOLT MIXING.X41	D422	9	A	ON	OFF	2026-09-21 08:30:00.754464+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 08:32:10.897348+05:30	PY OK again	2026-09-21 08:30:10.789817+05:30	2026-09-21 08:32:10.897348+05:30
-4045	18844	4	YSD-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	14	A	PASS	ON,ON	2026-09-20 15:57:55.278956+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 08:54:32.694052+05:30	PY OK again	2026-09-20 15:58:06.242859+05:30	2026-09-21 08:54:32.694052+05:30
-19780	18869	12	YCA-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	12	A	ON	OFF	2026-09-21 08:30:00.13727+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 08:45:31.995593+05:30	PY OK again	2026-09-21 08:30:10.789817+05:30	2026-09-21 08:45:31.995593+05:30
-19781	18870	12	YCA-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	12	A	ON,ON	OFF,OFF	2026-09-21 08:30:00.276829+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 08:45:31.995593+05:30	PY OK again	2026-09-21 08:30:10.789817+05:30	2026-09-21 08:45:31.995593+05:30
-19782	18871	12	YCA-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	12	A	ON,ON	OFF,OFF	2026-09-21 08:30:00.326755+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 08:45:31.995593+05:30	PY OK again	2026-09-21 08:30:10.789817+05:30	2026-09-21 08:45:31.995593+05:30
-19783	18872	12	YCA-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	12	A	ON,ON	OFF,OFF	2026-09-21 08:30:00.355354+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 08:45:31.995593+05:30	PY OK again	2026-09-21 08:30:10.789817+05:30	2026-09-21 08:45:31.995593+05:30
-20061	18881	11	YHB-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	9	A	ON,ON	OFF,OFF	2026-09-21 08:43:23.49544+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 08:51:32.459931+05:30	PY OK again	2026-09-21 08:43:31.822814+05:30	2026-09-21 08:51:32.459931+05:30
-22844	18914	4	YSD-SS	1	SEAT SLIDER	D417	Rr.LIGHTER PROTECTOR-2	D417	14	A	code14	ON	2026-09-21 10:55:03.117597+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 10:55:28.328407+05:30	PY OK again	2026-09-21 10:55:08.299875+05:30	2026-09-21 10:55:28.328407+05:30
-22321	18911	15	Y17-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	14	A	ON,ON	OFF,OFF	2026-09-21 10:33:16.757558+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 11:29:32.410382+05:30	PY OK again	2026-09-21 10:33:24.789963+05:30	2026-09-21 11:29:32.410382+05:30
-22322	18912	15	Y17-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	14	A	ON,ON	OFF,OFF	2026-09-21 10:33:17.07881+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 11:29:32.410382+05:30	PY OK again	2026-09-21 10:33:24.789963+05:30	2026-09-21 11:29:32.410382+05:30
-34769	19068	12	YCA-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	11	A	ON,ON	OFF,OFF	2026-09-22 14:28:09.697669+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 14:30:49.974135+05:30	PY OK again	2026-09-22 14:28:29.62722+05:30	2026-09-22 14:30:49.974135+05:30
-24729	18926	12	YCA-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	10	A	ON,ON	OFF,OFF	2026-09-21 12:58:16.372913+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 13:02:02.583297+05:30	PY OK again	2026-09-21 12:58:22.191958+05:30	2026-09-21 13:02:02.583297+05:30
-34770	19069	12	YCA-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	11	A	ON,ON	OFF,OFF	2026-09-22 14:28:09.769508+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 14:30:49.974135+05:30	PY OK again	2026-09-22 14:28:29.62722+05:30	2026-09-22 14:30:49.974135+05:30
-34771	19070	12	YCA-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	11	A	ON,ON	OFF,OFF	2026-09-22 14:28:09.822825+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 14:30:49.974135+05:30	PY OK again	2026-09-22 14:28:29.62722+05:30	2026-09-22 14:30:49.974135+05:30
-24988	18930	15	Y17-SS	1	SEAT SLIDER	D218	E-RING NG X12/X13	D418	14	A	code14	ON,OFF	2026-09-21 13:19:02.763998+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 13:19:24.278022+05:30	PY OK again	2026-09-21 13:19:04.072018+05:30	2026-09-21 13:19:24.278022+05:30
-24989	18931	15	Y17-SS	1	SEAT SLIDER	D402	RH.HARNESS-1	D402	14	A	PASS	OFF	2026-09-21 13:19:03.392313+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 13:19:24.278022+05:30	PY OK again	2026-09-21 13:19:04.072018+05:30	2026-09-21 13:19:24.278022+05:30
-24990	18932	15	Y17-SS	1	SEAT SLIDER	D404	LH.HARNESS-2	D404	14	A	PASS	OFF	2026-09-21 13:19:03.695919+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 13:19:24.278022+05:30	PY OK again	2026-09-21 13:19:04.072018+05:30	2026-09-21 13:19:24.278022+05:30
-20997	18892	15	Y17-SS	1	SEAT SLIDER	D405	RH.HARNESS-2	D405	15	A	PASS	OFF	2026-09-21 09:37:56.656794+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 09:38:18.463392+05:30	PY OK again	2026-09-21 09:37:58.373363+05:30	2026-09-21 09:38:18.463392+05:30
-20996	18891	15	Y17-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	15	A	ON	OFF	2026-09-21 09:37:55.883936+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 09:40:18.817154+05:30	PY OK again	2026-09-21 09:37:58.373363+05:30	2026-09-21 09:40:18.817154+05:30
-20998	18893	15	Y17-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	15	A	ON,ON	OFF,OFF	2026-09-21 09:37:56.965101+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 09:40:18.817154+05:30	PY OK again	2026-09-21 09:37:58.373363+05:30	2026-09-21 09:40:18.817154+05:30
-20999	18894	15	Y17-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	15	A	ON,ON	OFF,OFF	2026-09-21 09:37:57.287938+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 09:40:18.817154+05:30	PY OK again	2026-09-21 09:37:58.373363+05:30	2026-09-21 09:40:18.817154+05:30
-21000	18895	15	Y17-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	15	A	ON,ON	OFF,OFF	2026-09-21 09:37:57.596523+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 09:40:18.817154+05:30	PY OK again	2026-09-21 09:37:58.373363+05:30	2026-09-21 09:40:18.817154+05:30
-21001	18896	15	Y17-SS	1	SEAT SLIDER	D413	FR.LIGHTER PROTECTOR-1	D413	15	A	ON	OFF	2026-09-21 09:37:57.909859+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 09:40:18.817154+05:30	PY OK again	2026-09-21 09:37:58.373363+05:30	2026-09-21 09:40:18.817154+05:30
-21002	18897	15	Y17-SS	1	SEAT SLIDER	D414	FR.LIGHTER PROTECTOR-2	D414	15	A	ON	OFF	2026-09-21 09:37:58.213402+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 09:40:18.817154+05:30	PY OK again	2026-09-21 09:37:58.373363+05:30	2026-09-21 09:40:18.817154+05:30
-21017	18898	15	Y17-SS	1	SEAT SLIDER	D415	FR.LIGHTER PROTECTOR-3	D415	15	A	ON	OFF	2026-09-21 09:37:58.538149+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 09:40:18.817154+05:30	PY OK again	2026-09-21 09:38:18.431326+05:30	2026-09-21 09:40:18.817154+05:30
-22005	18901	2	YNC-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	9	A	code9	ON	2026-09-21 10:18:02.528+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 10:18:22.767723+05:30	PY OK again	2026-09-21 10:18:02.722996+05:30	2026-09-21 10:18:22.767723+05:30
-22006	18902	2	YNC-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	9	A	PASS	ON,ON	2026-09-21 10:18:02.701395+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 10:18:22.767723+05:30	PY OK again	2026-09-21 10:18:02.722996+05:30	2026-09-21 10:18:22.767723+05:30
-20712	18886	12	YCA-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	10	A	ON	OFF	2026-09-21 09:26:07.343756+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 10:29:04.397842+05:30	PY OK again	2026-09-21 09:26:17.117888+05:30	2026-09-21 10:29:04.397842+05:30
-20713	18887	12	YCA-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	10	A	ON,ON	OFF,OFF	2026-09-21 09:26:07.494469+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 10:29:04.397842+05:30	PY OK again	2026-09-21 09:26:17.117888+05:30	2026-09-21 10:29:04.397842+05:30
-20714	18888	12	YCA-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	10	A	ON,ON	OFF,OFF	2026-09-21 09:26:07.569016+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 10:29:04.397842+05:30	PY OK again	2026-09-21 09:26:17.117888+05:30	2026-09-21 10:29:04.397842+05:30
-20715	18889	12	YCA-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	10	A	ON,ON	OFF,OFF	2026-09-21 09:26:07.624472+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 10:29:04.397842+05:30	PY OK again	2026-09-21 09:26:17.117888+05:30	2026-09-21 10:29:04.397842+05:30
-25575	18937	11	YHB-SS	1	SEAT SLIDER	D411	PoP RIVET-1	D411	9	A	code1052	OFF	2026-09-21 13:44:02.969637+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 13:44:26.977852+05:30	PY OK again	2026-09-21 13:44:06.938032+05:30	2026-09-21 13:44:26.977852+05:30
-25576	18938	11	YHB-SS	1	SEAT SLIDER	D412	PoP RIVET-2	D412	9	A	code8	OFF	2026-09-21 13:44:03.10073+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 13:44:26.977852+05:30	PY OK again	2026-09-21 13:44:06.938032+05:30	2026-09-21 13:44:26.977852+05:30
-25601	18939	4	YSD-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	15	A	code15	ON,ON	2026-09-21 13:45:02.71386+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 13:45:27.14114+05:30	PY OK again	2026-09-21 13:45:07.085128+05:30	2026-09-21 13:45:27.14114+05:30
-25602	18941	4	YSD-SS	1	SEAT SLIDER	D414	FR.LIGHTER PROTECTOR-2	D414	15	A	code972	ON	2026-09-21 13:45:03.191425+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 13:45:27.14114+05:30	PY OK again	2026-09-21 13:45:07.085128+05:30	2026-09-21 13:45:27.14114+05:30
-25603	18942	4	YSD-SS	1	SEAT SLIDER	D415	FR.LIGHTER PROTECTOR-3	D415	15	A	code15	ON	2026-09-21 13:45:03.46025+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 13:45:27.14114+05:30	PY OK again	2026-09-21 13:45:07.085128+05:30	2026-09-21 13:45:27.14114+05:30
-26012	18943	15	Y17-SS	1	SEAT SLIDER	D218	E-RING NG X12/X13	D418	14	A	PASS	ON,OFF	2026-09-21 14:02:02.518971+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 14:02:28.618763+05:30	PY OK again	2026-09-21 14:02:08.530327+05:30	2026-09-21 14:02:28.618763+05:30
-26013	18944	15	Y17-SS	1	SEAT SLIDER	D402	RH.HARNESS-1	D402	14	A	code12	OFF	2026-09-21 14:02:03.114263+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 14:02:28.618763+05:30	PY OK again	2026-09-21 14:02:08.530327+05:30	2026-09-21 14:02:28.618763+05:30
-26014	18945	15	Y17-SS	1	SEAT SLIDER	D404	LH.HARNESS-2	D404	14	A	code25	OFF	2026-09-21 14:02:03.423778+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 14:02:28.618763+05:30	PY OK again	2026-09-21 14:02:08.530327+05:30	2026-09-21 14:02:28.618763+05:30
-26543	18946	15	Y17-SS	1	SEAT SLIDER	D402	RH.HARNESS-1	D402	14	A	PASS	OFF	2026-09-21 14:24:02.902432+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 14:24:31.413041+05:30	PY OK again	2026-09-21 14:24:11.375763+05:30	2026-09-21 14:24:31.413041+05:30
-26544	18947	15	Y17-SS	1	SEAT SLIDER	D404	LH.HARNESS-2	D404	14	A	PASS	OFF	2026-09-21 14:24:03.214583+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 14:24:31.413041+05:30	PY OK again	2026-09-21 14:24:11.375763+05:30	2026-09-21 14:24:31.413041+05:30
-61592	19257	2	YNC-SS	1	SEAT SLIDER	D218	E-RING NG X12/X13	D418	14	A	code8	OFF,ON	2026-09-24 11:50:02.931009+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 11:50:26.188718+05:30	PY OK again	2026-09-24 11:50:06.15275+05:30	2026-09-24 11:50:26.188718+05:30
-61593	19258	2	YNC-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	14	A	code14	ON	2026-09-24 11:50:03.138873+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 11:50:26.188718+05:30	PY OK again	2026-09-24 11:50:06.15275+05:30	2026-09-24 11:50:26.188718+05:30
-28189	18958	11	YHB-SS	1	SEAT SLIDER	D411	PoP RIVET-1	D411	9	A	code1490	OFF	2026-09-21 15:40:03.306228+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 15:41:02.075999+05:30	PY OK again	2026-09-21 15:40:22.022238+05:30	2026-09-21 15:41:02.075999+05:30
-28190	18959	11	YHB-SS	1	SEAT SLIDER	D412	PoP RIVET-2	D412	9	A	code9	OFF	2026-09-21 15:40:03.465309+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 15:41:02.075999+05:30	PY OK again	2026-09-21 15:40:22.022238+05:30	2026-09-21 15:41:02.075999+05:30
-28835	18963	11	YHB-SS	1	SEAT SLIDER	D411	PoP RIVET-1	D411	9	A	PASS	OFF	2026-09-21 16:07:03.157475+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 16:07:25.187231+05:30	PY OK again	2026-09-21 16:07:05.159132+05:30	2026-09-21 16:07:25.187231+05:30
-28836	18964	11	YHB-SS	1	SEAT SLIDER	D412	PoP RIVET-2	D412	9	A	PASS	OFF	2026-09-21 16:07:03.328746+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 16:07:25.187231+05:30	PY OK again	2026-09-21 16:07:05.159132+05:30	2026-09-21 16:07:25.187231+05:30
-28833	18961	15	Y17-SS	1	SEAT SLIDER	D411	PoP RIVET-1	D411	9	A	code15	OFF	2026-09-21 16:07:02.421464+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 16:07:25.187231+05:30	PY OK again	2026-09-21 16:07:05.159132+05:30	2026-09-21 16:07:25.187231+05:30
-28834	18962	15	Y17-SS	1	SEAT SLIDER	D412	PoP RIVET-2	D412	9	A	code9	OFF	2026-09-21 16:07:02.62381+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 16:07:25.187231+05:30	PY OK again	2026-09-21 16:07:05.159132+05:30	2026-09-21 16:07:25.187231+05:30
-29320	18971	4	YSD-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	15	A	code3	ON	2026-09-21 16:27:03.790774+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 16:27:27.902241+05:30	PY OK again	2026-09-21 16:27:07.856652+05:30	2026-09-21 16:27:27.902241+05:30
-29317	18965	4	YSD-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	15	A	ON,OFF	ON,ON	2026-09-21 16:27:02.95365+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 16:27:27.902241+05:30	PY OK again	2026-09-21 16:27:07.856652+05:30	2026-09-21 16:27:27.902241+05:30
-29318	18966	4	YSD-SS	1	SEAT SLIDER	D413	FR.LIGHTER PROTECTOR-1	D413	15	A	code15	ON	2026-09-21 16:27:03.116067+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 16:27:27.902241+05:30	PY OK again	2026-09-21 16:27:07.856652+05:30	2026-09-21 16:27:27.902241+05:30
-29319	18970	4	YSD-SS	1	SEAT SLIDER	D417	Rr.LIGHTER PROTECTOR-2	D417	15	A	code1571	ON	2026-09-21 16:27:03.644675+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 16:27:27.902241+05:30	PY OK again	2026-09-21 16:27:07.856652+05:30	2026-09-21 16:27:27.902241+05:30
-29345	18972	2	YNC-SS	1	SEAT SLIDER	D218	E-RING NG X12/X13	D418	15	A	code1789	OFF,ON	2026-09-21 16:28:03.007483+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 16:28:27.961728+05:30	PY OK again	2026-09-21 16:28:07.928597+05:30	2026-09-21 16:28:27.961728+05:30
-29346	18973	2	YNC-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	15	A	code11	ON	2026-09-21 16:28:03.138635+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 16:28:27.961728+05:30	PY OK again	2026-09-21 16:28:07.928597+05:30	2026-09-21 16:28:27.961728+05:30
-29347	18974	2	YNC-SS	1	SEAT SLIDER	D402	RH.HARNESS-1	D402	15	A	code11	ON	2026-09-21 16:28:03.671222+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 16:28:27.961728+05:30	PY OK again	2026-09-21 16:28:07.928597+05:30	2026-09-21 16:28:27.961728+05:30
-29348	18975	2	YNC-SS	1	SEAT SLIDER	D403	LH.HARNESS-1	D403	15	A	code15	OFF	2026-09-21 16:28:03.863548+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 16:28:27.961728+05:30	PY OK again	2026-09-21 16:28:07.928597+05:30	2026-09-21 16:28:27.961728+05:30
-29973	18977	4	YSD-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	15	A	PASS	ON,ON	2026-09-21 16:54:02.523695+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 16:54:30.363614+05:30	PY OK again	2026-09-21 16:54:10.338555+05:30	2026-09-21 16:54:30.363614+05:30
-29974	18978	15	Y17-SS	1	SEAT SLIDER	D411	PoP RIVET-1	D411	9	A	code9	OFF	2026-09-21 16:54:03.426164+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 16:54:30.363614+05:30	PY OK again	2026-09-21 16:54:10.338555+05:30	2026-09-21 16:54:30.363614+05:30
-30193	18981	4	YSD-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	15	A	code15	ON	2026-09-21 17:03:02.872795+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 17:03:31.749177+05:30	PY OK again	2026-09-21 17:03:11.702315+05:30	2026-09-21 17:03:31.749177+05:30
-30191	18979	4	YSD-SS	1	SEAT SLIDER	D416	Rr.LIGHTER PROTECTOR-1	D416	15	A	code1723	ON	2026-09-21 17:03:02.542791+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 17:03:31.749177+05:30	PY OK again	2026-09-21 17:03:11.702315+05:30	2026-09-21 17:03:31.749177+05:30
-30192	18980	4	YSD-SS	1	SEAT SLIDER	D417	Rr.LIGHTER PROTECTOR-2	D417	15	A	code3	ON	2026-09-21 17:03:02.706271+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 17:03:31.749177+05:30	PY OK again	2026-09-21 17:03:11.702315+05:30	2026-09-21 17:03:31.749177+05:30
-25011	18933	12	YCA-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	11	A	ON	OFF	2026-09-21 13:20:30.458849+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 17:03:51.830598+05:30	PY OK again	2026-09-21 13:20:44.341723+05:30	2026-09-21 17:03:51.830598+05:30
-25012	18934	12	YCA-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	11	A	ON,ON	OFF,OFF	2026-09-21 13:20:30.634944+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 17:03:51.830598+05:30	PY OK again	2026-09-21 13:20:44.341723+05:30	2026-09-21 17:03:51.830598+05:30
-25013	18935	12	YCA-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	11	A	ON,ON	OFF,OFF	2026-09-21 13:20:30.706297+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 17:03:51.830598+05:30	PY OK again	2026-09-21 13:20:44.341723+05:30	2026-09-21 17:03:51.830598+05:30
-25014	18936	12	YCA-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	11	A	ON,ON	OFF,OFF	2026-09-21 13:20:30.774152+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 17:03:51.830598+05:30	PY OK again	2026-09-21 13:20:44.341723+05:30	2026-09-21 17:03:51.830598+05:30
-31550	18982	11	YHB-SS	1	SEAT SLIDER	D411	PoP RIVET-1	D411	9	B	PASS	OFF	2026-09-21 18:56:03.229879+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 18:56:23.687762+05:30	PY OK again	2026-09-21 18:56:03.598336+05:30	2026-09-21 18:56:23.687762+05:30
-31551	18983	11	YHB-SS	1	SEAT SLIDER	D412	PoP RIVET-2	D412	9	B	code93	OFF	2026-09-21 18:56:03.454155+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 18:56:23.687762+05:30	PY OK again	2026-09-21 18:56:03.598336+05:30	2026-09-21 18:56:23.687762+05:30
-32560	18984	15	Y17-SS	1	SEAT SLIDER	D218	E-RING NG X12/X13	D418	14	B	code14	ON,OFF	2026-09-21 20:20:04.26926+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 20:20:31.335299+05:30	PY OK again	2026-09-21 20:20:11.312399+05:30	2026-09-21 20:20:31.335299+05:30
-32913	18985	15	Y17-SS	1	SEAT SLIDER	D218	E-RING NG X12/X13	D418	14	B	code14	ON,OFF	2026-09-21 20:56:04.383118+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 20:56:34.843407+05:30	PY OK again	2026-09-21 20:56:14.801829+05:30	2026-09-21 20:56:34.843407+05:30
-32914	18991	2	YNC-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	15	B	PASS	ON	2026-09-21 21:08:03.067399+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 21:08:35.878435+05:30	PY OK again	2026-09-21 21:08:15.861226+05:30	2026-09-21 21:08:35.878435+05:30
-32915	18992	2	YNC-SS	1	SEAT SLIDER	D402	RH.HARNESS-1	D402	15	B	code12336	ON	2026-09-21 21:08:03.212466+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 21:08:35.878435+05:30	PY OK again	2026-09-21 21:08:15.861226+05:30	2026-09-21 21:08:35.878435+05:30
-32916	18994	4	YSD-SS	1	SEAT SLIDER	D413	FR.LIGHTER PROTECTOR-1	D413	15	B	code12336	ON	2026-09-21 22:46:03.238714+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 22:46:29.76836+05:30	PY OK again	2026-09-21 22:46:09.738927+05:30	2026-09-21 22:46:29.76836+05:30
-32917	18995	4	YSD-SS	1	SEAT SLIDER	D414	FR.LIGHTER PROTECTOR-2	D414	15	B	OFF	ON	2026-09-21 22:46:03.398652+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 22:46:29.76836+05:30	PY OK again	2026-09-21 22:46:09.738927+05:30	2026-09-21 22:46:29.76836+05:30
-32918	18996	4	YSD-SS	1	SEAT SLIDER	D415	FR.LIGHTER PROTECTOR-3	D415	15	B	code15	ON	2026-09-21 22:46:03.566913+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-21 22:46:29.76836+05:30	PY OK again	2026-09-21 22:46:09.738927+05:30	2026-09-21 22:46:29.76836+05:30
-32919	18998	2	YNC-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	15	B	code12336	ON,ON	2026-09-22 00:38:02.747876+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 00:38:24.716569+05:30	PY OK again	2026-09-22 00:38:04.699824+05:30	2026-09-22 00:38:24.716569+05:30
-32920	18999	2	YNC-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	15	B	code12336	ON,ON	2026-09-22 00:57:02.716672+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 00:57:26.444605+05:30	PY OK again	2026-09-22 00:57:06.424924+05:30	2026-09-22 00:57:26.444605+05:30
-32921	19000	2	YNC-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	15	B	PASS	ON,ON	2026-09-22 00:57:02.860918+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 00:57:26.444605+05:30	PY OK again	2026-09-22 00:57:06.424924+05:30	2026-09-22 00:57:26.444605+05:30
-32922	19001	15	Y17-SS	1	SEAT SLIDER	D402	RH.HARNESS-1	D402	14	B	code4	OFF	2026-09-22 01:23:02.726754+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 01:23:29.185818+05:30	PY OK again	2026-09-22 01:23:09.164243+05:30	2026-09-22 01:23:29.185818+05:30
-32923	19002	15	Y17-SS	1	SEAT SLIDER	D404	LH.HARNESS-2	D404	14	B	code14	OFF	2026-09-22 01:23:03.022298+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 01:23:29.185818+05:30	PY OK again	2026-09-22 01:23:09.164243+05:30	2026-09-22 01:23:29.185818+05:30
-32930	19005	4	YSD-SS	1	SEAT SLIDER	D414	FR.LIGHTER PROTECTOR-2	D414	14	B	PASS	ON	2026-09-22 01:24:02.910777+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 01:24:29.250372+05:30	PY OK again	2026-09-22 01:24:09.2163+05:30	2026-09-22 01:24:29.250372+05:30
-33063	19006	2	YNC-SS	1	SEAT SLIDER	D218	E-RING NG X12/X13	D418	14	B	PASS	OFF,ON	2026-09-22 01:46:02.557285+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 01:46:31.734741+05:30	PY OK again	2026-09-22 01:46:11.707477+05:30	2026-09-22 01:46:31.734741+05:30
-32924	19003	2	YNC-SS	1	SEAT SLIDER	D402	RH.HARNESS-1	D402	14	B	PASS	ON	2026-09-22 01:23:17.926986+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 01:46:51.74947+05:30	PY OK again	2026-09-22 01:23:29.177713+05:30	2026-09-22 01:46:51.74947+05:30
-32925	19004	2	YNC-SS	1	SEAT SLIDER	D423	RH HARNES BKT NG.X44	D423	14	B	PASS	OFF	2026-09-22 01:23:18.598695+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 01:46:51.74947+05:30	PY OK again	2026-09-22 01:23:29.177713+05:30	2026-09-22 01:46:51.74947+05:30
-33064	19007	2	YNC-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	14	B	PASS	ON	2026-09-22 01:46:02.690186+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 01:46:31.734741+05:30	PY OK again	2026-09-22 01:46:11.707477+05:30	2026-09-22 01:46:31.734741+05:30
-34796	19071	2	YNC-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	15	A	code10	ON,ON	2026-09-22 14:54:02.631332+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 14:54:32.188616+05:30	PY OK again	2026-09-22 14:54:12.171838+05:30	2026-09-22 14:54:32.188616+05:30
-61594	19259	2	YNC-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	14	A	PASS	ON,ON	2026-09-24 11:50:03.437319+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 11:50:26.188718+05:30	PY OK again	2026-09-24 11:50:06.15275+05:30	2026-09-24 11:50:26.188718+05:30
-33067	19010	15	Y17-SS	1	SEAT SLIDER	D404	LH.HARNESS-2	D404	9	B	code9	OFF	2026-09-22 03:01:02.784868+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 03:01:39.674361+05:30	PY OK again	2026-09-22 03:01:19.633911+05:30	2026-09-22 03:01:39.674361+05:30
-33068	19011	15	Y17-SS	1	SEAT SLIDER	D411	PoP RIVET-1	D411	9	B	code1798	OFF	2026-09-22 03:01:04.220734+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 03:01:39.674361+05:30	PY OK again	2026-09-22 03:01:19.633911+05:30	2026-09-22 03:01:39.674361+05:30
-33069	19012	15	Y17-SS	1	SEAT SLIDER	D412	PoP RIVET-2	D412	9	B	code4	OFF	2026-09-22 03:01:04.52092+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 03:01:39.674361+05:30	PY OK again	2026-09-22 03:01:19.633911+05:30	2026-09-22 03:01:39.674361+05:30
-34879	19080	2	YNC-SS	1	SEAT SLIDER	D218	E-RING NG X12/X13	D418	15	A	OFF,OFF	OFF,ON	2026-09-22 16:20:03.430378+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 16:20:44.132387+05:30	PY OK again	2026-09-22 16:20:03.8433+05:30	2026-09-22 16:20:44.132387+05:30
-33076	19018	2	YNC-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	9	A	code12336	ON	2026-09-22 08:41:02.93255+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 08:41:35.7327+05:30	PY OK again	2026-09-22 08:41:15.702063+05:30	2026-09-22 08:41:35.7327+05:30
-33077	19019	2	YNC-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	9	A	code6	ON,ON	2026-09-22 08:41:03.102573+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 08:41:35.7327+05:30	PY OK again	2026-09-22 08:41:15.702063+05:30	2026-09-22 08:41:35.7327+05:30
-33078	19020	2	YNC-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	9	A	code9	ON,ON	2026-09-22 08:41:03.33113+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 08:41:35.7327+05:30	PY OK again	2026-09-22 08:41:15.702063+05:30	2026-09-22 08:41:35.7327+05:30
-33079	19021	2	YNC-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	9	A	PASS	ON,ON	2026-09-22 08:41:03.519732+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 08:41:35.7327+05:30	PY OK again	2026-09-22 08:41:15.702063+05:30	2026-09-22 08:41:35.7327+05:30
-33080	19022	2	YNC-SS	1	SEAT SLIDER	D411	PoP RIVET-1	D411	9	A	PASS	OFF	2026-09-22 08:41:03.664998+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 08:41:35.7327+05:30	PY OK again	2026-09-22 08:41:15.702063+05:30	2026-09-22 08:41:35.7327+05:30
-33087	19023	4	YSD-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	14	A	PASS	ON,ON	2026-09-22 08:43:02.159959+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 08:44:15.886146+05:30	PY OK again	2026-09-22 08:43:15.833524+05:30	2026-09-22 08:44:15.886146+05:30
-33092	19024	12	YCA-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	10	A	ON	OFF	2026-09-22 08:43:47.699998+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 08:45:56.032988+05:30	PY OK again	2026-09-22 08:43:55.866709+05:30	2026-09-22 08:45:56.032988+05:30
-33093	19025	12	YCA-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	10	A	ON,ON	OFF,OFF	2026-09-22 08:43:47.810252+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 08:45:56.032988+05:30	PY OK again	2026-09-22 08:43:55.866709+05:30	2026-09-22 08:45:56.032988+05:30
-33094	19026	12	YCA-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	10	A	ON,ON	OFF,OFF	2026-09-22 08:43:47.890755+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 08:45:56.032988+05:30	PY OK again	2026-09-22 08:43:55.866709+05:30	2026-09-22 08:45:56.032988+05:30
-33095	19027	12	YCA-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	10	A	ON,ON	OFF,OFF	2026-09-22 08:43:47.940649+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 08:45:56.032988+05:30	PY OK again	2026-09-22 08:43:55.866709+05:30	2026-09-22 08:45:56.032988+05:30
-33070	19017	2	YNC-SS	1	SEAT SLIDER	D422	4W INR/OTR BOLT MIXING.X41	D422	9	A	ON	OFF	2026-09-22 08:39:26.061987+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 08:48:36.150879+05:30	PY OK again	2026-09-22 08:39:35.600885+05:30	2026-09-22 08:48:36.150879+05:30
-33205	19038	4	YSD-SS	1	SEAT SLIDER	D416	Rr.LIGHTER PROTECTOR-1	D416	14	A	code28	ON	2026-09-22 08:50:02.966703+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 08:50:36.326181+05:30	PY OK again	2026-09-22 08:50:16.233296+05:30	2026-09-22 08:50:36.326181+05:30
-33206	19039	4	YSD-SS	1	SEAT SLIDER	D417	Rr.LIGHTER PROTECTOR-2	D417	14	A	OFF	ON	2026-09-22 08:50:03.093944+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 08:50:36.326181+05:30	PY OK again	2026-09-22 08:50:16.233296+05:30	2026-09-22 08:50:36.326181+05:30
-33207	19040	4	YSD-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	14	A	code14	ON	2026-09-22 08:50:03.239816+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 08:50:36.326181+05:30	PY OK again	2026-09-22 08:50:16.233296+05:30	2026-09-22 08:50:36.326181+05:30
-33111	19028	11	YHB-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	9	A	ON	OFF	2026-09-22 08:44:37.16037+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 08:55:57.025865+05:30	PY OK again	2026-09-22 08:44:55.941582+05:30	2026-09-22 08:55:57.025865+05:30
-33112	19029	11	YHB-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	9	A	ON,ON	OFF,OFF	2026-09-22 08:44:37.363063+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 08:55:57.025865+05:30	PY OK again	2026-09-22 08:44:55.941582+05:30	2026-09-22 08:55:57.025865+05:30
-33113	19030	11	YHB-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	9	A	ON,ON	OFF,OFF	2026-09-22 08:44:37.530154+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 08:55:57.025865+05:30	PY OK again	2026-09-22 08:44:55.941582+05:30	2026-09-22 08:55:57.025865+05:30
-33114	19031	11	YHB-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	9	A	ON,ON	OFF,OFF	2026-09-22 08:44:37.691366+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 08:55:57.025865+05:30	PY OK again	2026-09-22 08:44:55.941582+05:30	2026-09-22 08:55:57.025865+05:30
-33843	19042	12	YCA-SS	1	SEAT SLIDER	D403	LH.HARNESS-1	D403	10	A	code12336	OFF	2026-09-22 09:28:02.594486+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 09:28:39.953538+05:30	PY OK again	2026-09-22 09:28:19.607948+05:30	2026-09-22 09:28:39.953538+05:30
-19846	18874	19	YMC-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	9	A	ON,ON	OFF,OFF	2026-09-21 08:34:33.298986+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 09:54:22.092253+05:30	PY OK again	2026-09-21 08:34:51.152892+05:30	2026-09-22 09:54:22.092253+05:30
-19847	18875	19	YMC-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	9	A	ON,ON	OFF,OFF	2026-09-21 08:34:33.402221+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 09:54:22.092253+05:30	PY OK again	2026-09-21 08:34:51.152892+05:30	2026-09-22 09:54:22.092253+05:30
-19848	18876	19	YMC-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	9	A	ON,ON	OFF,OFF	2026-09-21 08:34:33.568602+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 09:54:22.092253+05:30	PY OK again	2026-09-21 08:34:51.152892+05:30	2026-09-22 09:54:22.092253+05:30
-34376	19044	12	YCA-SS	1	SEAT SLIDER	D403	LH.HARNESS-1	D403	10	A	code436	OFF	2026-09-22 10:43:02.886393+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 10:43:26.28653+05:30	PY OK again	2026-09-22 10:43:06.260445+05:30	2026-09-22 10:43:26.28653+05:30
-34377	19045	12	YCA-SS	1	SEAT SLIDER	D412	PoP RIVET-2	D412	10	A	code4	OFF	2026-09-22 10:43:03.110958+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 10:43:26.28653+05:30	PY OK again	2026-09-22 10:43:06.260445+05:30	2026-09-22 10:43:26.28653+05:30
-34414	19047	2	YNC-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	9	A	code4	ON	2026-09-22 10:49:03.454494+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 10:49:26.656214+05:30	PY OK again	2026-09-22 10:49:06.616358+05:30	2026-09-22 10:49:26.656214+05:30
-34415	19048	2	YNC-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	9	A	code9	ON,ON	2026-09-22 10:49:03.599993+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 10:49:26.656214+05:30	PY OK again	2026-09-22 10:49:06.616358+05:30	2026-09-22 10:49:26.656214+05:30
-34524	19049	4	YSD-SS	1	SEAT SLIDER	D417	Rr.LIGHTER PROTECTOR-2	D417	14	A	OFF	ON	2026-09-22 11:07:02.96955+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 11:07:27.963549+05:30	PY OK again	2026-09-22 11:07:07.942871+05:30	2026-09-22 11:07:27.963549+05:30
-34525	19050	4	YSD-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	14	A	code14	ON	2026-09-22 11:07:03.135758+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 11:07:27.963549+05:30	PY OK again	2026-09-22 11:07:07.942871+05:30	2026-09-22 11:07:27.963549+05:30
-34652	19051	2	YNC-SS	1	SEAT SLIDER	D411	PoP RIVET-1	D411	9	A	code12336	OFF	2026-09-22 11:28:02.59956+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 11:28:29.425262+05:30	PY OK again	2026-09-22 11:28:09.403758+05:30	2026-09-22 11:28:29.425262+05:30
-34653	19052	2	YNC-SS	1	SEAT SLIDER	D412	PoP RIVET-2	D412	9	A	code4	OFF	2026-09-22 11:28:02.725807+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 11:28:29.425262+05:30	PY OK again	2026-09-22 11:28:09.403758+05:30	2026-09-22 11:28:29.425262+05:30
-33208	19041	12	YCA-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	10	A	ON,ON	OFF,OFF	2026-09-22 08:50:10.399433+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 11:46:51.224866+05:30	PY OK again	2026-09-22 08:50:16.233296+05:30	2026-09-22 11:46:51.224866+05:30
-34379	19046	12	YCA-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	10	A	ON	OFF	2026-09-22 10:43:14.57493+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 11:46:51.224866+05:30	PY OK again	2026-09-22 10:43:26.276203+05:30	2026-09-22 11:46:51.224866+05:30
-34764	19057	4	YSD-SS	1	SEAT SLIDER	D413	FR.LIGHTER PROTECTOR-1	D413	14	A	code12336	ON	2026-09-22 11:58:03.171368+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 11:58:32.602102+05:30	PY OK again	2026-09-22 11:58:12.578965+05:30	2026-09-22 11:58:32.602102+05:30
-34765	19065	11	YHB-SS	1	SEAT SLIDER	D411	PoP RIVET-1	D411	9	A	code9	OFF	2026-09-22 14:00:02.668779+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 14:00:25.273765+05:30	PY OK again	2026-09-22 14:00:05.257067+05:30	2026-09-22 14:00:25.273765+05:30
-34766	19066	11	YHB-SS	1	SEAT SLIDER	D412	PoP RIVET-2	D412	9	A	PASS	OFF	2026-09-22 14:00:02.83033+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 14:00:25.273765+05:30	PY OK again	2026-09-22 14:00:05.257067+05:30	2026-09-22 14:00:25.273765+05:30
-61596	19261	2	YNC-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	14	A	code663	ON,ON	2026-09-24 11:50:03.725251+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 11:50:26.188718+05:30	PY OK again	2026-09-24 11:50:06.15275+05:30	2026-09-24 11:50:26.188718+05:30
-34882	19083	4	YSD-SS	1	SEAT SLIDER	D415	FR.LIGHTER PROTECTOR-3	D415	15	A	code1620	ON	2026-09-22 16:20:03.611554+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 16:20:23.921835+05:30	PY OK again	2026-09-22 16:20:03.8433+05:30	2026-09-22 16:20:23.921835+05:30
-34877	19078	4	YSD-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	15	A	code15	ON,ON	2026-09-22 16:20:03.034217+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 16:20:23.921835+05:30	PY OK again	2026-09-22 16:20:03.8433+05:30	2026-09-22 16:20:23.921835+05:30
-34878	19079	4	YSD-SS	1	SEAT SLIDER	D413	FR.LIGHTER PROTECTOR-1	D413	15	A	code16	ON	2026-09-22 16:20:03.207445+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 16:20:23.921835+05:30	PY OK again	2026-09-22 16:20:03.8433+05:30	2026-09-22 16:20:23.921835+05:30
-34880	19081	4	YSD-SS	1	SEAT SLIDER	D414	FR.LIGHTER PROTECTOR-2	D414	15	A	PASS	ON	2026-09-22 16:20:03.43074+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 16:20:23.921835+05:30	PY OK again	2026-09-22 16:20:03.8433+05:30	2026-09-22 16:20:23.921835+05:30
-34881	19082	2	YNC-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	15	A	code1691	ON	2026-09-22 16:20:03.596931+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 16:20:44.132387+05:30	PY OK again	2026-09-22 16:20:03.8433+05:30	2026-09-22 16:20:44.132387+05:30
-34891	19085	2	YNC-SS	1	SEAT SLIDER	D403	LH.HARNESS-1	D403	15	A	code15	OFF	2026-09-22 16:20:03.886869+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 16:20:44.132387+05:30	PY OK again	2026-09-22 16:20:23.863633+05:30	2026-09-22 16:20:44.132387+05:30
-65483	19274	15	Y17-SS	1	SEAT SLIDER	D218	E-RING NG X12/X13	D418	14	A	PASS	ON,OFF	2026-09-24 14:25:04.055749+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 14:25:27.156029+05:30	PY OK again	2026-09-24 14:25:07.13044+05:30	2026-09-24 14:25:27.156029+05:30
-35428	19088	11	YHB-SS	1	SEAT SLIDER	D412	PoP RIVET-2	D412	9	A	code1652	OFF	2026-09-22 17:05:03.276593+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 17:05:31.314593+05:30	PY OK again	2026-09-22 17:05:11.28871+05:30	2026-09-22 17:05:31.314593+05:30
-34797	19074	12	YCA-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	12	A	ON	OFF	2026-09-22 16:13:28.564097+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 21:00:58.057725+05:30	PY OK again	2026-09-22 16:13:43.093774+05:30	2026-09-22 21:00:58.057725+05:30
-34798	19075	12	YCA-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	12	A	ON,ON	OFF,OFF	2026-09-22 16:13:28.869786+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 21:00:58.057725+05:30	PY OK again	2026-09-22 16:13:43.093774+05:30	2026-09-22 21:00:58.057725+05:30
-34799	19076	12	YCA-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	12	A	ON,ON	OFF,OFF	2026-09-22 16:13:29.347151+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-22 21:00:58.057725+05:30	PY OK again	2026-09-22 16:13:43.093774+05:30	2026-09-22 21:00:58.057725+05:30
-65484	19275	15	Y17-SS	1	SEAT SLIDER	D402	RH.HARNESS-1	D402	14	A	ON	OFF	2026-09-24 14:25:04.523935+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 14:25:27.156029+05:30	PY OK again	2026-09-24 14:25:07.13044+05:30	2026-09-24 14:25:27.156029+05:30
-65485	19276	15	Y17-SS	1	SEAT SLIDER	D404	LH.HARNESS-2	D404	14	A	code1238	OFF	2026-09-24 14:25:04.840002+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 14:25:27.156029+05:30	PY OK again	2026-09-24 14:25:07.13044+05:30	2026-09-24 14:25:27.156029+05:30
-38249	19090	2	YNC-SS	1	SEAT SLIDER	D402	RH.HARNESS-1	D402	14	B	PASS	ON	2026-09-22 21:57:23.585781+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-23 01:23:47.000831+05:30	PY OK again	2026-09-22 21:57:43.352995+05:30	2026-09-23 01:23:47.000831+05:30
-38250	19091	2	YNC-SS	1	SEAT SLIDER	D423	RH HARNES BKT NG.X44	D423	14	B	PASS	OFF	2026-09-22 21:57:24.148681+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-23 01:23:47.000831+05:30	PY OK again	2026-09-22 21:57:43.352995+05:30	2026-09-23 01:23:47.000831+05:30
-65734	19281	15	Y17-SS	1	SEAT SLIDER	D218	E-RING NG X12/X13	D418	14	A	PASS	ON,OFF	2026-09-24 14:44:02.849677+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 14:44:30.228885+05:30	PY OK again	2026-09-24 14:44:10.133459+05:30	2026-09-24 14:44:30.228885+05:30
-39483	19096	12	YCA-SS	1	SEAT SLIDER	D403	LH.HARNESS-1	D403	10	B	code12336	OFF	2026-09-23 01:58:02.611464+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-23 01:58:30.380477+05:30	PY OK again	2026-09-23 01:58:10.348196+05:30	2026-09-23 01:58:30.380477+05:30
-39484	19097	2	YNC-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	9	B	code12336	ON,ON	2026-09-23 02:03:02.87387+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-23 02:03:30.644984+05:30	PY OK again	2026-09-23 02:03:10.632283+05:30	2026-09-23 02:03:30.644984+05:30
-39485	19098	12	YCA-SS	1	SEAT SLIDER	D402	RH.HARNESS-1	D402	11	B	code12336	OFF	2026-09-23 02:27:02.909034+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-23 02:27:34.518152+05:30	PY OK again	2026-09-23 02:27:14.341513+05:30	2026-09-23 02:27:34.518152+05:30
-40541	19105	14	YFG-SS	1	SEAT SLIDER	D417	Rr.LIGHTER PROTECTOR-2	D417	15	A	PASS	ON	2026-09-23 08:44:07.83474+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-23 09:14:15.823892+05:30	PY OK again	2026-09-23 08:44:13.960612+05:30	2026-09-23 09:14:15.823892+05:30
-5162	18853	14	YFG-SS	1	SEAT SLIDER	D414	FR.LIGHTER PROTECTOR-2	D414	9	A	code10	ON	2026-09-20 17:14:02.695184+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-23 09:58:19.913304+05:30	PY OK again	2026-09-20 17:14:21.875609+05:30	2026-09-23 09:58:19.913304+05:30
-5163	18854	14	YFG-SS	1	SEAT SLIDER	D415	FR.LIGHTER PROTECTOR-3	D415	9	A	code22	ON	2026-09-20 17:14:02.782319+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-23 09:58:19.913304+05:30	PY OK again	2026-09-20 17:14:21.875609+05:30	2026-09-23 09:58:19.913304+05:30
-5166	18857	14	YFG-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	9	A	code10	ON	2026-09-20 17:14:03.198954+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-23 09:58:19.913304+05:30	PY OK again	2026-09-20 17:14:21.875609+05:30	2026-09-23 09:58:19.913304+05:30
-40876	19114	12	YCA-SS	1	SEAT SLIDER	D402	RH.HARNESS-1	D402	11	A	ON	OFF	2026-09-23 10:28:02.657708+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-23 10:28:23.100712+05:30	PY OK again	2026-09-23 10:28:03.075574+05:30	2026-09-23 10:28:23.100712+05:30
-40877	19115	12	YCA-SS	1	SEAT SLIDER	D405	RH.HARNESS-2	D405	11	A	code11	OFF	2026-09-23 10:28:02.720054+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-23 10:28:23.100712+05:30	PY OK again	2026-09-23 10:28:03.075574+05:30	2026-09-23 10:28:23.100712+05:30
-41147	19117	2	YNC-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	14	A	code16	ON,ON	2026-09-23 11:14:02.544556+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-23 11:14:28.043954+05:30	PY OK again	2026-09-23 11:14:08.019672+05:30	2026-09-23 11:14:28.043954+05:30
-40886	19116	11	YHB-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	9	A	ON	OFF	2026-09-23 10:30:43.288645+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-23 11:30:45.124192+05:30	PY OK again	2026-09-23 10:30:43.354856+05:30	2026-09-23 11:30:45.124192+05:30
-41517	19118	11	YHB-SS	1	SEAT SLIDER	D412	PoP RIVET-2	D412	9	A	code12336	OFF	2026-09-23 13:02:02.489447+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-23 13:02:37.214736+05:30	PY OK again	2026-09-23 13:02:17.179373+05:30	2026-09-23 13:02:37.214736+05:30
-41679	19120	4	YSD-SS	1	SEAT SLIDER	D414	FR.LIGHTER PROTECTOR-2	D414	14	A	code1077	ON	2026-09-23 13:56:03.155513+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-23 13:56:23.592104+05:30	PY OK again	2026-09-23 13:56:03.539491+05:30	2026-09-23 13:56:23.592104+05:30
-41680	19121	4	YSD-SS	1	SEAT SLIDER	D416	Rr.LIGHTER PROTECTOR-1	D416	14	A	code14	ON	2026-09-23 13:56:03.463212+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-23 13:56:23.592104+05:30	PY OK again	2026-09-23 13:56:03.539491+05:30	2026-09-23 13:56:23.592104+05:30
-41744	19122	12	YCA-SS	1	SEAT SLIDER	D403	LH.HARNESS-1	D403	10	A	code10	OFF	2026-09-23 14:17:02.856868+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-23 14:17:27.052573+05:30	PY OK again	2026-09-23 14:17:07.029222+05:30	2026-09-23 14:17:27.052573+05:30
-41814	19123	2	YNC-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	15	A	code1334	ON,ON	2026-09-23 14:40:02.709525+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-23 14:41:31.180282+05:30	PY OK again	2026-09-23 14:40:11.044222+05:30	2026-09-23 14:41:31.180282+05:30
-41815	19124	2	YNC-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	15	A	code16	ON,ON	2026-09-23 14:40:02.87442+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-23 14:41:31.180282+05:30	PY OK again	2026-09-23 14:40:11.044222+05:30	2026-09-23 14:41:31.180282+05:30
-41816	19125	2	YNC-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	15	A	code15	ON,ON	2026-09-23 14:40:03.003297+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-23 14:41:31.180282+05:30	PY OK again	2026-09-23 14:40:11.044222+05:30	2026-09-23 14:41:31.180282+05:30
-41929	19137	12	YCA-SS	1	SEAT SLIDER	D405	RH.HARNESS-2	D405	12	B	PASS	OFF	2026-09-23 18:30:02.597409+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-23 18:37:10.382363+05:30	PY OK again	2026-09-23 18:30:09.574088+05:30	2026-09-23 18:37:10.382363+05:30
-39486	19104	12	YCA-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	11	B	ON	OFF	2026-09-23 02:52:14.183725+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-23 19:30:57.485058+05:30	PY OK again	2026-09-23 02:52:17.586582+05:30	2026-09-23 19:30:57.485058+05:30
-42008	19141	2	YNC-SS	1	SEAT SLIDER	D422	4W INR/OTR BOLT MIXING.X41	D422	9	B	ON	OFF	2026-09-23 18:35:05.871133+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-23 20:13:42.448372+05:30	PY OK again	2026-09-23 18:35:10.146189+05:30	2026-09-23 20:13:42.448372+05:30
-42039	19143	19	YMC-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	9	B	ON,ON	OFF,OFF	2026-09-23 18:36:41.184481+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 08:51:06.758978+05:30	PY OK again	2026-09-23 18:36:50.302536+05:30	2026-09-24 08:51:06.758978+05:30
-42040	19144	19	YMC-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	9	B	ON,ON	OFF,OFF	2026-09-23 18:36:41.265532+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 08:51:06.758978+05:30	PY OK again	2026-09-23 18:36:50.302536+05:30	2026-09-24 08:51:06.758978+05:30
-42041	19145	19	YMC-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	9	B	ON,ON	OFF,OFF	2026-09-23 18:36:41.375935+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 08:51:06.758978+05:30	PY OK again	2026-09-23 18:36:50.302536+05:30	2026-09-24 08:51:06.758978+05:30
-42042	19146	19	YMC-SS	1	SEAT SLIDER	D424	UPPER RAIL HOLE DETECTION	D424	9	B	PASS	OFF	2026-09-23 18:36:41.473455+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 08:51:06.758978+05:30	PY OK again	2026-09-23 18:36:50.302536+05:30	2026-09-24 08:51:06.758978+05:30
-40655	19109	14	YFG-SS	1	SEAT SLIDER	D417	Rr.LIGHTER PROTECTOR-2	D417	15	A	PASS	ON	2026-09-23 09:14:17.477858+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 10:18:25.090342+05:30	PY OK again	2026-09-23 09:14:35.854759+05:30	2026-09-24 10:18:25.090342+05:30
-42081	19149	11	YHB-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	9	B	ON,ON	OFF,OFF	2026-09-23 18:37:55.397778+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-23 19:17:15.669958+05:30	PY OK again	2026-09-23 18:38:10.444104+05:30	2026-09-23 19:17:15.669958+05:30
-64157	19267	15	Y17-SS	1	SEAT SLIDER	D411	PoP RIVET-1	D411	9	A	ON	OFF	2026-09-24 13:17:51.016104+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 13:35:40.363978+05:30	PY OK again	2026-09-24 13:17:57.135421+05:30	2026-09-24 13:35:40.363978+05:30
-43603	19151	11	YHB-SS	1	SEAT SLIDER	D411	PoP RIVET-1	D411	9	B	PASS	OFF	2026-09-23 19:17:03.257712+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-23 19:17:35.719093+05:30	PY OK again	2026-09-23 19:17:15.613648+05:30	2026-09-23 19:17:35.719093+05:30
-41930	19138	12	YCA-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	12	B	PASS	OFF,OFF	2026-09-23 18:30:02.677196+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-23 19:30:57.485058+05:30	PY OK again	2026-09-23 18:30:09.574088+05:30	2026-09-23 19:30:57.485058+05:30
-41931	19139	12	YCA-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	12	B	code12	OFF,OFF	2026-09-23 18:30:02.710398+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-23 19:30:57.485058+05:30	PY OK again	2026-09-23 18:30:09.574088+05:30	2026-09-23 19:30:57.485058+05:30
-41932	19140	12	YCA-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	12	B	PASS	OFF,OFF	2026-09-23 18:30:02.764377+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-23 19:30:57.485058+05:30	PY OK again	2026-09-23 18:30:09.574088+05:30	2026-09-23 19:30:57.485058+05:30
-42079	19147	11	YHB-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	9	B	ON	OFF	2026-09-23 18:37:54.924117+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-23 19:31:57.640165+05:30	PY OK again	2026-09-23 18:38:10.444104+05:30	2026-09-23 19:31:57.640165+05:30
-42080	19148	11	YHB-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	9	B	ON,ON	OFF,OFF	2026-09-23 18:37:55.12465+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-23 19:31:57.640165+05:30	PY OK again	2026-09-23 18:38:10.444104+05:30	2026-09-23 19:31:57.640165+05:30
-42082	19150	11	YHB-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	9	B	ON,ON	OFF,OFF	2026-09-23 18:37:55.5585+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-23 19:31:57.640165+05:30	PY OK again	2026-09-23 18:38:10.444104+05:30	2026-09-23 19:31:57.640165+05:30
-43616	19152	11	YHB-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	9	B	ON,ON	OFF,OFF	2026-09-23 19:17:17.193248+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-23 19:31:57.640165+05:30	PY OK again	2026-09-23 19:17:35.695666+05:30	2026-09-23 19:31:57.640165+05:30
-64158	19268	15	Y17-SS	1	SEAT SLIDER	D412	PoP RIVET-2	D412	9	A	ON	OFF	2026-09-24 13:17:51.312056+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 13:35:40.363978+05:30	PY OK again	2026-09-24 13:17:57.135421+05:30	2026-09-24 13:35:40.363978+05:30
-45228	19157	12	YCA-SS	1	SEAT SLIDER	D402	RH.HARNESS-1	D402	12	B	code545	OFF	2026-09-23 20:51:02.632998+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-23 20:51:26.066422+05:30	PY OK again	2026-09-23 20:51:06.027431+05:30	2026-09-23 20:51:26.066422+05:30
-46051	19163	4	YSD-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	14	B	code14	ON	2026-09-23 21:41:02.776195+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-23 21:41:31.714837+05:30	PY OK again	2026-09-23 21:41:11.551212+05:30	2026-09-23 21:41:31.714837+05:30
-50120	19167	2	YNC-SS	1	SEAT SLIDER	D218	E-RING NG X12/X13	D418	15	B	code1257	OFF,ON	2026-09-24 00:12:02.477548+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 00:12:30.605621+05:30	PY OK again	2026-09-24 00:12:10.56408+05:30	2026-09-24 00:12:30.605621+05:30
-50121	19168	2	YNC-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	15	B	code9	ON	2026-09-24 00:12:02.693375+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 00:12:30.605621+05:30	PY OK again	2026-09-24 00:12:10.56408+05:30	2026-09-24 00:12:30.605621+05:30
-50122	19169	2	YNC-SS	1	SEAT SLIDER	D402	RH.HARNESS-1	D402	15	B	code15	ON	2026-09-24 00:12:02.839795+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 00:12:30.605621+05:30	PY OK again	2026-09-24 00:12:10.56408+05:30	2026-09-24 00:12:30.605621+05:30
-50123	19172	2	YNC-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	15	B	OFF,OFF	ON,ON	2026-09-24 00:12:03.298172+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 00:12:30.605621+05:30	PY OK again	2026-09-24 00:12:10.56408+05:30	2026-09-24 00:12:30.605621+05:30
-50124	19173	2	YNC-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	15	B	code1257	ON,ON	2026-09-24 00:12:03.438742+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 00:12:30.605621+05:30	PY OK again	2026-09-24 00:12:10.56408+05:30	2026-09-24 00:12:30.605621+05:30
-50422	19174	11	YHB-SS	1	SEAT SLIDER	D411	PoP RIVET-1	D411	9	B	code12336	OFF	2026-09-24 00:23:02.881427+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 00:23:31.553751+05:30	PY OK again	2026-09-24 00:23:11.503479+05:30	2026-09-24 00:23:31.553751+05:30
-51653	19180	2	YNC-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	15	B	OFF,OFF	ON,ON	2026-09-24 01:34:38.214694+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 01:35:00.756754+05:30	PY OK again	2026-09-24 01:34:40.734506+05:30	2026-09-24 01:35:00.756754+05:30
-51914	19181	14	YFG-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	14	B	code14	ON,ON	2026-09-24 01:52:02.533233+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 01:52:23.238048+05:30	PY OK again	2026-09-24 01:52:03.212947+05:30	2026-09-24 01:52:23.238048+05:30
-51915	19182	14	YFG-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	14	B	PASS	ON,ON	2026-09-24 01:52:02.60403+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 01:52:23.238048+05:30	PY OK again	2026-09-24 01:52:03.212947+05:30	2026-09-24 01:52:23.238048+05:30
-51916	19183	14	YFG-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	14	B	PASS	ON,ON	2026-09-24 01:52:02.725126+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 01:52:23.238048+05:30	PY OK again	2026-09-24 01:52:03.212947+05:30	2026-09-24 01:52:23.238048+05:30
-51918	19185	14	YFG-SS	1	SEAT SLIDER	D414	FR.LIGHTER PROTECTOR-2	D414	14	B	code10	ON	2026-09-24 01:52:02.980649+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 01:52:23.238048+05:30	PY OK again	2026-09-24 01:52:03.212947+05:30	2026-09-24 01:52:23.238048+05:30
-51919	19186	14	YFG-SS	1	SEAT SLIDER	D415	FR.LIGHTER PROTECTOR-3	D415	14	B	code14	ON	2026-09-24 01:52:03.101124+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 01:52:23.238048+05:30	PY OK again	2026-09-24 01:52:03.212947+05:30	2026-09-24 01:52:23.238048+05:30
-52580	19187	4	YSD-SS	1	SEAT SLIDER	D413	FR.LIGHTER PROTECTOR-1	D413	15	B	code12336	ON	2026-09-24 02:36:02.640829+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 02:36:30.787855+05:30	PY OK again	2026-09-24 02:36:10.760745+05:30	2026-09-24 02:36:30.787855+05:30
-45233	19158	12	YCA-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	12	B	ON	OFF	2026-09-23 20:51:19.825485+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 02:43:51.867347+05:30	PY OK again	2026-09-23 20:51:26.059719+05:30	2026-09-24 02:43:51.867347+05:30
-45895	19160	12	YCA-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	10	B	ON,ON	OFF,OFF	2026-09-23 21:35:16.446523+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 02:43:51.867347+05:30	PY OK again	2026-09-23 21:35:30.999745+05:30	2026-09-24 02:43:51.867347+05:30
-45896	19161	12	YCA-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	10	B	ON,ON	OFF,OFF	2026-09-23 21:35:16.506888+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 02:43:51.867347+05:30	PY OK again	2026-09-23 21:35:30.999745+05:30	2026-09-24 02:43:51.867347+05:30
-45897	19162	12	YCA-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	10	B	ON,ON	OFF,OFF	2026-09-23 21:35:16.549045+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 02:43:51.867347+05:30	PY OK again	2026-09-23 21:35:30.999745+05:30	2026-09-24 02:43:51.867347+05:30
-57956	19207	2	YNC-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	15	A	OFF,OFF	ON,ON	2026-09-24 09:10:02.614007+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 09:10:28.902163+05:30	PY OK again	2026-09-24 09:10:08.841+05:30	2026-09-24 09:10:28.902163+05:30
-57957	19208	2	YNC-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	15	A	code15	ON,ON	2026-09-24 09:10:02.745358+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 09:10:28.902163+05:30	PY OK again	2026-09-24 09:10:08.841+05:30	2026-09-24 09:10:28.902163+05:30
-57958	19209	2	YNC-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	15	A	code16	ON,ON	2026-09-24 09:10:02.882552+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 09:10:28.902163+05:30	PY OK again	2026-09-24 09:10:08.841+05:30	2026-09-24 09:10:28.902163+05:30
-57193	19206	4	YSD-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	15	A	PASS	ON,ON	2026-09-24 08:45:15.533542+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 09:43:01.079581+05:30	PY OK again	2026-09-24 08:45:25.392539+05:30	2026-09-24 09:43:01.079581+05:30
-52691	19188	12	YCA-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	11	B	ON	OFF	2026-09-24 02:48:20.115354+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 09:52:02.031674+05:30	PY OK again	2026-09-24 02:48:32.473994+05:30	2026-09-24 09:52:02.031674+05:30
-52692	19189	12	YCA-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	11	B	ON,ON	OFF,OFF	2026-09-24 02:48:20.518358+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 09:52:02.031674+05:30	PY OK again	2026-09-24 02:48:32.473994+05:30	2026-09-24 09:52:02.031674+05:30
-52693	19190	12	YCA-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	11	B	ON,ON	OFF,OFF	2026-09-24 02:48:20.619506+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 09:52:02.031674+05:30	PY OK again	2026-09-24 02:48:32.473994+05:30	2026-09-24 09:52:02.031674+05:30
-56701	19194	11	YHB-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	9	A	ON	OFF	2026-09-24 08:30:00.691639+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 10:20:25.283943+05:30	PY OK again	2026-09-24 08:30:03.887048+05:30	2026-09-24 10:20:25.283943+05:30
-56702	19195	11	YHB-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	9	A	ON,ON	OFF,OFF	2026-09-24 08:30:00.773245+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 10:20:25.283943+05:30	PY OK again	2026-09-24 08:30:03.887048+05:30	2026-09-24 10:20:25.283943+05:30
-56703	19196	11	YHB-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	9	A	ON,ON	OFF,OFF	2026-09-24 08:30:00.836635+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 10:20:25.283943+05:30	PY OK again	2026-09-24 08:30:03.887048+05:30	2026-09-24 10:20:25.283943+05:30
-52694	19191	12	YCA-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	11	B	ON,ON	OFF,OFF	2026-09-24 02:48:20.684344+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 09:52:02.031674+05:30	PY OK again	2026-09-24 02:48:32.473994+05:30	2026-09-24 09:52:02.031674+05:30
-60710	19244	12	YCA-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	10	A	ON	OFF	2026-09-24 11:23:24.953655+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 11:44:05.507195+05:30	PY OK again	2026-09-24 11:23:42.607326+05:30	2026-09-24 11:44:05.507195+05:30
-60711	19245	12	YCA-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	10	A	ON,ON	OFF,OFF	2026-09-24 11:23:25.061163+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 11:44:05.507195+05:30	PY OK again	2026-09-24 11:23:42.607326+05:30	2026-09-24 11:44:05.507195+05:30
-60712	19246	12	YCA-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	10	A	ON,ON	OFF,OFF	2026-09-24 11:23:25.105238+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 11:44:05.507195+05:30	PY OK again	2026-09-24 11:23:42.607326+05:30	2026-09-24 11:44:05.507195+05:30
-60713	19247	12	YCA-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	10	A	ON,ON	OFF,OFF	2026-09-24 11:23:25.207424+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 11:44:05.507195+05:30	PY OK again	2026-09-24 11:23:42.607326+05:30	2026-09-24 11:44:05.507195+05:30
-26977	18951	15	Y17-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	9	A	ON	OFF	2026-09-21 14:49:43.442228+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 13:35:40.363978+05:30	PY OK again	2026-09-21 14:49:54.664872+05:30	2026-09-24 13:35:40.363978+05:30
-59280	19211	14	YFG-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	14	A	code12336	ON,ON	2026-09-24 10:16:03.140205+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 10:16:24.77321+05:30	PY OK again	2026-09-24 10:16:04.732229+05:30	2026-09-24 10:16:24.77321+05:30
-59281	19213	4	YSD-SS	1	SEAT SLIDER	D413	FR.LIGHTER PROTECTOR-1	D413	15	A	PASS	ON	2026-09-24 10:16:03.488557+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 10:16:24.77321+05:30	PY OK again	2026-09-24 10:16:04.732229+05:30	2026-09-24 10:16:24.77321+05:30
-59282	19214	4	YSD-SS	1	SEAT SLIDER	D414	FR.LIGHTER PROTECTOR-2	D414	15	A	code243	ON	2026-09-24 10:16:03.733828+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 10:16:44.798351+05:30	PY OK again	2026-09-24 10:16:04.732229+05:30	2026-09-24 10:16:44.798351+05:30
-59283	19215	4	YSD-SS	1	SEAT SLIDER	D415	FR.LIGHTER PROTECTOR-3	D415	15	A	OFF	ON	2026-09-24 10:16:03.89962+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 10:16:44.798351+05:30	PY OK again	2026-09-24 10:16:04.732229+05:30	2026-09-24 10:16:44.798351+05:30
-59284	19216	4	YSD-SS	1	SEAT SLIDER	D416	Rr.LIGHTER PROTECTOR-1	D416	15	A	code15	ON	2026-09-24 10:16:04.019379+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 10:16:44.798351+05:30	PY OK again	2026-09-24 10:16:04.732229+05:30	2026-09-24 10:16:44.798351+05:30
-56704	19197	11	YHB-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	9	A	ON,ON	OFF,OFF	2026-09-24 08:30:00.879179+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 10:20:25.283943+05:30	PY OK again	2026-09-24 08:30:03.887048+05:30	2026-09-24 10:20:25.283943+05:30
-26978	18952	15	Y17-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	9	A	ON,ON	OFF,OFF	2026-09-21 14:49:43.818703+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 13:35:40.363978+05:30	PY OK again	2026-09-21 14:49:54.664872+05:30	2026-09-24 13:35:40.363978+05:30
-59342	19217	2	YNC-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	15	A	code12336	ON,ON	2026-09-24 10:25:02.861444+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 10:25:45.637746+05:30	PY OK again	2026-09-24 10:25:05.607258+05:30	2026-09-24 10:25:45.637746+05:30
-26979	18953	15	Y17-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	9	A	ON,ON	OFF,OFF	2026-09-21 14:49:43.960424+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 13:35:40.363978+05:30	PY OK again	2026-09-21 14:49:54.664872+05:30	2026-09-24 13:35:40.363978+05:30
-26980	18954	15	Y17-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	9	A	ON,ON	OFF,OFF	2026-09-21 14:49:44.193839+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 13:35:40.363978+05:30	PY OK again	2026-09-21 14:49:54.664872+05:30	2026-09-24 13:35:40.363978+05:30
-65698	19277	15	Y17-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	14	A	ON	OFF	2026-09-24 14:42:48.435025+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 14:46:10.406955+05:30	PY OK again	2026-09-24 14:42:49.932276+05:30	2026-09-24 14:46:10.406955+05:30
-65699	19278	15	Y17-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	14	A	ON,ON	OFF,OFF	2026-09-24 14:42:49.16948+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 14:46:10.406955+05:30	PY OK again	2026-09-24 14:42:49.932276+05:30	2026-09-24 14:46:10.406955+05:30
-65700	19279	15	Y17-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	14	A	ON,ON	OFF,OFF	2026-09-24 14:42:49.474155+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 14:46:10.406955+05:30	PY OK again	2026-09-24 14:42:49.932276+05:30	2026-09-24 14:46:10.406955+05:30
-65701	19280	15	Y17-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	14	A	ON,ON	OFF,OFF	2026-09-24 14:42:49.784073+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 14:46:10.406955+05:30	PY OK again	2026-09-24 14:42:49.932276+05:30	2026-09-24 14:46:10.406955+05:30
-59362	19228	19	YMC-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	9	A	ON,ON	OFF,OFF	2026-09-24 10:31:39.065337+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 14:51:51.36045+05:30	PY OK again	2026-09-24 10:31:56.343596+05:30	2026-09-24 14:51:51.36045+05:30
-59363	19229	19	YMC-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	9	A	ON,ON	OFF,OFF	2026-09-24 10:31:39.206704+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 14:51:51.36045+05:30	PY OK again	2026-09-24 10:31:56.343596+05:30	2026-09-24 14:51:51.36045+05:30
-59344	19218	12	YCA-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	12	A	ON	OFF	2026-09-24 10:31:30.62697+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 10:33:36.587304+05:30	PY OK again	2026-09-24 10:31:36.296239+05:30	2026-09-24 10:33:36.587304+05:30
-59345	19219	12	YCA-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	12	A	ON,ON	OFF,OFF	2026-09-24 10:31:30.78465+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 10:33:36.587304+05:30	PY OK again	2026-09-24 10:31:36.296239+05:30	2026-09-24 10:33:36.587304+05:30
-59346	19220	12	YCA-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	12	A	ON,ON	OFF,OFF	2026-09-24 10:31:30.86708+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 10:33:36.587304+05:30	PY OK again	2026-09-24 10:31:36.296239+05:30	2026-09-24 10:33:36.587304+05:30
-59347	19221	12	YCA-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	12	A	ON,ON	OFF,OFF	2026-09-24 10:31:30.938183+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 10:33:36.587304+05:30	PY OK again	2026-09-24 10:31:36.296239+05:30	2026-09-24 10:33:36.587304+05:30
-59348	19222	11	YHB-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	9	A	ON	OFF	2026-09-24 10:31:32.325428+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 10:35:56.787548+05:30	PY OK again	2026-09-24 10:31:36.296239+05:30	2026-09-24 10:35:56.787548+05:30
-59349	19223	11	YHB-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	9	A	ON,ON	OFF,OFF	2026-09-24 10:31:32.383449+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 10:35:56.787548+05:30	PY OK again	2026-09-24 10:31:36.296239+05:30	2026-09-24 10:35:56.787548+05:30
-59350	19224	11	YHB-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	9	A	ON,ON	OFF,OFF	2026-09-24 10:31:32.645903+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 10:35:56.787548+05:30	PY OK again	2026-09-24 10:31:36.296239+05:30	2026-09-24 10:35:56.787548+05:30
-59351	19225	11	YHB-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	9	A	ON,ON	OFF,OFF	2026-09-24 10:31:32.786837+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 10:35:56.787548+05:30	PY OK again	2026-09-24 10:31:36.296239+05:30	2026-09-24 10:35:56.787548+05:30
-59400	19234	4	YSD-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	15	A	PASS	ON,ON	2026-09-24 10:32:21.299695+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 10:45:57.8782+05:30	PY OK again	2026-09-24 10:32:36.45103+05:30	2026-09-24 10:45:57.8782+05:30
-60340	19240	2	YNC-SS	1	SEAT SLIDER	D402	RH.HARNESS-1	D402	14	A	PASS	ON	2026-09-24 11:08:17.457239+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 11:08:40.993608+05:30	PY OK again	2026-09-24 11:08:20.938539+05:30	2026-09-24 11:08:40.993608+05:30
-60341	19241	2	YNC-SS	1	SEAT SLIDER	D423	RH HARNES BKT NG.X44	D423	14	A	PASS	OFF	2026-09-24 11:08:18.078521+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 11:08:40.993608+05:30	PY OK again	2026-09-24 11:08:20.938539+05:30	2026-09-24 11:08:40.993608+05:30
-60906	19248	2	YNC-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	14	A	code14	ON	2026-09-24 11:29:02.867829+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 11:29:23.31711+05:30	PY OK again	2026-09-24 11:29:03.267614+05:30	2026-09-24 11:29:23.31711+05:30
-60907	19249	4	YSD-SS	1	SEAT SLIDER	D414	FR.LIGHTER PROTECTOR-2	D414	15	A	code15	ON	2026-09-24 11:29:02.940224+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 11:29:23.31711+05:30	PY OK again	2026-09-24 11:29:03.267614+05:30	2026-09-24 11:29:23.31711+05:30
-60908	19250	15	Y17-SS	1	SEAT SLIDER	D404	LH.HARNESS-2	D404	9	A	ON	OFF	2026-09-24 11:29:03.039763+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 11:29:23.31711+05:30	PY OK again	2026-09-24 11:29:03.267614+05:30	2026-09-24 11:29:23.31711+05:30
-60909	19251	4	YSD-SS	1	SEAT SLIDER	D415	FR.LIGHTER PROTECTOR-3	D415	15	A	PASS	ON	2026-09-24 11:29:03.082639+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 11:29:23.31711+05:30	PY OK again	2026-09-24 11:29:03.267614+05:30	2026-09-24 11:29:23.31711+05:30
-60910	19252	4	YSD-SS	1	SEAT SLIDER	D416	Rr.LIGHTER PROTECTOR-1	D416	15	A	PASS	ON	2026-09-24 11:29:03.248723+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 11:29:23.31711+05:30	PY OK again	2026-09-24 11:29:03.267614+05:30	2026-09-24 11:29:23.31711+05:30
-60911	19253	2	YNC-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	14	A	PASS	ON,ON	2026-09-24 11:29:03.249881+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 11:29:23.31711+05:30	PY OK again	2026-09-24 11:29:03.267614+05:30	2026-09-24 11:29:23.31711+05:30
-59365	19231	19	YMC-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	9	A	ON,ON	OFF,OFF	2026-09-24 10:31:39.336922+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 14:51:51.36045+05:30	PY OK again	2026-09-24 10:31:56.343596+05:30	2026-09-24 14:51:51.36045+05:30
-59366	19232	19	YMC-SS	1	SEAT SLIDER	D424	UPPER RAIL HOLE DETECTION	D424	9	A	PASS	OFF	2026-09-24 10:31:39.420003+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 14:51:51.36045+05:30	PY OK again	2026-09-24 10:31:56.343596+05:30	2026-09-24 14:51:51.36045+05:30
-65843	19282	2	YNC-SS	1	SEAT SLIDER	D422	4W INR/OTR BOLT MIXING.X41	D422	9	A	ON	OFF	2026-09-24 15:15:00.972903+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-24 16:06:33.004119+05:30	PY OK again	2026-09-24 15:15:12.739347+05:30	2026-09-24 16:06:33.004119+05:30
-66000	19287	15	Y17-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	9	B	ON	OFF	2026-09-25 00:33:32.345713+05:30	WAITING	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	\N	\N	2026-09-25 00:33:33.014363+05:30	2026-09-25 00:33:33.014363+05:30
-66008	19289	15	Y17-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	9	B	ON,ON	OFF,OFF	2026-09-25 00:33:33.281457+05:30	WAITING	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	\N	\N	2026-09-25 00:33:53.03765+05:30	2026-09-25 00:33:53.03765+05:30
-66020	19292	11	YHB-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	9	B	ON	OFF	2026-09-25 00:34:01.494428+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-25 01:00:36.3108+05:30	PY OK again	2026-09-25 00:34:13.058055+05:30	2026-09-25 01:00:36.3108+05:30
-66021	19293	11	YHB-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	9	B	ON,ON	OFF,OFF	2026-09-25 00:34:01.668641+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-25 01:00:36.3108+05:30	PY OK again	2026-09-25 00:34:13.058055+05:30	2026-09-25 01:00:36.3108+05:30
-66022	19294	11	YHB-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	9	B	ON,ON	OFF,OFF	2026-09-25 00:34:01.83321+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-25 01:00:36.3108+05:30	PY OK again	2026-09-25 00:34:13.058055+05:30	2026-09-25 01:00:36.3108+05:30
-66023	19295	11	YHB-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	9	B	ON,ON	OFF,OFF	2026-09-25 00:34:02.001948+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-25 01:00:36.3108+05:30	PY OK again	2026-09-25 00:34:13.058055+05:30	2026-09-25 01:00:36.3108+05:30
-68932	19300	2	YNC-SS	1	SEAT SLIDER	D402	RH.HARNESS-1	D402	15	B	code1593	ON	2026-09-25 01:41:02.88735+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-25 01:41:23.018185+05:30	PY OK again	2026-09-25 01:41:02.951005+05:30	2026-09-25 01:41:23.018185+05:30
-70844	19305	4	YSD-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	14	B	PASS	ON,ON	2026-09-25 02:31:03.07228+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-25 02:31:35.495035+05:30	PY OK again	2026-09-25 02:31:15.436076+05:30	2026-09-25 02:31:35.495035+05:30
-70845	19306	4	YSD-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	14	B	PASS	ON,ON	2026-09-25 02:31:03.336136+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-25 02:31:35.495035+05:30	PY OK again	2026-09-25 02:31:15.436076+05:30	2026-09-25 02:31:35.495035+05:30
-70846	19307	4	YSD-SS	1	SEAT SLIDER	D413	FR.LIGHTER PROTECTOR-1	D413	14	B	OFF	ON	2026-09-25 02:31:03.477294+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-25 02:31:35.495035+05:30	PY OK again	2026-09-25 02:31:15.436076+05:30	2026-09-25 02:31:35.495035+05:30
-70847	19308	4	YSD-SS	1	SEAT SLIDER	D414	FR.LIGHTER PROTECTOR-2	D414	14	B	code14	ON	2026-09-25 02:31:03.61817+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-25 02:31:35.495035+05:30	PY OK again	2026-09-25 02:31:15.436076+05:30	2026-09-25 02:31:35.495035+05:30
-66001	19288	15	Y17-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	9	B	ON,ON	OFF,OFF	2026-09-25 00:33:32.960756+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-25 02:43:17.061497+05:30	PY OK again	2026-09-25 00:33:33.014363+05:30	2026-09-25 02:43:17.061497+05:30
-66009	19290	15	Y17-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	9	B	ON,ON	OFF,OFF	2026-09-25 00:33:33.592855+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-25 02:53:18.180454+05:30	PY OK again	2026-09-25 00:33:53.03765+05:30	2026-09-25 02:53:18.180454+05:30
-72408	19321	15	Y17-SS	1	SEAT SLIDER	D411	PoP RIVET-1	D411	9	B	PASS	OFF	2026-09-25 03:11:06.717201+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-25 03:11:40.743014+05:30	PY OK again	2026-09-25 03:11:20.654872+05:30	2026-09-25 03:11:40.743014+05:30
-72409	19322	15	Y17-SS	1	SEAT SLIDER	D412	PoP RIVET-2	D412	9	B	code1897	OFF	2026-09-25 03:11:07.019877+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-25 03:11:40.743014+05:30	PY OK again	2026-09-25 03:11:20.654872+05:30	2026-09-25 03:11:40.743014+05:30
-65996	19283	12	YCA-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	10	B	ON	OFF	2026-09-25 00:33:29.132306+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-25 03:13:41.149417+05:30	PY OK again	2026-09-25 00:33:33.014363+05:30	2026-09-25 03:13:41.149417+05:30
-65997	19284	12	YCA-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	10	B	ON,ON	OFF,OFF	2026-09-25 00:33:29.24051+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-25 03:13:41.149417+05:30	PY OK again	2026-09-25 00:33:33.014363+05:30	2026-09-25 03:13:41.149417+05:30
-65998	19285	12	YCA-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	10	B	ON,ON	OFF,OFF	2026-09-25 00:33:29.303569+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-25 03:13:41.149417+05:30	PY OK again	2026-09-25 00:33:33.014363+05:30	2026-09-25 03:13:41.149417+05:30
-65999	19286	12	YCA-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	10	B	ON,ON	OFF,OFF	2026-09-25 00:33:29.425608+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-25 03:13:41.149417+05:30	PY OK again	2026-09-25 00:33:33.014363+05:30	2026-09-25 03:13:41.149417+05:30
-78752	19329	11	YHB-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	9	A	ON	OFF	2026-09-25 08:38:54.948794+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-25 08:43:34.185523+05:30	PY OK again	2026-09-25 08:39:13.799763+05:30	2026-09-25 08:43:34.185523+05:30
-78753	19330	11	YHB-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	9	A	ON,ON	OFF,OFF	2026-09-25 08:38:55.138678+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-25 08:43:34.185523+05:30	PY OK again	2026-09-25 08:39:13.799763+05:30	2026-09-25 08:43:34.185523+05:30
-78754	19331	11	YHB-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	9	A	ON,ON	OFF,OFF	2026-09-25 08:38:55.302864+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-25 08:43:34.185523+05:30	PY OK again	2026-09-25 08:39:13.799763+05:30	2026-09-25 08:43:34.185523+05:30
-78755	19332	11	YHB-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	9	A	ON,ON	OFF,OFF	2026-09-25 08:38:55.444077+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-25 08:43:34.185523+05:30	PY OK again	2026-09-25 08:39:13.799763+05:30	2026-09-25 08:43:34.185523+05:30
-66010	19291	4	YSD-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	14	B	PASS	ON,ON	2026-09-25 00:33:41.723469+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-25 08:44:54.259173+05:30	PY OK again	2026-09-25 00:33:53.03765+05:30	2026-09-25 08:44:54.259173+05:30
-71328	19316	15	Y17-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	9	B	ON,ON	OFF,OFF	2026-09-25 02:43:14.961861+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-25 08:48:14.466222+05:30	PY OK again	2026-09-25 02:43:37.07651+05:30	2026-09-25 08:48:14.466222+05:30
-71718	19320	15	Y17-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	9	B	ON,ON	OFF,OFF	2026-09-25 02:53:14.208827+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-25 08:48:14.466222+05:30	PY OK again	2026-09-25 02:53:38.186793+05:30	2026-09-25 08:48:14.466222+05:30
-78586	19325	12	YCA-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	10	A	ON	OFF	2026-09-25 08:30:00.32825+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-25 09:05:16.289861+05:30	PY OK again	2026-09-25 08:30:12.797845+05:30	2026-09-25 09:05:16.289861+05:30
-78587	19326	12	YCA-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	10	A	ON,ON	OFF,OFF	2026-09-25 08:30:00.471308+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-25 09:05:16.289861+05:30	PY OK again	2026-09-25 08:30:12.797845+05:30	2026-09-25 09:05:16.289861+05:30
-78588	19327	12	YCA-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	10	A	ON,ON	OFF,OFF	2026-09-25 08:30:00.559403+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-25 09:05:16.289861+05:30	PY OK again	2026-09-25 08:30:12.797845+05:30	2026-09-25 09:05:16.289861+05:30
-78589	19328	12	YCA-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	10	A	ON,ON	OFF,OFF	2026-09-25 08:30:00.663994+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-25 09:05:16.289861+05:30	PY OK again	2026-09-25 08:30:12.797845+05:30	2026-09-25 09:05:16.289861+05:30
-66050	19296	19	YMC-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	9	B	ON,ON	OFF,OFF	2026-09-25 00:34:44.357347+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-25 09:12:36.798814+05:30	PY OK again	2026-09-25 00:34:53.111079+05:30	2026-09-25 09:12:36.798814+05:30
-66051	19297	19	YMC-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	9	B	ON,ON	OFF,OFF	2026-09-25 00:34:44.483512+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-25 09:12:36.798814+05:30	PY OK again	2026-09-25 00:34:53.111079+05:30	2026-09-25 09:12:36.798814+05:30
-66052	19298	19	YMC-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	9	B	ON,ON	OFF,OFF	2026-09-25 00:34:44.585972+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-25 09:12:36.798814+05:30	PY OK again	2026-09-25 00:34:53.111079+05:30	2026-09-25 09:12:36.798814+05:30
-66053	19299	19	YMC-SS	1	SEAT SLIDER	D424	UPPER RAIL HOLE DETECTION	D424	9	B	PASS	OFF	2026-09-25 00:34:44.708395+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-25 09:12:36.798814+05:30	PY OK again	2026-09-25 00:34:53.111079+05:30	2026-09-25 09:12:36.798814+05:30
-79475	19350	4	YSD-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	14	A	code594	ON	2026-09-25 11:24:02.507741+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-25 11:24:27.233323+05:30	PY OK again	2026-09-25 11:24:07.209279+05:30	2026-09-25 11:24:27.233323+05:30
-79476	19351	11	YHB-SS	1	SEAT SLIDER	D411	PoP RIVET-1	D411	9	A	PASS	OFF	2026-09-25 11:24:03.18214+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-25 11:24:27.233323+05:30	PY OK again	2026-09-25 11:24:07.209279+05:30	2026-09-25 11:24:27.233323+05:30
-79477	19352	11	YHB-SS	1	SEAT SLIDER	D412	PoP RIVET-2	D412	9	A	PASS	OFF	2026-09-25 11:24:03.361955+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-25 11:24:27.233323+05:30	PY OK again	2026-09-25 11:24:07.209279+05:30	2026-09-25 11:24:27.233323+05:30
-79478	19353	4	YSD-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	14	A	OFF,OFF	ON,ON	2026-09-25 11:25:16.128147+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-25 11:25:47.301179+05:30	PY OK again	2026-09-25 11:25:27.277084+05:30	2026-09-25 11:25:47.301179+05:30
-79479	19354	4	YSD-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	14	A	PASS	ON,ON	2026-09-25 11:25:16.462259+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-25 11:25:47.301179+05:30	PY OK again	2026-09-25 11:25:27.277084+05:30	2026-09-25 11:25:47.301179+05:30
-79480	19355	4	YSD-SS	1	SEAT SLIDER	D413	FR.LIGHTER PROTECTOR-1	D413	14	A	PASS	ON	2026-09-25 11:25:16.628538+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-25 11:25:47.301179+05:30	PY OK again	2026-09-25 11:25:27.277084+05:30	2026-09-25 11:25:47.301179+05:30
-79481	19356	4	YSD-SS	1	SEAT SLIDER	D414	FR.LIGHTER PROTECTOR-2	D414	14	A	PASS	ON	2026-09-25 11:25:16.769038+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-25 11:25:47.301179+05:30	PY OK again	2026-09-25 11:25:27.277084+05:30	2026-09-25 11:25:47.301179+05:30
-79482	19357	4	YSD-SS	1	SEAT SLIDER	D415	FR.LIGHTER PROTECTOR-3	D415	14	A	code600	ON	2026-09-25 11:25:16.936596+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-25 11:25:47.301179+05:30	PY OK again	2026-09-25 11:25:27.277084+05:30	2026-09-25 11:25:47.301179+05:30
-79483	19358	4	YSD-SS	1	SEAT SLIDER	D416	Rr.LIGHTER PROTECTOR-1	D416	14	A	OFF	ON	2026-09-25 11:25:17.059141+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-25 11:25:47.301179+05:30	PY OK again	2026-09-25 11:25:27.277084+05:30	2026-09-25 11:25:47.301179+05:30
-79484	19359	4	YSD-SS	1	SEAT SLIDER	D417	Rr.LIGHTER PROTECTOR-2	D417	14	A	code14	ON	2026-09-25 11:25:17.246924+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-25 11:25:47.301179+05:30	PY OK again	2026-09-25 11:25:27.277084+05:30	2026-09-25 11:25:47.301179+05:30
-79485	19360	4	YSD-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	14	A	OFF,OFF	ON,ON	2026-09-25 11:35:03.093965+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-25 11:35:28.494697+05:30	PY OK again	2026-09-25 11:35:08.346293+05:30	2026-09-25 11:35:28.494697+05:30
-79486	19361	14	YFG-SS	1	SEAT SLIDER	D414	FR.LIGHTER PROTECTOR-2	D414	15	A	code6	ON	2026-09-25 11:38:02.500833+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-25 11:38:28.679782+05:30	PY OK again	2026-09-25 11:38:08.659438+05:30	2026-09-25 11:38:28.679782+05:30
-79487	19362	14	YFG-SS	1	SEAT SLIDER	D415	FR.LIGHTER PROTECTOR-3	D415	15	A	code23	ON	2026-09-25 11:38:02.575953+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-25 11:38:28.679782+05:30	PY OK again	2026-09-25 11:38:08.659438+05:30	2026-09-25 11:38:28.679782+05:30
-79488	19363	14	YFG-SS	1	SEAT SLIDER	D416	Rr.LIGHTER PROTECTOR-1	D416	15	A	code16	ON	2026-09-25 11:38:02.682497+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-25 11:38:28.679782+05:30	PY OK again	2026-09-25 11:38:08.659438+05:30	2026-09-25 11:38:28.679782+05:30
-79489	19366	19	YMC-SS	1	SEAT SLIDER	D218	E-RING NG X12/X13	D418	12	A	ON,ON	ON,OFF	2026-09-25 11:51:17.128862+05:30	WAITING	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	\N	\N	2026-09-25 11:51:30.054513+05:30	2026-09-25 11:51:30.054513+05:30
-79490	19367	19	YMC-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	12	A	ON	OFF	2026-09-25 11:51:17.230143+05:30	WAITING	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	\N	\N	2026-09-25 11:51:30.054513+05:30	2026-09-25 11:51:30.054513+05:30
-79491	19368	19	YMC-SS	1	SEAT SLIDER	D402	RH.HARNESS-1	D402	12	A	ON	OFF	2026-09-25 11:51:17.378747+05:30	WAITING	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	\N	\N	2026-09-25 11:51:30.054513+05:30	2026-09-25 11:51:30.054513+05:30
-79492	19369	19	YMC-SS	1	SEAT SLIDER	D404	LH.HARNESS-2	D404	12	A	PASS	OFF	2026-09-25 11:51:17.56565+05:30	WAITING	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	\N	\N	2026-09-25 11:51:30.054513+05:30	2026-09-25 11:51:30.054513+05:30
-79493	19370	19	YMC-SS	1	SEAT SLIDER	D405	RH.HARNESS-2	D405	12	A	PASS	OFF	2026-09-25 11:51:17.662356+05:30	WAITING	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	\N	\N	2026-09-25 11:51:30.054513+05:30	2026-09-25 11:51:30.054513+05:30
-79494	19371	19	YMC-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	12	A	ON,ON	OFF,OFF	2026-09-25 11:51:17.77239+05:30	WAITING	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	\N	\N	2026-09-25 11:51:30.054513+05:30	2026-09-25 11:51:30.054513+05:30
-79495	19372	19	YMC-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	12	A	ON,ON	OFF,OFF	2026-09-25 11:51:17.855884+05:30	WAITING	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	\N	\N	2026-09-25 11:51:30.054513+05:30	2026-09-25 11:51:30.054513+05:30
-79496	19373	19	YMC-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	12	A	ON,ON	OFF,OFF	2026-09-25 11:51:17.955773+05:30	WAITING	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	\N	\N	2026-09-25 11:51:30.054513+05:30	2026-09-25 11:51:30.054513+05:30
-79497	19374	19	YMC-SS	1	SEAT SLIDER	D409	LH.BENDING	D409	12	A	PASS	OFF	2026-09-25 11:51:18.050234+05:30	WAITING	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	\N	\N	2026-09-25 11:51:30.054513+05:30	2026-09-25 11:51:30.054513+05:30
-79498	19375	19	YMC-SS	1	SEAT SLIDER	D410	RH.BENDING	D410	12	A	PASS	OFF	2026-09-25 11:51:18.170003+05:30	WAITING	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	\N	\N	2026-09-25 11:51:30.054513+05:30	2026-09-25 11:51:30.054513+05:30
-79499	19376	19	YMC-SS	1	SEAT SLIDER	D411	PoP RIVET-1	D411	12	A	ON	OFF	2026-09-25 11:51:18.273217+05:30	WAITING	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	\N	\N	2026-09-25 11:51:30.054513+05:30	2026-09-25 11:51:30.054513+05:30
-79500	19377	19	YMC-SS	1	SEAT SLIDER	D412	PoP RIVET-2	D412	12	A	ON	OFF	2026-09-25 11:51:18.354508+05:30	WAITING	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	\N	\N	2026-09-25 11:51:30.054513+05:30	2026-09-25 11:51:30.054513+05:30
-79501	19378	19	YMC-SS	1	SEAT SLIDER	D424	UPPER RAIL HOLE DETECTION	D424	12	A	PASS	OFF	2026-09-25 11:51:18.466832+05:30	WAITING	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	\N	\N	2026-09-25 11:51:30.054513+05:30	2026-09-25 11:51:30.054513+05:30
-79801	19379	4	YSD-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	14	A	PASS	ON,ON	2026-09-25 11:59:02.805712+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-25 11:59:30.971004+05:30	PY OK again	2026-09-25 11:59:10.935884+05:30	2026-09-25 11:59:30.971004+05:30
-79802	19380	4	YSD-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	14	A	OFF,OFF	ON,ON	2026-09-25 11:59:03.114505+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-25 11:59:30.971004+05:30	PY OK again	2026-09-25 11:59:10.935884+05:30	2026-09-25 11:59:30.971004+05:30
-79803	19381	4	YSD-SS	1	SEAT SLIDER	D413	FR.LIGHTER PROTECTOR-1	D413	14	A	code14	ON	2026-09-25 11:59:03.262606+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-25 11:59:30.971004+05:30	PY OK again	2026-09-25 11:59:10.935884+05:30	2026-09-25 11:59:30.971004+05:30
-79804	19382	4	YSD-SS	1	SEAT SLIDER	D414	FR.LIGHTER PROTECTOR-2	D414	14	A	PASS	ON	2026-09-25 11:59:03.42725+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-25 11:59:30.971004+05:30	PY OK again	2026-09-25 11:59:10.935884+05:30	2026-09-25 11:59:30.971004+05:30
-79805	19383	4	YSD-SS	1	SEAT SLIDER	D415	FR.LIGHTER PROTECTOR-3	D415	14	A	PASS	ON	2026-09-25 11:59:03.590583+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-25 11:59:30.971004+05:30	PY OK again	2026-09-25 11:59:10.935884+05:30	2026-09-25 11:59:30.971004+05:30
-79806	19384	4	YSD-SS	1	SEAT SLIDER	D416	Rr.LIGHTER PROTECTOR-1	D416	14	A	PASS	ON	2026-09-25 11:59:03.740732+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-25 11:59:30.971004+05:30	PY OK again	2026-09-25 11:59:10.935884+05:30	2026-09-25 11:59:30.971004+05:30
-79807	19385	4	YSD-SS	1	SEAT SLIDER	D417	Rr.LIGHTER PROTECTOR-2	D417	14	A	code734	ON	2026-09-25 11:59:03.878106+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-25 11:59:30.971004+05:30	PY OK again	2026-09-25 11:59:10.935884+05:30	2026-09-25 11:59:30.971004+05:30
-79808	19386	4	YSD-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	14	A	OFF	ON	2026-09-25 11:59:04.042702+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-25 11:59:30.971004+05:30	PY OK again	2026-09-25 11:59:10.935884+05:30	2026-09-25 11:59:30.971004+05:30
-81993	19387	4	YSD-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	15	A	PASS	ON,ON	2026-09-25 12:54:59.653864+05:30	WAITING	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	\N	\N	2026-09-25 12:55:19.100008+05:30	2026-09-25 12:55:19.100008+05:30
-82946	19389	2	YNC-SS	1	SEAT SLIDER	D402	RH.HARNESS-1	D402	15	A	code15	ON	2026-09-25 13:18:02.599498+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-25 13:19:23.635056+05:30	PY OK again	2026-09-25 13:18:03.475927+05:30	2026-09-25 13:19:23.635056+05:30
-82947	19390	2	YNC-SS	1	SEAT SLIDER	D403	LH.HARNESS-1	D403	15	A	PASS	OFF	2026-09-25 13:18:02.778134+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-25 13:19:23.635056+05:30	PY OK again	2026-09-25 13:18:03.475927+05:30	2026-09-25 13:19:23.635056+05:30
-82948	19391	2	YNC-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	15	A	PASS	ON,ON	2026-09-25 13:18:02.954561+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-25 13:19:23.635056+05:30	PY OK again	2026-09-25 13:18:03.475927+05:30	2026-09-25 13:19:23.635056+05:30
-82949	19392	2	YNC-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	15	A	OFF,OFF	ON,ON	2026-09-25 13:18:03.066462+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-25 13:19:23.635056+05:30	PY OK again	2026-09-25 13:18:03.475927+05:30	2026-09-25 13:19:23.635056+05:30
-82950	19393	2	YNC-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	15	A	code878	ON,ON	2026-09-25 13:18:03.19895+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-25 13:19:23.635056+05:30	PY OK again	2026-09-25 13:18:03.475927+05:30	2026-09-25 13:19:23.635056+05:30
-83456	19394	2	YNC-SS	1	SEAT SLIDER	D422	4W INR/OTR BOLT MIXING.X41	D422	9	A	ON	OFF	2026-09-25 13:29:33.832159+05:30	WAITING	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	\N	\N	2026-09-25 13:29:44.955102+05:30	2026-09-25 13:29:44.955102+05:30
-83607	19395	19	YMC-SS	1	SEAT SLIDER	D403	LH.HARNESS-1	D403	12	A	PASS	OFF	2026-09-25 13:33:02.845985+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-25 13:33:26.11519+05:30	PY OK again	2026-09-25 13:33:06.058028+05:30	2026-09-25 13:33:26.11519+05:30
-83743	19396	2	YNC-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	9	A	code6	ON,ON	2026-09-25 13:36:02.528705+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-25 13:36:26.513317+05:30	PY OK again	2026-09-25 13:36:06.47226+05:30	2026-09-25 13:36:26.513317+05:30
-83744	19397	2	YNC-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	9	A	code9	ON,ON	2026-09-25 13:36:02.653094+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-25 13:36:26.513317+05:30	PY OK again	2026-09-25 13:36:06.47226+05:30	2026-09-25 13:36:26.513317+05:30
-83745	19398	2	YNC-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	9	A	code16	ON,ON	2026-09-25 13:36:02.800484+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-25 13:36:26.513317+05:30	PY OK again	2026-09-25 13:36:06.47226+05:30	2026-09-25 13:36:26.513317+05:30
-83746	19399	2	YNC-SS	1	SEAT SLIDER	D411	PoP RIVET-1	D411	9	A	PASS	OFF	2026-09-25 13:36:02.968694+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-25 13:36:26.513317+05:30	PY OK again	2026-09-25 13:36:06.47226+05:30	2026-09-25 13:36:26.513317+05:30
-84287	19400	2	YNC-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	9	A	code977	ON	2026-09-25 13:48:03.027613+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-25 13:48:27.668027+05:30	PY OK again	2026-09-25 13:48:07.511227+05:30	2026-09-25 13:48:27.668027+05:30
-84288	19401	2	YNC-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	9	A	code7	ON,ON	2026-09-25 13:48:03.176722+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-25 13:48:27.668027+05:30	PY OK again	2026-09-25 13:48:07.511227+05:30	2026-09-25 13:48:27.668027+05:30
-84289	19402	2	YNC-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	9	A	code9	ON,ON	2026-09-25 13:48:03.31836+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-25 13:48:27.668027+05:30	PY OK again	2026-09-25 13:48:07.511227+05:30	2026-09-25 13:48:27.668027+05:30
-84290	19403	2	YNC-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	9	A	code16	ON,ON	2026-09-25 13:48:03.487254+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-25 13:48:27.668027+05:30	PY OK again	2026-09-25 13:48:07.511227+05:30	2026-09-25 13:48:27.668027+05:30
-84291	19404	2	YNC-SS	1	SEAT SLIDER	D411	PoP RIVET-1	D411	9	A	PASS	OFF	2026-09-25 13:48:03.609672+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-25 13:48:27.668027+05:30	PY OK again	2026-09-25 13:48:07.511227+05:30	2026-09-25 13:48:27.668027+05:30
-84877	19405	2	YNC-SS	1	SEAT SLIDER	D401	LOCATE PIN	D401	9	A	OFF	ON	2026-09-25 14:01:02.56951+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-25 14:01:29.894785+05:30	PY OK again	2026-09-25 14:01:09.829922+05:30	2026-09-25 14:01:29.894785+05:30
-84878	19406	2	YNC-SS	1	SEAT SLIDER	D406	Fr.Lwr.Protector	D406	9	A	code1030	ON,ON	2026-09-25 14:01:02.724443+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-25 14:01:29.894785+05:30	PY OK again	2026-09-25 14:01:09.829922+05:30	2026-09-25 14:01:29.894785+05:30
-84879	19407	2	YNC-SS	1	SEAT SLIDER	D407	Rr.Lwr.Protector	D407	9	A	code7	ON,ON	2026-09-25 14:01:02.867072+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-25 14:01:29.894785+05:30	PY OK again	2026-09-25 14:01:09.829922+05:30	2026-09-25 14:01:29.894785+05:30
-84880	19408	2	YNC-SS	1	SEAT SLIDER	D408	Rr.Upr.PROTECTER/SHIPPING POS.NG	D408	9	A	code9	ON,ON	2026-09-25 14:01:03.035768+05:30	CLEARED	\N	\N	\N	\N	\N	\N	0	\N	\N	\N	2026-09-25 14:01:29.894785+05:30	PY OK again	2026-09-25 14:01:09.829922+05:30	2026-09-25 14:01:29.894785+05:30
+COPY public.mes_py_bypass_mail (line_id, shift_name, to_addrs, cc_addrs, updated_by, updated_at) FROM stdin;
 \.
 
 
@@ -30770,6 +30659,14 @@ COPY public.mes_py_images (id, py_no, py_master_id, line_id, filename, original_
 --
 
 COPY public.mes_py_instructions (id, py_no, line_id, py_master_id, instruction_text, updated_at, updated_by_user_id, updated_by_username) FROM stdin;
+\.
+
+
+--
+-- Data for Name: mes_py_manual_bypass; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.mes_py_manual_bypass (line_id, machine_key, is_on, reason, turned_by, turned_at) FROM stdin;
 \.
 
 
@@ -31382,6 +31279,17 @@ COPY public.mes_shift_compile (id, line_id, record_date, shift_name, closed_at, 
 119	15	2026-09-24	A	2026-09-24 17:18:28.806785+05:30	ss	2026-09-24 17:15:00+05:30	t	\N
 120	11	2026-09-24	A	2026-09-24 17:18:38.666514+05:30	ss	2026-09-24 17:15:00+05:30	t	\N
 121	14	2026-09-24	A	2026-09-24 17:18:44.549506+05:30	ss	2026-09-24 17:15:00+05:30	t	\N
+122	15	2026-09-25	A	2026-09-25 17:20:59.233687+05:30	ss	2026-09-25 17:15:00+05:30	t	\N
+123	14	2026-09-25	A	2026-09-25 17:21:24.697063+05:30	ss	2026-09-25 17:15:00+05:30	t	\N
+124	18	2026-09-25	A	2026-09-25 17:24:13.594229+05:30	ss	2026-09-25 17:15:00+05:30	t	\N
+125	12	2026-09-25	A	2026-09-25 17:24:20.915189+05:30	ss	2026-09-25 17:15:00+05:30	t	\N
+126	11	2026-09-25	A	2026-09-25 17:24:26.442333+05:30	ss	2026-09-25 17:15:00+05:30	t	\N
+127	4	2026-09-25	A	2026-09-25 17:24:37.025385+05:30	ss	2026-09-25 17:15:00+05:30	t	\N
+128	19	2026-09-25	A	2026-09-25 17:24:42.200582+05:30	ss	2026-09-25 17:15:00+05:30	t	\N
+129	12	2026-09-26	A	2026-09-26 17:17:21.27133+05:30	ss	2026-09-26 17:15:00+05:30	t	\N
+130	18	2026-09-26	A	2026-09-26 17:17:28.270199+05:30	ss	2026-09-26 17:15:00+05:30	t	\N
+131	11	2026-09-26	A	2026-09-26 17:51:07.506418+05:30	ss	2026-09-26 17:15:00+05:30	f	\N
+132	4	2026-09-26	A	2026-09-26 17:51:20.688111+05:30	ss	2026-09-26 17:15:00+05:30	f	\N
 \.
 
 
@@ -31490,6 +31398,8 @@ COPY public.mes_shift_configs (id, line_id, shift_name, start_time, end_time, cr
 156	34	GAP_BA	03:15:00	08:30:00	f	0	0	5	f	f	\N	\N	\N	\N
 157	35	A	08:30:00	17:15:00	f	2475	465	5	t	f	\N	\N	\N	\N
 158	35	B	18:30:00	03:15:00	t	2475	465	5	t	f	\N	\N	\N	\N
+177	40	A	08:30:00	17:15:00	f	2475	465	5	t	f	\N	\N	\N	\N
+178	40	B	18:30:00	03:15:00	t	2475	465	5	t	f	\N	\N	\N	\N
 159	35	GAP_AB	17:15:00	18:30:00	f	0	0	5	f	f	\N	\N	\N	\N
 160	35	GAP_BA	03:15:00	08:30:00	f	0	0	5	f	f	\N	\N	\N	\N
 161	36	A	08:30:00	17:15:00	f	2475	465	5	t	f	\N	\N	\N	\N
@@ -31508,8 +31418,6 @@ COPY public.mes_shift_configs (id, line_id, shift_name, start_time, end_time, cr
 170	38	B	18:30:00	03:15:00	t	2475	465	5	t	f	\N	\N	\N	\N
 171	38	GAP_AB	17:15:00	18:30:00	f	0	0	5	f	f	\N	\N	\N	\N
 172	38	GAP_BA	03:15:00	08:30:00	f	0	0	5	f	f	\N	\N	\N	\N
-177	40	A	08:30:00	17:15:00	f	2475	465	5	t	f	\N	\N	\N	\N
-178	40	B	18:30:00	03:15:00	t	2475	465	5	t	f	\N	\N	\N	\N
 179	40	GAP_AB	17:15:00	18:30:00	f	0	0	5	f	f	\N	\N	\N	\N
 180	40	GAP_BA	03:15:00	08:30:00	f	0	0	5	f	f	\N	\N	\N	\N
 183	41	GAP_AB	17:15:00	18:30:00	f	0	0	5	f	f	\N	\N	\N	\N
@@ -31550,6 +31458,7 @@ COPY public.mes_shift_escalation (id, line_id, zone_id, record_date, shift_name,
 51757	12	1	2026-09-13	A	1	open	2 alarms on YCA-SS in shift A (2026-09-13); 0 with remark, 2 pending review.	[{"ct": 16685.61, "time": "14:23:08", "remark": null, "line_id": 12, "cycle_seq": 2, "part_code": "00105N60912-1954606110005"}, {"ct": 176.92, "time": "16:05:33", "remark": null, "line_id": 12, "cycle_seq": 411, "part_code": "00125D60812-0071605080061"}]	2026-09-13 17:15:03.402561+05:30	2026-09-13 17:15:03.402561+05:30
 51759	18	1	2026-09-14	A	1	open	2 alarms on YRA-SS in shift A (2026-09-14); 0 with remark, 2 pending review.	[{"ct": 15352.35, "time": "13:48:55", "remark": null, "line_id": 18, "cycle_seq": 1, "part_code": null}, {"ct": 858.74, "time": "14:03:14", "remark": null, "line_id": 18, "cycle_seq": 2, "part_code": "912-0018606010052"}]	2026-09-14 17:15:06.068531+05:30	2026-09-14 17:15:06.068531+05:30
 51760	14	1	2026-09-14	A	1	open	4 alarms on YFG-SS in shift A (2026-09-14); 0 with remark, 4 pending review.	[{"ct": 13682.23, "time": "13:21:05", "remark": null, "line_id": 14, "cycle_seq": 1, "part_code": null}, {"ct": 61.41, "time": "13:22:07", "remark": null, "line_id": 14, "cycle_seq": 2, "part_code": "ERROR"}, {"ct": 302.9, "time": "13:27:09", "remark": null, "line_id": 14, "cycle_seq": 3, "part_code": "ERROR"}, {"ct": 12354.13, "time": "17:03:04", "remark": null, "line_id": 14, "cycle_seq": 4, "part_code": "ERROR"}]	2026-09-14 17:15:06.068531+05:30	2026-09-14 17:15:06.068531+05:30
+51847	7	3	2026-09-26	A	1	open	2 alarms on GEAR LIFTER in shift A (2026-09-26); 0 with remark, 2 pending review.	[{"ct": 281.49, "time": "08:34:41", "remark": null, "line_id": 7, "cycle_seq": 1, "part_code": null}, {"ct": 9.1, "time": "12:53:49", "remark": null, "line_id": 7, "cycle_seq": 1541, "part_code": null}]	2026-09-26 17:17:11.610585+05:30	2026-09-26 17:17:11.610585+05:30
 51761	20	2	2026-09-14	A	1	open	16 alarms on YMC Recliner in shift A (2026-09-14); 0 with remark, 16 pending review.	[{"ct": 6752.2, "time": "10:32:32", "remark": null, "line_id": 20, "cycle_seq": 1, "part_code": null}, {"ct": 2260.97, "time": "11:10:13", "remark": null, "line_id": 20, "cycle_seq": 2, "part_code": null}, {"ct": 1730.2, "time": "11:39:03", "remark": null, "line_id": 20, "cycle_seq": 3, "part_code": null}, {"ct": 13.26, "time": "11:46:03", "remark": null, "line_id": 20, "cycle_seq": 18, "part_code": null}, {"ct": 143.82, "time": "11:57:55", "remark": null, "line_id": 20, "cycle_seq": 31, "part_code": null}, {"ct": 0.0, "time": "12:16:13", "remark": null, "line_id": 20, "cycle_seq": 53, "part_code": null}, {"ct": 0.0, "time": "12:24:21", "remark": null, "line_id": 20, "cycle_seq": 54, "part_code": null}, {"ct": 825.92, "time": "12:48:45", "remark": null, "line_id": 20, "cycle_seq": 55, "part_code": null}, {"ct": 14059.05, "time": "13:27:22", "remark": null, "line_id": 20, "cycle_seq": 56, "part_code": null}, {"ct": 915.53, "time": "13:42:37", "remark": null, "line_id": 20, "cycle_seq": 57, "part_code": null}, {"ct": 1281.02, "time": "14:03:58", "remark": null, "line_id": 20, "cycle_seq": 58, "part_code": null}, {"ct": 2510.73, "time": "14:55:49", "remark": null, "line_id": 20, "cycle_seq": 59, "part_code": null}, {"ct": 3781.8, "time": "15:58:51", "remark": null, "line_id": 20, "cycle_seq": 60, "part_code": null}, {"ct": 122.06, "time": "16:00:53", "remark": null, "line_id": 20, "cycle_seq": 61, "part_code": null}, {"ct": 214.11, "time": "16:54:46", "remark": null, "line_id": 20, "cycle_seq": 62, "part_code": null}, {"ct": 478.24, "time": "17:03:07", "remark": null, "line_id": 20, "cycle_seq": 63, "part_code": null}]	2026-09-14 17:15:06.068531+05:30	2026-09-14 17:15:06.068531+05:30
 51762	13	1	2026-09-14	A	1	open	2 alarms on YJC-SS in shift A (2026-09-14); 0 with remark, 2 pending review.	[{"ct": 13911.09, "time": "13:24:54", "remark": null, "line_id": 13, "cycle_seq": 1, "part_code": null}, {"ct": 12491.78, "time": "17:03:06", "remark": null, "line_id": 13, "cycle_seq": 2, "part_code": "ERROR"}]	2026-09-14 17:15:06.068531+05:30	2026-09-14 17:15:06.068531+05:30
 51763	4	1	2026-09-14	A	1	open	1 alarm on YSD-SS in shift A (2026-09-14); 0 with remark, 1 pending review.	[{"ct": 0.0, "time": "13:35:04", "remark": null, "line_id": 4, "cycle_seq": 17, "part_code": "00153N60912-1725606110018"}]	2026-09-14 17:15:06.068531+05:30	2026-09-14 17:15:06.068531+05:30
@@ -31569,6 +31478,7 @@ COPY public.mes_shift_escalation (id, line_id, zone_id, record_date, shift_name,
 51806	11	1	2026-09-23	A	1	open	5 alarms on YHB-SS in shift A (2026-09-23); 0 with remark, 5 pending review.	[{"ct": 425.55, "time": "08:37:05", "remark": null, "line_id": 11, "cycle_seq": 1, "part_code": "00094N60922-2584606290029"}, {"ct": 16.21, "time": "11:02:11", "remark": null, "line_id": 11, "cycle_seq": 523, "part_code": "00094D60923-0520606260078"}, {"ct": 7.45, "time": "12:19:17", "remark": null, "line_id": 11, "cycle_seq": 781, "part_code": "00094D60923-0777606290081"}, {"ct": 7.01, "time": "12:26:32", "remark": null, "line_id": 11, "cycle_seq": 797, "part_code": "00094D60923-0783606290081"}, {"ct": 28.23, "time": "14:06:56", "remark": null, "line_id": 11, "cycle_seq": 1148, "part_code": "00094D60923-1148606290108"}]	2026-09-23 17:17:14.64922+05:30	2026-09-23 17:17:14.64922+05:30
 51807	15	1	2026-09-23	A	1	open	7 alarms on Y17-SS in shift A (2026-09-23); 0 with remark, 7 pending review.	[{"ct": 279.71, "time": "08:34:39", "remark": null, "line_id": 15, "cycle_seq": 1, "part_code": null}, {"ct": 8.49, "time": "08:43:39", "remark": null, "line_id": 15, "cycle_seq": 14, "part_code": "00097D60923-0013606290014"}, {"ct": 38.97, "time": "08:53:03", "remark": null, "line_id": 15, "cycle_seq": 52, "part_code": "00097N60922-0004606250102"}, {"ct": 78.83, "time": "08:54:22", "remark": null, "line_id": 15, "cycle_seq": 53, "part_code": "ERROR"}, {"ct": 77.61, "time": "08:55:40", "remark": null, "line_id": 15, "cycle_seq": 54, "part_code": "ERROR"}, {"ct": 32.99, "time": "11:37:52", "remark": null, "line_id": 15, "cycle_seq": 674, "part_code": "00157D60923-0670606260007"}, {"ct": 28.01, "time": "13:51:56", "remark": null, "line_id": 15, "cycle_seq": 1085, "part_code": "00147D60923-1082606290105"}]	2026-09-23 17:17:14.64922+05:30	2026-09-23 17:17:14.64922+05:30
 51808	18	1	2026-09-23	A	1	open	6 alarms on YRA-SS in shift A (2026-09-23); 0 with remark, 6 pending review.	[{"ct": 299.36, "time": "08:34:59", "remark": null, "line_id": 18, "cycle_seq": 1, "part_code": "922-1733606260101"}, {"ct": 629.94, "time": "08:45:29", "remark": null, "line_id": 18, "cycle_seq": 2, "part_code": "922-1738606260101"}, {"ct": 141.02, "time": "11:42:12", "remark": null, "line_id": 18, "cycle_seq": 647, "part_code": "923-0001607090038"}, {"ct": 9.84, "time": "13:56:58", "remark": null, "line_id": 18, "cycle_seq": 954, "part_code": "923-0907606290006"}, {"ct": 11.34, "time": "13:58:20", "remark": null, "line_id": 18, "cycle_seq": 956, "part_code": "704-1721602190118"}, {"ct": 6.04, "time": "17:13:46", "remark": null, "line_id": 18, "cycle_seq": 1608, "part_code": "923-1311606290003"}]	2026-09-23 17:17:14.64922+05:30	2026-09-23 17:17:14.64922+05:30
+51848	4	1	2026-09-26	A	1	open	4 alarms on YSD-SS in shift A (2026-09-26); 0 with remark, 4 pending review.	[{"ct": 323.71, "time": "08:35:23", "remark": null, "line_id": 4, "cycle_seq": 1, "part_code": null}, {"ct": 23.77, "time": "08:35:47", "remark": null, "line_id": 4, "cycle_seq": 2, "part_code": "ERROR"}, {"ct": 12.99, "time": "10:32:13", "remark": null, "line_id": 4, "cycle_seq": 397, "part_code": "00153D60926-0374606090023"}, {"ct": 35.83, "time": "13:16:46", "remark": null, "line_id": 4, "cycle_seq": 902, "part_code": "00143D60926-0878607200104"}]	2026-09-26 17:17:11.610585+05:30	2026-09-26 17:17:11.610585+05:30
 51775	20	2	2026-09-20	A	1	open	38 alarms on YMC Recliner in shift A (2026-09-20); 0 with remark, 38 pending review.	[{"ct": 237.52, "time": "08:33:57", "remark": null, "line_id": 20, "cycle_seq": 1, "part_code": null}, {"ct": 7.38, "time": "08:46:43", "remark": null, "line_id": 20, "cycle_seq": 35, "part_code": null}, {"ct": 8.57, "time": "09:50:50", "remark": null, "line_id": 20, "cycle_seq": 282, "part_code": null}, {"ct": 7.65, "time": "09:50:57", "remark": null, "line_id": 20, "cycle_seq": 283, "part_code": null}, {"ct": 0.0, "time": "10:09:03", "remark": null, "line_id": 20, "cycle_seq": 329, "part_code": null}, {"ct": 11.02, "time": "10:13:54", "remark": null, "line_id": 20, "cycle_seq": 335, "part_code": null}, {"ct": 9.58, "time": "10:19:51", "remark": null, "line_id": 20, "cycle_seq": 357, "part_code": null}, {"ct": 9.93, "time": "10:34:22", "remark": null, "line_id": 20, "cycle_seq": 420, "part_code": null}, {"ct": 13.03, "time": "10:37:40", "remark": null, "line_id": 20, "cycle_seq": 434, "part_code": null}, {"ct": 14.77, "time": "10:37:55", "remark": null, "line_id": 20, "cycle_seq": 435, "part_code": null}, {"ct": 8.92, "time": "10:50:35", "remark": null, "line_id": 20, "cycle_seq": 491, "part_code": null}, {"ct": 8.94, "time": "10:52:43", "remark": null, "line_id": 20, "cycle_seq": 500, "part_code": null}, {"ct": 6.35, "time": "10:52:49", "remark": null, "line_id": 20, "cycle_seq": 501, "part_code": null}, {"ct": 9.2, "time": "10:53:21", "remark": null, "line_id": 20, "cycle_seq": 502, "part_code": null}, {"ct": 9.59, "time": "10:53:43", "remark": null, "line_id": 20, "cycle_seq": 503, "part_code": null}, {"ct": 10.77, "time": "10:55:14", "remark": null, "line_id": 20, "cycle_seq": 509, "part_code": null}, {"ct": 104.59, "time": "10:56:58", "remark": null, "line_id": 20, "cycle_seq": 510, "part_code": null}, {"ct": 26.25, "time": "10:57:25", "remark": null, "line_id": 20, "cycle_seq": 511, "part_code": null}, {"ct": 33.1, "time": "10:57:58", "remark": null, "line_id": 20, "cycle_seq": 512, "part_code": null}, {"ct": 68.54, "time": "10:59:06", "remark": null, "line_id": 20, "cycle_seq": 513, "part_code": null}, {"ct": 17.48, "time": "10:59:24", "remark": null, "line_id": 20, "cycle_seq": 514, "part_code": null}, {"ct": 128.95, "time": "11:02:42", "remark": null, "line_id": 20, "cycle_seq": 515, "part_code": null}, {"ct": 63.33, "time": "11:03:45", "remark": null, "line_id": 20, "cycle_seq": 516, "part_code": null}, {"ct": 295.71, "time": "11:07:42", "remark": null, "line_id": 20, "cycle_seq": 517, "part_code": null}, {"ct": 9.08, "time": "11:17:27", "remark": null, "line_id": 20, "cycle_seq": 552, "part_code": null}, {"ct": 8.32, "time": "11:18:47", "remark": null, "line_id": 20, "cycle_seq": 558, "part_code": null}, {"ct": 9.17, "time": "11:25:33", "remark": null, "line_id": 20, "cycle_seq": 591, "part_code": null}, {"ct": 8.85, "time": "11:36:59", "remark": null, "line_id": 20, "cycle_seq": 645, "part_code": null}, {"ct": 8.37, "time": "11:38:42", "remark": null, "line_id": 20, "cycle_seq": 652, "part_code": null}, {"ct": 8.41, "time": "11:47:51", "remark": null, "line_id": 20, "cycle_seq": 695, "part_code": null}, {"ct": 10.15, "time": "11:48:01", "remark": null, "line_id": 20, "cycle_seq": 696, "part_code": null}, {"ct": 21.14, "time": "11:48:22", "remark": null, "line_id": 20, "cycle_seq": 697, "part_code": null}, {"ct": 9.36, "time": "11:53:02", "remark": null, "line_id": 20, "cycle_seq": 715, "part_code": null}, {"ct": 8.99, "time": "11:55:27", "remark": null, "line_id": 20, "cycle_seq": 726, "part_code": null}, {"ct": 8.48, "time": "11:55:35", "remark": null, "line_id": 20, "cycle_seq": 727, "part_code": null}, {"ct": 10.24, "time": "12:00:14", "remark": null, "line_id": 20, "cycle_seq": 745, "part_code": null}, {"ct": 0.0, "time": "12:02:05", "remark": null, "line_id": 20, "cycle_seq": 746, "part_code": null}, {"ct": 66.15, "time": "12:03:11", "remark": null, "line_id": 20, "cycle_seq": 747, "part_code": null}]	2026-09-20 17:17:12.188765+05:30	2026-09-20 17:17:12.188765+05:30
 51776	18	1	2026-09-20	A	1	open	7 alarms on YRA-SS in shift A (2026-09-20); 0 with remark, 7 pending review.	[{"ct": 384.1, "time": "08:36:24", "remark": null, "line_id": 18, "cycle_seq": 1, "part_code": null}, {"ct": 39.41, "time": "08:37:03", "remark": null, "line_id": 18, "cycle_seq": 2, "part_code": null}, {"ct": 9.11, "time": "12:51:49", "remark": null, "line_id": 18, "cycle_seq": 626, "part_code": "920-0002606220097"}, {"ct": 6.48, "time": "13:03:14", "remark": null, "line_id": 18, "cycle_seq": 664, "part_code": "920-0630606160102"}, {"ct": 62.08, "time": "13:53:28", "remark": null, "line_id": 18, "cycle_seq": 839, "part_code": "920-0670606160102"}, {"ct": 9.98, "time": "15:24:50", "remark": null, "line_id": 18, "cycle_seq": 1051, "part_code": "920-0841606170018"}, {"ct": 24.37, "time": "16:53:31", "remark": null, "line_id": 18, "cycle_seq": 1313, "part_code": "920-1065606180001"}]	2026-09-20 17:17:12.188765+05:30	2026-09-20 17:17:12.188765+05:30
 51777	12	1	2026-09-20	A	1	open	3 alarms on YCA-SS in shift A (2026-09-20); 0 with remark, 3 pending review.	[{"ct": 18.55, "time": "08:30:18", "remark": null, "line_id": 12, "cycle_seq": 1, "part_code": null}, {"ct": 14.05, "time": "08:39:09", "remark": null, "line_id": 12, "cycle_seq": 6, "part_code": "00125N60919-2467606180012"}, {"ct": 54.15, "time": "16:33:10", "remark": null, "line_id": 12, "cycle_seq": 1729, "part_code": null}]	2026-09-20 17:17:12.188765+05:30	2026-09-20 17:17:12.188765+05:30
@@ -31612,9 +31522,36 @@ COPY public.mes_shift_escalation (id, line_id, zone_id, record_date, shift_name,
 51821	4	1	2026-09-24	A	1	open	3 alarms on YSD-SS in shift A (2026-09-24); 0 with remark, 3 pending review.	[{"ct": 687.48, "time": "08:41:27", "remark": null, "line_id": 4, "cycle_seq": 1, "part_code": null}, {"ct": 5.99, "time": "10:16:04", "remark": null, "line_id": 4, "cycle_seq": 244, "part_code": "00153D60924-0236606150046"}, {"ct": 5.9, "time": "11:29:03", "remark": null, "line_id": 4, "cycle_seq": 539, "part_code": "00153D60924-0528606240111"}]	2026-09-24 17:17:12.054209+05:30	2026-09-24 17:17:12.054209+05:30
 51822	11	1	2026-09-24	A	1	open	2 alarms on YHB-SS in shift A (2026-09-24); 0 with remark, 2 pending review.	[{"ct": 280.68, "time": "08:34:40", "remark": null, "line_id": 11, "cycle_seq": 1, "part_code": null}, {"ct": 11.74, "time": "08:57:13", "remark": null, "line_id": 11, "cycle_seq": 64, "part_code": "00094D60924-0046606290009"}]	2026-09-24 17:17:12.054209+05:30	2026-09-24 17:17:12.054209+05:30
 51823	12	1	2026-09-24	A	1	open	2 alarms on YCA-SS in shift A (2026-09-24); 0 with remark, 2 pending review.	[{"ct": 26.33, "time": "11:22:46", "remark": null, "line_id": 12, "cycle_seq": 602, "part_code": "00125D60924-0597606250016"}, {"ct": 33.48, "time": "11:46:44", "remark": null, "line_id": 12, "cycle_seq": 694, "part_code": "00105D60924-0693606250016"}]	2026-09-24 17:17:12.054209+05:30	2026-09-24 17:17:12.054209+05:30
+51827	11	1	2026-09-25	A	1	open	15 alarms on YHB-SS in shift A (2026-09-25); 0 with remark, 15 pending review.	[{"ct": 351.9, "time": "08:35:51", "remark": null, "line_id": 11, "cycle_seq": 1, "part_code": null}, {"ct": 7.98, "time": "09:08:57", "remark": null, "line_id": 11, "cycle_seq": 84, "part_code": "00094D60925-0063606120015"}, {"ct": 97.17, "time": "09:10:34", "remark": null, "line_id": 11, "cycle_seq": 85, "part_code": null}, {"ct": 14.94, "time": "09:19:56", "remark": null, "line_id": 11, "cycle_seq": 122, "part_code": "00094D60925-0123606120015"}, {"ct": 42.7, "time": "09:20:38", "remark": null, "line_id": 11, "cycle_seq": 123, "part_code": "00094D60925-0119606120015"}, {"ct": 16.43, "time": "09:48:34", "remark": null, "line_id": 11, "cycle_seq": 251, "part_code": "00094D60925-0253606110010"}, {"ct": 7.59, "time": "10:32:44", "remark": null, "line_id": 11, "cycle_seq": 401, "part_code": "00094D60925-0402606110010"}, {"ct": 10.97, "time": "12:42:05", "remark": null, "line_id": 11, "cycle_seq": 770, "part_code": "00094D60925-0771606120093"}, {"ct": 7.01, "time": "13:54:32", "remark": null, "line_id": 11, "cycle_seq": 1094, "part_code": "00094D60925-1101606120074"}, {"ct": 7.1, "time": "14:07:26", "remark": null, "line_id": 11, "cycle_seq": 1143, "part_code": "00094D60925-1137606120074"}, {"ct": 5.45, "time": "14:21:20", "remark": null, "line_id": 11, "cycle_seq": 1201, "part_code": null}, {"ct": 6.45, "time": "15:24:45", "remark": null, "line_id": 11, "cycle_seq": 1417, "part_code": "00094D60925-1412606120014"}, {"ct": 38.71, "time": "15:25:23", "remark": null, "line_id": 11, "cycle_seq": 1418, "part_code": null}, {"ct": 16.93, "time": "16:28:02", "remark": null, "line_id": 11, "cycle_seq": 1680, "part_code": "00094D60925-1671606120051"}, {"ct": 5.69, "time": "17:09:04", "remark": null, "line_id": 11, "cycle_seq": 1847, "part_code": "6\\u0007"}]	2026-09-25 17:17:12.265398+05:30	2026-09-25 17:17:12.265398+05:30
 51824	15	1	2026-09-24	A	1	open	11 alarms on Y17-SS in shift A (2026-09-24); 0 with remark, 11 pending review.	[{"ct": 297.77, "time": "08:34:57", "remark": null, "line_id": 15, "cycle_seq": 1, "part_code": null}, {"ct": 25.51, "time": "09:41:12", "remark": null, "line_id": 15, "cycle_seq": 241, "part_code": "00258D60924-0003606150016"}, {"ct": 0.0, "time": "12:03:24", "remark": null, "line_id": 15, "cycle_seq": 785, "part_code": "00097D60924-0778606150016"}, {"ct": 0.0, "time": "12:05:21", "remark": null, "line_id": 15, "cycle_seq": 786, "part_code": "ERROR"}, {"ct": 16.24, "time": "12:05:37", "remark": null, "line_id": 15, "cycle_seq": 787, "part_code": null}, {"ct": 0.0, "time": "12:07:16", "remark": null, "line_id": 15, "cycle_seq": 788, "part_code": "ERROR"}, {"ct": 32.36, "time": "12:07:48", "remark": null, "line_id": 15, "cycle_seq": 789, "part_code": "ERROR"}, {"ct": 14.41, "time": "12:08:03", "remark": null, "line_id": 15, "cycle_seq": 790, "part_code": null}, {"ct": 0.0, "time": "12:10:55", "remark": null, "line_id": 15, "cycle_seq": 791, "part_code": "ERROR"}, {"ct": 53.51, "time": "12:35:53", "remark": null, "line_id": 15, "cycle_seq": 792, "part_code": "ERROR"}, {"ct": 8.45, "time": "13:18:09", "remark": null, "line_id": 15, "cycle_seq": 946, "part_code": "00097D60924-0954606150016"}]	2026-09-24 17:17:12.054209+05:30	2026-09-24 17:17:12.054209+05:30
 51825	20	2	2026-09-24	A	1	open	36 alarms on YMC Recliner in shift A (2026-09-24); 0 with remark, 36 pending review.	[{"ct": 675.71, "time": "08:41:15", "remark": null, "line_id": 20, "cycle_seq": 1, "part_code": null}, {"ct": 76.35, "time": "08:55:50", "remark": null, "line_id": 20, "cycle_seq": 21, "part_code": null}, {"ct": 0.0, "time": "09:00:55", "remark": null, "line_id": 20, "cycle_seq": 28, "part_code": null}, {"ct": 6.48, "time": "09:10:04", "remark": null, "line_id": 20, "cycle_seq": 65, "part_code": null}, {"ct": 0.0, "time": "09:22:16", "remark": null, "line_id": 20, "cycle_seq": 111, "part_code": null}, {"ct": 7.72, "time": "10:13:06", "remark": null, "line_id": 20, "cycle_seq": 279, "part_code": "\\u0016\\u0001"}, {"ct": 0.0, "time": "10:16:08", "remark": null, "line_id": 20, "cycle_seq": 292, "part_code": null}, {"ct": 0.0, "time": "10:20:13", "remark": null, "line_id": 20, "cycle_seq": 304, "part_code": null}, {"ct": 0.0, "time": "10:25:18", "remark": null, "line_id": 20, "cycle_seq": 323, "part_code": null}, {"ct": 0.0, "time": "10:29:22", "remark": null, "line_id": 20, "cycle_seq": 340, "part_code": null}, {"ct": 0.0, "time": "10:51:41", "remark": null, "line_id": 20, "cycle_seq": 426, "part_code": "\\u0001"}, {"ct": 0.0, "time": "10:57:52", "remark": null, "line_id": 20, "cycle_seq": 451, "part_code": null}, {"ct": 0.0, "time": "10:58:03", "remark": null, "line_id": 20, "cycle_seq": 453, "part_code": null}, {"ct": 0.0, "time": "11:09:58", "remark": null, "line_id": 20, "cycle_seq": 500, "part_code": null}, {"ct": 11.15, "time": "11:14:03", "remark": null, "line_id": 20, "cycle_seq": 517, "part_code": null}, {"ct": 0.0, "time": "11:58:47", "remark": null, "line_id": 20, "cycle_seq": 689, "part_code": null}, {"ct": 0.0, "time": "12:34:38", "remark": null, "line_id": 20, "cycle_seq": 695, "part_code": null}, {"ct": 6.02, "time": "12:41:02", "remark": null, "line_id": 20, "cycle_seq": 705, "part_code": null}, {"ct": 9.77, "time": "12:53:03", "remark": null, "line_id": 20, "cycle_seq": 740, "part_code": null}, {"ct": 0.0, "time": "13:22:57", "remark": null, "line_id": 20, "cycle_seq": 837, "part_code": null}, {"ct": 0.0, "time": "13:42:20", "remark": null, "line_id": 20, "cycle_seq": 917, "part_code": null}, {"ct": 0.0, "time": "13:49:27", "remark": null, "line_id": 20, "cycle_seq": 947, "part_code": null}, {"ct": 0.0, "time": "14:06:57", "remark": null, "line_id": 20, "cycle_seq": 1006, "part_code": null}, {"ct": 6.76, "time": "14:14:05", "remark": null, "line_id": 20, "cycle_seq": 1036, "part_code": null}, {"ct": 0.0, "time": "14:25:58", "remark": null, "line_id": 20, "cycle_seq": 1081, "part_code": null}, {"ct": 10.35, "time": "14:43:36", "remark": null, "line_id": 20, "cycle_seq": 1114, "part_code": null}, {"ct": 0.0, "time": "14:44:42", "remark": null, "line_id": 20, "cycle_seq": 1118, "part_code": null}, {"ct": 17.18, "time": "14:50:40", "remark": null, "line_id": 20, "cycle_seq": 1143, "part_code": null}, {"ct": 7.65, "time": "14:50:47", "remark": null, "line_id": 20, "cycle_seq": 1144, "part_code": null}, {"ct": 11.96, "time": "14:51:43", "remark": null, "line_id": 20, "cycle_seq": 1146, "part_code": null}, {"ct": 13.59, "time": "14:51:57", "remark": null, "line_id": 20, "cycle_seq": 1147, "part_code": null}, {"ct": 61.6, "time": "15:05:38", "remark": null, "line_id": 20, "cycle_seq": 1183, "part_code": null}, {"ct": 14.56, "time": "15:05:53", "remark": null, "line_id": 20, "cycle_seq": 1184, "part_code": null}, {"ct": 14.03, "time": "15:09:12", "remark": null, "line_id": 20, "cycle_seq": 1185, "part_code": null}, {"ct": 11.57, "time": "15:09:23", "remark": null, "line_id": 20, "cycle_seq": 1186, "part_code": null}, {"ct": 10.92, "time": "15:09:34", "remark": null, "line_id": 20, "cycle_seq": 1187, "part_code": null}]	2026-09-24 17:17:12.054209+05:30	2026-09-24 17:17:12.054209+05:30
 51826	18	1	2026-09-24	A	1	open	1 alarm on YRA-SS in shift A (2026-09-24); 0 with remark, 1 pending review.	[{"ct": 22.79, "time": "10:50:40", "remark": null, "line_id": 18, "cycle_seq": 477, "part_code": "923-1521606240092"}]	2026-09-24 17:17:12.054209+05:30	2026-09-24 17:17:12.054209+05:30
+51828	13	1	2026-09-25	A	1	open	7 alarms on YJC-SS in shift A (2026-09-25); 0 with remark, 7 pending review.	[{"ct": 431.69, "time": "08:37:11", "remark": null, "line_id": 13, "cycle_seq": 1, "part_code": null}, {"ct": 1959.91, "time": "09:09:51", "remark": null, "line_id": 13, "cycle_seq": 2, "part_code": "ERROR60924-1919411081062"}, {"ct": 15451.37, "time": "14:12:22", "remark": null, "line_id": 13, "cycle_seq": 3, "part_code": "00092D60925-0120411081062"}, {"ct": 5353.23, "time": "15:51:36", "remark": null, "line_id": 13, "cycle_seq": 4, "part_code": "00092D60925-1174411081062"}, {"ct": 306.95, "time": "15:56:43", "remark": null, "line_id": 13, "cycle_seq": 5, "part_code": "00092D60925-1506411081062"}, {"ct": 2816.98, "time": "16:43:40", "remark": null, "line_id": 13, "cycle_seq": 6, "part_code": "00092D60925-1530411081062"}, {"ct": 1549.36, "time": "17:09:29", "remark": null, "line_id": 13, "cycle_seq": 7, "part_code": "00092D60925-1726411081062"}]	2026-09-25 17:17:12.265398+05:30	2026-09-25 17:17:12.265398+05:30
+51829	6	3	2026-09-25	A	1	open	4 alarms on YWD-SS in shift A (2026-09-25); 0 with remark, 4 pending review.	[{"ct": 540.38, "time": "08:39:00", "remark": null, "line_id": 6, "cycle_seq": 1, "part_code": null}, {"ct": 12874.23, "time": "12:58:34", "remark": null, "line_id": 6, "cycle_seq": 2, "part_code": null}, {"ct": 288.38, "time": "13:03:22", "remark": null, "line_id": 6, "cycle_seq": 3, "part_code": null}, {"ct": 112.85, "time": "16:00:09", "remark": null, "line_id": 6, "cycle_seq": 401, "part_code": null}]	2026-09-25 17:17:12.265398+05:30	2026-09-25 17:17:12.265398+05:30
+51830	19	1	2026-09-25	A	1	open	43 alarms on YMC-SS in shift A (2026-09-25); 0 with remark, 43 pending review.	[{"ct": 849.5, "time": "08:44:09", "remark": null, "line_id": 19, "cycle_seq": 1, "part_code": null}, {"ct": 22.64, "time": "10:35:42", "remark": null, "line_id": 19, "cycle_seq": 361, "part_code": "00098D60925-0351606160026"}, {"ct": 73.45, "time": "11:32:55", "remark": null, "line_id": 19, "cycle_seq": 575, "part_code": "00098D60925-0566606120104"}, {"ct": 16.31, "time": "11:33:11", "remark": null, "line_id": 19, "cycle_seq": 576, "part_code": null}, {"ct": 44.33, "time": "11:33:55", "remark": null, "line_id": 19, "cycle_seq": 577, "part_code": null}, {"ct": 41.04, "time": "11:34:36", "remark": null, "line_id": 19, "cycle_seq": 578, "part_code": "ERROR"}, {"ct": 58.79, "time": "11:35:35", "remark": null, "line_id": 19, "cycle_seq": 579, "part_code": "ERROR"}, {"ct": 24.92, "time": "11:36:00", "remark": null, "line_id": 19, "cycle_seq": 580, "part_code": "ERROR"}, {"ct": 87.21, "time": "11:37:27", "remark": null, "line_id": 19, "cycle_seq": 581, "part_code": "ERROR"}, {"ct": 49.85, "time": "11:38:17", "remark": null, "line_id": 19, "cycle_seq": 582, "part_code": "ERROR"}, {"ct": 101.9, "time": "11:39:59", "remark": null, "line_id": 19, "cycle_seq": 583, "part_code": "ERROR"}, {"ct": 69.36, "time": "11:41:08", "remark": null, "line_id": 19, "cycle_seq": 584, "part_code": "ERROR"}, {"ct": 303.28, "time": "11:46:12", "remark": null, "line_id": 19, "cycle_seq": 585, "part_code": "ERROR"}, {"ct": 52.52, "time": "11:47:04", "remark": null, "line_id": 19, "cycle_seq": 586, "part_code": "ERROR"}, {"ct": 65.85, "time": "11:48:10", "remark": null, "line_id": 19, "cycle_seq": 587, "part_code": "00128D60925-0569606120104"}, {"ct": 13.93, "time": "11:48:24", "remark": null, "line_id": 19, "cycle_seq": 588, "part_code": null}, {"ct": 18.51, "time": "11:48:43", "remark": null, "line_id": 19, "cycle_seq": 589, "part_code": null}, {"ct": 115.14, "time": "11:50:38", "remark": null, "line_id": 19, "cycle_seq": 590, "part_code": "00128D60925-0569606120104"}, {"ct": 21.59, "time": "11:51:52", "remark": null, "line_id": 19, "cycle_seq": 591, "part_code": "00128D60925-0570606120104"}, {"ct": 10.62, "time": "11:53:44", "remark": null, "line_id": 19, "cycle_seq": 592, "part_code": "00128D60925-0573606120104"}, {"ct": 155.61, "time": "11:56:20", "remark": null, "line_id": 19, "cycle_seq": 593, "part_code": "00128D60925-0575606120104"}, {"ct": 21.19, "time": "11:59:29", "remark": null, "line_id": 19, "cycle_seq": 594, "part_code": "00128D60925-0576606120104"}, {"ct": 31.56, "time": "12:00:00", "remark": null, "line_id": 19, "cycle_seq": 595, "part_code": "00128D60925-0579606120104"}, {"ct": 0.0, "time": "12:01:38", "remark": null, "line_id": 19, "cycle_seq": 596, "part_code": "00128D60925-0579606120104"}, {"ct": 34.51, "time": "12:02:13", "remark": null, "line_id": 19, "cycle_seq": 597, "part_code": "00128D60925-0579606120104"}, {"ct": 78.95, "time": "12:03:32", "remark": null, "line_id": 19, "cycle_seq": 598, "part_code": "00128D60925-0577606120104"}, {"ct": 11.72, "time": "12:03:44", "remark": null, "line_id": 19, "cycle_seq": 599, "part_code": null}, {"ct": 13.93, "time": "12:03:58", "remark": null, "line_id": 19, "cycle_seq": 600, "part_code": null}, {"ct": 10.23, "time": "12:39:22", "remark": null, "line_id": 19, "cycle_seq": 601, "part_code": "00128D60925-0588606120104"}, {"ct": 38.6, "time": "12:40:00", "remark": null, "line_id": 19, "cycle_seq": 602, "part_code": null}, {"ct": 45.6, "time": "12:42:53", "remark": null, "line_id": 19, "cycle_seq": 603, "part_code": "00128D60925-0590606120104"}, {"ct": 80.18, "time": "12:47:00", "remark": null, "line_id": 19, "cycle_seq": 608, "part_code": "00128D60925-0596606120104"}, {"ct": 14.79, "time": "12:54:51", "remark": null, "line_id": 19, "cycle_seq": 630, "part_code": "00128D60925-0621606120017"}, {"ct": 58.42, "time": "13:26:01", "remark": null, "line_id": 19, "cycle_seq": 708, "part_code": "00128D60925-0703606120017"}, {"ct": 14.21, "time": "14:20:37", "remark": null, "line_id": 19, "cycle_seq": 885, "part_code": "00128D60925-0872606160095"}, {"ct": 20.17, "time": "14:30:09", "remark": null, "line_id": 19, "cycle_seq": 905, "part_code": "00128D60925-0899606160095"}, {"ct": 44.27, "time": "14:30:53", "remark": null, "line_id": 19, "cycle_seq": 906, "part_code": "00128D60925-0898606160095"}, {"ct": 0.0, "time": "14:36:26", "remark": null, "line_id": 19, "cycle_seq": 908, "part_code": "00128D60925-0898606160095"}, {"ct": 92.15, "time": "14:41:32", "remark": null, "line_id": 19, "cycle_seq": 909, "part_code": "ERROR"}, {"ct": 305.31, "time": "14:46:37", "remark": null, "line_id": 19, "cycle_seq": 910, "part_code": "ERROR"}, {"ct": 14.88, "time": "16:43:20", "remark": null, "line_id": 19, "cycle_seq": 1230, "part_code": "00128D60925-1211606120005"}, {"ct": 15.23, "time": "16:50:48", "remark": null, "line_id": 19, "cycle_seq": 1249, "part_code": "00128D60925-1223606120005"}, {"ct": 178.64, "time": "17:00:06", "remark": null, "line_id": 19, "cycle_seq": 1259, "part_code": "00128D60925-1241606120005"}]	2026-09-25 17:17:12.265398+05:30	2026-09-25 17:17:12.265398+05:30
+51831	15	1	2026-09-25	A	1	open	4 alarms on Y17-SS in shift A (2026-09-25); 0 with remark, 4 pending review.	[{"ct": 423.33, "time": "08:37:03", "remark": null, "line_id": 15, "cycle_seq": 1, "part_code": null}, {"ct": 36.4, "time": "10:27:21", "remark": null, "line_id": 15, "cycle_seq": 403, "part_code": "00097D60925-0398606150038"}, {"ct": 40.68, "time": "12:40:46", "remark": null, "line_id": 15, "cycle_seq": 804, "part_code": "00147D60925-0797606120107"}, {"ct": 30.46, "time": "15:05:51", "remark": null, "line_id": 15, "cycle_seq": 1359, "part_code": "00157D60925-1358606250116"}]	2026-09-25 17:17:12.265398+05:30	2026-09-25 17:17:12.265398+05:30
+51832	12	1	2026-09-25	A	1	open	3 alarms on YCA-SS in shift A (2026-09-25); 0 with remark, 3 pending review.	[{"ct": 9.9, "time": "12:35:38", "remark": null, "line_id": 12, "cycle_seq": 705, "part_code": "00105D60925-0699606120098"}, {"ct": 31.02, "time": "15:37:54", "remark": null, "line_id": 12, "cycle_seq": 1352, "part_code": "00105D60925-1304606120081"}, {"ct": 21.76, "time": "16:07:45", "remark": null, "line_id": 12, "cycle_seq": 1478, "part_code": "00115D60925-1469606120081"}]	2026-09-25 17:17:12.265398+05:30	2026-09-25 17:17:12.265398+05:30
+51833	8	3	2026-09-25	A	1	open	17 alarms on 2UA RECLINER in shift A (2026-09-25); 0 with remark, 17 pending review.	[{"ct": 31.59, "time": "09:05:08", "remark": null, "line_id": 8, "cycle_seq": 77, "part_code": null}, {"ct": 5.16, "time": "09:42:35", "remark": null, "line_id": 8, "cycle_seq": 196, "part_code": null}, {"ct": 76.7, "time": "10:50:18", "remark": null, "line_id": 8, "cycle_seq": 355, "part_code": null}, {"ct": 7.83, "time": "11:01:53", "remark": null, "line_id": 8, "cycle_seq": 390, "part_code": null}, {"ct": 5.55, "time": "13:09:37", "remark": null, "line_id": 8, "cycle_seq": 578, "part_code": null}, {"ct": 9.25, "time": "13:21:04", "remark": null, "line_id": 8, "cycle_seq": 609, "part_code": null}, {"ct": 10.62, "time": "13:38:04", "remark": null, "line_id": 8, "cycle_seq": 653, "part_code": null}, {"ct": 18.8, "time": "14:50:04", "remark": null, "line_id": 8, "cycle_seq": 724, "part_code": null}, {"ct": 24.5, "time": "15:07:58", "remark": null, "line_id": 8, "cycle_seq": 773, "part_code": null}, {"ct": 31.08, "time": "15:18:54", "remark": null, "line_id": 8, "cycle_seq": 806, "part_code": null}, {"ct": 5.43, "time": "15:22:38", "remark": null, "line_id": 8, "cycle_seq": 815, "part_code": null}, {"ct": 17.44, "time": "15:26:54", "remark": null, "line_id": 8, "cycle_seq": 827, "part_code": null}, {"ct": 12.35, "time": "15:27:06", "remark": null, "line_id": 8, "cycle_seq": 828, "part_code": null}, {"ct": 16.14, "time": "15:27:22", "remark": null, "line_id": 8, "cycle_seq": 829, "part_code": null}, {"ct": 31.41, "time": "15:27:54", "remark": null, "line_id": 8, "cycle_seq": 830, "part_code": null}, {"ct": 32.71, "time": "15:28:26", "remark": null, "line_id": 8, "cycle_seq": 831, "part_code": null}, {"ct": 16.57, "time": "15:28:43", "remark": null, "line_id": 8, "cycle_seq": 832, "part_code": null}]	2026-09-25 17:17:12.265398+05:30	2026-09-25 17:17:12.265398+05:30
+51834	4	1	2026-09-25	A	1	open	2 alarms on YSD-SS in shift A (2026-09-25); 0 with remark, 2 pending review.	[{"ct": 293.18, "time": "08:34:53", "remark": null, "line_id": 4, "cycle_seq": 1, "part_code": "00143N60924-1888606120076"}, {"ct": 5.32, "time": "11:24:03", "remark": null, "line_id": 4, "cycle_seq": 595, "part_code": "00143D60925-0586606120049"}]	2026-09-25 17:17:12.265398+05:30	2026-09-25 17:17:12.265398+05:30
+51835	7	3	2026-09-25	A	1	open	1 alarm on GEAR LIFTER in shift A (2026-09-25); 0 with remark, 1 pending review.	[{"ct": 319.21, "time": "08:35:19", "remark": null, "line_id": 7, "cycle_seq": 1, "part_code": null}]	2026-09-25 17:17:12.265398+05:30	2026-09-25 17:17:12.265398+05:30
+51836	18	1	2026-09-25	A	1	open	2 alarms on YRA-SS in shift A (2026-09-25); 0 with remark, 2 pending review.	[{"ct": 12.77, "time": "11:20:52", "remark": null, "line_id": 18, "cycle_seq": 546, "part_code": "925-0498606120012"}, {"ct": 5.07, "time": "13:18:20", "remark": null, "line_id": 18, "cycle_seq": 834, "part_code": "925-0781606120070"}]	2026-09-25 17:17:12.265398+05:30	2026-09-25 17:17:12.265398+05:30
+51837	20	2	2026-09-25	A	1	open	24 alarms on YMC Recliner in shift A (2026-09-25); 0 with remark, 24 pending review.	[{"ct": 717.07, "time": "08:41:57", "remark": null, "line_id": 20, "cycle_seq": 1, "part_code": null}, {"ct": 394.46, "time": "08:48:31", "remark": null, "line_id": 20, "cycle_seq": 2, "part_code": null}, {"ct": 31.32, "time": "08:49:02", "remark": null, "line_id": 20, "cycle_seq": 3, "part_code": null}, {"ct": 9.82, "time": "08:51:02", "remark": null, "line_id": 20, "cycle_seq": 4, "part_code": null}, {"ct": 9.91, "time": "11:39:17", "remark": null, "line_id": 20, "cycle_seq": 598, "part_code": null}, {"ct": 26.71, "time": "12:35:26", "remark": null, "line_id": 20, "cycle_seq": 684, "part_code": null}, {"ct": 10.14, "time": "14:50:18", "remark": null, "line_id": 20, "cycle_seq": 1142, "part_code": null}, {"ct": 14.89, "time": "14:55:13", "remark": null, "line_id": 20, "cycle_seq": 1162, "part_code": null}, {"ct": 5.31, "time": "14:55:19", "remark": null, "line_id": 20, "cycle_seq": 1163, "part_code": null}, {"ct": 10.17, "time": "14:58:39", "remark": null, "line_id": 20, "cycle_seq": 1175, "part_code": null}, {"ct": 26.21, "time": "15:00:31", "remark": null, "line_id": 20, "cycle_seq": 1179, "part_code": null}, {"ct": 10.62, "time": "15:00:42", "remark": null, "line_id": 20, "cycle_seq": 1180, "part_code": null}, {"ct": 9.64, "time": "15:27:25", "remark": null, "line_id": 20, "cycle_seq": 1287, "part_code": null}, {"ct": 13.53, "time": "15:29:23", "remark": null, "line_id": 20, "cycle_seq": 1295, "part_code": null}, {"ct": 9.72, "time": "15:29:45", "remark": null, "line_id": 20, "cycle_seq": 1296, "part_code": null}, {"ct": 9.1, "time": "15:29:54", "remark": null, "line_id": 20, "cycle_seq": 1297, "part_code": null}, {"ct": 9.38, "time": "15:30:03", "remark": null, "line_id": 20, "cycle_seq": 1298, "part_code": null}, {"ct": 9.49, "time": "15:30:13", "remark": null, "line_id": 20, "cycle_seq": 1299, "part_code": null}, {"ct": 8.57, "time": "15:30:21", "remark": null, "line_id": 20, "cycle_seq": 1300, "part_code": null}, {"ct": 10.75, "time": "15:31:04", "remark": null, "line_id": 20, "cycle_seq": 1301, "part_code": null}, {"ct": 169.3, "time": "15:33:54", "remark": null, "line_id": 20, "cycle_seq": 1302, "part_code": null}, {"ct": 19.48, "time": "15:36:07", "remark": null, "line_id": 20, "cycle_seq": 1303, "part_code": null}, {"ct": 13.34, "time": "15:38:47", "remark": null, "line_id": 20, "cycle_seq": 1304, "part_code": null}, {"ct": 11.67, "time": "16:42:22", "remark": null, "line_id": 20, "cycle_seq": 1540, "part_code": null}]	2026-09-25 17:17:12.265398+05:30	2026-09-25 17:17:12.265398+05:30
+51838	14	1	2026-09-25	A	1	open	28 alarms on YFG-SS in shift A (2026-09-25); 0 with remark, 28 pending review.	[{"ct": 432.55, "time": "08:37:12", "remark": null, "line_id": 14, "cycle_seq": 1, "part_code": null}, {"ct": 12.68, "time": "08:59:08", "remark": null, "line_id": 14, "cycle_seq": 67, "part_code": "00157D60925-0056606120045"}, {"ct": 46.79, "time": "09:14:00", "remark": null, "line_id": 14, "cycle_seq": 102, "part_code": "00157D60925-0088606120045"}, {"ct": 54.94, "time": "09:14:55", "remark": null, "line_id": 14, "cycle_seq": 103, "part_code": "ERROR"}, {"ct": 7.14, "time": "10:55:52", "remark": null, "line_id": 14, "cycle_seq": 478, "part_code": "00227D60925-0470606120019"}, {"ct": 31.96, "time": "11:25:31", "remark": null, "line_id": 14, "cycle_seq": 603, "part_code": "00227D60925-0292606120019"}, {"ct": 9.04, "time": "11:42:10", "remark": null, "line_id": 14, "cycle_seq": 675, "part_code": "00237D60925-0664606120097"}, {"ct": 7.27, "time": "12:00:07", "remark": null, "line_id": 14, "cycle_seq": 754, "part_code": "00237D60925-0743606120097"}, {"ct": 0.0, "time": "12:04:30", "remark": null, "line_id": 14, "cycle_seq": 755, "part_code": "ERROR"}, {"ct": 0.0, "time": "12:06:59", "remark": null, "line_id": 14, "cycle_seq": 756, "part_code": "ERROR"}, {"ct": 77.63, "time": "12:08:17", "remark": null, "line_id": 14, "cycle_seq": 757, "part_code": "00237D60925-0744606120097"}, {"ct": 0.0, "time": "12:11:13", "remark": null, "line_id": 14, "cycle_seq": 758, "part_code": "00237D60925-0752606120097"}, {"ct": 36.39, "time": "12:11:49", "remark": null, "line_id": 14, "cycle_seq": 759, "part_code": "00237D60925-0715606120097"}, {"ct": 0.0, "time": "12:19:59", "remark": null, "line_id": 14, "cycle_seq": 760, "part_code": "00237D60925-0752606120097"}, {"ct": 49.04, "time": "12:20:48", "remark": null, "line_id": 14, "cycle_seq": 761, "part_code": "00237D60925-0752606120097"}, {"ct": 0.0, "time": "12:22:53", "remark": null, "line_id": 14, "cycle_seq": 762, "part_code": "00237D60925-0752606120097"}, {"ct": 0.0, "time": "12:26:38", "remark": null, "line_id": 14, "cycle_seq": 763, "part_code": "00237D60925-0752606120097"}, {"ct": 0.0, "time": "12:32:42", "remark": null, "line_id": 14, "cycle_seq": 764, "part_code": "00237D60925-0752606120097"}, {"ct": 13.88, "time": "12:50:08", "remark": null, "line_id": 14, "cycle_seq": 812, "part_code": "00237D60925-0795606110107"}, {"ct": 49.65, "time": "12:59:26", "remark": null, "line_id": 14, "cycle_seq": 845, "part_code": "00237D60925-0833606110107"}, {"ct": 13.55, "time": "13:48:08", "remark": null, "line_id": 14, "cycle_seq": 1001, "part_code": "00217D60925-0993606110107"}, {"ct": 9.97, "time": "14:01:08", "remark": null, "line_id": 14, "cycle_seq": 1051, "part_code": null}, {"ct": 83.26, "time": "14:57:07", "remark": null, "line_id": 14, "cycle_seq": 1231, "part_code": "00217D60925-1184606120109"}, {"ct": 7.89, "time": "15:08:54", "remark": null, "line_id": 14, "cycle_seq": 1275, "part_code": "00207D60925-1264606120109"}, {"ct": 8.8, "time": "16:02:25", "remark": null, "line_id": 14, "cycle_seq": 1502, "part_code": "00207D60925-1489606090054"}, {"ct": 9.86, "time": "16:55:08", "remark": null, "line_id": 14, "cycle_seq": 1735, "part_code": "\\u0010"}, {"ct": 11.64, "time": "17:09:08", "remark": null, "line_id": 14, "cycle_seq": 1800, "part_code": "00207D60925-1767606160088"}, {"ct": 10.15, "time": "17:12:09", "remark": null, "line_id": 14, "cycle_seq": 1813, "part_code": null}]	2026-09-25 17:17:12.265398+05:30	2026-09-25 17:17:12.265398+05:30
+51839	2	1	2026-09-25	A	1	open	12 alarms on YNC-SS in shift A (2026-09-25); 1 with remark, 11 pending review.	[{"ct": 331.03, "time": "08:35:31", "remark": null, "line_id": 2, "cycle_seq": 1, "part_code": "00156N60924-1911606110008"}, {"ct": 123.42, "time": "12:57:07", "remark": null, "line_id": 2, "cycle_seq": 779, "part_code": "00156D60925-0740606110015"}, {"ct": 33.77, "time": "13:25:24", "remark": null, "line_id": 2, "cycle_seq": 902, "part_code": "00156D60925-0863606110015"}, {"ct": 6.52, "time": "13:40:34", "remark": null, "line_id": 2, "cycle_seq": 945, "part_code": "00096D60925-0904606110015"}, {"ct": 6.72, "time": "15:18:03", "remark": null, "line_id": 2, "cycle_seq": 1298, "part_code": "00096D60925-1258606110015"}, {"ct": 5.28, "time": "15:43:07", "remark": null, "line_id": 2, "cycle_seq": 1415, "part_code": null}, {"ct": 11.83, "time": "16:32:51", "remark": null, "line_id": 2, "cycle_seq": 1620, "part_code": "00096D60925-1579606110015"}, {"ct": 6.43, "time": "16:36:30", "remark": null, "line_id": 2, "cycle_seq": 1633, "part_code": "00096D60925-1594606110015"}, {"ct": 5.89, "time": "16:39:11", "remark": null, "line_id": 2, "cycle_seq": 1643, "part_code": null}, {"ct": 7.87, "time": "16:41:03", "remark": null, "line_id": 2, "cycle_seq": 1646, "part_code": "00096D60925-1603606110015"}, {"ct": 10.53, "time": "17:09:04", "remark": null, "line_id": 2, "cycle_seq": 1786, "part_code": "00096D60925-1738606110015"}, {"ct": 10.83, "time": "17:12:09", "remark": "PY Check", "line_id": 2, "cycle_seq": 1807, "part_code": "\\u0001"}]	2026-09-25 17:17:12.265398+05:30	2026-09-25 17:17:12.265398+05:30
+51840	14	1	2026-09-26	A	1	open	6 alarms on YFG-SS in shift A (2026-09-26); 0 with remark, 6 pending review.	[{"ct": 135.21, "time": "08:32:15", "remark": null, "line_id": 14, "cycle_seq": 1, "part_code": null}, {"ct": 71.0, "time": "11:14:34", "remark": null, "line_id": 14, "cycle_seq": 605, "part_code": "00227D60926-0601607200022"}, {"ct": 169.39, "time": "12:43:53", "remark": null, "line_id": 14, "cycle_seq": 798, "part_code": "00277D60926-0800607200106"}, {"ct": 69.81, "time": "13:37:31", "remark": null, "line_id": 14, "cycle_seq": 990, "part_code": "00217D60926-0988607200106"}, {"ct": 36.55, "time": "15:29:36", "remark": null, "line_id": 14, "cycle_seq": 1433, "part_code": null}, {"ct": 18.11, "time": "16:54:27", "remark": null, "line_id": 14, "cycle_seq": 1794, "part_code": "00227D60926-1793606150008"}]	2026-09-26 17:17:11.610585+05:30	2026-09-26 17:17:11.610585+05:30
+51841	11	1	2026-09-26	A	1	open	14 alarms on YHB-SS in shift A (2026-09-26); 0 with remark, 14 pending review.	[{"ct": 242.29, "time": "08:34:02", "remark": null, "line_id": 11, "cycle_seq": 1, "part_code": null}, {"ct": 487.82, "time": "08:42:10", "remark": null, "line_id": 11, "cycle_seq": 2, "part_code": "ERROR"}, {"ct": 61.66, "time": "08:43:11", "remark": null, "line_id": 11, "cycle_seq": 3, "part_code": "00094N60925-1693606080102"}, {"ct": 5.85, "time": "10:45:58", "remark": null, "line_id": 11, "cycle_seq": 466, "part_code": null}, {"ct": 6.51, "time": "11:22:45", "remark": null, "line_id": 11, "cycle_seq": 574, "part_code": "00094D60926-0572607200117"}, {"ct": 9.38, "time": "11:27:10", "remark": null, "line_id": 11, "cycle_seq": 585, "part_code": "00094D60926-0575607200117"}, {"ct": 13.07, "time": "12:39:09", "remark": null, "line_id": 11, "cycle_seq": 728, "part_code": "00094D60926-0725607200117"}, {"ct": 101.44, "time": "12:40:51", "remark": null, "line_id": 11, "cycle_seq": 729, "part_code": "00094D60926-0718607200117"}, {"ct": 47.75, "time": "13:14:22", "remark": null, "line_id": 11, "cycle_seq": 887, "part_code": "00094D60926-0881607200109"}, {"ct": 34.5, "time": "13:37:01", "remark": null, "line_id": 11, "cycle_seq": 987, "part_code": "00074D60926-0977607200109"}, {"ct": 6.78, "time": "15:33:54", "remark": null, "line_id": 11, "cycle_seq": 1440, "part_code": "00094D60926-1438606110021"}, {"ct": 20.55, "time": "16:00:42", "remark": null, "line_id": 11, "cycle_seq": 1544, "part_code": "00094D60926-1538606110073"}, {"ct": 7.33, "time": "16:07:03", "remark": null, "line_id": 11, "cycle_seq": 1572, "part_code": "00094D60926-1569606110073"}, {"ct": 6.25, "time": "17:01:39", "remark": null, "line_id": 11, "cycle_seq": 1807, "part_code": null}]	2026-09-26 17:17:11.610585+05:30	2026-09-26 17:17:11.610585+05:30
+51842	20	2	2026-09-26	A	1	open	48 alarms on YMC Recliner in shift A (2026-09-26); 0 with remark, 48 pending review.	[{"ct": 622.31, "time": "08:40:22", "remark": null, "line_id": 20, "cycle_seq": 1, "part_code": null}, {"ct": 19.56, "time": "08:48:37", "remark": null, "line_id": 20, "cycle_seq": 4, "part_code": null}, {"ct": 0.0, "time": "09:58:33", "remark": null, "line_id": 20, "cycle_seq": 173, "part_code": null}, {"ct": 0.0, "time": "10:10:44", "remark": null, "line_id": 20, "cycle_seq": 182, "part_code": null}, {"ct": 0.0, "time": "10:18:52", "remark": null, "line_id": 20, "cycle_seq": 216, "part_code": null}, {"ct": 39.98, "time": "10:30:03", "remark": null, "line_id": 20, "cycle_seq": 252, "part_code": null}, {"ct": 183.05, "time": "10:33:06", "remark": null, "line_id": 20, "cycle_seq": 253, "part_code": null}, {"ct": 0.0, "time": "13:37:01", "remark": null, "line_id": 20, "cycle_seq": 713, "part_code": null}, {"ct": 9.81, "time": "13:42:05", "remark": null, "line_id": 20, "cycle_seq": 733, "part_code": null}, {"ct": 0.0, "time": "13:47:10", "remark": null, "line_id": 20, "cycle_seq": 754, "part_code": null}, {"ct": 0.0, "time": "13:49:12", "remark": null, "line_id": 20, "cycle_seq": 762, "part_code": null}, {"ct": 0.0, "time": "13:50:14", "remark": null, "line_id": 20, "cycle_seq": 767, "part_code": null}, {"ct": 0.0, "time": "13:56:19", "remark": null, "line_id": 20, "cycle_seq": 792, "part_code": null}, {"ct": 0.0, "time": "13:57:21", "remark": null, "line_id": 20, "cycle_seq": 795, "part_code": null}, {"ct": 0.0, "time": "14:00:04", "remark": null, "line_id": 20, "cycle_seq": 808, "part_code": null}, {"ct": 0.0, "time": "14:05:23", "remark": null, "line_id": 20, "cycle_seq": 828, "part_code": null}, {"ct": 0.0, "time": "14:05:35", "remark": null, "line_id": 20, "cycle_seq": 829, "part_code": null}, {"ct": 0.0, "time": "14:18:35", "remark": null, "line_id": 20, "cycle_seq": 876, "part_code": null}, {"ct": 8.89, "time": "14:29:03", "remark": null, "line_id": 20, "cycle_seq": 918, "part_code": null}, {"ct": 71.1, "time": "14:31:03", "remark": null, "line_id": 20, "cycle_seq": 922, "part_code": null}, {"ct": 0.0, "time": "14:37:03", "remark": null, "line_id": 20, "cycle_seq": 923, "part_code": null}, {"ct": 0.0, "time": "14:39:03", "remark": null, "line_id": 20, "cycle_seq": 924, "part_code": null}, {"ct": 0.0, "time": "14:44:03", "remark": null, "line_id": 20, "cycle_seq": 937, "part_code": null}, {"ct": 0.0, "time": "14:50:53", "remark": null, "line_id": 20, "cycle_seq": 966, "part_code": null}, {"ct": 12.54, "time": "14:55:07", "remark": null, "line_id": 20, "cycle_seq": 983, "part_code": null}, {"ct": 10.13, "time": "15:02:11", "remark": null, "line_id": 20, "cycle_seq": 1011, "part_code": null}, {"ct": 6.75, "time": "15:07:08", "remark": null, "line_id": 20, "cycle_seq": 1028, "part_code": null}, {"ct": 5.44, "time": "15:08:03", "remark": null, "line_id": 20, "cycle_seq": 1032, "part_code": null}, {"ct": 11.99, "time": "15:20:03", "remark": null, "line_id": 20, "cycle_seq": 1078, "part_code": null}, {"ct": 14.11, "time": "15:23:09", "remark": null, "line_id": 20, "cycle_seq": 1091, "part_code": null}, {"ct": 0.0, "time": "15:23:39", "remark": null, "line_id": 20, "cycle_seq": 1094, "part_code": null}, {"ct": 240.04, "time": "15:29:03", "remark": null, "line_id": 20, "cycle_seq": 1099, "part_code": null}, {"ct": 126.6, "time": "15:31:09", "remark": null, "line_id": 20, "cycle_seq": 1100, "part_code": null}, {"ct": 8.16, "time": "15:46:10", "remark": null, "line_id": 20, "cycle_seq": 1122, "part_code": null}, {"ct": 11.67, "time": "15:59:03", "remark": null, "line_id": 20, "cycle_seq": 1169, "part_code": null}, {"ct": 9.73, "time": "16:24:03", "remark": null, "line_id": 20, "cycle_seq": 1269, "part_code": null}, {"ct": 14.39, "time": "16:26:03", "remark": null, "line_id": 20, "cycle_seq": 1277, "part_code": null}, {"ct": 0.0, "time": "16:27:03", "remark": null, "line_id": 20, "cycle_seq": 1282, "part_code": null}, {"ct": 117.29, "time": "16:31:42", "remark": null, "line_id": 20, "cycle_seq": 1292, "part_code": null}, {"ct": 8.66, "time": "16:37:03", "remark": null, "line_id": 20, "cycle_seq": 1306, "part_code": null}, {"ct": 9.54, "time": "16:38:13", "remark": null, "line_id": 20, "cycle_seq": 1310, "part_code": null}, {"ct": 82.62, "time": "16:40:13", "remark": null, "line_id": 20, "cycle_seq": 1313, "part_code": null}, {"ct": 10.19, "time": "16:43:02", "remark": null, "line_id": 20, "cycle_seq": 1322, "part_code": null}, {"ct": 15.85, "time": "16:44:43", "remark": null, "line_id": 20, "cycle_seq": 1328, "part_code": null}, {"ct": 7.08, "time": "16:47:03", "remark": null, "line_id": 20, "cycle_seq": 1337, "part_code": null}, {"ct": 8.79, "time": "16:59:03", "remark": null, "line_id": 20, "cycle_seq": 1387, "part_code": null}, {"ct": 13.15, "time": "17:04:26", "remark": null, "line_id": 20, "cycle_seq": 1409, "part_code": null}, {"ct": 12.36, "time": "17:06:08", "remark": null, "line_id": 20, "cycle_seq": 1416, "part_code": null}]	2026-09-26 17:17:11.610585+05:30	2026-09-26 17:17:11.610585+05:30
+51843	6	3	2026-09-26	A	1	open	2 alarms on YWD-SS in shift A (2026-09-26); 0 with remark, 2 pending review.	[{"ct": 5049.54, "time": "11:58:51", "remark": null, "line_id": 6, "cycle_seq": 589, "part_code": null}, {"ct": 184.33, "time": "15:17:22", "remark": null, "line_id": 6, "cycle_seq": 1361, "part_code": null}]	2026-09-26 17:17:11.610585+05:30	2026-09-26 17:17:11.610585+05:30
+51844	2	1	2026-09-26	A	1	open	14 alarms on YNC-SS in shift A (2026-09-26); 0 with remark, 14 pending review.	[{"ct": 83.09, "time": "08:31:23", "remark": null, "line_id": 2, "cycle_seq": 1, "part_code": "00156N60925-1907607150037"}, {"ct": 7.0, "time": "13:09:25", "remark": null, "line_id": 2, "cycle_seq": 937, "part_code": "00156D60926-0928607200034"}, {"ct": 55.91, "time": "13:10:21", "remark": null, "line_id": 2, "cycle_seq": 938, "part_code": "00156D60926-0929607200034"}, {"ct": 40.46, "time": "13:26:43", "remark": null, "line_id": 2, "cycle_seq": 1002, "part_code": "00156D60926-0991607200034"}, {"ct": 5.35, "time": "13:47:59", "remark": null, "line_id": 2, "cycle_seq": 1092, "part_code": null}, {"ct": 8.11, "time": "14:42:20", "remark": null, "line_id": 2, "cycle_seq": 1236, "part_code": "00096D60926-1223607200034"}, {"ct": 106.03, "time": "15:05:34", "remark": null, "line_id": 2, "cycle_seq": 1274, "part_code": null}, {"ct": 10.64, "time": "15:09:31", "remark": null, "line_id": 2, "cycle_seq": 1280, "part_code": "00096D60926-1273607200034"}, {"ct": 9.78, "time": "15:21:28", "remark": null, "line_id": 2, "cycle_seq": 1341, "part_code": "00096D60926-1328607200034"}, {"ct": 21.79, "time": "15:23:40", "remark": null, "line_id": 2, "cycle_seq": 1346, "part_code": "00096D60926-1335607200034"}, {"ct": 239.8, "time": "16:51:29", "remark": null, "line_id": 2, "cycle_seq": 1680, "part_code": "00096D60926-1667607200034"}, {"ct": 44.06, "time": "16:52:13", "remark": null, "line_id": 2, "cycle_seq": 1681, "part_code": "00147D60504-0674601080111"}, {"ct": 13.6, "time": "16:56:23", "remark": null, "line_id": 2, "cycle_seq": 1698, "part_code": "00096D60926-1678607200034"}, {"ct": 8.43, "time": "17:06:03", "remark": null, "line_id": 2, "cycle_seq": 1739, "part_code": "00096D60926-1701607200034"}]	2026-09-26 17:17:11.610585+05:30	2026-09-26 17:17:11.610585+05:30
+51845	13	1	2026-09-26	A	1	open	5 alarms on YJC-SS in shift A (2026-09-26); 0 with remark, 5 pending review.	[{"ct": 104.83, "time": "08:31:44", "remark": null, "line_id": 13, "cycle_seq": 1, "part_code": null}, {"ct": 12.76, "time": "10:43:09", "remark": null, "line_id": 13, "cycle_seq": 479, "part_code": "00092D60926-0465411081062"}, {"ct": 12.7, "time": "15:24:56", "remark": null, "line_id": 13, "cycle_seq": 1365, "part_code": "00092D60926-1348411081062"}, {"ct": 11.41, "time": "15:49:14", "remark": null, "line_id": 13, "cycle_seq": 1459, "part_code": "00092D60926-1440411081062"}, {"ct": 10.99, "time": "15:58:28", "remark": null, "line_id": 13, "cycle_seq": 1495, "part_code": "00092D60926-1478411081062"}]	2026-09-26 17:17:11.610585+05:30	2026-09-26 17:17:11.610585+05:30
+51846	12	1	2026-09-26	A	1	open	5 alarms on YCA-SS in shift A (2026-09-26); 0 with remark, 5 pending review.	[{"ct": 1306.72, "time": "10:56:29", "remark": null, "line_id": 12, "cycle_seq": 400, "part_code": null}, {"ct": 38.99, "time": "12:00:46", "remark": null, "line_id": 12, "cycle_seq": 705, "part_code": "00105D60926-0699606290023"}, {"ct": 51.87, "time": "12:01:38", "remark": null, "line_id": 12, "cycle_seq": 706, "part_code": "ERROR"}, {"ct": 35.87, "time": "14:51:34", "remark": null, "line_id": 12, "cycle_seq": 1196, "part_code": "00105D60926-1190607200081"}, {"ct": 6.85, "time": "15:21:00", "remark": null, "line_id": 12, "cycle_seq": 1314, "part_code": "00115D60926-1309606110100"}]	2026-09-26 17:17:11.610585+05:30	2026-09-26 17:17:11.610585+05:30
+51849	8	3	2026-09-26	A	1	open	6 alarms on 2UA RECLINER in shift A (2026-09-26); 0 with remark, 6 pending review.	[{"ct": 47.34, "time": "13:40:41", "remark": null, "line_id": 8, "cycle_seq": 172, "part_code": null}, {"ct": 116.82, "time": "13:42:38", "remark": null, "line_id": 8, "cycle_seq": 173, "part_code": null}, {"ct": 9.48, "time": "14:52:53", "remark": null, "line_id": 8, "cycle_seq": 333, "part_code": null}, {"ct": 8.72, "time": "14:53:02", "remark": null, "line_id": 8, "cycle_seq": 334, "part_code": null}, {"ct": 41.88, "time": "14:53:44", "remark": null, "line_id": 8, "cycle_seq": 335, "part_code": null}, {"ct": 16.05, "time": "14:54:00", "remark": null, "line_id": 8, "cycle_seq": 336, "part_code": null}]	2026-09-26 17:17:11.610585+05:30	2026-09-26 17:17:11.610585+05:30
+51850	15	1	2026-09-26	A	1	open	15 alarms on Y17-SS in shift A (2026-09-26); 0 with remark, 15 pending review.	[{"ct": 158.61, "time": "08:32:38", "remark": null, "line_id": 15, "cycle_seq": 1, "part_code": null}, {"ct": 267.46, "time": "08:37:06", "remark": null, "line_id": 15, "cycle_seq": 2, "part_code": "ERROR"}, {"ct": 10.48, "time": "09:19:45", "remark": null, "line_id": 15, "cycle_seq": 176, "part_code": "00248D60926-0159607200118"}, {"ct": 35.23, "time": "09:36:39", "remark": null, "line_id": 15, "cycle_seq": 241, "part_code": "00248D60926-0230607200118"}, {"ct": 0.0, "time": "10:04:04", "remark": null, "line_id": 15, "cycle_seq": 334, "part_code": "00157D60926-0326606080047"}, {"ct": 74.48, "time": "10:05:19", "remark": null, "line_id": 15, "cycle_seq": 335, "part_code": "ERROR"}, {"ct": 0.0, "time": "10:07:47", "remark": null, "line_id": 15, "cycle_seq": 336, "part_code": "ERROR"}, {"ct": 0.0, "time": "10:09:20", "remark": null, "line_id": 15, "cycle_seq": 337, "part_code": "ERROR"}, {"ct": 64.45, "time": "10:10:25", "remark": null, "line_id": 15, "cycle_seq": 338, "part_code": "ERROR"}, {"ct": 51.71, "time": "10:11:17", "remark": null, "line_id": 15, "cycle_seq": 339, "part_code": null}, {"ct": 9.91, "time": "11:59:56", "remark": null, "line_id": 15, "cycle_seq": 787, "part_code": "00157D60926-0778607150060"}, {"ct": 12.36, "time": "12:36:26", "remark": null, "line_id": 15, "cycle_seq": 788, "part_code": "00157D60926-0779607150060"}, {"ct": 33.75, "time": "13:50:16", "remark": null, "line_id": 15, "cycle_seq": 1092, "part_code": "00157D60926-1052607150078"}, {"ct": 29.56, "time": "14:04:25", "remark": null, "line_id": 15, "cycle_seq": 1147, "part_code": "00147D60926-1136607150078"}, {"ct": 10.85, "time": "17:06:10", "remark": null, "line_id": 15, "cycle_seq": 1861, "part_code": "\\u000e"}]	2026-09-26 17:17:11.610585+05:30	2026-09-26 17:17:11.610585+05:30
+51851	18	1	2026-09-26	A	1	open	1 alarm on YRA-SS in shift A (2026-09-26); 0 with remark, 1 pending review.	[{"ct": 40.43, "time": "12:47:41", "remark": null, "line_id": 18, "cycle_seq": 782, "part_code": "926-0001606120069"}]	2026-09-26 17:17:11.610585+05:30	2026-09-26 17:17:11.610585+05:30
+51852	19	1	2026-09-26	A	1	open	21 alarms on YMC-SS in shift A (2026-09-26); 0 with remark, 21 pending review.	[{"ct": 198.13, "time": "08:33:18", "remark": null, "line_id": 19, "cycle_seq": 1, "part_code": null}, {"ct": 149.08, "time": "08:35:47", "remark": null, "line_id": 19, "cycle_seq": 2, "part_code": "ERROR"}, {"ct": 102.31, "time": "08:37:29", "remark": null, "line_id": 19, "cycle_seq": 3, "part_code": "ERROR"}, {"ct": 290.86, "time": "08:45:07", "remark": null, "line_id": 19, "cycle_seq": 5, "part_code": "00098N60925-1012606080064"}, {"ct": 210.37, "time": "08:48:37", "remark": null, "line_id": 19, "cycle_seq": 6, "part_code": "\\u0001"}, {"ct": 41.99, "time": "10:03:16", "remark": null, "line_id": 19, "cycle_seq": 212, "part_code": "00098D60926-0205606290028"}, {"ct": 0.0, "time": "10:06:12", "remark": null, "line_id": 19, "cycle_seq": 213, "part_code": "ERROR"}, {"ct": 36.78, "time": "10:06:49", "remark": null, "line_id": 19, "cycle_seq": 214, "part_code": "ERROR"}, {"ct": 36.36, "time": "10:07:25", "remark": null, "line_id": 19, "cycle_seq": 215, "part_code": "ERROR"}, {"ct": 0.0, "time": "10:09:00", "remark": null, "line_id": 19, "cycle_seq": 216, "part_code": "ERROR"}, {"ct": 95.0, "time": "10:11:35", "remark": null, "line_id": 19, "cycle_seq": 217, "part_code": "ERROR"}, {"ct": 84.01, "time": "11:48:45", "remark": null, "line_id": 19, "cycle_seq": 582, "part_code": "00098D60926-0546606080042"}, {"ct": 29.07, "time": "11:49:15", "remark": null, "line_id": 19, "cycle_seq": 583, "part_code": null}, {"ct": 77.16, "time": "11:50:32", "remark": null, "line_id": 19, "cycle_seq": 584, "part_code": "ERROR"}, {"ct": 63.82, "time": "11:51:36", "remark": null, "line_id": 19, "cycle_seq": 585, "part_code": "ERROR"}, {"ct": 75.32, "time": "11:52:51", "remark": null, "line_id": 19, "cycle_seq": 586, "part_code": "ERROR"}, {"ct": 172.92, "time": "11:57:23", "remark": null, "line_id": 19, "cycle_seq": 587, "part_code": "00128N60924-0102606160012"}, {"ct": 0.0, "time": "12:04:37", "remark": null, "line_id": 19, "cycle_seq": 593, "part_code": "00128N60924-0105606160012"}, {"ct": 10.79, "time": "15:02:29", "remark": null, "line_id": 19, "cycle_seq": 896, "part_code": "00128D60926-0844607200124"}, {"ct": 44.57, "time": "15:23:12", "remark": null, "line_id": 19, "cycle_seq": 943, "part_code": "00128D60926-0889607200116"}, {"ct": 42.97, "time": "15:23:55", "remark": null, "line_id": 19, "cycle_seq": 944, "part_code": null}]	2026-09-26 17:17:11.610585+05:30	2026-09-26 17:17:11.610585+05:30
+51853	20	2	2026-09-27	A	1	open	29 alarms on YMC Recliner in shift A (2026-09-27); 0 with remark, 29 pending review.	[{"ct": 6251.25, "time": "11:04:16", "remark": null, "line_id": 20, "cycle_seq": 17, "part_code": null}, {"ct": 61.06, "time": "11:05:17", "remark": null, "line_id": 20, "cycle_seq": 18, "part_code": null}, {"ct": 61.12, "time": "11:06:18", "remark": null, "line_id": 20, "cycle_seq": 19, "part_code": null}, {"ct": 0.0, "time": "12:06:17", "remark": null, "line_id": 20, "cycle_seq": 20, "part_code": null}, {"ct": 0.0, "time": "12:08:04", "remark": null, "line_id": 20, "cycle_seq": 21, "part_code": null}, {"ct": 75.81, "time": "12:09:20", "remark": null, "line_id": 20, "cycle_seq": 22, "part_code": null}, {"ct": 0.0, "time": "12:11:49", "remark": null, "line_id": 20, "cycle_seq": 23, "part_code": null}, {"ct": 34.51, "time": "12:14:25", "remark": null, "line_id": 20, "cycle_seq": 24, "part_code": null}, {"ct": 0.0, "time": "12:23:33", "remark": null, "line_id": 20, "cycle_seq": 25, "part_code": null}, {"ct": 84.83, "time": "12:28:39", "remark": null, "line_id": 20, "cycle_seq": 30, "part_code": null}, {"ct": 53.48, "time": "12:31:42", "remark": null, "line_id": 20, "cycle_seq": 31, "part_code": null}, {"ct": 0.0, "time": "12:34:45", "remark": null, "line_id": 20, "cycle_seq": 32, "part_code": null}, {"ct": 188.56, "time": "12:58:08", "remark": null, "line_id": 20, "cycle_seq": 33, "part_code": null}, {"ct": 170.01, "time": "13:26:28", "remark": null, "line_id": 20, "cycle_seq": 45, "part_code": null}, {"ct": 366.02, "time": "13:32:34", "remark": null, "line_id": 20, "cycle_seq": 46, "part_code": null}, {"ct": 116.19, "time": "13:35:38", "remark": null, "line_id": 20, "cycle_seq": 47, "part_code": null}, {"ct": 427.05, "time": "13:42:45", "remark": null, "line_id": 20, "cycle_seq": 48, "part_code": null}, {"ct": 793.22, "time": "13:55:58", "remark": null, "line_id": 20, "cycle_seq": 49, "part_code": null}, {"ct": 544.63, "time": "14:05:03", "remark": null, "line_id": 20, "cycle_seq": 50, "part_code": null}, {"ct": 919.01, "time": "14:20:22", "remark": null, "line_id": 20, "cycle_seq": 51, "part_code": null}, {"ct": 183.21, "time": "14:23:25", "remark": null, "line_id": 20, "cycle_seq": 52, "part_code": null}, {"ct": 394.62, "time": "14:36:38", "remark": null, "line_id": 20, "cycle_seq": 53, "part_code": null}, {"ct": 103.4, "time": "14:41:43", "remark": null, "line_id": 20, "cycle_seq": 54, "part_code": null}, {"ct": 183.26, "time": "14:44:46", "remark": null, "line_id": 20, "cycle_seq": 55, "part_code": null}, {"ct": 176.0, "time": "15:00:01", "remark": null, "line_id": 20, "cycle_seq": 56, "part_code": null}, {"ct": 2315.83, "time": "16:06:06", "remark": null, "line_id": 20, "cycle_seq": 61, "part_code": null}, {"ct": 60.55, "time": "16:07:07", "remark": null, "line_id": 20, "cycle_seq": 62, "part_code": null}, {"ct": 122.49, "time": "16:09:09", "remark": null, "line_id": 20, "cycle_seq": 63, "part_code": null}, {"ct": 121.54, "time": "16:11:11", "remark": null, "line_id": 20, "cycle_seq": 64, "part_code": null}]	2026-09-27 17:17:11.791412+05:30	2026-09-27 17:17:11.791412+05:30
+51854	12	1	2026-09-27	A	1	open	1 alarm on YCA-SS in shift A (2026-09-27); 0 with remark, 1 pending review.	[{"ct": 7113.1, "time": "11:11:36", "remark": null, "line_id": 12, "cycle_seq": 2, "part_code": "00125N60926-1650607150079"}]	2026-09-27 17:17:11.791412+05:30	2026-09-27 17:17:11.791412+05:30
+51855	18	1	2026-09-27	A	1	open	2 alarms on YRA-SS in shift A (2026-09-27); 0 with remark, 2 pending review.	[{"ct": 6108.34, "time": "13:28:24", "remark": null, "line_id": 18, "cycle_seq": 17, "part_code": null}, {"ct": 4964.04, "time": "15:01:08", "remark": null, "line_id": 18, "cycle_seq": 18, "part_code": "926-1684606110001"}]	2026-09-27 17:17:11.791412+05:30	2026-09-27 17:17:11.791412+05:30
 \.
 
 
@@ -31734,6 +31671,35 @@ COPY public.mes_shift_escalation_log (id, escalation_id, level_no, admin_id, act
 51841	51824	1	\N	created	11 alarms on Y17-SS in shift A (2026-09-24); 0 with remark, 11 pending review.	2026-09-24 17:17:12.054209+05:30
 51842	51825	1	\N	created	36 alarms on YMC Recliner in shift A (2026-09-24); 0 with remark, 36 pending review.	2026-09-24 17:17:12.054209+05:30
 51843	51826	1	\N	created	1 alarm on YRA-SS in shift A (2026-09-24); 0 with remark, 1 pending review.	2026-09-24 17:17:12.054209+05:30
+51844	51827	1	\N	created	15 alarms on YHB-SS in shift A (2026-09-25); 0 with remark, 15 pending review.	2026-09-25 17:17:12.265398+05:30
+51845	51828	1	\N	created	7 alarms on YJC-SS in shift A (2026-09-25); 0 with remark, 7 pending review.	2026-09-25 17:17:12.265398+05:30
+51846	51829	1	\N	created	4 alarms on YWD-SS in shift A (2026-09-25); 0 with remark, 4 pending review.	2026-09-25 17:17:12.265398+05:30
+51847	51830	1	\N	created	43 alarms on YMC-SS in shift A (2026-09-25); 0 with remark, 43 pending review.	2026-09-25 17:17:12.265398+05:30
+51848	51831	1	\N	created	4 alarms on Y17-SS in shift A (2026-09-25); 0 with remark, 4 pending review.	2026-09-25 17:17:12.265398+05:30
+51849	51832	1	\N	created	3 alarms on YCA-SS in shift A (2026-09-25); 0 with remark, 3 pending review.	2026-09-25 17:17:12.265398+05:30
+51850	51833	1	\N	created	17 alarms on 2UA RECLINER in shift A (2026-09-25); 0 with remark, 17 pending review.	2026-09-25 17:17:12.265398+05:30
+51851	51834	1	\N	created	2 alarms on YSD-SS in shift A (2026-09-25); 0 with remark, 2 pending review.	2026-09-25 17:17:12.265398+05:30
+51852	51835	1	\N	created	1 alarm on GEAR LIFTER in shift A (2026-09-25); 0 with remark, 1 pending review.	2026-09-25 17:17:12.265398+05:30
+51853	51836	1	\N	created	2 alarms on YRA-SS in shift A (2026-09-25); 0 with remark, 2 pending review.	2026-09-25 17:17:12.265398+05:30
+51854	51837	1	\N	created	24 alarms on YMC Recliner in shift A (2026-09-25); 0 with remark, 24 pending review.	2026-09-25 17:17:12.265398+05:30
+51855	51838	1	\N	created	28 alarms on YFG-SS in shift A (2026-09-25); 0 with remark, 28 pending review.	2026-09-25 17:17:12.265398+05:30
+51856	51839	1	\N	created	12 alarms on YNC-SS in shift A (2026-09-25); 1 with remark, 11 pending review.	2026-09-25 17:17:12.265398+05:30
+51857	51840	1	\N	created	6 alarms on YFG-SS in shift A (2026-09-26); 0 with remark, 6 pending review.	2026-09-26 17:17:11.610585+05:30
+51858	51841	1	\N	created	14 alarms on YHB-SS in shift A (2026-09-26); 0 with remark, 14 pending review.	2026-09-26 17:17:11.610585+05:30
+51859	51842	1	\N	created	48 alarms on YMC Recliner in shift A (2026-09-26); 0 with remark, 48 pending review.	2026-09-26 17:17:11.610585+05:30
+51860	51843	1	\N	created	2 alarms on YWD-SS in shift A (2026-09-26); 0 with remark, 2 pending review.	2026-09-26 17:17:11.610585+05:30
+51861	51844	1	\N	created	14 alarms on YNC-SS in shift A (2026-09-26); 0 with remark, 14 pending review.	2026-09-26 17:17:11.610585+05:30
+51862	51845	1	\N	created	5 alarms on YJC-SS in shift A (2026-09-26); 0 with remark, 5 pending review.	2026-09-26 17:17:11.610585+05:30
+51863	51846	1	\N	created	5 alarms on YCA-SS in shift A (2026-09-26); 0 with remark, 5 pending review.	2026-09-26 17:17:11.610585+05:30
+51864	51847	1	\N	created	2 alarms on GEAR LIFTER in shift A (2026-09-26); 0 with remark, 2 pending review.	2026-09-26 17:17:11.610585+05:30
+51865	51848	1	\N	created	4 alarms on YSD-SS in shift A (2026-09-26); 0 with remark, 4 pending review.	2026-09-26 17:17:11.610585+05:30
+51866	51849	1	\N	created	6 alarms on 2UA RECLINER in shift A (2026-09-26); 0 with remark, 6 pending review.	2026-09-26 17:17:11.610585+05:30
+51867	51850	1	\N	created	15 alarms on Y17-SS in shift A (2026-09-26); 0 with remark, 15 pending review.	2026-09-26 17:17:11.610585+05:30
+51868	51851	1	\N	created	1 alarm on YRA-SS in shift A (2026-09-26); 0 with remark, 1 pending review.	2026-09-26 17:17:11.610585+05:30
+51869	51852	1	\N	created	21 alarms on YMC-SS in shift A (2026-09-26); 0 with remark, 21 pending review.	2026-09-26 17:17:11.610585+05:30
+51870	51853	1	\N	created	29 alarms on YMC Recliner in shift A (2026-09-27); 0 with remark, 29 pending review.	2026-09-27 17:17:11.791412+05:30
+51871	51854	1	\N	created	1 alarm on YCA-SS in shift A (2026-09-27); 0 with remark, 1 pending review.	2026-09-27 17:17:11.791412+05:30
+51872	51855	1	\N	created	2 alarms on YRA-SS in shift A (2026-09-27); 0 with remark, 2 pending review.	2026-09-27 17:17:11.791412+05:30
 \.
 
 
@@ -31741,8 +31707,8 @@ COPY public.mes_shift_escalation_log (id, escalation_id, level_no, admin_id, act
 -- Data for Name: mes_sixsigma_config; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-COPY public.mes_sixsigma_config (line_id, machine_name, cam1_name, cam1_url, cam2_name, cam2_url, retention_days, updated_by, updated_at, cam1_cid, cam2_cid) FROM stdin;
-4	Ball Guide-01	Camera 1	rtsp://admin:admin123@192.168.31.57:554/h264/ch1/sub/av_stream	Camera 2	rtsp://admin:admin123@192.168.31.58:554/h264/ch1/sub/av_stream	40	admin	2026-09-24 18:28:07.66103+05:30	cam_ysd_ss_ball_guide_01_camera_1_1790265370	cam_ysd_ss_ball_guide_01_camera_2_1790265370
+COPY public.mes_sixsigma_config (line_id, machine_name, cam1_name, cam1_url, cam2_name, cam2_url, retention_days, updated_by, updated_at, cam1_cid, cam2_cid, machine_plc_id) FROM stdin;
+4	Ball Guide-01	Camera 1	rtsp://admin:admin123@192.168.31.57:554/h264/ch1/sub/av_stream	Camera 2	rtsp://admin:admin123@192.168.31.58:554/h264/ch1/sub/av_stream	40	admin	2026-09-24 18:28:07.66103+05:30	cam_ysd_ss_ball_guide_01_camera_1_1790265370	cam_ysd_ss_ball_guide_01_camera_2_1790265370	\N
 \.
 
 
@@ -31907,6 +31873,168 @@ COPY public.mes_status_mappings (id, line_id, status_code, status_name, loss_typ
 125	10	6	OTHER_LOSS	others
 126	10	7	CHANGE_OVER	change_over
 127	10	8	BREAK	break
+128	21	0	IDLE	\N
+129	30	0	IDLE	\N
+130	31	0	IDLE	\N
+131	21	1	RUNNING	\N
+132	30	1	RUNNING	\N
+133	31	1	RUNNING	\N
+134	21	2	BREAKDOWN	breakdown
+135	30	2	BREAKDOWN	breakdown
+136	31	2	BREAKDOWN	breakdown
+137	21	3	QUALITY_ISSUE	quality
+138	30	3	QUALITY_ISSUE	quality
+139	31	3	QUALITY_ISSUE	quality
+140	21	4	MODEL_SETUP	setup
+141	30	4	MODEL_SETUP	setup
+142	31	4	MODEL_SETUP	setup
+143	21	5	MATERIAL_WAIT	material
+144	30	5	MATERIAL_WAIT	material
+145	31	5	MATERIAL_WAIT	material
+146	21	6	OTHER_LOSS	others
+147	30	6	OTHER_LOSS	others
+148	31	6	OTHER_LOSS	others
+149	21	7	CHANGE_OVER	change_over
+150	30	7	CHANGE_OVER	change_over
+151	31	7	CHANGE_OVER	change_over
+152	21	8	BREAK	break
+153	30	8	BREAK	break
+154	31	8	BREAK	break
+155	5	6	OTHER_LOSS	others
+156	33	5	MATERIAL_WAIT	material
+157	9	3	QUALITY_ISSUE	quality
+158	38	7	CHANGE_OVER	change_over
+159	27	2	BREAKDOWN	breakdown
+160	35	1	RUNNING	\N
+161	37	1	RUNNING	\N
+162	9	7	CHANGE_OVER	change_over
+163	38	3	QUALITY_ISSUE	quality
+164	36	8	BREAK	break
+165	37	4	MODEL_SETUP	setup
+166	35	4	MODEL_SETUP	setup
+167	39	5	MATERIAL_WAIT	material
+168	40	8	BREAK	break
+169	27	0	IDLE	\N
+170	37	7	CHANGE_OVER	change_over
+171	20	2	BREAKDOWN	breakdown
+172	35	7	CHANGE_OVER	change_over
+173	41	5	MATERIAL_WAIT	material
+174	40	6	OTHER_LOSS	others
+175	38	1	RUNNING	\N
+176	29	5	MATERIAL_WAIT	material
+177	9	4	MODEL_SETUP	setup
+178	36	6	OTHER_LOSS	others
+179	28	2	BREAKDOWN	breakdown
+180	20	0	IDLE	\N
+181	35	3	QUALITY_ISSUE	quality
+182	28	0	IDLE	\N
+183	37	3	QUALITY_ISSUE	quality
+184	38	4	MODEL_SETUP	setup
+185	9	1	RUNNING	\N
+186	5	8	BREAK	break
+187	34	5	MATERIAL_WAIT	material
+188	5	7	CHANGE_OVER	change_over
+189	41	2	BREAKDOWN	breakdown
+190	20	5	MATERIAL_WAIT	material
+191	36	1	RUNNING	\N
+192	29	2	BREAKDOWN	breakdown
+193	38	6	OTHER_LOSS	others
+194	40	1	RUNNING	\N
+195	34	0	IDLE	\N
+196	28	5	MATERIAL_WAIT	material
+197	29	0	IDLE	\N
+198	40	4	MODEL_SETUP	setup
+199	9	6	OTHER_LOSS	others
+200	41	0	IDLE	\N
+201	36	4	MODEL_SETUP	setup
+202	5	3	QUALITY_ISSUE	quality
+203	34	2	BREAKDOWN	breakdown
+204	35	8	BREAK	break
+205	37	8	BREAK	break
+206	35	6	OTHER_LOSS	others
+207	37	6	OTHER_LOSS	others
+208	40	7	CHANGE_OVER	change_over
+209	33	2	BREAKDOWN	breakdown
+210	39	0	IDLE	\N
+211	36	7	CHANGE_OVER	change_over
+212	9	8	BREAK	break
+213	27	5	MATERIAL_WAIT	material
+214	5	1	RUNNING	\N
+215	5	4	MODEL_SETUP	setup
+216	38	8	BREAK	break
+217	36	3	QUALITY_ISSUE	quality
+218	39	2	BREAKDOWN	breakdown
+219	33	0	IDLE	\N
+220	40	3	QUALITY_ISSUE	quality
+221	37	5	MATERIAL_WAIT	material
+222	41	7	CHANGE_OVER	change_over
+223	35	5	MATERIAL_WAIT	material
+224	5	2	BREAKDOWN	breakdown
+225	29	7	CHANGE_OVER	change_over
+226	34	3	QUALITY_ISSUE	quality
+227	33	1	RUNNING	\N
+228	39	4	MODEL_SETUP	setup
+229	27	6	OTHER_LOSS	others
+230	28	8	BREAK	break
+231	5	0	IDLE	\N
+232	39	1	RUNNING	\N
+233	41	3	QUALITY_ISSUE	quality
+234	20	8	BREAK	break
+235	33	4	MODEL_SETUP	setup
+236	34	7	CHANGE_OVER	change_over
+237	29	3	QUALITY_ISSUE	quality
+238	20	6	OTHER_LOSS	others
+239	39	3	QUALITY_ISSUE	quality
+240	40	2	BREAKDOWN	breakdown
+241	33	7	CHANGE_OVER	change_over
+242	34	4	MODEL_SETUP	setup
+243	29	1	RUNNING	\N
+244	38	5	MATERIAL_WAIT	material
+245	41	1	RUNNING	\N
+246	28	6	OTHER_LOSS	others
+247	36	2	BREAKDOWN	breakdown
+248	9	5	MATERIAL_WAIT	material
+249	29	4	MODEL_SETUP	setup
+250	27	8	BREAK	break
+251	34	1	RUNNING	\N
+252	33	3	QUALITY_ISSUE	quality
+253	40	0	IDLE	\N
+254	41	4	MODEL_SETUP	setup
+255	39	7	CHANGE_OVER	change_over
+256	36	0	IDLE	\N
+257	41	6	OTHER_LOSS	others
+258	28	1	RUNNING	\N
+259	9	0	IDLE	\N
+260	39	8	BREAK	break
+261	29	6	OTHER_LOSS	others
+262	40	5	MATERIAL_WAIT	material
+263	38	2	BREAKDOWN	breakdown
+264	20	1	RUNNING	\N
+265	36	5	MATERIAL_WAIT	material
+266	27	7	CHANGE_OVER	change_over
+267	9	2	BREAKDOWN	breakdown
+268	27	3	QUALITY_ISSUE	quality
+269	33	8	BREAK	break
+270	20	4	MODEL_SETUP	setup
+271	28	4	MODEL_SETUP	setup
+272	34	6	OTHER_LOSS	others
+273	38	0	IDLE	\N
+274	27	1	RUNNING	\N
+275	5	5	MATERIAL_WAIT	material
+276	35	2	BREAKDOWN	breakdown
+277	34	8	BREAK	break
+278	20	7	CHANGE_OVER	change_over
+279	37	2	BREAKDOWN	breakdown
+280	33	6	OTHER_LOSS	others
+281	28	7	CHANGE_OVER	change_over
+282	37	0	IDLE	\N
+283	35	0	IDLE	\N
+284	28	3	QUALITY_ISSUE	quality
+285	20	3	QUALITY_ISSUE	quality
+286	27	4	MODEL_SETUP	setup
+287	29	8	BREAK	break
+288	39	6	OTHER_LOSS	others
+289	41	8	BREAK	break
 \.
 
 
@@ -32294,25 +32422,12 @@ COPY public.mes_user_page_permissions (user_id, page_key, perm_level, updated_at
 34	dashboard	read	2026-09-13 17:34:34.816146+05:30
 34	shift-allocation	full	2026-09-13 17:34:34.816146+05:30
 34	shift-compile	full	2026-09-13 17:34:34.816146+05:30
-20	anything-wrong	read	2026-09-15 14:57:02.45808+05:30
-20	dashboard	read	2026-09-15 14:57:02.45808+05:30
-20	five-s	read	2026-09-15 14:57:02.45808+05:30
-20	historical	read	2026-09-15 14:57:02.45808+05:30
-20	import	read	2026-09-15 14:57:02.45808+05:30
-20	maintenance-dashboard	read	2026-09-15 14:57:02.45808+05:30
-20	maintenance-historical	read	2026-09-15 14:57:02.45808+05:30
-20	pdca	read	2026-09-15 14:57:02.45808+05:30
-20	process-graphs	none	2026-09-15 14:57:02.45808+05:30
-20	quality-deviations	read	2026-09-15 14:57:02.45808+05:30
 31	my-escalations	read	2026-09-07 13:23:39.643768+05:30
 31	store	read	2026-09-07 13:23:39.643768+05:30
 31	dispatch	read	2026-09-07 13:23:39.643768+05:30
 31	waiting-time	read	2026-09-07 13:23:39.643768+05:30
 31	anything-wrong	read	2026-09-07 13:23:39.643768+05:30
 31	five-s	read	2026-09-07 13:23:39.643768+05:30
-20	shift-allocation	full	2026-09-15 14:57:02.45808+05:30
-20	shift-calculator	none	2026-09-15 14:57:02.45808+05:30
-20	shift-compile	full	2026-09-15 14:57:02.45808+05:30
 31	pdca	read	2026-09-07 13:23:39.643768+05:30
 31	maintenance-dashboard	read	2026-09-07 13:23:39.643768+05:30
 31	maintenance-historical	read	2026-09-07 13:23:39.643768+05:30
@@ -32339,8 +32454,6 @@ COPY public.mes_user_page_permissions (user_id, page_key, perm_level, updated_at
 23	historical	read	2026-08-21 14:13:19.749639+05:30
 23	import	read	2026-08-21 14:13:19.749639+05:30
 23	process-graphs	read	2026-08-21 14:13:19.749639+05:30
-20	comments-history	full	2026-09-15 14:57:02.45808+05:30
-20	sa-fi-history	full	2026-09-15 14:57:02.45808+05:30
 24	import	read	2026-09-15 16:03:37.752113+05:30
 38	comments-history	full	2026-09-16 23:18:19.577379+05:30
 38	historical	full	2026-09-16 23:18:19.577379+05:30
@@ -32464,6 +32577,11 @@ COPY public.mes_user_page_permissions (user_id, page_key, perm_level, updated_at
 53	shift-compile	full	2026-09-15 15:29:03.887385+05:30
 53	my-escalations	full	2026-09-15 15:29:03.887385+05:30
 53	comments-history	full	2026-09-15 15:29:03.887385+05:30
+20	anything-wrong	read	2026-09-25 16:27:31.916104+05:30
+20	comments-history	full	2026-09-25 16:27:31.916104+05:30
+20	dashboard	read	2026-09-25 16:27:31.916104+05:30
+20	five-s	read	2026-09-25 16:27:31.916104+05:30
+20	historical	read	2026-09-25 16:27:31.916104+05:30
 16	dashboard	read	2026-09-21 12:17:57.129428+05:30
 16	historical	read	2026-09-21 12:17:57.129428+05:30
 16	shift-allocation	full	2026-09-21 12:17:57.129428+05:30
@@ -32474,6 +32592,17 @@ COPY public.mes_user_page_permissions (user_id, page_key, perm_level, updated_at
 17	shift-allocation	full	2026-09-21 16:23:42.207658+05:30
 17	shift-compile	full	2026-09-21 16:23:42.207658+05:30
 17	prod-breakdown-slip	read	2026-09-21 16:23:42.207658+05:30
+20	import	read	2026-09-25 16:27:31.916104+05:30
+20	maintenance-dashboard	read	2026-09-25 16:27:31.916104+05:30
+20	maintenance-historical	read	2026-09-25 16:27:31.916104+05:30
+20	pdca	read	2026-09-25 16:27:31.916104+05:30
+20	process-graphs	none	2026-09-25 16:27:31.916104+05:30
+20	quality-deviations	read	2026-09-25 16:27:31.916104+05:30
+20	sa-fi-history	full	2026-09-25 16:27:31.916104+05:30
+20	shift-allocation	full	2026-09-25 16:27:31.916104+05:30
+20	shift-calculator	none	2026-09-25 16:27:31.916104+05:30
+20	shift-compile	full	2026-09-25 16:27:31.916104+05:30
+20	peff-sheet	read	2026-09-25 16:27:31.916104+05:30
 \.
 
 
@@ -32779,7 +32908,7 @@ COPY public.mes_user_scope_permissions (user_id, scope_type, scope_id, perm_leve
 --
 
 COPY public.mes_vcov_agent (id, started_at, tracking_since, last_sample, last_eval, last_agent, last_notify, last_error) FROM stdin;
-1	2026-09-25 06:45:18.64067+05:30	2026-09-19 21:32:10.257775+05:30	2026-09-25 14:01:39.42815+05:30	2026-09-25 14:00:58.221108+05:30	2026-09-25 14:01:39.903098+05:30	2026-09-25 14:01:39.91156+05:30	15:52:35 sample: cannot schedule new futures after interpreter shutdown
+1	2026-09-27 21:35:14.799567+05:30	2026-09-19 21:32:10.257775+05:30	2026-09-27 21:42:28.106364+05:30	2026-09-27 21:42:58.932972+05:30	2026-09-27 21:42:48.521363+05:30	2026-09-27 19:01:57.76087+05:30	15:57:56 sample: cannot schedule new futures after interpreter shutdown
 \.
 
 
@@ -32790,36 +32919,36 @@ COPY public.mes_vcov_agent (id, started_at, tracking_since, last_sample, last_ev
 COPY public.mes_vcov_cursor (source, last_ts) FROM stdin;
 line:29	2026-09-19 21:33:43.344553+05:30
 line:28	2026-09-19 21:33:43.344553+05:30
-line:12	2026-09-25 13:15:55.590886+05:30
-line:15	2026-09-25 13:15:55.590886+05:30
-line:14	2026-09-25 13:15:55.590886+05:30
-line:13	2026-09-25 13:15:55.590886+05:30
-line:40	2026-09-19 21:33:43.344553+05:30
-line:4	2026-09-25 13:15:55.590886+05:30
-line:11	2026-09-25 13:15:55.590886+05:30
-line:19	2026-09-25 13:15:55.590886+05:30
-line:2	2026-09-25 13:15:55.590886+05:30
-line:18	2026-09-25 13:15:55.590886+05:30
-line:5	2026-09-25 13:15:55.590886+05:30
 line:37	2026-09-19 21:33:43.344553+05:30
-line:27	2026-09-25 13:15:55.590886+05:30
-line:20	2026-09-25 13:15:55.590886+05:30
-line:6	2026-09-25 13:15:55.590886+05:30
-line:7	2026-09-25 13:15:55.590886+05:30
-line:8	2026-09-25 13:15:55.590886+05:30
-line:10	2026-09-25 13:15:55.590886+05:30
-line:41	2026-09-25 13:15:55.590886+05:30
-line:9	2026-09-25 13:15:55.590886+05:30
-line:31	2026-09-25 13:15:55.590886+05:30
-line:30	2026-09-25 13:15:55.590886+05:30
-line:21	2026-09-25 13:15:55.590886+05:30
-line:34	2026-09-25 13:15:55.590886+05:30
-line:38	2026-09-25 13:15:55.590886+05:30
-line:35	2026-09-25 13:15:55.590886+05:30
-line:33	2026-09-25 13:15:55.590886+05:30
-line:39	2026-09-25 13:15:55.590886+05:30
-line:36	2026-09-25 13:15:55.590886+05:30
-subs	2026-09-25 13:15:55.590886+05:30
+line:13	2026-09-27 20:57:58.524888+05:30
+line:19	2026-09-27 20:57:58.524888+05:30
+line:14	2026-09-27 20:57:58.524888+05:30
+line:15	2026-09-27 20:57:58.524888+05:30
+line:12	2026-09-27 20:57:58.524888+05:30
+line:11	2026-09-27 20:57:58.524888+05:30
+line:4	2026-09-27 20:57:58.524888+05:30
+line:18	2026-09-27 20:57:58.524888+05:30
+line:2	2026-09-27 20:57:58.524888+05:30
+line:27	2026-09-27 20:57:58.524888+05:30
+line:5	2026-09-27 20:57:58.524888+05:30
+line:20	2026-09-27 20:57:58.524888+05:30
+line:8	2026-09-27 20:57:58.524888+05:30
+line:10	2026-09-27 20:57:58.524888+05:30
+line:6	2026-09-27 20:57:58.524888+05:30
+line:7	2026-09-27 20:57:58.524888+05:30
+line:41	2026-09-27 20:57:58.524888+05:30
+line:40	2026-09-27 20:57:58.524888+05:30
+line:9	2026-09-27 20:57:58.524888+05:30
+line:31	2026-09-27 20:57:58.524888+05:30
+line:30	2026-09-27 20:57:58.524888+05:30
+line:21	2026-09-27 20:57:58.524888+05:30
+line:33	2026-09-27 20:57:58.524888+05:30
+line:34	2026-09-27 20:57:58.524888+05:30
+line:38	2026-09-27 20:57:58.524888+05:30
+line:36	2026-09-27 20:57:58.524888+05:30
+line:39	2026-09-27 20:57:58.524888+05:30
+line:35	2026-09-27 20:57:58.524888+05:30
+subs	2026-09-27 20:57:58.524888+05:30
 \.
 
 
@@ -32829,7 +32958,7 @@ subs	2026-09-25 13:15:55.590886+05:30
 
 COPY public.mes_weld_master (id, station, weld_type, zone, line_id, machine_name, card_ip, card_port, unit_id, channel, base_register, mv_to_a, current_min, current_set, current_max, voltage_min, voltage_set, voltage_max, on_threshold_a, gap_s, min_weld_s, sample_hz, is_active, note, created_at, updated_at, signal, unit, scale, offset_val, sample_s) FROM stdin;
 1	RC-01	robot	Recliner	20	MAG Welding of Arm x Recliner Station 1	192.168.32.52	502	1	8	2001	10	\N	\N	\N	\N	\N	\N	30	0.35	0.2	50	t		2026-08-03 11:37:16.66939+05:30	2026-09-21 21:56:44.068779+05:30	current	\N	\N	\N	\N
-3	RC-01 Gas	robot	Recliner	20	MAG Welding of Arm x Recliner Station 1	192.168.32.52	502	1	6	2001	1	\N	\N	\N	\N	\N	\N	30	0.35	0.20	50	t	Gas sensor on the RC-01 card, ch6 (added 2026-09-21). Set unit/scale once the sensor range is known.	2026-09-21 21:58:29.478015+05:30	2026-09-21 21:58:29.478015+05:30	gas		1	0	2
+3	RC-01 Gas	robot	Recliner	20	MAG Welding of Arm x Recliner Station 1	192.168.32.52	502	1	6	2001	1	\N	\N	\N	\N	\N	\N	30	0.35	0.20	50	t	Gas sensor on the RC-01 card, ch6 (added 2026-09-21). Set unit/scale once the sensor range is known.	2026-09-21 21:58:29.478015+05:30	2026-09-26 14:24:11.415157+05:30	gas		1	0	0.2
 \.
 
 
@@ -32849,6 +32978,14 @@ COPY public.mes_zone_escalation (zone_id, level_no, admin_id) FROM stdin;
 2	2	27
 2	3	25
 2	4	18
+\.
+
+
+--
+-- Data for Name: mes_zone_escalation_shift; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.mes_zone_escalation_shift (zone_id, shift_name, level_no, admin_id) FROM stdin;
 \.
 
 
@@ -33767,14 +33904,14 @@ SELECT pg_catalog.setval('public.emp_master_id_seq', 60, true);
 -- Name: gear_lifter_dashboard_ct_log_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.gear_lifter_dashboard_ct_log_id_seq', 177483, true);
+SELECT pg_catalog.setval('public.gear_lifter_dashboard_ct_log_id_seq', 181507, true);
 
 
 --
 -- Name: gear_lifter_dashboard_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.gear_lifter_dashboard_id_seq', 241, true);
+SELECT pg_catalog.setval('public.gear_lifter_dashboard_id_seq', 248, true);
 
 
 --
@@ -33799,38 +33936,52 @@ SELECT pg_catalog.setval('public.lines_id_seq', 4, false);
 
 
 --
+-- Name: locationpin_lps3_dashboard_ct_log_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+--
+
+SELECT pg_catalog.setval('public.locationpin_lps3_dashboard_ct_log_id_seq', 7397, true);
+
+
+--
+-- Name: locationpin_lps3_dashboard_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+--
+
+SELECT pg_catalog.setval('public.locationpin_lps3_dashboard_id_seq', 11, true);
+
+
+--
 -- Name: loop_pipe_dashboard_01_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.loop_pipe_dashboard_01_id_seq', 152, true);
+SELECT pg_catalog.setval('public.loop_pipe_dashboard_01_id_seq', 162, true);
 
 
 --
 -- Name: loop_pipe_dashboard_03_ct_log_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.loop_pipe_dashboard_03_ct_log_id_seq', 66804, true);
+SELECT pg_catalog.setval('public.loop_pipe_dashboard_03_ct_log_id_seq', 70944, true);
 
 
 --
 -- Name: loop_pipe_dashboard_03_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.loop_pipe_dashboard_03_id_seq', 124, true);
+SELECT pg_catalog.setval('public.loop_pipe_dashboard_03_id_seq', 134, true);
 
 
 --
 -- Name: loop_pipe_dashboard_ct_log_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.loop_pipe_dashboard_ct_log_id_seq', 383052, true);
+SELECT pg_catalog.setval('public.loop_pipe_dashboard_ct_log_id_seq', 394231, true);
 
 
 --
 -- Name: loop_pipe_dashboard_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.loop_pipe_dashboard_id_seq', 231, true);
+SELECT pg_catalog.setval('public.loop_pipe_dashboard_id_seq', 241, true);
 
 
 --
@@ -34005,7 +34156,7 @@ SELECT pg_catalog.setval('public.mes_admin_id_seq', 69, true);
 -- Name: mes_audit_log_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.mes_audit_log_id_seq', 5172, true);
+SELECT pg_catalog.setval('public.mes_audit_log_id_seq', 5319, true);
 
 
 --
@@ -34047,7 +34198,7 @@ SELECT pg_catalog.setval('public.mes_breakdown_logbook_id_seq', 1646, true);
 -- Name: mes_breakdown_mail_levels_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.mes_breakdown_mail_levels_id_seq', 15271, true);
+SELECT pg_catalog.setval('public.mes_breakdown_mail_levels_id_seq', 15355, true);
 
 
 --
@@ -34075,7 +34226,7 @@ SELECT pg_catalog.setval('public.mes_capa_id_seq', 1, false);
 -- Name: mes_capa_thresholds_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.mes_capa_thresholds_id_seq', 7927, true);
+SELECT pg_catalog.setval('public.mes_capa_thresholds_id_seq', 7969, true);
 
 
 --
@@ -34089,14 +34240,14 @@ SELECT pg_catalog.setval('public.mes_customers_id_seq', 1, false);
 -- Name: mes_cycle_comments_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.mes_cycle_comments_id_seq', 42634, true);
+SELECT pg_catalog.setval('public.mes_cycle_comments_id_seq', 49623, true);
 
 
 --
 -- Name: mes_departments_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.mes_departments_id_seq', 7975, true);
+SELECT pg_catalog.setval('public.mes_departments_id_seq', 8017, true);
 
 
 --
@@ -34121,6 +34272,13 @@ SELECT pg_catalog.setval('public.mes_fault_config_id_seq', 699, true);
 
 
 --
+-- Name: mes_fault_history_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+--
+
+SELECT pg_catalog.setval('public.mes_fault_history_id_seq', 195, true);
+
+
+--
 -- Name: mes_fg_model_link_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
@@ -34138,7 +34296,7 @@ SELECT pg_catalog.setval('public.mes_fg_parts_id_seq', 200, true);
 -- Name: mes_gas_log_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.mes_gas_log_id_seq', 153382, true);
+SELECT pg_catalog.setval('public.mes_gas_log_id_seq', 558443, true);
 
 
 --
@@ -34166,63 +34324,63 @@ SELECT pg_catalog.setval('public.mes_hourly_slots_id_seq', 2073, true);
 -- Name: mes_kanban_log_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.mes_kanban_log_id_seq', 264, true);
+SELECT pg_catalog.setval('public.mes_kanban_log_id_seq', 269, true);
 
 
 --
 -- Name: mes_kpi_targets_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.mes_kpi_targets_id_seq', 22593, true);
+SELECT pg_catalog.setval('public.mes_kpi_targets_id_seq', 22719, true);
 
 
 --
 -- Name: mes_l6_ball_guide_13_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.mes_l6_ball_guide_13_id_seq', 153409, true);
+SELECT pg_catalog.setval('public.mes_l6_ball_guide_13_id_seq', 156529, true);
 
 
 --
 -- Name: mes_l6_ball_guide_14_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.mes_l6_ball_guide_14_id_seq', 152420, true);
+SELECT pg_catalog.setval('public.mes_l6_ball_guide_14_id_seq', 155512, true);
 
 
 --
 -- Name: mes_l6_final_inspection_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.mes_l6_final_inspection_id_seq', 327123, true);
+SELECT pg_catalog.setval('public.mes_l6_final_inspection_id_seq', 333584, true);
 
 
 --
 -- Name: mes_l6_lock_bar_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.mes_l6_lock_bar_id_seq', 309196, true);
+SELECT pg_catalog.setval('public.mes_l6_lock_bar_id_seq', 315432, true);
 
 
 --
 -- Name: mes_l6_lower_rail_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.mes_l6_lower_rail_id_seq', 294719, true);
+SELECT pg_catalog.setval('public.mes_l6_lower_rail_id_seq', 300943, true);
 
 
 --
 -- Name: mes_l6_semi_auto_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.mes_l6_semi_auto_id_seq', 317009, true);
+SELECT pg_catalog.setval('public.mes_l6_semi_auto_id_seq', 323287, true);
 
 
 --
 -- Name: mes_l6_upper_rail_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.mes_l6_upper_rail_id_seq', 305749, true);
+SELECT pg_catalog.setval('public.mes_l6_upper_rail_id_seq', 312028, true);
 
 
 --
@@ -34236,7 +34394,7 @@ SELECT pg_catalog.setval('public.mes_lines_id_seq', 41, true);
 -- Name: mes_loss_remarks_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.mes_loss_remarks_id_seq', 76, true);
+SELECT pg_catalog.setval('public.mes_loss_remarks_id_seq', 77, true);
 
 
 --
@@ -34257,7 +34415,7 @@ SELECT pg_catalog.setval('public.mes_machine_monitor_configs_id_seq', 1, true);
 -- Name: mes_machine_process_log_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.mes_machine_process_log_id_seq', 854626, true);
+SELECT pg_catalog.setval('public.mes_machine_process_log_id_seq', 881382, true);
 
 
 --
@@ -34313,7 +34471,7 @@ SELECT pg_catalog.setval('public.mes_manpower_alerts_id_seq', 1, false);
 -- Name: mes_manpower_allocations_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.mes_manpower_allocations_id_seq', 369, true);
+SELECT pg_catalog.setval('public.mes_manpower_allocations_id_seq', 451, true);
 
 
 --
@@ -34341,7 +34499,7 @@ SELECT pg_catalog.setval('public.mes_monthly_plan_id_seq', 200, true);
 -- Name: mes_ng_process_remarks_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.mes_ng_process_remarks_id_seq', 497, true);
+SELECT pg_catalog.setval('public.mes_ng_process_remarks_id_seq', 935, true);
 
 
 --
@@ -34369,7 +34527,7 @@ SELECT pg_catalog.setval('public.mes_operator_lines_id_seq', 600, true);
 -- Name: mes_operator_punches_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.mes_operator_punches_id_seq', 237, true);
+SELECT pg_catalog.setval('public.mes_operator_punches_id_seq', 255, true);
 
 
 --
@@ -34418,14 +34576,14 @@ SELECT pg_catalog.setval('public.mes_plc_bit_commands_id_seq', 4, true);
 -- Name: mes_plc_configs_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.mes_plc_configs_id_seq', 217, true);
+SELECT pg_catalog.setval('public.mes_plc_configs_id_seq', 218, true);
 
 
 --
 -- Name: mes_poka_yoke_events_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.mes_poka_yoke_events_id_seq', 19408, true);
+SELECT pg_catalog.setval('public.mes_poka_yoke_events_id_seq', 19980, true);
 
 
 --
@@ -34460,14 +34618,14 @@ SELECT pg_catalog.setval('public.mes_pulse_log_id_seq', 7260, true);
 -- Name: mes_push_inbox_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.mes_push_inbox_id_seq', 35326, true);
+SELECT pg_catalog.setval('public.mes_push_inbox_id_seq', 38191, true);
 
 
 --
 -- Name: mes_push_subscriptions_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.mes_push_subscriptions_id_seq', 792, true);
+SELECT pg_catalog.setval('public.mes_push_subscriptions_id_seq', 922, true);
 
 
 --
@@ -34481,7 +34639,7 @@ SELECT pg_catalog.setval('public.mes_py_assignments_id_seq', 2403, true);
 -- Name: mes_py_bypass_cases_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.mes_py_bypass_cases_id_seq', 84925, true);
+SELECT pg_catalog.setval('public.mes_py_bypass_cases_id_seq', 139016, true);
 
 
 --
@@ -34642,7 +34800,7 @@ SELECT pg_catalog.setval('public.mes_report_email_config_id_seq', 1, false);
 -- Name: mes_sa_fi_quality_log_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.mes_sa_fi_quality_log_id_seq', 615000, true);
+SELECT pg_catalog.setval('public.mes_sa_fi_quality_log_id_seq', 664296, true);
 
 
 --
@@ -34663,7 +34821,7 @@ SELECT pg_catalog.setval('public.mes_sensor_ack_requests_id_seq', 77, true);
 -- Name: mes_shift_compile_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.mes_shift_compile_id_seq', 121, true);
+SELECT pg_catalog.setval('public.mes_shift_compile_id_seq', 132, true);
 
 
 --
@@ -34677,21 +34835,21 @@ SELECT pg_catalog.setval('public.mes_shift_configs_id_seq', 364, true);
 -- Name: mes_shift_count_archive_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.mes_shift_count_archive_id_seq', 4526, true);
+SELECT pg_catalog.setval('public.mes_shift_count_archive_id_seq', 4725, true);
 
 
 --
 -- Name: mes_shift_escalation_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.mes_shift_escalation_id_seq', 51826, true);
+SELECT pg_catalog.setval('public.mes_shift_escalation_id_seq', 51855, true);
 
 
 --
 -- Name: mes_shift_escalation_log_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.mes_shift_escalation_log_id_seq', 51843, true);
+SELECT pg_catalog.setval('public.mes_shift_escalation_log_id_seq', 51872, true);
 
 
 --
@@ -34712,14 +34870,14 @@ SELECT pg_catalog.setval('public.mes_station_py_machine_id_seq', 8, true);
 -- Name: mes_status_log_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.mes_status_log_id_seq', 71088, true);
+SELECT pg_catalog.setval('public.mes_status_log_id_seq', 72187, true);
 
 
 --
 -- Name: mes_status_mappings_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.mes_status_mappings_id_seq', 127, true);
+SELECT pg_catalog.setval('public.mes_status_mappings_id_seq', 289, true);
 
 
 --
@@ -34740,42 +34898,42 @@ SELECT pg_catalog.setval('public.mes_store_issues_id_seq', 1, false);
 -- Name: mes_submachine_ct_log_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.mes_submachine_ct_log_id_seq', 12822903, true);
+SELECT pg_catalog.setval('public.mes_submachine_ct_log_id_seq', 13430508, true);
 
 
 --
 -- Name: mes_submachine_data_log_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.mes_submachine_data_log_id_seq', 1025309, true);
+SELECT pg_catalog.setval('public.mes_submachine_data_log_id_seq', 1074337, true);
 
 
 --
 -- Name: mes_ui_timing_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.mes_ui_timing_id_seq', 90405, true);
+SELECT pg_catalog.setval('public.mes_ui_timing_id_seq', 99271, true);
 
 
 --
 -- Name: mes_vcov_cam_state_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.mes_vcov_cam_state_id_seq', 15529, true);
+SELECT pg_catalog.setval('public.mes_vcov_cam_state_id_seq', 33591, true);
 
 
 --
 -- Name: mes_vcov_findings_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.mes_vcov_findings_id_seq', 1398, true);
+SELECT pg_catalog.setval('public.mes_vcov_findings_id_seq', 2415, true);
 
 
 --
 -- Name: mes_vcov_missing_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.mes_vcov_missing_id_seq', 1382868, true);
+SELECT pg_catalog.setval('public.mes_vcov_missing_id_seq', 1930584, true);
 
 
 --
@@ -34789,7 +34947,7 @@ SELECT pg_catalog.setval('public.mes_video_archive_id_seq', 644277, true);
 -- Name: mes_weld_log_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.mes_weld_log_id_seq', 1080652, true);
+SELECT pg_catalog.setval('public.mes_weld_log_id_seq', 1096538, true);
 
 
 --
@@ -34817,21 +34975,21 @@ SELECT pg_catalog.setval('public.nut_lifting_dashboard_ct_log_id_seq', 1, false)
 -- Name: nut_lifting_dashboard_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.nut_lifting_dashboard_id_seq', 172, true);
+SELECT pg_catalog.setval('public.nut_lifting_dashboard_id_seq', 179, true);
 
 
 --
 -- Name: nutwelding_pwm39_dashboard_ct_log_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.nutwelding_pwm39_dashboard_ct_log_id_seq', 3890, true);
+SELECT pg_catalog.setval('public.nutwelding_pwm39_dashboard_ct_log_id_seq', 12477, true);
 
 
 --
 -- Name: nutwelding_pwm39_dashboard_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.nutwelding_pwm39_dashboard_id_seq', 37, true);
+SELECT pg_catalog.setval('public.nutwelding_pwm39_dashboard_id_seq', 47, true);
 
 
 --
@@ -34950,14 +35108,14 @@ SELECT pg_catalog.setval('public.tickets_id_seq', 243, true);
 -- Name: ua2_recliner_dashboard_ct_log_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.ua2_recliner_dashboard_ct_log_id_seq', 22177, true);
+SELECT pg_catalog.setval('public.ua2_recliner_dashboard_ct_log_id_seq', 23073, true);
 
 
 --
 -- Name: ua2_recliner_dashboard_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.ua2_recliner_dashboard_id_seq', 242, true);
+SELECT pg_catalog.setval('public.ua2_recliner_dashboard_id_seq', 249, true);
 
 
 --
@@ -34971,70 +35129,70 @@ SELECT pg_catalog.setval('public.users_id_seq', 10, false);
 -- Name: y17_l7_complete_ct_log_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.y17_l7_complete_ct_log_id_seq', 193106, true);
+SELECT pg_catalog.setval('public.y17_l7_complete_ct_log_id_seq', 199496, true);
 
 
 --
 -- Name: y17_l7_complete_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.y17_l7_complete_id_seq', 312, true);
+SELECT pg_catalog.setval('public.y17_l7_complete_id_seq', 322, true);
 
 
 --
 -- Name: y17_l7_dashboard_ct_log_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.y17_l7_dashboard_ct_log_id_seq', 17460, true);
+SELECT pg_catalog.setval('public.y17_l7_dashboard_ct_log_id_seq', 25007, true);
 
 
 --
 -- Name: y17_l7_dashboard_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.y17_l7_dashboard_id_seq', 37, true);
+SELECT pg_catalog.setval('public.y17_l7_dashboard_id_seq', 47, true);
 
 
 --
 -- Name: yca_l5_dashboard_ct_log_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.yca_l5_dashboard_ct_log_id_seq', 160863, true);
+SELECT pg_catalog.setval('public.yca_l5_dashboard_ct_log_id_seq', 166848, true);
 
 
 --
 -- Name: yca_l5_dashboard_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.yca_l5_dashboard_id_seq', 322, true);
+SELECT pg_catalog.setval('public.yca_l5_dashboard_id_seq', 332, true);
 
 
 --
 -- Name: yfg_l7_complete_ct_log_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.yfg_l7_complete_ct_log_id_seq', 209044, true);
+SELECT pg_catalog.setval('public.yfg_l7_complete_ct_log_id_seq', 215079, true);
 
 
 --
 -- Name: yfg_l7_complete_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.yfg_l7_complete_id_seq', 314, true);
+SELECT pg_catalog.setval('public.yfg_l7_complete_id_seq', 324, true);
 
 
 --
 -- Name: yhb_l3_dashboard_ct_log_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.yhb_l3_dashboard_ct_log_id_seq', 219368, true);
+SELECT pg_catalog.setval('public.yhb_l3_dashboard_ct_log_id_seq', 225692, true);
 
 
 --
 -- Name: yhb_l3_dashboard_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.yhb_l3_dashboard_id_seq', 318, true);
+SELECT pg_catalog.setval('public.yhb_l3_dashboard_id_seq', 328, true);
 
 
 --
@@ -35048,7 +35206,7 @@ SELECT pg_catalog.setval('public.yhb_recliner_complete_ct_log_id_seq', 1, false)
 -- Name: yhb_recliner_complete_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.yhb_recliner_complete_id_seq', 180, true);
+SELECT pg_catalog.setval('public.yhb_recliner_complete_id_seq', 190, true);
 
 
 --
@@ -35062,56 +35220,56 @@ SELECT pg_catalog.setval('public.yhb_recliner_dashboard_id_seq', 5, true);
 -- Name: yhb_sa_l3_dashboard_ct_log_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.yhb_sa_l3_dashboard_ct_log_id_seq', 56058, true);
+SELECT pg_catalog.setval('public.yhb_sa_l3_dashboard_ct_log_id_seq', 63964, true);
 
 
 --
 -- Name: yhb_sa_l3_dashboard_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.yhb_sa_l3_dashboard_id_seq', 73, true);
+SELECT pg_catalog.setval('public.yhb_sa_l3_dashboard_id_seq', 83, true);
 
 
 --
 -- Name: yjc_l2_dashboard_ct_log_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.yjc_l2_dashboard_ct_log_id_seq', 187199, true);
+SELECT pg_catalog.setval('public.yjc_l2_dashboard_ct_log_id_seq', 192710, true);
 
 
 --
 -- Name: yjc_l2_dashboard_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.yjc_l2_dashboard_id_seq', 310, true);
+SELECT pg_catalog.setval('public.yjc_l2_dashboard_id_seq', 320, true);
 
 
 --
 -- Name: ymc_l9_complete_ct_log_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.ymc_l9_complete_ct_log_id_seq', 138664, true);
+SELECT pg_catalog.setval('public.ymc_l9_complete_ct_log_id_seq', 142931, true);
 
 
 --
 -- Name: ymc_l9_complete_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.ymc_l9_complete_id_seq', 341, true);
+SELECT pg_catalog.setval('public.ymc_l9_complete_id_seq', 351, true);
 
 
 --
 -- Name: ymc_recliner_complete_ct_log_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.ymc_recliner_complete_ct_log_id_seq', 122653, true);
+SELECT pg_catalog.setval('public.ymc_recliner_complete_ct_log_id_seq', 128246, true);
 
 
 --
 -- Name: ymc_recliner_complete_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.ymc_recliner_complete_id_seq', 230, true);
+SELECT pg_catalog.setval('public.ymc_recliner_complete_id_seq', 240, true);
 
 
 --
@@ -35125,14 +35283,14 @@ SELECT pg_catalog.setval('public.ync_cycle_time_tracking_id_seq', 34, true);
 -- Name: ync_dashboard_complete_ct_log_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.ync_dashboard_complete_ct_log_id_seq', 380515, true);
+SELECT pg_catalog.setval('public.ync_dashboard_complete_ct_log_id_seq', 386972, true);
 
 
 --
 -- Name: ync_dashboard_complete_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.ync_dashboard_complete_id_seq', 908, true);
+SELECT pg_catalog.setval('public.ync_dashboard_complete_id_seq', 918, true);
 
 
 --
@@ -35146,35 +35304,35 @@ SELECT pg_catalog.setval('public.ync_hourly_production_id_seq', 1, true);
 -- Name: ync_recliner_complete_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.ync_recliner_complete_id_seq', 152, true);
+SELECT pg_catalog.setval('public.ync_recliner_complete_id_seq', 162, true);
 
 
 --
 -- Name: ync_sa_l4_dashboard_ct_log_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.ync_sa_l4_dashboard_ct_log_id_seq', 54429, true);
+SELECT pg_catalog.setval('public.ync_sa_l4_dashboard_ct_log_id_seq', 62645, true);
 
 
 --
 -- Name: ync_sa_l4_dashboard_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.ync_sa_l4_dashboard_id_seq', 69, true);
+SELECT pg_catalog.setval('public.ync_sa_l4_dashboard_id_seq', 79, true);
 
 
 --
 -- Name: ync_sa_l6_dashboard_ct_log_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.ync_sa_l6_dashboard_ct_log_id_seq', 9382, true);
+SELECT pg_catalog.setval('public.ync_sa_l6_dashboard_ct_log_id_seq', 13765, true);
 
 
 --
 -- Name: ync_sa_l6_dashboard_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.ync_sa_l6_dashboard_id_seq', 61, true);
+SELECT pg_catalog.setval('public.ync_sa_l6_dashboard_id_seq', 71, true);
 
 
 --
@@ -35188,21 +35346,21 @@ SELECT pg_catalog.setval('public.ync_seatslider_id_seq', 15, true);
 -- Name: ync_status_log_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.ync_status_log_id_seq', 16861, true);
+SELECT pg_catalog.setval('public.ync_status_log_id_seq', 16955, true);
 
 
 --
 -- Name: yra_l1_complete_ct_log_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.yra_l1_complete_ct_log_id_seq', 195044, true);
+SELECT pg_catalog.setval('public.yra_l1_complete_ct_log_id_seq', 201038, true);
 
 
 --
 -- Name: yra_l1_complete_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.yra_l1_complete_id_seq', 342, true);
+SELECT pg_catalog.setval('public.yra_l1_complete_id_seq', 352, true);
 
 
 --
@@ -35216,77 +35374,77 @@ SELECT pg_catalog.setval('public.yra_recliner_complete_ct_log_id_seq', 1, false)
 -- Name: yra_recliner_complete_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.yra_recliner_complete_id_seq', 172, true);
+SELECT pg_catalog.setval('public.yra_recliner_complete_id_seq', 182, true);
 
 
 --
 -- Name: yra_sa_l1_dashboard_ct_log_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.yra_sa_l1_dashboard_ct_log_id_seq', 30717, true);
+SELECT pg_catalog.setval('public.yra_sa_l1_dashboard_ct_log_id_seq', 38866, true);
 
 
 --
 -- Name: yra_sa_l1_dashboard_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.yra_sa_l1_dashboard_id_seq', 69, true);
+SELECT pg_catalog.setval('public.yra_sa_l1_dashboard_id_seq', 79, true);
 
 
 --
 -- Name: ysd_l2_dashboard_ct_log_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.ysd_l2_dashboard_ct_log_id_seq', 211577, true);
+SELECT pg_catalog.setval('public.ysd_l2_dashboard_ct_log_id_seq', 217831, true);
 
 
 --
 -- Name: ysd_l2_dashboard_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.ysd_l2_dashboard_id_seq', 350, true);
+SELECT pg_catalog.setval('public.ysd_l2_dashboard_id_seq', 360, true);
 
 
 --
 -- Name: ysd_recliner_complete_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.ysd_recliner_complete_id_seq', 152, true);
+SELECT pg_catalog.setval('public.ysd_recliner_complete_id_seq', 162, true);
 
 
 --
 -- Name: ysd_sa_l2_dashboard_ct_log_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.ysd_sa_l2_dashboard_ct_log_id_seq', 19355, true);
+SELECT pg_catalog.setval('public.ysd_sa_l2_dashboard_ct_log_id_seq', 27640, true);
 
 
 --
 -- Name: ysd_sa_l2_dashboard_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.ysd_sa_l2_dashboard_id_seq', 69, true);
+SELECT pg_catalog.setval('public.ysd_sa_l2_dashboard_id_seq', 79, true);
 
 
 --
 -- Name: ywd_recliner_dashboard_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.ywd_recliner_dashboard_id_seq', 245, true);
+SELECT pg_catalog.setval('public.ywd_recliner_dashboard_id_seq', 252, true);
 
 
 --
 -- Name: ywd_ss_dashboard_ct_log_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.ywd_ss_dashboard_ct_log_id_seq', 143146, true);
+SELECT pg_catalog.setval('public.ywd_ss_dashboard_ct_log_id_seq', 146007, true);
 
 
 --
 -- Name: ywd_ss_dashboard_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.ywd_ss_dashboard_id_seq', 273, true);
+SELECT pg_catalog.setval('public.ywd_ss_dashboard_id_seq', 280, true);
 
 
 --
@@ -35719,6 +35877,22 @@ ALTER TABLE ONLY public.lines
 
 ALTER TABLE ONLY public.lines
     ADD CONSTRAINT lines_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: locationpin_lps3_dashboard_ct_log locationpin_lps3_dashboard_ct_log_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.locationpin_lps3_dashboard_ct_log
+    ADD CONSTRAINT locationpin_lps3_dashboard_ct_log_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: locationpin_lps3_dashboard locationpin_lps3_dashboard_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.locationpin_lps3_dashboard
+    ADD CONSTRAINT locationpin_lps3_dashboard_pkey PRIMARY KEY (id);
 
 
 --
@@ -36271,6 +36445,14 @@ ALTER TABLE ONLY public.mes_dispatch_lots
 
 ALTER TABLE ONLY public.mes_fault_config
     ADD CONSTRAINT mes_fault_config_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: mes_fault_history mes_fault_history_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.mes_fault_history
+    ADD CONSTRAINT mes_fault_history_pkey PRIMARY KEY (id);
 
 
 --
@@ -36954,6 +37136,14 @@ ALTER TABLE ONLY public.mes_py_bypass_cases
 
 
 --
+-- Name: mes_py_bypass_mail mes_py_bypass_mail_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.mes_py_bypass_mail
+    ADD CONSTRAINT mes_py_bypass_mail_pkey PRIMARY KEY (line_id, shift_name);
+
+
+--
 -- Name: mes_py_config mes_py_config_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -36983,6 +37173,14 @@ ALTER TABLE ONLY public.mes_py_instructions
 
 ALTER TABLE ONLY public.mes_py_instructions
     ADD CONSTRAINT mes_py_instructions_py_no_line_id_key UNIQUE (py_no, line_id);
+
+
+--
+-- Name: mes_py_manual_bypass mes_py_manual_bypass_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.mes_py_manual_bypass
+    ADD CONSTRAINT mes_py_manual_bypass_pkey PRIMARY KEY (line_id, machine_key);
 
 
 --
@@ -37815,6 +38013,14 @@ ALTER TABLE ONLY public.mes_weld_master
 
 ALTER TABLE ONLY public.mes_zone_escalation
     ADD CONSTRAINT mes_zone_escalation_pkey PRIMARY KEY (zone_id, level_no);
+
+
+--
+-- Name: mes_zone_escalation_shift mes_zone_escalation_shift_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.mes_zone_escalation_shift
+    ADD CONSTRAINT mes_zone_escalation_shift_pkey PRIMARY KEY (zone_id, shift_name, level_no);
 
 
 --
@@ -38943,6 +39149,20 @@ CREATE INDEX idx_load_status ON public.mes_dispatch_loads USING btree (status, p
 
 
 --
+-- Name: idx_locationpin_lps3_dashboard_active; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_locationpin_lps3_dashboard_active ON public.locationpin_lps3_dashboard USING btree (is_shift_completed) WHERE (is_shift_completed = false);
+
+
+--
+-- Name: idx_locationpin_lps3_dashboard_date_shift; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_locationpin_lps3_dashboard_date_shift ON public.locationpin_lps3_dashboard USING btree (record_date, shift_name);
+
+
+--
 -- Name: idx_loop_pipe_dashboard_01_active; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -39860,6 +40080,34 @@ CREATE INDEX ix_dmc_ng_month ON public.machine_dmc_fill_ng_point USING btree (ma
 
 
 --
+-- Name: ix_fault_hist_date; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_fault_hist_date ON public.mes_fault_history USING btree (record_date, shift_name);
+
+
+--
+-- Name: ix_fault_hist_line; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_fault_hist_line ON public.mes_fault_history USING btree (line_id, started_at DESC);
+
+
+--
+-- Name: ix_fault_hist_machine; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_fault_hist_machine ON public.mes_fault_history USING btree (machine_id, started_at DESC);
+
+
+--
+-- Name: ix_fault_hist_started; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ix_fault_hist_started ON public.mes_fault_history USING btree (started_at DESC);
+
+
+--
 -- Name: ix_machine_dmc_filled; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -40011,6 +40259,13 @@ CREATE INDEX ix_ui_timing_kind ON public.mes_ui_timing USING btree (kind, ts DES
 --
 
 CREATE INDEX ix_ui_timing_ts ON public.mes_ui_timing USING btree (ts DESC);
+
+
+--
+-- Name: locationpin_lps3_dashboard_ct_log_date_shift; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX locationpin_lps3_dashboard_ct_log_date_shift ON public.locationpin_lps3_dashboard_ct_log USING btree (record_date, shift_name);
 
 
 --
@@ -40683,6 +40938,13 @@ CREATE UNIQUE INDEX uq_capa_thresh_line ON public.mes_capa_thresholds USING btre
 --
 
 CREATE UNIQUE INDEX uq_capa_thresh_machine ON public.mes_capa_thresholds USING btree (line_id, machine_no) WHERE ((scope)::text = 'MACHINE'::text);
+
+
+--
+-- Name: uq_fault_hist_open; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX uq_fault_hist_open ON public.mes_fault_history USING btree (machine_id, fault_name) WHERE (ended_at IS NULL);
 
 
 --
@@ -42420,5 +42682,5 @@ ALTER TABLE ONLY public.tickets
 -- PostgreSQL database dump complete
 --
 
-\unrestrict brMpE4camAv6b1M8EVaYyXRD8aBJ4qkvW7kZGf1BgAAzYIJFVlOeoFBFAEyVf1P
+\unrestrict QDI7qvqw2QgKyNlJRpHumhHeKzGWLC3UfpcUhYKkF5ZlZ99BnbhvwGHkAGCa47R
 

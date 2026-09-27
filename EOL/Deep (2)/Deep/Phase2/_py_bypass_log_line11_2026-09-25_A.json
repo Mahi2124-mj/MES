@@ -44,6 +44,26 @@
       "end_at": "2026-09-25T08:43:25.327286",
       "start_slot": "08:30-09:30",
       "slot": "08:30-09:30"
+    },
+    {
+      "py_no": "D412",
+      "py_name": "PoP RIVET-2",
+      "hit_count": 1,
+      "alert": "WARNING",
+      "start_at": "2026-09-25T13:07:02.684871",
+      "end_at": "2026-09-25T14:22:55.915699",
+      "start_slot": "13:05-14:05",
+      "slot": "13:05-14:05"
+    },
+    {
+      "py_no": "D412",
+      "py_name": "PoP RIVET-2",
+      "hit_count": 1,
+      "alert": "WARNING",
+      "start_at": "2026-09-25T16:41:02.886468",
+      "end_at": "2026-09-25T17:09:03.217675",
+      "start_slot": "16:05-17:15",
+      "slot": "16:05-17:15"
     }
   ],
   "by_slot": {
@@ -116,6 +136,63 @@
         "ends_here": true,
         "ongoing_now": false
       }
+    ],
+    "13:05-14:05": [
+      {
+        "py_no": "D412",
+        "py_name": "PoP RIVET-2",
+        "hit_count": 1,
+        "alert": "WARNING",
+        "start_at": "2026-09-25T13:07:02.684871",
+        "end_at": "2026-09-25T14:22:55.915699",
+        "start_slot": "13:05-14:05",
+        "slot": "13:05-14:05",
+        "slot_label": "13:05-14:05",
+        "slot_segment_from": "2026-09-25T13:07:02.684871",
+        "slot_segment_to": "2026-09-25T14:05:00",
+        "slot_segment_sec": 3477.3,
+        "starts_here": true,
+        "ends_here": false,
+        "ongoing_now": false
+      }
+    ],
+    "14:05-15:05": [
+      {
+        "py_no": "D412",
+        "py_name": "PoP RIVET-2",
+        "hit_count": 1,
+        "alert": "WARNING",
+        "start_at": "2026-09-25T13:07:02.684871",
+        "end_at": "2026-09-25T14:22:55.915699",
+        "start_slot": "13:05-14:05",
+        "slot": "13:05-14:05",
+        "slot_label": "14:05-15:05",
+        "slot_segment_from": "2026-09-25T14:05:00",
+        "slot_segment_to": "2026-09-25T14:22:55.915699",
+        "slot_segment_sec": 1075.9,
+        "starts_here": false,
+        "ends_here": true,
+        "ongoing_now": false
+      }
+    ],
+    "16:05-17:15": [
+      {
+        "py_no": "D412",
+        "py_name": "PoP RIVET-2",
+        "hit_count": 1,
+        "alert": "WARNING",
+        "start_at": "2026-09-25T16:41:02.886468",
+        "end_at": "2026-09-25T17:09:03.217675",
+        "start_slot": "16:05-17:15",
+        "slot": "16:05-17:15",
+        "slot_label": "16:05-17:15",
+        "slot_segment_from": "2026-09-25T16:41:02.886468",
+        "slot_segment_to": "2026-09-25T17:09:03.217675",
+        "slot_segment_sec": 1680.3,
+        "starts_here": true,
+        "ends_here": true,
+        "ongoing_now": false
+      }
     ]
   },
   "slot_summary": {
@@ -125,8 +202,29 @@
       "episode_count": 4,
       "ongoing_count": 0,
       "distinct_py": 4
+    },
+    "13:05-14:05": {
+      "total_bypass_sec": 3477.3,
+      "longest_sec": 3477.3,
+      "episode_count": 1,
+      "ongoing_count": 0,
+      "distinct_py": 1
+    },
+    "14:05-15:05": {
+      "total_bypass_sec": 1075.9,
+      "longest_sec": 1075.9,
+      "episode_count": 1,
+      "ongoing_count": 0,
+      "distinct_py": 1
+    },
+    "16:05-17:15": {
+      "total_bypass_sec": 1680.3,
+      "longest_sec": 1680.3,
+      "episode_count": 1,
+      "ongoing_count": 0,
+      "distinct_py": 1
     }
   },
   "merge_gap_sec": 60.0,
-  "generated_at": "2026-09-25T10:50:38.504326"
+  "generated_at": "2026-09-25T18:10:27.260252"
 }

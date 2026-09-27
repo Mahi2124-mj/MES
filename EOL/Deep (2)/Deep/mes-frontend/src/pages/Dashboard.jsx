@@ -728,16 +728,29 @@ function LineCard({ line, globalStatus, token, user, onRtUpdate, onNpdUpdate }) 
   })();
 
   const otActiveShift = rt?.ot_active_shift || null;
-  const planPct    = (!isNPD && !isOfflineShift && plan) ? Math.min(100, (actual / plan) * 100) : 0;
-  const perf       = (isNPD || isOfflineShift) ? 0 : (rt?.performance || 0);
   const statusName = isOfflineShift ? "OFFLINE" : (rt?.operating_status || "IDLE");
   const statusColor = isOfflineShift ? "#94a3b8" : (globalStatus[statusName]?.color_hex || "#3b82f6");
-  const totalLoss  = rt ? (
-    (rt.loss_breakdown_seconds   || 0) + (rt.loss_quality_seconds     || 0) +
-    (rt.loss_material_seconds    || 0) + (rt.loss_setup_seconds       || 0) +
-    (rt.loss_change_over_seconds || 0) + (rt.loss_speed_seconds       || 0) +
-    (rt.loss_others_seconds      || 0)
-  ) : 0;
+  //  2026-09-27 — the card shows OEE and EVERY loss, so both live here now.
+  //  `oee` and `lossData` used to exist only in the summary components further
+  //  up this file; using them here threw "lossData is not defined" and took the
+  //  whole dashboard down.  totalLoss is derived from the same list, so the
+  //  chips and the total can never disagree.
+  const oee = (isNPD || isOfflineShift) ? 0 : (rt?.overall_oee || 0);
+  const CARD_LOSSES = [
+    { key: "breakdown",   label: "Breakdown",   color: "#ef4444" },
+    { key: "quality",     label: "Quality",     color: "#f97316" },
+    { key: "material",    label: "Material",    color: "#eab308" },
+    { key: "setup",       label: "Setup",       color: "#84cc16" },
+    { key: "change_over", label: "Change Over", color: "#06b6d4" },
+    { key: "speed",       label: "Speed Loss",  color: "#3b82f6" },
+    { key: "others",      label: "Others",      color: "#8b5cf6" },
+  ];
+  const allLosses = CARD_LOSSES.map(c => ({ ...c, sec: rt?.[`loss_${c.key}_seconds`] || 0 }));
+  const totalLoss = allLosses.reduce((n, c) => n + c.sec, 0);
+  const lossData  = allLosses
+    .filter(c => c.sec > 0)
+    .sort((x, y) => y.sec - x.sec)
+    .map(c => ({ ...c, pct: totalLoss ? ((c.sec / totalLoss) * 100).toFixed(1) : "0" }));
 
   return (
     <>
@@ -753,12 +766,11 @@ function LineCard({ line, globalStatus, token, user, onRtUpdate, onNpdUpdate }) 
           boxShadow: hovered ? "0 8px 30px rgba(30,64,175,0.1)" : "0 1px 3px rgba(0,0,0,0.05)",
           transform: hovered ? "translateY(-2px)" : "none",
           position: "relative", overflow: "hidden",
-          // When this line has sub-machines, span the WHOLE row of the
-          // parent .lines-grid (which is auto-fill 320px columns).
-          // That gives the sub-machines section the full container width
-          // so M-1, M-2, M-3 … sit on one wide horizontal row instead of
-          // wrapping inside a narrow 320px column.
-          ...(submachines.length > 0 ? { gridColumn: "1 / -1" } : null),
+          // 2026-09-27 — this used to span the whole row when the line had
+          // sub-machines, which is why every card sat alone on its own line.
+          // The grid is two fixed columns now, so the card keeps its column and
+          // the sub-machines wrap inside it.
+          minWidth: 0,
         }}
       >
         {/* Top accent bar */}
@@ -851,10 +863,10 @@ function LineCard({ line, globalStatus, token, user, onRtUpdate, onNpdUpdate }) 
         </div>
 
         {/* ── Main metrics row — horizontal 3-zone layout ──────────────────
-            LEFT  : compact KPI tiles (Plan / Actual / Performance) — fixed width
+            LEFT  : compact KPI tiles (Plan / Actual / OEE) — fixed width
                     so they don't stretch awkwardly when the card spans the full
                     container row in sub-machine mode.
-            MIDDLE: Production Progress + Total Loss stacked, flex:1 fills the gap.
+            MIDDLE: every loss that has time, as coloured chips, flex:1 fills the gap.
             RIGHT : (kept empty here — buttons sit on the next row to keep this
                     row visually clean and the buttons row unmistakable.)
             On narrow cards (no sub-machines) this row wraps gracefully so the
@@ -867,7 +879,9 @@ function LineCard({ line, globalStatus, token, user, onRtUpdate, onNpdUpdate }) 
             {[
               { label: "Plan",        val: (isNPD || isOfflineShift) ? "0" : rt ? plan                    : "—", mono: true              },
               { label: "Actual",      val: isOfflineShift ? "—" : rt ? actual                               : "—", mono: true, blue: !isOfflineShift },
-              { label: "Performance", val: (isNPD || isOfflineShift) ? "N/A" : rt ? `${perf.toFixed(1)}%` : "—", mono: false             },
+              //  2026-09-27 — operator wants OEE on the card, not Performance:
+              //  Performance alone reads 100% on a line that barely ran.
+              { label: "OEE",         val: (isNPD || isOfflineShift) ? "N/A" : rt ? `${oee.toFixed(1)}%`  : "—", mono: false             },
             ].map(({ label, val, mono, blue }) => (
               <div key={label} style={{
                 background: "linear-gradient(180deg,#ffffff 0%,#f8fafc 100%)",
@@ -891,42 +905,47 @@ function LineCard({ line, globalStatus, token, user, onRtUpdate, onNpdUpdate }) 
             ))}
           </div>
 
-          {/* ─ Progress + Loss stack (middle, stretches to fill) ─ */}
+          {/* ─ Losses (middle, stretches to fill) ─────────────────────────
+              2026-09-27 — the progress bar is gone and this shows EVERY loss
+              rather than one total, because "Total Loss 00:05:15" never said
+              WHICH loss.  Each kind that has time is a chip in its own colour;
+              the total sits on the right of the header.  A line with no loss
+              says so instead of showing an empty strip. */}
           <div style={{
-            flex: "1 1 280px", display: "flex", flexDirection: "column", gap: 8,
+            flex: "1 1 280px", display: "flex", flexDirection: "column", gap: 6,
             justifyContent: "center",
           }}>
-            <div>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#94a3b8", marginBottom: 6 }}>
-                <span style={{ fontWeight: 600 }}>Production Progress</span>
-                <span style={{ fontWeight: 700, color: "#0f172a" }}>{(isNPD || isOfflineShift) ? "—" : `${planPct.toFixed(1)}%`}</span>
-              </div>
-              <div style={{ background: "#f1f5f9", borderRadius: 4, height: 8, overflow: "hidden" }}>
-                <div style={{
-                  width: (isNPD || isOfflineShift) ? "0%" : `${planPct}%`,
-                  height: "100%", borderRadius: 4,
-                  background: "linear-gradient(90deg,#1e40af,#3b82f6)",
-                  transition: "width 0.6s ease",
-                  boxShadow: "0 0 8px rgba(30,64,175,.4)",
-                }} />
-              </div>
-            </div>
-
-            <div style={{
-              display: "flex", alignItems: "center", justifyContent: "space-between",
-              background: totalLoss > 0 ? "rgba(239,68,68,0.06)" : "#f8fafc",
-              border: `1px solid ${totalLoss > 0 ? "rgba(239,68,68,0.2)" : "#f1f5f9"}`,
-              borderRadius: 8, padding: "8px 14px",
-            }}>
-              <span style={{ fontSize: 11, color: "#64748b", fontWeight: 600 }}>Total Loss</span>
-              <span style={{
-                fontFamily: "monospace", fontSize: 14, fontWeight: 800,
-                color: totalLoss > 0 ? "#dc2626" : "#94a3b8",
-                letterSpacing: ".02em",
-              }}>
-                {fmtSec(totalLoss)}
+            <div style={{ display: "flex", justifyContent: "space-between",
+                          alignItems: "baseline", fontSize: 11, color: "#94a3b8" }}>
+              <span style={{ fontWeight: 600 }}>Losses</span>
+              <span style={{ fontFamily: "monospace", fontWeight: 800, fontSize: 13,
+                             color: totalLoss > 0 ? "#dc2626" : "#94a3b8" }}>
+                {(isNPD || isOfflineShift) ? "—" : fmtSec(totalLoss)}
               </span>
             </div>
+            {(isNPD || isOfflineShift) ? (
+              <div style={{ fontSize: 11.5, color: "#94a3b8" }}>—</div>
+            ) : lossData.length === 0 ? (
+              <div style={{ background: "#f8fafc", border: "1px solid #f1f5f9",
+                            borderRadius: 8, padding: "8px 12px", fontSize: 11.5,
+                            color: "#16a34a", fontWeight: 600 }}>
+                No loss recorded this shift
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                {lossData.map(c => (
+                  <span key={c.key} title={`${c.label} — ${c.pct}% of all loss`}
+                        style={{ display: "inline-flex", alignItems: "center", gap: 6,
+                                 background: `${c.color}14`, border: `1px solid ${c.color}40`,
+                                 borderRadius: 999, padding: "4px 10px", fontSize: 11 }}>
+                    <span style={{ width: 7, height: 7, borderRadius: 99, background: c.color,
+                                   flexShrink: 0 }} />
+                    <span style={{ color: "#475569", fontWeight: 600 }}>{c.label}</span>
+                    <span style={{ fontFamily: "monospace", fontWeight: 800, color: "#0f172a" }}>
+                      {fmtSec(c.sec)}</span>
+                  </span>))}
+              </div>
+            )}
           </div>
         </div>
 
@@ -1431,6 +1450,7 @@ export default function Dashboard() {
   const [expandedBdLine, setExpandedBdLine] = useState(null);
   const [globalStatus, setGlobalStatus] = useState({});
   const [selZones,     setSelZones]     = useState([]);   // empty = all zones
+  const [lineSearch,   setLineSearch]   = useState("");   // filter cards by line name
   const [dropOpen,     setDropOpen]     = useState(false);
   const [loading,      setLoading]      = useState(true);
   const [summary,      setSummary]      = useState({ total: 0, running: 0, stopped: 0, avgOee: "0.0", zoneOees: [], npdCount: 0, npdLines: [] });
@@ -1644,20 +1664,27 @@ export default function Dashboard() {
     setSelZones(prev => prev.includes(zid) ? prev.filter(z => z !== zid) : [...prev, zid]);
   };
 
-  const visibleLines = selZones.length === 0
-    ? lines
-    : lines.filter(l => selZones.includes(String(l.zone_id)));
+  //  2026-09-27 — search by line name (operator: "ek search option for line
+  //  filter by name").  Applied BEFORE grouping so the "N lines" badge on each
+  //  zone counts what is actually on screen, and a zone with no match drops
+  //  out entirely instead of showing an empty heading.
+  const lineQ = lineSearch.trim().toLowerCase();
+  const matches = (l) => !lineQ
+    || (l.line_name || "").toLowerCase().includes(lineQ)
+    || (l.line_code || "").toLowerCase().includes(lineQ);
+  const searched = lines.filter(matches);
 
   const grouped = selZones.length === 0
     ? zones
-        .map(z => ({ zone: z, zoneLines: lines.filter(l => String(l.zone_id) === String(z.id)) }))
+        .map(z => ({ zone: z, zoneLines: searched.filter(l => String(l.zone_id) === String(z.id)) }))
         .filter(g => g.zoneLines.length > 0)
     : selZones.map(zid => ({
         zone: zones.find(z => String(z.id) === zid) || { id: zid, zone_name: "Zone" },
-        zoneLines: lines.filter(l => String(l.zone_id) === zid),
+        zoneLines: searched.filter(l => String(l.zone_id) === zid),
       })).filter(g => g.zoneLines.length > 0);
 
-  const unassigned = selZones.length === 0 ? lines.filter(l => !l.zone_id) : [];
+  const unassigned = selZones.length === 0 ? searched.filter(l => !l.zone_id) : [];
+  const shownCount = grouped.reduce((n, g) => n + g.zoneLines.length, 0) + unassigned.length;
 
   return (
     <>
@@ -1692,7 +1719,11 @@ export default function Dashboard() {
         .zone-lbl-text { font-family:'Barlow Condensed',sans-serif; font-size:20px; font-weight:700; color:#0f172a; }
         .zone-lbl-badge { font-size:10px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; background:rgba(30,64,175,.1); color:#1e40af; border:1px solid rgba(30,64,175,.2); padding:3px 10px; border-radius:99px; }
         .zone-lbl-line { flex:1; height:1px; background:#e2e8f0; }
-        .lines-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(320px,1fr)); gap:18px; }
+        /* 2026-09-27 — operator: "ye one card h yha 2 card kr de".  Fixed two
+           columns instead of auto-fill, so a zone always reads as two cards per
+           row on a desktop; the phone rule below still collapses it to one. */
+        .lines-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:18px; }
+        @media (max-width:1100px) { .lines-grid { grid-template-columns:1fr; } }
         .empty-state { text-align:center; padding:80px 40px; color:#94a3b8; }
         @keyframes spin { to { transform:rotate(360deg) } }
         /* Phone: the 40px side padding (a desktop value) wasted a big strip on
@@ -1720,6 +1751,27 @@ export default function Dashboard() {
           }}>
             {titleLeft}<span style={{ color: theme.accent }}>{titleRight}</span>
           </div>
+          {/* 2026-09-27 — search + zone filter share ONE right-hand group.
+              The topbar is `justify-content:space-between` with the title
+              absolutely centred, so a loose extra child gets pushed to the
+              middle and disappears behind that title — which is exactly what
+              happened the first time. */}
+          <div style={{ display:"flex", alignItems:"center", gap:10, marginLeft:"auto", zIndex:1 }}>
+          <div style={{ position:"relative", display:"flex", alignItems:"center" }}>
+            <span style={{ position:"absolute", left:10, fontSize:12, color:"#94a3b8",
+                           pointerEvents:"none" }}>🔍</span>
+            <input value={lineSearch} onChange={e => setLineSearch(e.target.value)}
+                   placeholder="Search line"
+                   style={{ padding:"8px 26px 8px 28px", borderRadius:8,
+                            border:"1px solid #cbd5e1", fontSize:13, width:170,
+                            fontFamily:"'Barlow',sans-serif", background:"#fff" }} />
+            {lineSearch && (
+              <button onClick={() => setLineSearch("")} title="Clear"
+                      style={{ position:"absolute", right:6, border:"none",
+                               background:"none", cursor:"pointer", fontSize:14,
+                               color:"#94a3b8", lineHeight:1 }}>×</button>)}
+          </div>
+
           {/* Multi-select zone dropdown */}
           <div ref={dropRef} style={{ position:"relative" }}>
             <button
@@ -1755,6 +1807,7 @@ export default function Dashboard() {
                 })}
               </div>
             )}
+          </div>
           </div>
         </div>
 
@@ -2095,16 +2148,28 @@ export default function Dashboard() {
               <div style={{ margin:"0 auto 16px", width:36, height:36, borderRadius:"50%", border:"3px solid #e2e8f0", borderTopColor:"#1e40af", animation:"spin .6s linear infinite" }} />
               <div style={{ fontSize:15, fontWeight:600, color:"#64748b" }}>Loading lines…</div>
             </div>
-          ) : visibleLines.length === 0 ? (
+          ) : shownCount === 0 ? (
             <div className="empty-state">
               <div style={{ fontSize:48, opacity:.3, marginBottom:16 }}>⬡</div>
               <div style={{ fontSize:15, fontWeight:600, color:"#64748b" }}>No lines found</div>
               <div style={{ fontSize:13, color:"#94a3b8", marginTop:6 }}>
-                {lines.length===0 ? "No lines configured. Go to Admin → Production Lines." : "No lines assigned to this zone."}
+                {lines.length===0
+                  ? "No lines configured. Go to Admin → Production Lines."
+                  : lineQ
+                    ? `No line matches “${lineSearch}”.`
+                    : "No lines assigned to this zone."}
               </div>
             </div>
           ) : (
             <>
+              {lineQ && (
+                <div style={{ fontSize:12.5, color:"#64748b", margin:"0 0 14px" }}>
+                  {shownCount} line{shownCount === 1 ? "" : "s"} match “{lineSearch}”
+                  <button onClick={() => setLineSearch("")}
+                          style={{ marginLeft:10, border:"1px solid #cbd5e1", background:"#fff",
+                                   borderRadius:6, padding:"2px 10px", fontSize:11.5,
+                                   cursor:"pointer", color:"#475569" }}>Clear</button>
+                </div>)}
               {grouped.map(({ zone, zoneLines }) => (
                 zone && zoneLines.length > 0 && (
                   <div className="zone-section" key={zone.id}>

@@ -5285,9 +5285,40 @@ class CollectorEngine:
         # Same compare-and-pulse as the count-commit path, just triggered here.
         self._sa_ng_signal_final(pc, _shift, _rec, int(self.ok_shift))
 
+    @staticmethod
+    def _valid_part_code(code) -> bool:
+        """Is this a real part code, or garbage from a bad PLC read?
+
+        2026-09-26 — a part code is the IDENTITY that links a Semi-Auto verdict
+        to the same part at Final.  When the string read came back garbled the
+        code was still stored and still matched: two SEMI captures landed with
+        a single control character (0x10) as their code and were recorded NG,
+        and from then on EVERY Final part whose own code read back as that same
+        byte matched them and was rejected — 242 good parts in three days
+        (23-26 Sep), which is what the operator saw as "load cell NG but the
+        part was OK at Semi-Auto".
+
+        A real code on these lines is 25 characters of digits, letters and a
+        dash (e.g. 00156N60925-1910607150037).  Anything short or carrying
+        non-printable bytes is a failed read, and a failed read is not a verdict.
+        """
+        try:
+            c = str(code or "").strip()
+        except Exception:
+            return False
+        if len(c) < 10:
+            return False
+        return all(ch.isalnum() or ch == "-" for ch in c)
+
     def _sa_ng_signal_final(self, part_code, shift_name, rec_date, cycle_seq):
         _bit = self.cfg.get("fi_sa_ng_bit")
         if not _bit or not part_code:
+            return
+        if not self._valid_part_code(part_code):
+            #  A garbled read is not an identity — it must never be used to
+            #  look a part up, or it rejects whatever else read back garbled.
+            print(f"[SA-NG->FI] ignoring unreadable part code "
+                  f"{part_code!r} — no reject", flush=True)
             return
         try:
             # Was this exact part EVER NG at Semi-Auto?  2026-08-24 — operator
@@ -6971,6 +7002,274 @@ class CollectorEngine:
     # mes_plc_bit_commands and the line's own collector applies it here, on
     # the same connection it already owns.  No-op for every line that has no
     # command queued, which is all of them until a bypass is rejected.
+    # 2026-09-27 — FAULT BITS.  Admin assigns fault bits per machine in
+    # Maintenance -> Fault Config (mes_fault_config); until now nothing read
+    # them, so the config sat unused.  This reads them on the connection this
+    # collector already owns (the PLC allows one session) and records every
+    # rising/falling edge in mes_fault_history.
+    #
+    # Deliberately cheap and deliberately unable to hurt the poll loop:
+    #   * addresses are grouped into CONTIGUOUS RUNS and read with one
+    #     batchread each - measured on the live config, 40 bits spread over
+    #     M1051-M1062 and M3051-M3080 come back in TWO reads, not 40;
+    #   * a line with no fault config backs off to once every 5 minutes;
+    #   * every failure is swallowed and simply retried next pass - a fault
+    #     bit must never be able to stop counting;
+    #   * FAULT_READ=0 in the environment turns the whole thing off.
+    #  {machine_id: {...}} — throttle, config and last-seen bit state per
+    #  machine, because the main PLC and every sub-machine are read separately.
+    _fault_ctx: dict = {}
+    #  ONE dedicated DB connection per collector process for fault writes,
+    #  shared by the main loop and every sub-machine thread under a lock.
+    #  The first version opened one per sub thread — 30 collectors x ~6 subs
+    #  would have added ~180 connections to Postgres, and a connection that
+    #  broke was never replaced because the error is swallowed inside the
+    #  reader ("connection already closed", seen on all five lines).
+    _fault_db = None
+    _fault_db_lock = None
+
+    def _fault_conn_get(self):
+        import threading as _th
+        if self._fault_db_lock is None:
+            self._fault_db_lock = _th.Lock()
+        c = self._fault_db
+        if c is not None:
+            try:
+                if not c.closed:
+                    return c
+            except Exception:
+                pass
+            try:
+                c.close()
+            except Exception:
+                pass
+        self._fault_db = _db_conn()
+        return self._fault_db
+    _FAULT_EVERY_S   = 2.0
+    _FAULT_RELOAD_S  = 60.0
+    _FAULT_MAX_RUN   = 128          # bits per batchread
+
+    def _poll_fault_bits(self, machine_id=None, plc=None, conn=None) -> None:
+        """Read this machine's Fault Config bits and log every edge.
+
+        2026-09-27 — called from TWO places, because a fault machine may be the
+        line's main PLC or one of its sub-machines, and each has its own socket
+        (single session per PLC):
+          * the main loop passes nothing and gets (main_plc_id, self._plc);
+          * each sub-machine thread passes its own id, its own `plc` and its own
+            DB connection, since `self._db` belongs to the main thread.
+        Measured on the live config: lines 2 and 14 carry their faults on the
+        main PLC, lines 11/12/13 on sub-machines 35/48/59 — reading them all off
+        the main PLC (the first version of this) would have silently found
+        nothing for three of the five lines.
+        """
+        if _os.environ.get("FAULT_READ", "1") != "1":
+            return
+        own = machine_id is None
+        if own:
+            if not getattr(self, "_plc_ok", False) or self._plc is None:
+                return
+            plc = self._plc
+            try:
+                machine_id = int(self.cfg.get("main_plc_id") or self.cfg["line_id"])
+            except Exception:
+                return
+        if plc is None:
+            return
+        machine_id = int(machine_id)
+
+        #  Throttle before touching the lock so an idle tick costs nothing.
+        _st = self._fault_ctx.get(machine_id)
+        if _st and time.monotonic() - _st["last"] < _st["every"]:
+            return
+        if self._fault_db_lock is None:
+            import threading as _th0
+            self._fault_db_lock = _th0.Lock()
+        if not self._fault_db_lock.acquire(blocking=False):
+            return          # another machine is mid-write; try again in 2 s
+        try:
+            self._poll_fault_bits_locked(machine_id, plc)
+        finally:
+            self._fault_db_lock.release()
+
+    def _fault_drop_conn(self) -> None:
+        try:
+            if self._fault_db is not None:
+                self._fault_db.close()
+        except Exception:
+            pass
+        self._fault_db = None
+
+    def _poll_fault_bits_locked(self, machine_id, plc) -> None:
+        import re as _re_f
+        st = self._fault_ctx.setdefault(machine_id, {
+            "last": 0.0, "cfg_at": 0.0, "every": 2.0, "cfg": None,
+            "state": {}, "said": False})
+        _now = time.monotonic()
+        if _now - st["last"] < st["every"]:
+            return
+        st["last"] = _now
+
+        #  `conn` is accepted for call compatibility but ignored: every caller
+        #  shares the one self-healing fault connection.
+        db = self._fault_conn_get()
+
+        def _cursor():
+            return db.cursor()
+
+        def _commit():
+            db.commit()
+
+        # ── config (refreshed once a minute) ──────────────────────────────
+        if _now - st["cfg_at"] >= self._FAULT_RELOAD_S:
+            st["cfg_at"] = _now
+            try:
+                cur = _cursor()
+                cur.execute("SELECT to_regclass('mes_fault_config')")
+                if not (cur.fetchone() or [None])[0]:
+                    cur.close()
+                    st["every"] = 300.0
+                    return
+                cur.execute("""SELECT id, fault_name, source_type, address,
+                                      trigger_value, zone_id, line_id, machine_name
+                                 FROM mes_fault_config
+                                WHERE machine_id = %s AND COALESCE(is_active, TRUE)
+                                ORDER BY address""", (machine_id,))
+                st["cfg"] = cur.fetchall()
+                cur.close()
+            except Exception as exc:
+                print(f"[FAULT] machine {machine_id}: config read failed: "
+                      f"{str(exc)[:80]}", flush=True)
+                self._fault_drop_conn()
+                return
+            st["every"] = 2.0 if st["cfg"] else 300.0
+            if st["cfg"] and not st["said"]:
+                st["said"] = True
+                print(f"[FAULT] machine {machine_id}: watching {len(st['cfg'])} "
+                      f"configured fault bit(s)", flush=True)
+
+        rows = st["cfg"]
+        if not rows:
+            return
+
+        # ── read, grouping contiguous addresses into one batchread ────────
+        vals, bits, skipped = {}, [], []
+        for r in rows:
+            addr = str(r[3] or "").strip().upper()
+            if r[2] != "bit":
+                continue
+            #  Decimal device numbers only.  X/Y bits are addressed in HEX on
+            #  these PLCs, so "X1C" cannot be range-read like this — it is
+            #  reported rather than dropped without a word.
+            if _re_f.fullmatch(r"[A-Z]+\d+", addr):
+                pfx = _re_f.match(r"[A-Z]+", addr).group(0)
+                bits.append((pfx, int(addr[len(pfx):]), addr))
+            else:
+                skipped.append(addr)
+        if skipped and not st.get("skip_said"):
+            st["skip_said"] = True
+            print(f"[FAULT] machine {machine_id}: not read (address is not a "
+                  f"decimal device): {', '.join(sorted(set(skipped))[:12])}", flush=True)
+        bits.sort()
+        runs, cur_run = [], []
+        for b in bits:
+            if cur_run and b[0] == cur_run[-1][0] and \
+               0 < b[1] - cur_run[-1][1] <= 8 and \
+               b[1] - cur_run[0][1] < self._FAULT_MAX_RUN:
+                cur_run.append(b)
+            else:
+                if cur_run:
+                    runs.append(cur_run)
+                cur_run = [b]
+        if cur_run:
+            runs.append(cur_run)
+        for run in runs:
+            pfx, lo = run[0][0], run[0][1]
+            span = run[-1][1] - lo + 1
+            try:
+                got = plc.batchread_bitunits(headdevice=f"{pfx}{lo}", readsize=span)
+            except Exception as exc:
+                print(f"[FAULT] machine {machine_id}: read {pfx}{lo}+{span} "
+                      f"failed: {str(exc)[:60]}", flush=True)
+                continue
+            for _p, num, addr in run:
+                idx = num - lo
+                if 0 <= idx < len(got):
+                    vals[addr] = int(got[idx])
+        for r in rows:
+            if r[2] == "register":
+                addr = str(r[3] or "").strip().upper()
+                try:
+                    v = plc.batchread_wordunits(headdevice=addr, readsize=1)
+                    if v:
+                        vals[addr] = self._u16(v[0])
+                except Exception:
+                    pass
+        if not vals:
+            return
+
+        # ── edges -> history ──────────────────────────────────────────────
+        prev = st["state"]
+        try:
+            cur = _cursor()
+            shift = self._shift_label()
+            #  B shift crosses midnight, so CURRENT_DATE would file a 00:30
+            #  fault under the next day and split one shift over two dates —
+            #  the same trap as the midnight video blackout.
+            rec_date = getattr(self, "_cur_shift_record_date", None)
+            for r in rows:
+                fid, fname, stype, addr, trig = r[0], r[1], r[2], \
+                    str(r[3] or "").strip().upper(), r[4]
+                if addr not in vals:
+                    continue
+                #  trigger_value is the value that MEANS this fault — 1 for a
+                #  normal bit, 0 for one wired active-low, its own code for a
+                #  register.
+                want = 1 if trig is None else int(trig)
+                on = (vals[addr] == want)
+                was = prev.get(fid)
+                prev[fid] = on
+                if was is None:
+                    #  First sight after a (re)start.  If the bit is OFF but a
+                    #  row is still open from before, close it now — otherwise
+                    #  it would read "STILL ON" forever.
+                    if not on:
+                        cur.execute("""UPDATE mes_fault_history
+                                          SET ended_at = now(),
+                                              duration_s = EXTRACT(EPOCH FROM (now() - started_at))
+                                        WHERE machine_id = %s AND fault_name = %s
+                                          AND ended_at IS NULL""", (machine_id, fname))
+                    continue
+                if was == on:
+                    continue
+                if on:
+                    cur.execute("""INSERT INTO mes_fault_history
+                                     (fault_id, machine_id, line_id, zone_id, machine_name,
+                                      fault_name, source_type, address, trigger_value,
+                                      started_at, record_date, shift_name)
+                                   VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s, now(),
+                                           COALESCE(%s::date, CURRENT_DATE), %s)
+                                   ON CONFLICT DO NOTHING""",
+                                (fid, machine_id, r[6], r[5], r[7], fname, stype, addr,
+                                 trig, rec_date, shift))
+                    print(f"[FAULT] ON  {fname} ({addr}) machine {machine_id}", flush=True)
+                else:
+                    cur.execute("""UPDATE mes_fault_history
+                                      SET ended_at = now(),
+                                          duration_s = EXTRACT(EPOCH FROM (now() - started_at))
+                                    WHERE machine_id = %s AND fault_name = %s
+                                      AND ended_at IS NULL""", (machine_id, fname))
+                    print(f"[FAULT] off {fname} ({addr}) machine {machine_id}", flush=True)
+            _commit()
+            cur.close()
+        except Exception as exc:
+            print(f"[FAULT] machine {machine_id}: history write failed: "
+                  f"{str(exc)[:80]}", flush=True)
+            try:
+                db.rollback()
+            except Exception:
+                self._fault_drop_conn()
+
     _BIT_CMD_EVERY_S = 5.0
 
     def _apply_bit_commands(self) -> None:
@@ -8538,7 +8837,18 @@ class CollectorEngine:
                                 # logged "either way" and the NG-fetch trigger forced
                                 # result=NG even on an EMPTY read -> phantom NG ->
                                 # false reject at Final.  Empty read / undecided => skip.
-                                if data_values and _res is not None:
+                                #  2026-09-26 — and the code must be READABLE.
+                                #  A capture stored under a garbled code becomes
+                                #  a verdict for every later part that reads
+                                #  back the same garbage: two such NG rows
+                                #  rejected 242 good parts at Final in three
+                                #  days.  Keep them out of the table entirely.
+                                if (data_values and _res is not None
+                                        and not self._valid_part_code(part_code)):
+                                    print(f"{tag} SA capture dropped — part code "
+                                          f"{part_code!r} is not readable "
+                                          f"(verdict {_res} not recorded)", flush=True)
+                                elif data_values and _res is not None:
                                     _buffered_exec_own(
                                         "INSERT INTO mes_sa_fi_quality_log "
                                         "(record_date, shift_name, line_id, line_name, station, "
@@ -8645,8 +8955,18 @@ class CollectorEngine:
                 last_sa_bit = sa_cur
                 last_sa_ng_bit = sa_ng_cur
 
+        #  2026-09-27 — each sub-machine owns its PLC socket, so its Fault
+        #  Config bits are read on THIS thread, off THIS socket.  The DB side
+        #  uses the collector's one shared fault connection, not a per-thread
+        #  one (that would have added ~180 Postgres connections plant-wide).
         while not stop_event.is_set():
             now = time.time()
+
+            if plc is not None:
+                try:
+                    self._poll_fault_bits(sub_id, plc)
+                except Exception as _fe:
+                    print(f"[FAULT] sub {sub_id}: {str(_fe)[:70]}", flush=True)
 
             if plc is None:
                 if now < next_reconnect:
@@ -9910,6 +10230,7 @@ class CollectorEngine:
                 self._check_l110_test_flag()
                 self._maybe_pulse_fi_shift_reset()
                 self._apply_bit_commands()      # MES-queued bits (PY bypass)
+                self._poll_fault_bits()         # Fault Config bits -> history
                 self._maybe_archive_and_reset_shift()
 
                 # 2026-05-23 — SWITCH MODEL (Option C).

@@ -1137,22 +1137,6 @@
       "line_name": "GEAR LIFTER"
     },
     {
-      "id": "bind_mes_23",
-      "machine_id": "mes:23",
-      "camera_id": "cam_2ua_1782385638",
-      "plc_id": "mes_plc_23",
-      "plc_ip": "192.168.30.211",
-      "trigger_type": "MAIN",
-      "ok_bit": "D601",
-      "ng_bit": "D602",
-      "m_bit_address": "",
-      "target_time": 17,
-      "extract_per_cycle": true,
-      "machine_name": "2UA",
-      "zone_name": "YWD/2UA",
-      "line_name": "2UA RECLINER"
-    },
-    {
       "id": "bind_mes_100",
       "machine_id": "mes:100",
       "camera_id": "cam_ylm_bending_01_1785943035",
@@ -2559,6 +2543,38 @@
       "machine_name": "Ball Guide-01 \u00b7 Camera 2",
       "zone_name": "SEAT SLIDER",
       "line_name": "YSD-SS"
+    },
+    {
+      "id": "bind_mes_218",
+      "machine_id": "mes:218",
+      "camera_id": "cam_location_pin_stacking_lps_3_1790334921",
+      "plc_id": "mes_plc_218",
+      "plc_ip": "192.168.34.104",
+      "trigger_type": "MAIN",
+      "ok_bit": "D6001",
+      "ng_bit": "D6002",
+      "m_bit_address": "",
+      "target_time": 3,
+      "extract_per_cycle": true,
+      "machine_name": "LOCATION PIN STACKING - LPS-3",
+      "zone_name": "Sub-Assembly",
+      "line_name": "LOCATION PIN STACKING - LPS-3"
+    },
+    {
+      "id": "bind_mes_23",
+      "machine_id": "mes:23",
+      "camera_id": "cam_2ua_1782385638",
+      "plc_id": "mes_plc_23",
+      "plc_ip": "192.168.30.211",
+      "trigger_type": "MAIN",
+      "ok_bit": "D601",
+      "ng_bit": "D602",
+      "m_bit_address": "",
+      "target_time": 17,
+      "extract_per_cycle": true,
+      "machine_name": "2UA",
+      "zone_name": "YWD/2UA",
+      "line_name": "2UA RECLINER"
     }
   ]
 }

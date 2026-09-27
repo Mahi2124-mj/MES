@@ -58,6 +58,7 @@ const PeffSheet = lazy(() => import("./pages/PeffSheet"));
 const LogViewer = lazy(() => import("./pages/LogViewer"));
 const VideoCoverage = lazy(() => import("./pages/VideoCoverage"));
 const PyBypass = lazy(() => import("./pages/PyBypass"));
+const FaultHistory = lazy(() => import("./pages/FaultHistory"));
 import { getApkInfo } from "./api/appVersion";
 
 // ─── Dashboard switch ──────────────────────────────────────────────────────
@@ -646,6 +647,8 @@ function AppRoutes() {
         <Route path="/logs" element={<Protected requiredAccess="logs"><LogViewer /></Protected>} />
         <Route path="/video-coverage" element={<Protected requiredAccess="video-coverage"><VideoCoverage /></Protected>} />
         <Route path="/py-bypass" element={<Protected requiredAccess="py-bypass"><PyBypass /></Protected>} />
+        {/* 2026-09-27 — faults recorded from the bits assigned in Fault Config */}
+        <Route path="/fault-history" element={<Protected requiredAccess="fault-history"><FaultHistory /></Protected>} />
 
       {/* Department user — landing page for their assigned dept.
           Admin can also reach this URL — DepartmentPanel renders the

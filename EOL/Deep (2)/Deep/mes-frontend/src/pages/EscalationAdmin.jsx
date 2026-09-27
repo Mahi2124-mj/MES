@@ -20,15 +20,23 @@ export default function EscalationAdmin() {
   const [sel, setSel]       = useState({});   // zone_id → picker value
   const [toast, setToast]   = useState(null);
   const [busy, setBusy]     = useState(null);
-  const [view, setView]     = useState("tree");   // 'tree' | 'edit'
+  const [view, setView]     = useState("tree");
+  //  2026-09-27 - which shift chain is being edited.  "" = the default
+  //  chain every shift follows; "A"/"B"/... = that shift own chain, so a
+  //  zone can hand different shifts to different shift incharges.
+  const [shifts, setShifts] = useState(["A", "B"]);
+  const [shift, setShift]   = useState("");
+  const [inherit, setInherit] = useState({});   // 'tree' | 'edit'
 
   const flash = (m) => { setToast(m); setTimeout(() => setToast(null), 3000); };
   const nameOf = (id) => { const a = admins.find(x => String(x.id) === String(id)); return a ? `${a.name} (${a.role})` : `#${id}`; };
 
-  const loadChain = useCallback(async (zid) => {
+  const loadChain = useCallback(async (zid, sh = "") => {
     try {
-      const r = await api.get(`/api/escalation/zone/${zid}/chain`, token);
+      const q = sh ? `?shift=${encodeURIComponent(sh)}` : "";
+      const r = await api.get(`/api/escalation/zone/${zid}/chain${q}`, token);
       setChains(c => ({ ...c, [zid]: (r.chain || []).map(x => x.admin_id) }));
+      setInherit(m => ({ ...m, [zid]: !!r.inherited }));
     } catch { /* ignore */ }
   }, [token]);
 
@@ -39,10 +47,16 @@ export default function EscalationAdmin() {
         const zl = Array.isArray(zs) ? zs : (zs.zones || []);
         setZones(zl);
         setAdmins(await api.get("/api/escalation/admins", token) || []);
+        try {
+          const sh = await api.get("/api/escalation/shifts", token);
+          if (sh?.shifts?.length) setShifts(sh.shifts);
+        } catch { /* keep the A/B default */ }
         for (const z of zl) loadChain(z.id);
       } catch { /* ignore */ }
     })();
   }, [token, loadChain]);
+
+  useEffect(() => { for (const z of zones) loadChain(z.id, shift); }, [shift, zones, loadChain]);
 
   const setZ = (zid, arr) => setChains(c => ({ ...c, [zid]: arr }));
   const addPerson = (zid) => {
@@ -59,12 +73,15 @@ export default function EscalationAdmin() {
   };
   const remove = (zid, i) => setZ(zid, (chains[zid] || []).filter((_, k) => k !== i));
 
-  const save = async (zid) => {
+  const save = async (zid, clear = false) => {
     setBusy(zid);
     try {
-      await api.put(`/api/escalation/zone/${zid}/chain`, { admin_ids: chains[zid] || [] }, token);
-      flash("Saved ✓");
-      await loadChain(zid);
+      const q = shift ? `?shift=${encodeURIComponent(shift)}` : "";
+      await api.put(`/api/escalation/zone/${zid}/chain${q}`,
+                    { admin_ids: clear ? [] : (chains[zid] || []) }, token);
+      flash(clear ? `Shift ${shift} now follows the default ✓`
+                  : (shift ? `Shift ${shift} chain saved ✓` : "Saved ✓"));
+      await loadChain(zid, shift);
     } catch (e) { flash("Save failed: " + (e.message || "error")); }
     finally { setBusy(null); }
   };
@@ -93,8 +110,30 @@ export default function EscalationAdmin() {
       {view === "tree" && <OrgTree />}
 
       {view === "edit" && (<>
-      <div style={{ fontSize: 12.5, color: "#64748b", margin: "0 0 16px" }}>
+      <div style={{ fontSize: 12.5, color: "#64748b", margin: "0 0 12px" }}>
         Set the order per zone — <b>Level 1 = shift incharge</b>, then upward. At shift end the alarm summary goes to the Level 1 user; when they <b>Complete</b> it, it moves to the next level.
+      </div>
+
+      {/* 2026-09-27 — pick which shift you are setting.  "Default" is the chain
+          every shift uses; select a shift to give it its own shift incharge. */}
+      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap",
+                    background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 10,
+                    padding: "10px 12px", marginBottom: 16 }}>
+        <span style={{ fontSize: 11.5, fontWeight: 800, color: "#64748b",
+                       textTransform: "uppercase", letterSpacing: ".05em" }}>Editing</span>
+        {[{ k: "", t: "Default (all shifts)" }, ...shifts.map(x => ({ k: x, t: `Shift ${x}` }))].map(o => (
+          <button key={o.k || "def"} onClick={() => setShift(o.k)}
+                  style={{ padding: "6px 14px", borderRadius: 999, fontSize: 12.5, cursor: "pointer",
+                           fontWeight: shift === o.k ? 800 : 600,
+                           border: `1px solid ${shift === o.k ? "#1e40af" : "#cbd5e1"}`,
+                           background: shift === o.k ? "#1e40af" : "#fff",
+                           color: shift === o.k ? "#fff" : "#475569" }}>{o.t}</button>
+        ))}
+        <span style={{ fontSize: 12, color: "#64748b", marginLeft: 6 }}>
+          {shift
+            ? `Only shift ${shift} uses this chain. A zone with no shift ${shift} chain follows the default.`
+            : "Every shift follows this chain unless you give that shift its own."}
+        </span>
       </div>
 
       {zones.length === 0 && <div style={{ color: "#94a3b8" }}>Loading zones…</div>}
@@ -103,7 +142,16 @@ export default function EscalationAdmin() {
         const avail = admins.filter(a => !chain.some(x => String(x) === String(a.id)));
         return (
           <div key={z.id} style={box}>
-            <div style={{ fontSize: 16, fontWeight: 800, marginBottom: 10 }}>{z.zone_name || z.name}</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 10 }}>
+              <span style={{ fontSize: 16, fontWeight: 800 }}>{z.zone_name || z.name}</span>
+              <span style={{ fontSize: 11, fontWeight: 800, padding: "2px 9px", borderRadius: 999,
+                             background: shift ? "#eff6ff" : "#f1f5f9",
+                             color: shift ? "#1e40af" : "#475569" }}>
+                {shift ? `Shift ${shift}` : "All shifts"}</span>
+              {shift && inherit[z.id] && (
+                <span style={{ fontSize: 11.5, color: "#b45309", fontWeight: 700 }}>
+                  following the default — save to give shift {shift} its own chain</span>)}
+            </div>
 
             {chain.length === 0
               ? <div style={{ fontSize: 12.5, color: "#94a3b8", marginBottom: 10 }}>No chain set — escalation won't run for this zone until you add people.</div>
@@ -128,6 +176,12 @@ export default function EscalationAdmin() {
                 {avail.map(a => <option key={a.id} value={a.id}>{a.name} ({a.role})</option>)}
               </select>
               <button onClick={() => addPerson(z.id)} style={{ border: "1px solid #1e40af", background: "#eff6ff", color: "#1e40af", borderRadius: 8, padding: "8px 14px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Add</button>
+              {shift && !inherit[z.id] && (
+                <button onClick={() => save(z.id, true)} disabled={busy === z.id}
+                        title={`Delete shift ${shift}'s own chain so it follows the default again`}
+                        style={{ border: "1px solid #cbd5e1", background: "#fff", color: "#475569",
+                                 borderRadius: 8, padding: "8px 14px", fontSize: 13, fontWeight: 700,
+                                 cursor: "pointer" }}>Use default</button>)}
               <button onClick={() => save(z.id)} disabled={busy === z.id} style={{ marginLeft: "auto", background: "#16a34a", color: "#fff", border: "none", borderRadius: 8, padding: "8px 18px", fontSize: 13, fontWeight: 700, cursor: "pointer", opacity: busy === z.id ? .6 : 1 }}>{busy === z.id ? "…" : "Save chain"}</button>
             </div>
           </div>

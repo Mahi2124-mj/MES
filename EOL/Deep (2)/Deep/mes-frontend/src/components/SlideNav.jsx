@@ -45,6 +45,8 @@ export const NAV_ITEMS = [
       // permission see it.
       { key: "comments-history", label: "Comments History", icon: "💬",                      path: "/comments-history" },
       { key: "andon-history",    label: "Andon History",    icon: "🚦",                      path: "/andon-history" },
+      //  2026-09-27 — operator: Fault History belongs to PRODUCTION, not Admin.
+      { key: "fault-history",    label: "Fault History",    icon: "⚠",                       path: "/fault-history" },
       { key: "prod-breakdown-slip", label: "Breakdown Slip", icon: "🧯",                   path: "/prod-breakdown-slip" },
       { key: "my-escalations",   label: "Inbox",            icon: "🔔",                      path: "/my-escalations" },
       { key: "my-team",          label: "My Team",          icon: "👤",                      path: "/my-team" },

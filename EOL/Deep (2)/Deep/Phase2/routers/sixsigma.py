@@ -197,12 +197,22 @@ def get_config(user=Depends(get_current_user)):
                 c["updated_at"] = c["updated_at"].isoformat()
         lines = _ss_lines(cur)
         conn.commit()
-        return {"configs": configs, "lines": lines,
+        #  The machine whose cycles a station's clips follow — the page needs
+        #  the list to offer it.
+        cur.execute("SELECT id, line_id, machine_name, ideal_cycle_time "
+                    "  FROM mes_plc_configs WHERE parent_plc_id IS NOT NULL "
+                    " ORDER BY line_id, COALESCE(machine_seq, 9999), id")
+        machines = [{"id": r["id"], "line_id": r["line_id"],
+                     "machine_name": r["machine_name"],
+                     "ideal_ct": float(r["ideal_cycle_time"] or 0) or None}
+                    for r in cur.fetchall()]
+        return {"configs": configs, "lines": lines, "machines": machines,
                 "default_machine": DEFAULT_MACHINE, "default_retention": DEFAULT_RETENTION}
 
 
 class ConfigBody(BaseModel):
     line_id: int
+    machine_plc_id: Optional[int] = None
     machine_name: str = DEFAULT_MACHINE
     cam1_name: Optional[str] = "Camera 1"
     cam1_url:  Optional[str] = None
@@ -219,17 +229,21 @@ def save_config(body: ConfigBody, admin=Depends(require_admin)):
     with get_conn() as conn:
         cur = dict_cursor(conn)
         _ensure(cur)
+        _ensure_machine_col(cur)
         cur.execute("""INSERT INTO mes_sixsigma_config
-                         (line_id, machine_name, cam1_name, cam1_url, cam2_name, cam2_url,
+                         (line_id, machine_name, machine_plc_id,
+                          cam1_name, cam1_url, cam2_name, cam2_url,
                           retention_days, updated_by, updated_at)
-                       VALUES (%s,%s,%s,%s,%s,%s,%s,%s,now())
+                       VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,now())
                        ON CONFLICT (line_id) DO UPDATE SET
                          machine_name=EXCLUDED.machine_name,
+                         machine_plc_id=EXCLUDED.machine_plc_id,
                          cam1_name=EXCLUDED.cam1_name, cam1_url=EXCLUDED.cam1_url,
                          cam2_name=EXCLUDED.cam2_name, cam2_url=EXCLUDED.cam2_url,
                          retention_days=EXCLUDED.retention_days,
                          updated_by=EXCLUDED.updated_by, updated_at=now()""",
                     (body.line_id, (body.machine_name or DEFAULT_MACHINE).strip(),
+                     body.machine_plc_id,
                      (body.cam1_name or "Camera 1").strip(), (body.cam1_url or "").strip() or None,
                      (body.cam2_name or "Camera 2").strip(), (body.cam2_url or "").strip() or None,
                      rd, admin.get("username")))
@@ -261,19 +275,79 @@ def delete_config(line_id: int = Query(...), admin=Depends(require_admin)):
         return {"ok": True}
 
 
+def _ensure_machine_col(cur):
+    """`machine_plc_id` — the sub-machine whose cycles the clips follow.
+
+    2026-09-26 — the window was taken from the LINE's ct_log, i.e. Final
+    Inspection's cycle, which is not the station being filmed: on YSD-SS the
+    line runs ~15 s while a Ball Guide cycle is ~37 s, so the clip started and
+    ended in the wrong place.  Operator: cut on the MACHINE's cycle, and both
+    cameras on the same window.  NULL keeps the old behaviour.
+    """
+    try:
+        cur.execute("ALTER TABLE mes_sixsigma_config "
+                    "ADD COLUMN IF NOT EXISTS machine_plc_id INTEGER")
+    except Exception:
+        pass
+
+
+def _cycle_window(cur, cfg, cycle_seq, rec_date, shift):
+    """(ts_start, ts_end) for one cycle — the MACHINE's own, when configured.
+
+    Both cameras call this with the same arguments, so camera 1 and camera 2
+    are always cut from exactly the same window.
+    """
+    mid = cfg.get("machine_plc_id")
+    if mid:
+        q = ("SELECT ts_end AS ts, ct_seconds AS ct FROM mes_submachine_ct_log "
+             "WHERE sub_plc_id=%s AND record_date=%s AND cycle_seq=%s")
+        params = [int(mid), rec_date, cycle_seq]
+        if shift:
+            q += " AND shift_name=%s"; params.append(shift)
+        q += " ORDER BY ts_end DESC LIMIT 1"
+        cur.execute(q, params)
+        row = cur.fetchone()
+        if row and row.get("ts"):
+            return row["ts"], float(row.get("ct") or 0), "machine"
+    tbl = (cfg["db_table_name"] or "") + "_ct_log"
+    if not _TBL_RE.match(tbl):
+        raise HTTPException(400, "bad table")
+    cur.execute("SELECT to_regclass(%s) AS r", (tbl,))
+    if not cur.fetchone()["r"]:
+        raise HTTPException(404, "no cycle log for this line")
+    q = f"SELECT ts, ct_value AS ct FROM {tbl} WHERE record_date=%s AND cycle_seq=%s"
+    params = [rec_date, cycle_seq]
+    if shift:
+        q += " AND shift_name=%s"; params.append(shift)
+    q += " ORDER BY ts DESC LIMIT 1"
+    cur.execute(q, params)
+    row = cur.fetchone()
+    if not row or not row.get("ts"):
+        return None, 0.0, "line"
+    return row["ts"], float(row.get("ct") or 0), "line"
+
+
 @router.get("/clips")
 def get_clips(line_id: int = Query(...),
               date: Optional[str] = Query(None),
               shift: Optional[str] = Query(None),
-              limit: int = Query(30, ge=1, le=100),
+              limit: int = Query(100, ge=1, le=500),
+              offset: int = Query(0, ge=0),
               user=Depends(get_current_user)):
-    """Recent cycles for the line's Ball Guide station, each with the two camera
-    clip URLs. Reuses the existing /cycle-video proxy; the second camera is
-    requested with cam=2 (honoured once the CMS emits per-camera files)."""
+    """One page of the line's Ball Guide cycles, newest first, each with its
+    two camera clip URLs.
+
+    2026-09-25 — this used to answer with the newest 30 and nothing else, so a
+    shift of ~1,400 cycles was 98 % unreachable ("mujhe 100 % video clip
+    chahiye").  It now pages: `limit` (default 100) and `offset`, plus the
+    `total` for that date/shift so the page can lay out its page buttons and
+    say which slice is on screen.  Ordering stays ts DESC — newest first —
+    so page 1 is always the latest work."""
     rec_date = date or datetime.now().strftime("%Y-%m-%d")
     with get_conn() as conn:
         cur = dict_cursor(conn)
         _ensure(cur)
+        _ensure_machine_col(cur)
         cur.execute("""SELECT c.*, l.db_table_name FROM mes_sixsigma_config c
                          JOIN mes_lines l ON l.id=c.line_id WHERE c.line_id=%s""", (line_id,))
         cfg = cur.fetchone()
@@ -282,7 +356,52 @@ def get_clips(line_id: int = Query(...),
         tbl = (cfg["db_table_name"] or "") + "_ct_log"
         cur.execute("SELECT to_regclass(%s) AS r", (tbl,))
         if not cur.fetchone()["r"]:
-            return {"config": _cfg_public(cfg), "cycles": []}
+            return {"config": _cfg_public(cfg), "cycles": [],
+                    "total": 0, "limit": limit, "offset": offset}
+        #  2026-09-26 — when the station follows a MACHINE, list that machine's
+        #  cycles.  Listing the line's would hand the player cycle numbers that
+        #  do not exist in the machine's log (each is pinned to its own
+        #  D-register), so every clip would 404.
+        _mid = cfg.get("machine_plc_id")
+        if _mid:
+            q = ("SELECT cycle_seq, ts_end AS ts, COALESCE(is_ng,false) AS is_ng, "
+                 "       part_code "
+                 "  FROM mes_submachine_ct_log "
+                 " WHERE sub_plc_id=%s AND record_date=%s")
+            params = [int(_mid), rec_date]
+            if shift:
+                q += " AND shift_name=%s"; params.append(shift)
+            cnt = ("SELECT COUNT(*) AS n FROM mes_submachine_ct_log "
+                   "WHERE sub_plc_id=%s AND record_date=%s"
+                   + (" AND shift_name=%s" if shift else ""))
+            cur.execute(cnt, params)
+            total = int((cur.fetchone() or {}).get("n") or 0)
+            q += " ORDER BY ts_end DESC LIMIT %s OFFSET %s"
+            cur.execute(q, params + [limit, offset])
+            rows = cur.fetchall()
+            cycles = []
+            for r in rows:
+                seq = r["cycle_seq"]
+                _b = f"/api/sixsigma/clip?line_id={line_id}&cycle_seq={seq}&date={rec_date}"
+                if shift:
+                    _b += f"&shift={shift}"
+                cycles.append({
+                    "cycle_seq": seq,
+                    "ts": r["ts"].isoformat() if r.get("ts") else None,
+                    "is_ng": bool(r.get("is_ng")),
+                    "part_code": r.get("part_code"),
+                    "cam1_url": (f"{_b}&cam=1" if (cfg.get("cam1_cid") or "").strip() else None),
+                    "cam2_url": (f"{_b}&cam=2" if (cfg.get("cam2_cid") or "").strip() else None),
+                })
+            conn.commit()
+            note = ""
+            if not ((cfg.get("cam1_cid") or "").strip() or (cfg.get("cam2_cid") or "").strip()):
+                note = ("These cameras are not registered with the CMS yet, so no "
+                        "footage is being recorded for this station.")
+            return {"config": _cfg_public(cfg), "cycles": cycles, "clips_note": note,
+                    "total": total, "limit": limit, "offset": offset,
+                    "cycle_source": "machine"}
+
         cols = "cycle_seq, ts, COALESCE(is_ng,false) AS is_ng"
         cur.execute(f"""SELECT column_name FROM information_schema.columns
                          WHERE table_name=%s AND column_name='part_code'""", (tbl,))
@@ -296,7 +415,13 @@ def get_clips(line_id: int = Query(...),
                              WHERE table_name=%s AND column_name='shift_name'""", (tbl,))
             if cur.fetchone():
                 q += " AND shift_name = %s"; params.append(shift)
-        q += " ORDER BY ts DESC LIMIT %s"; params.append(limit)
+        # Total first, on the SAME filter, so the page count is exact.
+        cur.execute(q.replace(f"SELECT {cols} FROM", "SELECT COUNT(*) AS n FROM", 1),
+                    params)
+        total = int((cur.fetchone() or {}).get("n") or 0)
+
+        q += " ORDER BY ts DESC LIMIT %s OFFSET %s"
+        params += [limit, offset]
         cur.execute(q, params)
         rows = cur.fetchall()
         cycles = []
@@ -334,7 +459,8 @@ def get_clips(line_id: int = Query(...),
         if not ((cfg.get("cam1_cid") or "").strip() or (cfg.get("cam2_cid") or "").strip()):
             note = ("These cameras are not registered with the CMS yet, so no "
                     "footage is being recorded for this station.")
-        return {"config": _cfg_public(cfg), "cycles": cycles, "clips_note": note}
+        return {"config": _cfg_public(cfg), "cycles": cycles, "clips_note": note,
+                "total": total, "limit": limit, "offset": offset}
 
 
 @router.get("/clip")
@@ -362,6 +488,7 @@ def sixsigma_clip(line_id: int = Query(...),
         cur = dict_cursor(conn)
         # no DDL on this path — the table exists; a lock wait here would only
         # turn a video request into a 500.
+        _ensure_machine_col(cur)
         cur.execute("""SELECT c.*, l.db_table_name FROM mes_sixsigma_config c
                          JOIN mes_lines l ON l.id=c.line_id WHERE c.line_id=%s""",
                     (line_id,))
@@ -372,27 +499,10 @@ def sixsigma_clip(line_id: int = Query(...),
         cid = cid.strip()
         if not cid:
             raise HTTPException(404, "This camera is not registered with the CMS yet")
-        tbl = (cfg["db_table_name"] or "") + "_ct_log"
-        if not _TBL_RE.match(tbl):
-            raise HTTPException(400, "bad table")
-        cur.execute("SELECT to_regclass(%s) AS r", (tbl,))
-        if not cur.fetchone()["r"]:
-            raise HTTPException(404, "no cycle log for this line")
-        q = f"SELECT ts, ct_value FROM {tbl} WHERE record_date=%s AND cycle_seq=%s"
-        params = [rec_date, cycle_seq]
-        if shift:
-            q += " AND shift_name=%s"; params.append(shift)
-        q += " ORDER BY ts DESC LIMIT 1"
-        cur.execute(q, params)
-        row = cur.fetchone()
+        ts_end, ct, _src = _cycle_window(cur, cfg, cycle_seq, rec_date, shift)
         conn.rollback()
-    if not row or not row.get("ts"):
+    if not ts_end:
         raise HTTPException(404, "Cycle not found")
-    ts_end = row["ts"]
-    try:
-        ct = float(row.get("ct_value") or 0)
-    except Exception:
-        ct = 0.0
     ct = min(max(ct, 3.0), 120.0)          # sane window even on a junk ct
     ts_start = ts_end - timedelta(seconds=ct)
 
@@ -412,12 +522,14 @@ def sixsigma_clip(line_id: int = Query(...),
     cached = os.path.join(CLIP_CACHE_DIR, f"{key}.mp4")
 
     if os.path.exists(cached) and os.path.getsize(cached) > 0:
-        return _serve_file(cached, request)
+        return _mp4_named(_serve_file(cached, request),
+                          line_id, cycle_seq, cam, rec_date)
 
     with _clip_lock(key):
         # Another request may have finished it while we waited on the lock.
         if os.path.exists(cached) and os.path.getsize(cached) > 0:
-            return _serve_file(cached, request)
+            return _mp4_named(_serve_file(cached, request),
+                              line_id, cycle_seq, cam, rec_date)
 
         # Always fetch the WHOLE cut — a Range would give us a fragment that
         # cannot be re-encoded.  The player's Range is answered off the cached
@@ -476,12 +588,32 @@ def sixsigma_clip(line_id: int = Query(...),
                          "Cache-Control": "no-cache, no-store, must-revalidate",
                          "X-Clip-Codec": "source-passthrough"})
 
-    return _serve_file(cached, request)
+    return _mp4_named(_serve_file(cached, request), line_id, cycle_seq, cam, rec_date)
+
+
+def _mp4_named(resp, line_id, cycle_seq, cam, rec_date):
+    """Tell the browser this is an .mp4, and what to call it.
+
+    2026-09-26 — the bytes were already H.264 in an MP4 container, but nothing
+    on the response said so by NAME: the URL ends in "/clip", and a browser that
+    ignores the anchor's `download` attribute saved the file with no extension,
+    so it would not open as a video.  `inline` keeps it playing in the page;
+    only the filename is being declared.
+    """
+    try:
+        name = f"sixsigma_line-{line_id}_cycle-{cycle_seq}_cam{cam}_{rec_date}.mp4"
+        resp.headers["Content-Disposition"] = f'inline; filename="{name}"'
+        resp.headers["Content-Type"] = "video/mp4"
+        resp.headers["X-Content-Type-Options"] = "nosniff"
+    except Exception:
+        pass
+    return resp
 
 
 def _cfg_public(cfg):
     return {
         "line_id": cfg["line_id"], "machine_name": cfg.get("machine_name"),
+        "machine_plc_id": cfg.get("machine_plc_id"),
         "cam1_name": cfg.get("cam1_name"), "cam2_name": cfg.get("cam2_name"),
         "retention_days": cfg.get("retention_days", DEFAULT_RETENTION),
     }

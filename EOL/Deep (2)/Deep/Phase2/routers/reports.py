@@ -21,6 +21,7 @@ the same module so the import graph stays simple.
 from __future__ import annotations
 
 import io
+import re
 import os
 import threading
 import time
@@ -1408,3 +1409,190 @@ def start_scheduler() -> None:
                                             name="report-scheduler")
     _AUTO_REPORT_THREAD.start()
     print("[REPORT-SCHED] Worker started — checks every 30 s for end-of-shift sends")
+
+
+# ════════════════════════════════════════════════════════════════════
+#  Losses — every loss category, per line / date / shift, + Excel
+#  2026-09-26 — operator asked for one place that shows all of it and
+#  downloads.  The numbers are the same *_seconds columns the Hourly
+#  Report and OEE already use, so nothing is recomputed here and the
+#  two views can never disagree.
+# ════════════════════════════════════════════════════════════════════
+LOSS_KINDS = [
+    ("loss_breakdown_seconds",   "Breakdown"),
+    ("loss_quality_seconds",     "Quality"),
+    ("loss_setup_seconds",       "Setup"),
+    ("loss_material_seconds",    "Material"),
+    ("loss_change_over_seconds", "Change over"),
+    ("loss_speed_seconds",       "Speed"),
+    ("loss_others_seconds",      "Others"),
+]
+
+
+def _loss_rows(cur, user, d0: date, d1: date, shift: Optional[str],
+               line_id: Optional[int], zone: Optional[str] = None):
+    """One row per line / date / shift, with every loss category in seconds."""
+    q = ("SELECT l.id, l.line_name, l.db_table_name, z.zone_name "
+         "FROM mes_lines l LEFT JOIN mes_zones z ON z.id = l.zone_id ")
+    where, args = [], []
+    if line_id:
+        where.append("l.id = %s")
+        args.append(line_id)
+    if zone and zone.upper() != "ALL":
+        where.append("z.zone_name = %s")
+        args.append(zone)
+    if where:
+        q += "WHERE " + " AND ".join(where) + " "
+    q += "ORDER BY z.zone_name NULLS LAST, l.line_name"
+    cur.execute(q, args)
+    lines = cur.fetchall()
+
+    #  Scope: a user only ever sees the lines they are assigned to (same rule
+    #  the rest of the platform uses).  Admins and anyone unassigned see all.
+    allowed = None
+    try:
+        cur.execute("SELECT line_id FROM mes_operator_lines WHERE admin_id=%s",
+                    (user.get("id"),))
+        got = {int(r["line_id"]) for r in cur.fetchall() if r.get("line_id")}
+        if got and (user.get("role") or "") not in ("admin", "plant_head"):
+            allowed = got
+    except Exception:
+        pass
+
+    cols = ", ".join(k for k, _ in LOSS_KINDS)
+    out = []
+    for ln in lines:
+        if allowed is not None and int(ln["id"]) not in allowed:
+            continue
+        tbl = (ln.get("db_table_name") or "").strip()
+        if not tbl or not re.match(r"^[a-z0-9_]+$", tbl):
+            continue
+        cur.execute("SELECT to_regclass(%s) AS r", (f"public.{tbl}",))
+        if not cur.fetchone()["r"]:
+            continue
+        w = ["record_date BETWEEN %s AND %s"]
+        a: list = [d0, d1]
+        if shift and shift.upper() != "ALL":
+            w.append("shift_name = %s")
+            a.append(shift)
+        else:
+            #  GAP rows are the gaps BETWEEN shifts, not a shift's own loss.
+            w.append("shift_name NOT LIKE 'GAP%%'")
+        try:
+            cur.execute(f"SELECT record_date, shift_name, {cols} "
+                        f"FROM {tbl} WHERE {' AND '.join(w)} "
+                        f"ORDER BY record_date, shift_name", a)
+        except Exception:
+            continue
+        for r in cur.fetchall():
+            losses = {label: int(r.get(key) or 0) for key, label in LOSS_KINDS}
+            total = sum(losses.values())
+            if total == 0:
+                continue          # nothing lost that shift — not worth a row
+            out.append({
+                "line_id": ln["id"], "line": ln["line_name"],
+                "zone": ln.get("zone_name") or "—",
+                "date": r["record_date"].isoformat(),
+                "shift": r["shift_name"],
+                "losses": losses,
+                "total_seconds": total,
+            })
+    return out
+
+
+@router.get("/losses")
+def losses(from_date: str = Query(...), to_date: Optional[str] = Query(None),
+           shift: Optional[str] = Query(None), line_id: Optional[int] = Query(None),
+           zone: Optional[str] = Query(None),
+           user=Depends(get_current_user)):
+    """All losses for the chosen range — rows, per-category totals, and a Pareto."""
+    try:
+        d0 = datetime.strptime(from_date, "%Y-%m-%d").date()
+        d1 = datetime.strptime(to_date, "%Y-%m-%d").date() if to_date else d0
+    except ValueError:
+        raise HTTPException(400, "dates must be YYYY-MM-DD")
+    if d1 < d0:
+        d0, d1 = d1, d0
+    with get_conn() as conn:
+        cur = dict_cursor(conn)
+        rows = _loss_rows(cur, user, d0, d1, shift, line_id, zone)
+        #  The pickers on the page offer only what this user may actually see.
+        cur.execute("SELECT z.zone_name, l.id, l.line_name FROM mes_lines l "
+                    "LEFT JOIN mes_zones z ON z.id = l.zone_id "
+                    "ORDER BY z.zone_name NULLS LAST, l.line_name")
+        picks = cur.fetchall()
+        conn.rollback()
+    totals = {label: 0 for _, label in LOSS_KINDS}
+    for r in rows:
+        for k, v in r["losses"].items():
+            totals[k] += v
+    grand = sum(totals.values())
+    pareto = sorted(({"kind": k, "seconds": v,
+                      "pct": round(v * 100.0 / grand, 1) if grand else 0.0}
+                     for k, v in totals.items()),
+                    key=lambda x: -x["seconds"])
+    zones = sorted({(r["zone_name"] or "—") for r in picks})
+    lines = [{"id": r["id"], "line_name": r["line_name"],
+              "zone": r["zone_name"] or "—"} for r in picks]
+    return {"from": d0.isoformat(), "to": d1.isoformat(),
+            "shift": shift or "ALL", "zone": zone or "ALL",
+            "line_id": line_id, "rows": rows,
+            "totals": totals, "total_seconds": grand, "pareto": pareto,
+            "kinds": [label for _, label in LOSS_KINDS],
+            "zones": zones, "lines": lines}
+
+
+@router.get("/losses-excel")
+def losses_excel(from_date: str = Query(...), to_date: Optional[str] = Query(None),
+                 shift: Optional[str] = Query(None),
+                 line_id: Optional[int] = Query(None),
+                 zone: Optional[str] = Query(None),
+                 user=Depends(get_current_user)):
+    """The same data as a workbook: one row per line/date/shift, plus a summary."""
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill, Alignment
+
+    data = losses(from_date, to_date, shift, line_id, zone, user)
+    hdr_fill = PatternFill("solid", fgColor="1E40AF")
+    hdr_font = Font(color="FFFFFF", bold=True)
+
+    def hms(s):
+        s = int(s or 0)
+        return f"{s // 3600:02d}:{(s % 3600) // 60:02d}:{s % 60:02d}"
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Losses"
+    head = ["Zone", "Line", "Date", "Shift"] + data["kinds"] + ["Total"]
+    ws.append(head)
+    for c in ws[1]:
+        c.fill, c.font = hdr_fill, hdr_font
+        c.alignment = Alignment(horizontal="center")
+    for r in data["rows"]:
+        ws.append([r["zone"], r["line"], r["date"], r["shift"]]
+                  + [hms(r["losses"][k]) for k in data["kinds"]]
+                  + [hms(r["total_seconds"])])
+    widths = [16, 20, 12, 8] + [13] * len(data["kinds"]) + [13]
+    for i, w in enumerate(widths, start=1):
+        ws.column_dimensions[ws.cell(row=1, column=i).column_letter].width = w
+    ws.freeze_panes = "A2"
+
+    s2 = wb.create_sheet("Summary")
+    s2.append(["Loss", "Time", "Seconds", "Share %"])
+    for c in s2[1]:
+        c.fill, c.font = hdr_fill, hdr_font
+    for p in data["pareto"]:
+        s2.append([p["kind"], hms(p["seconds"]), p["seconds"], p["pct"]])
+    s2.append(["TOTAL", hms(data["total_seconds"]), data["total_seconds"], 100.0])
+    s2["A" + str(s2.max_row)].font = Font(bold=True)
+    for i, w in enumerate([18, 14, 12, 10], start=1):
+        s2.column_dimensions[s2.cell(row=1, column=i).column_letter].width = w
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    name = f"losses_{data['from']}_{data['to']}.xlsx"
+    return StreamingResponse(
+        buf,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{name}"'})

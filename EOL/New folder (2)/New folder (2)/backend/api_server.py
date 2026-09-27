@@ -3544,6 +3544,89 @@ def submachine_clip():
     return resp
 
 
+
+
+# ── Manual camera recovery (2026-09-26) ─────────────────────────────────────
+# Operator: "method 2 kar de, but ek button UI me de de — main khud manual
+# karunga."  Nothing below runs on a timer; it fires only when someone presses
+# Fix / Recover in Video Coverage.
+#
+# Why silence is the cure: these cameras serve ONE RTSP session and keep a dead
+# one until it times out on their side.  The shift rotation already holds each
+# respawn for TS_ROTATE_QUIET_S so the camera can let go — but the reachability
+# probe knew nothing about that and kept connecting every 5 s, so the camera
+# never got the quiet and came back hung after every shift boundary.  This
+# stops the recorder and puts the camera on a quiet list that BOTH the probe
+# and the spawn gate honour.
+@app.post("/api/cameras/quiet")
+def cameras_quiet():
+    payload = request.get_json(silent=True) or {}
+    ids = payload.get("camera_ids") or []
+    if isinstance(ids, str):
+        ids = [ids]
+    try:
+        seconds = float(payload.get("seconds") or 120)
+    except (TypeError, ValueError):
+        seconds = 120.0
+    seconds = max(10.0, min(900.0, seconds))
+    if not ids:
+        return jsonify({"error": "camera_ids required"}), 400
+    try:
+        n = plc_monitor.quiet_cameras(ids, seconds)
+    except Exception as exc:
+        return jsonify({"error": str(exc)[:200]}), 500
+    return jsonify({"quieted": n, "seconds": seconds,
+                    "detail": f"{n} camera(s) left completely alone for "
+                              f"{int(seconds)}s — no probe, no respawn — then "
+                              f"recording restarts on its own."})
+
+
+@app.get("/api/cameras/quiet")
+def cameras_quiet_state():
+    """Which cameras are inside a quiet window right now, and for how long."""
+    import time as _t
+    now = _t.time()
+    out = {cid: round(until - now)
+           for cid, until in dict(getattr(plc_monitor, "_cam_quiet", {})).items()
+           if until > now}
+    return jsonify({"quiet": out, "count": len(out)})
+
+# 2026-09-27 — the working recover.  The quiet-window recover above measured
+# +1 camera and, now that the blind retry runs, actively blocks the thing that
+# works.  This clears every reason the watchdog would skip a camera and reports
+# exactly what it did.  NOTE: routes must stay ABOVE the __main__ guard or Flask
+# never registers them (that cost a restart on 26-Sep).
+@app.post("/api/cameras/retry-now")
+def cameras_retry_now():
+    payload = request.get_json(silent=True) or {}
+    ids = payload.get("camera_ids") or []
+    if isinstance(ids, str):
+        ids = [ids]
+    if not ids:
+        return jsonify({"error": "camera_ids required"}), 400
+    try:
+        res = plc_monitor.retry_cameras_now(ids)
+    except Exception as exc:
+        return jsonify({"error": str(exc)[:200]}), 500
+    bits = []
+    if res["killed_stale"]:
+        why = ", ".join(f"{n} because {w}" for w, n in res["kill_reasons"].items())
+        bits.append(f"stopped {res['killed_stale']} stuck recorder(s) ({why})")
+    if res["already_recording"]:
+        bits.append(f"{res['already_recording']} were already recording and were left alone")
+    if res["backoff_cleared"]:
+        bits.append(f"cleared the retry back-off on {res['backoff_cleared']}")
+    if res["unreachable_cleared"]:
+        bits.append(f"took {res['unreachable_cleared']} off the unreachable list")
+    if res["quiet_cleared"]:
+        bits.append(f"ended {res['quiet_cleared']} quiet window(s)")
+    tail = (f"Attempts are paced at ~{res['per_minute']}/min so this cannot flood the "
+            f"camera network, so give it about {max(1, round(res['eta_s'] / 60))} minute(s).")
+    res["detail"] = (f"{res['asked']} camera(s) queued for an immediate attempt — "
+                     + ("; ".join(bits) + ". " if bits else "") + tail)
+    return jsonify(res)
+
+
 if __name__ == "__main__":
     _start_video_cleanup_worker()
     app.run(host="0.0.0.0", port=5555, debug=False, threaded=True)

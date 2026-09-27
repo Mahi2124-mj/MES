@@ -55,6 +55,36 @@ def _ensure_tables() -> None:
                 admin_id  INTEGER NOT NULL,
                 PRIMARY KEY (zone_id, level_no)
             )""")
+        #  2026-09-27 — per-SHIFT override of the chain (operator: "escalation
+        #  hierarchy me shift wise shift incharge assign option").  The base
+        #  table above stays the default for every shift; a zone only needs rows
+        #  here for the shifts whose chain differs.  Kept as a separate table so
+        #  no existing row or key changes.
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS mes_zone_escalation_shift (
+                zone_id    INTEGER     NOT NULL,
+                shift_name VARCHAR(10) NOT NULL,
+                level_no   INTEGER     NOT NULL,
+                admin_id   INTEGER     NOT NULL,
+                PRIMARY KEY (zone_id, shift_name, level_no)
+            )""")
+        #  One place that answers "who is the chain for this zone in THIS
+        #  shift" — the shift's own rows when it has any, otherwise the zone
+        #  default.  Read-only and STABLE, so it is safe inside any query.
+        cur.execute("""
+            CREATE OR REPLACE FUNCTION mes_esc_chain(p_zone INTEGER, p_shift TEXT)
+            RETURNS TABLE(level_no INTEGER, admin_id INTEGER)
+            LANGUAGE sql STABLE AS $fn$
+                SELECT level_no, admin_id
+                  FROM mes_zone_escalation_shift
+                 WHERE zone_id = p_zone AND shift_name = p_shift
+                UNION ALL
+                SELECT level_no, admin_id
+                  FROM mes_zone_escalation
+                 WHERE zone_id = p_zone
+                   AND NOT EXISTS (SELECT 1 FROM mes_zone_escalation_shift
+                                    WHERE zone_id = p_zone AND shift_name = p_shift)
+            $fn$""")
         # One escalation instance per (line, date, shift).
         cur.execute("""
             CREATE TABLE IF NOT EXISTS mes_shift_escalation (
@@ -178,13 +208,26 @@ def _sweep():
         with get_conn() as conn:
             cur = dict_cursor(conn)
             # zones that actually have a chain configured
-            cur.execute("SELECT DISTINCT zone_id FROM mes_zone_escalation")
+            cur.execute("""SELECT DISTINCT zone_id FROM mes_zone_escalation
+                            UNION
+                           SELECT DISTINCT zone_id FROM mes_zone_escalation_shift""")
             zone_ids = [r["zone_id"] for r in cur.fetchall()]
             if not zone_ids:
                 return
-            # Level-1 person per zone (who a fresh escalation gets pushed to).
-            cur.execute("SELECT zone_id, admin_id FROM mes_zone_escalation WHERE level_no=1")
-            l1_admin = {r["zone_id"]: r["admin_id"] for r in cur.fetchall()}
+
+            #  Level-1 person per (zone, SHIFT) — a zone may hand shift A and
+            #  shift B to different people (2026-09-27).  Resolved through
+            #  mes_esc_chain(), which falls back to the zone default.
+            _l1_cache: dict = {}
+
+            def l1_for(zid, shift):
+                key = (zid, str(shift or ""))
+                if key not in _l1_cache:
+                    cur.execute("""SELECT admin_id FROM mes_esc_chain(%s,%s)
+                                    WHERE level_no=1""", (zid, str(shift or "")))
+                    r = cur.fetchone()
+                    _l1_cache[key] = r["admin_id"] if r else None
+                return _l1_cache[key]
             notify = []
             fresh  = []      # (esc_id, level1_admin_id, line_name, summary)
             cur.execute("""SELECT id, line_name, db_table_name, zone_id
@@ -231,7 +274,7 @@ def _sweep():
                                            VALUES (%s,1,'created',%s)""",
                                         (row["id"], summary))
                             made += 1
-                            fresh.append((row["id"], l1_admin.get(ln["zone_id"]),
+                            fresh.append((row["id"], l1_for(ln["zone_id"], shift),
                                           ln["line_name"], summary))
                         cur.execute("RELEASE SAVEPOINT esc_line")
                     except Exception as le:
@@ -279,17 +322,31 @@ def list_admins(user=Depends(get_current_user)):
 
 
 @router.get("/zone/{zone_id}/chain")
-def get_chain(zone_id: int, user=Depends(get_current_user)):
+def get_chain(zone_id: int, shift: str = "", user=Depends(get_current_user)):
+    """The zone's chain.  `shift` empty = the default chain every shift uses;
+    `shift=A|B|…` = that shift's own chain, and `inherited` says whether it is
+    still falling back to the default."""
     _ensure_tables()
+    sh = (shift or "").strip().upper()
     with get_conn() as conn:
         cur = dict_cursor(conn)
-        cur.execute("""SELECT e.level_no, e.admin_id,
-                              a.username AS name,
-                              a.role
-                         FROM mes_zone_escalation e
-                         LEFT JOIN mes_admin a ON a.id = e.admin_id
-                        WHERE e.zone_id=%s ORDER BY e.level_no""", (zone_id,))
-        return {"zone_id": zone_id, "chain": [dict(r) for r in cur.fetchall()]}
+        own = 0
+        if sh:
+            cur.execute("""SELECT count(*) AS n FROM mes_zone_escalation_shift
+                            WHERE zone_id=%s AND shift_name=%s""", (zone_id, sh))
+            own = int((cur.fetchone() or {}).get("n") or 0)
+            cur.execute("""SELECT c.level_no, c.admin_id, a.username AS name, a.role
+                             FROM mes_esc_chain(%s,%s) c
+                             LEFT JOIN mes_admin a ON a.id = c.admin_id
+                            ORDER BY c.level_no""", (zone_id, sh))
+        else:
+            cur.execute("""SELECT e.level_no, e.admin_id, a.username AS name, a.role
+                             FROM mes_zone_escalation e
+                             LEFT JOIN mes_admin a ON a.id = e.admin_id
+                            WHERE e.zone_id=%s ORDER BY e.level_no""", (zone_id,))
+        return {"zone_id": zone_id, "shift": sh,
+                "inherited": bool(sh) and own == 0,
+                "chain": [dict(r) for r in cur.fetchall()]}
 
 
 class ChainBody(BaseModel):
@@ -297,19 +354,51 @@ class ChainBody(BaseModel):
 
 
 @router.put("/zone/{zone_id}/chain")
-def set_chain(zone_id: int, body: ChainBody, user=Depends(get_current_user)):
-    """Replace a zone's ordered chain.  Admin only."""
+def set_chain(zone_id: int, body: ChainBody, shift: str = "",
+              user=Depends(get_current_user)):
+    """Replace a zone's chain.  Admin only.
+
+    With no `shift` this writes the zone default, exactly as before.  With
+    `shift=A|B|…` it writes only that shift's chain (2026-09-27, operator:
+    "shift wise shift incharge assign option") — and an EMPTY list clears the
+    override so that shift goes back to following the default.
+    """
     if user.get("role") != "admin":
         raise HTTPException(403, "Admin only")
     _ensure_tables()
+    sh = (shift or "").strip().upper()
     with get_conn() as conn:
         cur = conn.cursor()
-        cur.execute("DELETE FROM mes_zone_escalation WHERE zone_id=%s", (zone_id,))
-        for i, aid in enumerate(body.admin_ids, start=1):
-            cur.execute("""INSERT INTO mes_zone_escalation (zone_id, level_no, admin_id)
-                           VALUES (%s,%s,%s)""", (zone_id, i, int(aid)))
+        if sh:
+            cur.execute("""DELETE FROM mes_zone_escalation_shift
+                            WHERE zone_id=%s AND shift_name=%s""", (zone_id, sh))
+            for i, aid in enumerate(body.admin_ids, start=1):
+                cur.execute("""INSERT INTO mes_zone_escalation_shift
+                                 (zone_id, shift_name, level_no, admin_id)
+                               VALUES (%s,%s,%s,%s)""", (zone_id, sh, i, int(aid)))
+        else:
+            cur.execute("DELETE FROM mes_zone_escalation WHERE zone_id=%s", (zone_id,))
+            for i, aid in enumerate(body.admin_ids, start=1):
+                cur.execute("""INSERT INTO mes_zone_escalation (zone_id, level_no, admin_id)
+                               VALUES (%s,%s,%s)""", (zone_id, i, int(aid)))
         conn.commit()
-    return get_chain(zone_id, user)
+    return get_chain(zone_id, sh, user)
+
+
+@router.get("/shifts")
+def esc_shifts(user=Depends(get_current_user)):
+    """Shift names actually configured on the plant, for the chain editor."""
+    _ensure_tables()
+    with get_conn() as conn:
+        cur = dict_cursor(conn)
+        try:
+            cur.execute("""SELECT DISTINCT shift_name FROM mes_shift_configs
+                            WHERE COALESCE(shift_name,'') <> '' ORDER BY shift_name""")
+            out = [r["shift_name"] for r in cur.fetchall()]
+        except Exception:
+            out = []
+        conn.rollback()
+    return {"shifts": out or ["A", "B"]}
 
 
 # ── Phase 3: the flow ───────────────────────────────────────────────────
@@ -327,12 +416,17 @@ def my_escalations(user=Depends(get_current_user)):
             SELECT s.*, l.line_name, z.zone_name,
                    ce.admin_id AS current_admin_id,
                    a.username AS current_name,
-                   (SELECT MAX(level_no) FROM mes_zone_escalation WHERE zone_id=s.zone_id) AS max_level
+                   --  per-shift chain (2026-09-27): a zone can hand shift A and
+                   --  shift B to different people, so both the level count and
+                   --  the current person are resolved for THIS row's shift.
+                   (SELECT MAX(level_no)
+                      FROM mes_esc_chain(s.zone_id, s.shift_name)) AS max_level
               FROM mes_shift_escalation s
               LEFT JOIN mes_lines l ON l.id = s.line_id
               LEFT JOIN mes_zones z ON z.id = s.zone_id
-              LEFT JOIN mes_zone_escalation ce
-                     ON ce.zone_id = s.zone_id AND ce.level_no = s.current_level
+              LEFT JOIN LATERAL (SELECT admin_id
+                                   FROM mes_esc_chain(s.zone_id, s.shift_name)
+                                  WHERE level_no = s.current_level) ce ON TRUE
               LEFT JOIN mes_admin a ON a.id = ce.admin_id
              WHERE s.status='open'
              ORDER BY s.record_date DESC, s.shift_name, l.line_name""")
@@ -370,8 +464,9 @@ def complete_level(esc_id: int, body: CompleteBody, user=Depends(get_current_use
         if s["status"] != "open":
             raise HTTPException(409, "Already closed")
         lvl = s["current_level"]
-        cur.execute("""SELECT admin_id FROM mes_zone_escalation
-                        WHERE zone_id=%s AND level_no=%s""", (s["zone_id"], lvl))
+        cur.execute("""SELECT admin_id FROM mes_esc_chain(%s,%s)
+                        WHERE level_no=%s""",
+                    (s["zone_id"], s["shift_name"], lvl))
         ar = cur.fetchone()
         cur_admin = ar["admin_id"] if ar else None
         if not is_head and cur_admin != uid:
@@ -380,8 +475,8 @@ def complete_level(esc_id: int, body: CompleteBody, user=Depends(get_current_use
                          (escalation_id, level_no, admin_id, action, comment)
                        VALUES (%s,%s,%s,'completed',%s)""",
                     (esc_id, lvl, uid, (body.comment or None)))
-        cur.execute("SELECT MAX(level_no) mx FROM mes_zone_escalation WHERE zone_id=%s",
-                    (s["zone_id"],))
+        cur.execute("SELECT MAX(level_no) mx FROM mes_esc_chain(%s,%s)",
+                    (s["zone_id"], s["shift_name"]))
         mx = (cur.fetchone() or {}).get("mx") or lvl
         if lvl >= mx:
             cur.execute("""UPDATE mes_shift_escalation
@@ -397,8 +492,9 @@ def complete_level(esc_id: int, body: CompleteBody, user=Depends(get_current_use
                               SET current_level=%s, updated_at=now() WHERE id=%s""",
                         (new_level, esc_id))
             new_status = "open"
-            cur.execute("""SELECT admin_id FROM mes_zone_escalation
-                            WHERE zone_id=%s AND level_no=%s""", (s["zone_id"], new_level))
+            cur.execute("""SELECT admin_id FROM mes_esc_chain(%s,%s)
+                            WHERE level_no=%s""",
+                        (s["zone_id"], s["shift_name"], new_level))
             nr = cur.fetchone()
             next_admin = nr["admin_id"] if nr else None
         conn.commit()

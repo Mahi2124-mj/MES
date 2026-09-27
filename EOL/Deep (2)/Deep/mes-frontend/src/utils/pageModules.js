@@ -17,6 +17,7 @@
 export const PAGE_MODULES = {
   historical: [
     { key: "shift", label: "Hourly Report" },
+    { key: "losses", label: "Losses" },
     { key: "video", label: "Video Archive" },
     { key: "trace", label: "Part Traceability" },
     { key: "slips", label: "Breakdown Slips" },
@@ -31,6 +32,22 @@ export const PAGE_MODULES = {
   // 2026-09-19 — Shift Compile split into two modules: the per-line shift
   // review (status board, a line's detail, slide-to-close) and the compiled
   // roll-up (multi-line totals, per-model, historical + Excel/PDF).
+  // 2026-09-27 — PY Bypass page: each section can be handed out on its own,
+  // e.g. quality sees Open + History while only maintenance gets the two
+  // settings blocks.  The PY assignment itself is NOT touched by any of these.
+  // 2026-09-27 — Fault History: the event table and the Pareto can be handed
+  // out separately (a line leader may only need the table).
+  "fault-history": [
+    { key: "table",  label: "Fault Table" },
+    { key: "pareto", label: "Pareto Analysis" },
+  ],
+  "py-bypass": [
+    { key: "open",    label: "Open Bypasses" },
+    { key: "recent",  label: "Closed (last 24 h)" },
+    { key: "history", label: "History" },
+    { key: "mail",    label: "Approval Mail Setup" },
+    { key: "bit",     label: "Reject Bit Setup" },
+  ],
   "shift-compile": [
     { key: "line",    label: "Line Report" },
     { key: "compile", label: "Compile Report" },

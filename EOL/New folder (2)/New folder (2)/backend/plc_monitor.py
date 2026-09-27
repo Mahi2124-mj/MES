@@ -187,6 +187,19 @@ ORPHAN_MIN_AGE_S = float(os.environ.get("CAM_ORPHAN_MIN_AGE_S", "60"))
 #                          overlap across candidate cam_<id>_<ms>.ts files, and
 #                          the segments keep exactly that naming.
 #                          0 (default) = unchanged behaviour.
+#   CAM_QUIET_RETRY_S    -> how long to leave a camera alone after a recorder
+#                           that never streamed.  These cameras hold ONE RTSP
+#                           session and only release a dead one on an idle
+#                           timeout, so retrying sooner just re-occupies it.
+#
+#                           The number matters: a FAILED attempt still holds the
+#                           camera for the whole 45 s socket timeout below, so
+#                           the real quiet time is (this - 45 s).  A 90 s pause
+#                           demonstrably frees them (a restart with
+#                           CMS_QUIET_SECONDS=90 brought 104 back at once), so
+#                           150 s leaves ~105 s of genuine quiet.  75 s left only
+#                           30 s and did nothing, which is why the first attempt
+#                           at this looked like it had failed.
 #   TS_ROTATE_MIN_AGE_S -> even in the old mode, never rotate a recorder that
 #                          started less than this ago: after a power recovery
 #                          the rotation used to undo the cameras that had just
@@ -433,7 +446,24 @@ _HW_ENCODER_CACHE: list = []   # [(codec, [flags...])]
 # Set VIDEO_ALLOW_UDP=0 to disable the fallback entirely.
 # 2026-09-21 — default OFF: a UDP session that is not torn down cleanly keeps
 # a single-session camera busy (the proven recovery recipe runs with 0).
+CAM_QUIET_RETRY_S = float(os.environ.get("CAM_QUIET_RETRY_S", "150") or 150)
 _ALLOW_UDP_FALLBACK = os.environ.get("VIDEO_ALLOW_UDP", "0") == "1"
+
+# 2026-09-27 — BLIND RETRY (operator: "saare hung yahin se theek honge").
+# The reachability gate below used to refuse a spawn outright for any camera
+# its TCP probe called unreachable.  Measured that night: a hung camera still
+# answers a REAL ffmpeg about 12% of the time (7 of 60 across five runs), and
+# WHICH camera answers keeps changing — retesting the ones that had just
+# streamed gave 1 of 7.  So no camera is permanently dead; each gets a short
+# window now and then.  Refusing forever meant the recorder count sat flat at
+# 34-35 for an hour with 82 cameras unrecorded.  Now a small, rate-limited
+# trickle of real attempts is allowed through: each camera at most once per
+# CAM_BLIND_RETRY_S, and at most CAM_BLIND_MAX per CAM_BLIND_WINDOW_S across
+# ALL cameras — so the doomed-spawn storm the gate exists to prevent (one
+# ffmpeg per offline camera every 3 s) cannot come back.
+CAM_BLIND_RETRY_S = float(os.environ.get("CAM_BLIND_RETRY_S", "60") or 60)
+CAM_BLIND_MAX     = int(os.environ.get("CAM_BLIND_MAX", "5") or 5)
+CAM_BLIND_WINDOW_S = float(os.environ.get("CAM_BLIND_WINDOW_S", "10") or 10)
 
 # Fraction of realtime below which a TCP session is considered hopeless.  Was
 # 0.6, which demoted cameras measured at 0.54-0.58x — those were capturing CLEAN
@@ -725,6 +755,23 @@ class PlcMonitor:
         # _ensure_camera_recording).  Cheap TCP connect to :554, never spawns
         # ffmpeg, runs off the poll loop so it can never stall recording.
         self._cam_unreachable: set = set()
+        #  2026-09-27 — blind-retry bookkeeping (see _blind_retry_ok).
+        self._blind_last: Dict[str, float] = {}
+        self._blind_starts: list = []
+        self._blind_lock = threading.Lock()
+        self._blind_n = 0
+        self._blind_log_at = time.time()
+        #  2026-09-26 — MANUAL quiet list: {camera_id: until_epoch}.  A camera
+        #  in here is left completely alone — not probed, not respawned — so it
+        #  can drop the RTSP session of a recorder that died.  These cameras
+        #  serve ONE session at a time and hold a dead one until it times out;
+        #  the rotation already holds the respawn TS_ROTATE_QUIET_S for exactly
+        #  that reason, but the reachability probe knew nothing about it and
+        #  kept connecting every CAM_PROBE_EVERY_S (5 s), so the camera never
+        #  got the silence and came back hung after every shift boundary.
+        #  Nothing writes to this on its own — it is filled only by an operator
+        #  pressing Fix / Recover in Video Coverage.
+        self._cam_quiet: dict = {}
         threading.Thread(
             target=self._probe_camera_reachability_loop,
             name="cam-reachability", daemon=True,
@@ -793,7 +840,10 @@ class PlcMonitor:
                 for c in cams:
                     cid = str(c.get("id") or "").strip()
                     ip  = str(c.get("ip") or "").strip()
-                    if not cid or not ip or cid in live:
+                    #  A camera inside its quiet window is not probed — the
+                    #  probe's own TCP connect is what kept re-taking the one
+                    #  session the camera was meant to be releasing.
+                    if not cid or not ip or cid in live or self._is_quiet(cid):
                         continue
                     todo.append((cid, ip, int(c.get("port") or 554)))
                 if todo and not self._stop.is_set():
@@ -1266,11 +1316,32 @@ class PlcMonitor:
                             st["fails"] = 0          # give UDP a fresh set of tries
                             print(f"[PLC] Camera {cid}: TCP wouldn't hold — "
                                   f"trying UDP transport.")
-                        cool_down = 3   # fixed retry interval — no backoff
+                        # 2026-09-26 — QUIET RETRY.  Hammering every 3 s is
+                        # what keeps these cameras dark.  They hold ONE RTSP
+                        # session and only drop a dead one after an idle
+                        # timeout; a retry 3 s later re-occupies the socket
+                        # before that timeout can expire, the connect sits
+                        # there until ffmpeg's own 45 s limit, the recorder
+                        # "dies" again, and we retry — forever.  Measured on
+                        # cam .173: death cycles of 65 s and 85 s, hours on
+                        # end, while a hand-run ffmpeg at a quiet moment
+                        # captured 386 KB in 5 s from that same camera.  On
+                        # 26-Sep that loop left 82 of 143 healthy cameras
+                        # unrecorded with 8,778 launches and 847 that ever
+                        # wrote a byte.
+                        #
+                        # So: a recorder that NEVER streamed (write_start was
+                        # never detected) means the session is still held —
+                        # back off and let the camera time it out.  One that
+                        # was streaming and dropped is a genuine blip and its
+                        # session is already free, so retry fast as before.
+                        _ever_streamed = cam.get("write_start") is not None
+                        cool_down = 3 if _ever_streamed else CAM_QUIET_RETRY_S
                         st["next_try"] = now_ts + cool_down
                         if not st["announced"]:
                             print(f"[PLC] Camera {cid} appears OFFLINE "
-                                  f"(died after {alive_s:.0f}s). "
+                                  f"(died after {alive_s:.0f}s, "
+                                  f"{'streamed' if _ever_streamed else 'never streamed'}). "
                                   f"Retrying every {cool_down}s — recording "
                                   f"will resume as soon as camera responds.")
                             st["announced"]      = True
@@ -1767,8 +1838,16 @@ class PlcMonitor:
             # to :554, no ffmpeg involved); we simply refuse to spawn for those.
             # The moment a camera answers again the prober drops it from the set
             # and the normal 3 s retry resumes — so recovery stays instant.
-            if camera_id in getattr(self, "_cam_unreachable", ()):
+            #  Manual quiet window — see quiet_cameras().  Refusing here
+            #  covers every caller (watchdog, prestart, PLC trigger) in one
+            #  place, so the camera really is left untouched for the window.
+            if self._is_quiet(camera_id):
                 return None
+            #  2026-09-27 — not a hard refusal any more: let a rate-limited
+            #  trickle of real attempts through (see _blind_retry_ok).
+            if camera_id in getattr(self, "_cam_unreachable", ()):
+                if not self._blind_retry_ok(camera_id):
+                    return None
 
             rtsp_url = get_camera_rtsp_url(camera_id, self.base_dir)
             if not rtsp_url:
@@ -1959,7 +2038,17 @@ class PlcMonitor:
             ])
             record_start = datetime.now()
             try:
-                cam_log = open(cam_log_path, "wb", buffering=0)   # overwrite, not append
+                # 2026-09-26 — APPEND, not overwrite.  This file is the only place the
+                # real reason a recorder failed is written, and truncating it on
+                # every launch meant that after a restart loop there was nothing
+                # left to read.  Trimmed below so it cannot grow without bound.
+                if os.path.exists(cam_log_path) and os.path.getsize(cam_log_path) > 1_000_000:
+                    try:
+                        _keep = open(cam_log_path, "rb").read()[-200_000:]
+                        open(cam_log_path, "wb").write(_keep)
+                    except OSError:
+                        pass
+                cam_log = open(cam_log_path, "ab", buffering=0)
                 proc = subprocess.Popen(
                     cmd,
                     stdin=subprocess.PIPE,
@@ -2279,6 +2368,168 @@ class PlcMonitor:
         state["last_fired_at"] = now.isoformat(timespec="seconds")
         state["wiped_cameras"] = all_cam_ids
         self._save_shift_state(state)
+
+    def quiet_cameras(self, camera_ids, seconds: float) -> int:
+        """Leave these cameras alone for `seconds` — no probe, no respawn.
+
+        Called only from the manual recover endpoint.  Returns how many were
+        marked.  Their recorder is stopped first: the silence is pointless
+        while our own ffmpeg still holds the session.
+        """
+        now = time.time()
+        n = 0
+        for cid in [c for c in (camera_ids or []) if c]:
+            cam = self._camera_workers.pop(str(cid), None)
+            if cam:
+                try:
+                    self._kill_cam(cam)
+                except Exception:
+                    pass
+            self._cam_quiet[str(cid)] = now + float(seconds)
+            #  Clear any failure back-off so it is retried the moment the
+            #  quiet window ends, instead of waiting out an old cool-down.
+            try:
+                self._cam_fail_state.pop(str(cid), None)
+            except Exception:
+                pass
+            n += 1
+        print(f"[QUIET] {n} camera(s) left alone for {seconds:.0f}s "
+              f"(manual recover)", flush=True)
+        return n
+
+    def retry_cameras_now(self, camera_ids) -> dict:
+        """Manual "try these cameras again, right now" — the working half of
+        the Recover button.
+
+        It replaces the quiet-window recover, which measured **+1 camera** on
+        27-Sep and is actively harmful now that the blind retry runs: quieting
+        a camera stops its recorder AND blocks the retry for the whole window.
+        This does the opposite — clears everything that makes the watchdog skip
+        a camera, so its very next pass spawns a real ffmpeg.
+
+        Returns a per-camera breakdown so the UI can say what it actually did
+        and why, instead of just claiming success.
+        """
+        now = time.time()
+        out = {"asked": 0, "killed_stale": 0, "kill_reasons": {},
+               "already_recording": 0, "backoff_cleared": 0,
+               "unreachable_cleared": 0, "quiet_cleared": 0, "cameras": []}
+        for raw in (camera_ids or []):
+            cid = str(raw or "").strip()
+            if not cid:
+                continue
+            out["asked"] += 1
+            did = []
+            cam = self._camera_workers.get(cid)
+            if cam:
+                try:
+                    proc = cam.get("proc")
+                    alive = proc is not None and proc.poll() is None
+                except Exception:
+                    alive = False
+                wrote = cam.get("write_start") is not None
+                try:
+                    f = cam.get("ts_file")
+                    size = os.path.getsize(f) if f and os.path.exists(f) else 0
+                except Exception:
+                    size = 0
+                if alive and wrote and size > 0:
+                    out["already_recording"] += 1
+                    out["cameras"].append({"camera_id": cid,
+                                           "did": ["already recording — left alone"]})
+                    continue
+                #  A recorder that never wrote is still holding the camera's
+                #  one RTSP session, so nothing else can connect until it goes.
+                why = ("its ffmpeg had already exited" if not alive else
+                       "it never wrote a byte" if not wrote else
+                       "its file was still empty")
+                self._camera_workers.pop(cid, None)
+                try:
+                    self._kill_cam(cam)
+                except Exception:
+                    pass
+                out["killed_stale"] += 1
+                out["kill_reasons"][why] = out["kill_reasons"].get(why, 0) + 1
+                did.append("stopped the stuck recorder (%s)" % why)
+            try:
+                st = self._cam_fail_state.pop(cid, None)
+            except Exception:
+                st = None
+            if st:
+                wait = max(0.0, float(st.get("next_try", 0) or 0) - now)
+                out["backoff_cleared"] += 1
+                did.append("cleared its back-off (%.0fs still to wait after %s failed tries)"
+                           % (wait, st.get("fails", 0)))
+            try:
+                if cid in self._cam_unreachable:
+                    self._cam_unreachable.discard(cid)
+                    out["unreachable_cleared"] += 1
+                    did.append("took it off the unreachable list")
+            except Exception:
+                pass
+            try:
+                if self._cam_quiet.pop(cid, None):
+                    out["quiet_cleared"] += 1
+                    did.append("ended its quiet window")
+            except Exception:
+                pass
+            try:
+                with self._blind_lock:
+                    self._blind_last.pop(cid, None)
+            except Exception:
+                pass
+            did.append("queued for an immediate attempt")
+            out["cameras"].append({"camera_id": cid, "did": did})
+        #  Honest pacing: attempts are still capped so a click cannot recreate
+        #  the doomed-spawn storm the reachability gate exists to prevent.
+        rate = (CAM_BLIND_MAX / max(CAM_BLIND_WINDOW_S, 0.001)) * 60.0
+        out["per_minute"] = round(rate)
+        out["eta_s"] = int(out["asked"] / max(rate / 60.0, 0.001)) if out["asked"] else 0
+        print(f"[RETRY-NOW] {out['asked']} camera(s): stopped {out['killed_stale']} stuck "
+              f"recorder(s), cleared {out['backoff_cleared']} back-off(s), "
+              f"{out['unreachable_cleared']} unreachable flag(s), "
+              f"{out['quiet_cleared']} quiet window(s); {out['already_recording']} were "
+              f"already recording — attempts run at ~{out['per_minute']}/min", flush=True)
+        return out
+
+    def _blind_retry_ok(self, camera_id: str) -> bool:
+        """The reachability probe calls this camera unreachable — may we still
+        try a real ffmpeg for it right now?
+
+        Yes, but rarely: once per CAM_BLIND_RETRY_S for this camera, and only
+        while fewer than CAM_BLIND_MAX attempts have started in the last
+        CAM_BLIND_WINDOW_S across every camera.  That keeps recovery moving
+        without recreating the retry storm the gate was added to stop."""
+        now = time.time()
+        with self._blind_lock:
+            if now - self._blind_last.get(camera_id, 0.0) < CAM_BLIND_RETRY_S:
+                return False
+            recent = [t for t in self._blind_starts if now - t < CAM_BLIND_WINDOW_S]
+            if len(recent) >= CAM_BLIND_MAX:
+                self._blind_starts = recent
+                return False
+            recent.append(now)
+            self._blind_starts = recent
+            self._blind_last[camera_id] = now
+            self._blind_n += 1
+            if now - self._blind_log_at >= 60:
+                print(f"[RETRY] {self._blind_n} blind recorder attempt(s) in the last "
+                      f"{now - self._blind_log_at:.0f}s for cameras the probe calls "
+                      f"unreachable ({len(getattr(self, '_cam_unreachable', ()))} in that set)",
+                      flush=True)
+                self._blind_n = 0
+                self._blind_log_at = now
+            return True
+
+    def _is_quiet(self, cid: str) -> bool:
+        """Is this camera inside its manual quiet window?"""
+        until = self._cam_quiet.get(str(cid))
+        if not until:
+            return False
+        if time.time() >= until:
+            self._cam_quiet.pop(str(cid), None)
+            return False
+        return True
 
     def _wipe_sub_camera_state(self, camera_ids: List[str]) -> None:
         """Rotate the recorders of the given cameras at a shift boundary.

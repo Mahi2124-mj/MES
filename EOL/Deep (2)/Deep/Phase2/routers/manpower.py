@@ -578,6 +578,30 @@ def carry_allocations(line_id: int = Query(...), date: str = Query(...),
                        "skill_level": r["skill_level"]} for r in rows]}
 
 
+def _shift_leader_id(line_id: int, d, shift_name: str):
+    """The leader assigned to this line for this date+shift, or None.
+
+    Reads the same row routers/leaders.py writes.  A missing table means the
+    feature has never been used on this install, which must not block a save.
+    """
+    try:
+        with get_conn() as conn:
+            cur = conn.cursor()
+            cur.execute("SELECT to_regclass('public.mes_leader_shift_alloc')")
+            if not cur.fetchone()[0]:
+                return "no-table"          # truthy: nothing to enforce yet
+            cur.execute("""SELECT leader_id FROM mes_leader_shift_alloc
+                            WHERE line_id=%s AND shift_date=%s AND shift_name=%s""",
+                        (line_id, d, shift_name))
+            row = cur.fetchone()
+            conn.rollback()
+        return row[0] if row else None
+    except Exception as exc:
+        print(f"[MANPOWER] leader lookup failed, not blocking save: {exc}",
+              flush=True)
+        return "lookup-failed"             # never turn a DB hiccup into a block
+
+
 @router.post("/allocations")
 def save_allocations(body: AllocSaveBody,
                       user=Depends(get_current_user)):
@@ -597,6 +621,17 @@ def save_allocations(body: AllocSaveBody,
 
     if not _is_shift_open(body.line_id, d, body.shift_name):
         raise HTTPException(423, "Shift is over — allocations are locked.")
+
+    # 2026-09-25 — a shift's crew is not allocated until somebody owns it.
+    # The page used to grey out its Save button only for the incharge roles,
+    # so anyone else with edit rights could still save a crew with no Line
+    # Leader against it — and everything downstream that asks "who ran this
+    # line this shift" (cycle comments, Shift Compile, escalation) then had
+    # nobody to name.  The rule belongs here, where no client can skip it.
+    if not _shift_leader_id(body.line_id, d, body.shift_name):
+        raise HTTPException(
+            400, "Assign a Line Leader for this shift before saving the "
+                 "allocation.")
 
     who = body.allocated_by or (user.get("username") if isinstance(user, dict) else "system")
 

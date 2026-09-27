@@ -31,6 +31,12 @@ export default function SixSigmaPage({ toast }) {
   // config form
   const [lineId, setLineId]   = useState("");
   const [machine, setMachine] = useState("Ball Guide");
+  // 2026-09-26 — which MACHINE's cycles the clips are cut on.  The window used
+  // to come from the LINE (Final Inspection): on a station running ~26 s while
+  // the line runs ~11 s, the clip ended less than half way through the job.
+  // Both cameras always use this one window, so they stay in step.
+  const [machinePlc, setMachinePlc] = useState("");
+  const [machines, setMachines] = useState([]);
   const [c1n, setC1n] = useState("Camera 1");
   const [c1u, setC1u] = useState("");
   const [c2n, setC2n] = useState("Camera 2");
@@ -46,11 +52,18 @@ export default function SixSigmaPage({ toast }) {
   const [viewCfg, setViewCfg] = useState(null);
   const [sel, setSel] = useState(null);   // selected cycle
   const [loading, setLoading] = useState(false);
+  // 2026-09-25 — a shift is ~1,400 cycles and the list used to stop at the
+  // newest 30, so almost every clip was unreachable.  One page of PAGE_SIZE,
+  // newest first, and buttons for the rest.
+  const [total, setTotal] = useState(0);
+  const [page, setPage]   = useState(0);
+  const PAGE_SIZE = 100;
 
   const load = useCallback(async () => {
     try {
       const r = await api.get("/api/sixsigma/config", token);
       setLines(r.lines || []);
+      setMachines(r.machines || []);
       setConfigs(r.configs || []);
       setDefMachine(r.default_machine || "Ball Guide");
       setDefRetention(r.default_retention || 40);
@@ -65,12 +78,13 @@ export default function SixSigmaPage({ toast }) {
     try {
       await api.post("/api/sixsigma/config", {
         line_id: Number(lineId), machine_name: machine.trim() || "Ball Guide",
+        machine_plc_id: machinePlc ? Number(machinePlc) : null,
         cam1_name: c1n.trim(), cam1_url: c1u.trim(),
         cam2_name: c2n.trim(), cam2_url: c2u.trim(),
         retention_days: Number(ret) || 40,
       }, token);
       toast?.("Ball Guide 6-Sigma config saved ✓");
-      setLineId(""); setMachine("Ball Guide"); setC1n("Camera 1"); setC1u("");
+      setLineId(""); setMachine("Ball Guide"); setMachinePlc(""); setC1n("Camera 1"); setC1u("");
       setC2n("Camera 2"); setC2u(""); setRet(40);
       await load();
     } catch (e) { toast?.(e.message || "Save failed", "err"); }
@@ -79,6 +93,7 @@ export default function SixSigmaPage({ toast }) {
 
   const edit = (c) => {
     setLineId(String(c.line_id)); setMachine(c.machine_name || "Ball Guide");
+    setMachinePlc(c.machine_plc_id ? String(c.machine_plc_id) : "");
     setC1n(c.cam1_name || "Camera 1"); setC1u(c.cam1_url || "");
     setC2n(c.cam2_name || "Camera 2"); setC2u(c.cam2_url || "");
     setRet(c.retention_days || 40);
@@ -90,18 +105,35 @@ export default function SixSigmaPage({ toast }) {
     catch (e) { toast?.(e.message || "Delete failed", "err"); }
   };
 
-  const loadClips = async () => {
+  const loadClips = async (pageIndex = 0, keepSel = false) => {
     if (!viewLine) { toast?.("Pick a configured line", "err"); return; }
-    setLoading(true); setSel(null);
+    setLoading(true);
+    if (!keepSel) setSel(null);
     try {
-      const qs = `line_id=${viewLine}&date=${date}${shift ? `&shift=${shift}` : ""}`;
+      const qs = `line_id=${viewLine}&date=${date}${shift ? `&shift=${shift}` : ""}`
+               + `&limit=${PAGE_SIZE}&offset=${pageIndex * PAGE_SIZE}`;
       const r = await api.get(`/api/sixsigma/clips?${qs}`, token);
       setCycles(r.cycles || []);
       setViewCfg(r.config || null);
+      setTotal(Number(r.total) || 0);
+      setPage(pageIndex);
       if (!(r.cycles || []).length) toast?.("No cycles for this date/shift");
     } catch (e) { toast?.(e.message || "Failed to load clips", "err"); }
     finally { setLoading(false); }
   };
+
+  const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const goPage = (n) => {
+    const t = Math.min(Math.max(0, n), pageCount - 1);
+    if (t !== page) loadClips(t, true);
+  };
+  // Page buttons around the current one, with the first and last always
+  // reachable, so 14 pages never become 14 buttons on a phone.
+  const pageButtons = (() => {
+    const out = new Set([0, pageCount - 1, page]);
+    for (let d = 1; d <= 2; d++) { out.add(page - d); out.add(page + d); }
+    return [...out].filter(n => n >= 0 && n < pageCount).sort((a, b) => a - b);
+  })();
 
   const withTok = (u) => `${u}&token=${encodeURIComponent(token || "")}`;
 
@@ -148,6 +180,18 @@ export default function SixSigmaPage({ toast }) {
             <div>
               <div style={lbl}>Machine</div>
               <input value={machine} onChange={e => setMachine(e.target.value)} style={{ ...inp, width: 150 }} />
+            </div>
+            <div>
+              <div style={lbl}>Cut clips on</div>
+              <select value={machinePlc} onChange={e => setMachinePlc(e.target.value)}
+                      title="Whose cycle decides the clip's start and end. Both cameras use the same window."
+                      style={{ ...inp, width: 260 }}>
+                <option value="">Line cycle (Final Inspection)</option>
+                {machines.filter(m => String(m.line_id) === String(lineId)).map(m => (
+                  <option key={m.id} value={m.id}>
+                    {m.machine_name}{m.ideal_ct ? ` · ${m.ideal_ct}s` : ""}
+                  </option>))}
+              </select>
             </div>
             <div>
               <div style={lbl}>Retention (days)</div>
@@ -218,7 +262,7 @@ export default function SixSigmaPage({ toast }) {
               <option value="">All</option><option value="A">A</option><option value="B">B</option>
             </select>
           </div>
-          <button onClick={loadClips} disabled={loading} style={{ ...btn, opacity: loading ? .6 : 1 }}>
+          <button onClick={() => loadClips(0)} disabled={loading} style={{ ...btn, opacity: loading ? .6 : 1 }}>
             {loading ? "Loading…" : "Load clips"}
           </button>
         </div>
@@ -273,6 +317,18 @@ export default function SixSigmaPage({ toast }) {
           </div>
         )}
 
+        {/* how much of the shift is on screen */}
+        {total > 0 && (
+          <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap",
+                        gap: 10, margin: "2px 0 10px", fontSize: 12, color: "#475569" }}>
+            <span>
+              Showing <b>{page * PAGE_SIZE + 1}</b>–<b>{page * PAGE_SIZE + cycles.length}</b>
+              {" "}of <b>{total}</b> cycles
+              {pageCount > 1 ? ` · page ${page + 1} of ${pageCount}` : ""}
+            </span>
+          </div>
+        )}
+
         {/* cycle list */}
         {cycles.length > 0 && (
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
@@ -288,8 +344,41 @@ export default function SixSigmaPage({ toast }) {
             ))}
           </div>
         )}
+
+        {/* pager */}
+        {pageCount > 1 && (
+          <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap",
+                        gap: 6, marginTop: 14 }}>
+            <button onClick={() => goPage(page - 1)} disabled={loading || page === 0}
+                    style={pgBtn(false, loading || page === 0)}>Previous</button>
+            {pageButtons.map((n, i) => (
+              <span key={n} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                {i > 0 && n !== pageButtons[i - 1] + 1 &&
+                  <span style={{ color: "#94a3b8", fontSize: 12 }}>…</span>}
+                <button onClick={() => goPage(n)} disabled={loading}
+                        style={pgBtn(n === page, loading)}>{n + 1}</button>
+              </span>
+            ))}
+            <button onClick={() => goPage(page + 1)}
+                    disabled={loading || page >= pageCount - 1}
+                    style={pgBtn(false, loading || page >= pageCount - 1)}>Next</button>
+          </div>
+        )}
       </div>
       </div>
     </div>
   );
+}
+
+// One page button.  Current page is filled; a disabled one is dimmed rather
+// than hidden so the row does not jump as the user pages through a shift.
+function pgBtn(active, disabled) {
+  return {
+    padding: "6px 11px", borderRadius: 8, fontSize: 12, fontWeight: 600,
+    border: `1px solid ${active ? "#1e40af" : "#cbd5e1"}`,
+    background: active ? "#1e40af" : "#fff",
+    color: active ? "#fff" : "#0f172a",
+    cursor: disabled ? "default" : "pointer",
+    opacity: disabled ? 0.45 : 1,
+  };
 }

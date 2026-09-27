@@ -91,6 +91,17 @@ export default function VideoCoverage() {
   // Camera Status (appears once /camera-status answers)
   const [csAvail, setCsAvail] = useState(null);
   const [camSt, setCamSt]     = useState(null);
+  // 2026-09-26 — "Fix" on a hung camera.  Operator: only when I click it, never
+  // on its own.  It stops that camera's stuck recorder and asks the camera to
+  // reboot through whatever management port answers; the reply says which of
+  // the two worked, or that it needs a power-cycle at the panel.
+  const [fixing, setFixing]   = useState("");     // camera_id being fixed
+  const [fixMsg, setFixMsg]   = useState(null);   // {camera_id, ok, text}
+  // 2026-09-26 — manual recovery for ALL hung cameras at once.  Never on a
+  // timer: a hung camera is freed by being LEFT ALONE, and the operator
+  // decides when to press that pause.
+  const [recovering, setRecovering] = useState(false);
+  const [recoverMsg, setRecoverMsg] = useState(null);
   const [csOpen, setCsOpen]   = useState({});
   const [csStatus, setCsStatus] = useState("");
   const [csState, setCsState] = useState("");
@@ -128,14 +139,44 @@ export default function VideoCoverage() {
   const loadAgent = useCallback(async () => {
     try { setAgent(await api.get("/api/video-coverage/agent", token)); } catch { /* shown by the tab */ }
   }, [token]);
-  const loadCamStatus = useCallback(async (quiet = false) => {
+  const recoverHung = async () => {
+    if (recovering) return;
+    setRecovering(true); setRecoverMsg(null);
+    try {
+      const r = await api.post("/api/video-coverage/cameras/recover-hung", {}, token);
+      setRecoverMsg({ ok: true, text: r.detail, stats: r });
+      setTimeout(() => loadCamStatus(true), 15000);
+    } catch (e) {
+      setRecoverMsg({ ok: false, text: String(e.message || e) });
+    } finally { setRecovering(false); }
+  };
+
+  const fixCamera = async (cam) => {
+    if (fixing) return;
+    setFixing(cam.camera_id); setFixMsg(null);
+    try {
+      const r = await api.post(
+        `/api/video-coverage/camera/fix?camera_id=${encodeURIComponent(cam.camera_id)}`,
+        {}, token);
+      setFixMsg({ camera_id: cam.camera_id, ok: true, text: r.detail });
+      // give the recorder a moment to come back, then refresh the table
+      setTimeout(() => loadCamStatus(true), 8000);
+    } catch (e) {
+      setFixMsg({ camera_id: cam.camera_id, ok: false, text: String(e.message || e) });
+    } finally { setFixing(""); }
+  };
+
+  const loadCamStatus = useCallback(async (quiet = false, tries = 0) => {
     try {
       const d = await api.get("/api/video-coverage/camera-status", token);
       setCamSt(d); setCsAvail(true);
     } catch (e) {
       const m = String(e.message || e);
-      if (/404|not found/i.test(m)) setCsAvail(false);
-      else if (!quiet) setErr(m);
+      if (/404|not found/i.test(m)) { setCsAvail(false); return; }
+      //  A slow tunnel or a phone that briefly lost signal must not cost the
+      //  operator the whole tab — keep trying a few times, quietly.
+      if (tries < 3) { setTimeout(() => loadCamStatus(true, tries + 1), 4000 * (tries + 1)); return; }
+      if (!quiet) setErr(m);
     }
   }, [token]);
   const loadLogs = useCallback(async (view = logView, pg = logPage, st = logState, qq = logQ) => {
@@ -326,10 +367,15 @@ export default function VideoCoverage() {
       {/* tabs */}
       <div style={{ display: "flex", gap: 2, borderBottom: `1px solid ${C.line}`, marginBottom: 14, overflowX: "auto", overflowY: "hidden" }}>
         <Tab id="summary" label="Summary" />
-        {csAvail && <Tab id="camstatus" label="Camera Status"
+        {/* 2026-09-27 — the tab used to need a SUCCESSFUL probe (`csAvail`), so a
+            single slow or dropped /camera-status call hid it for the whole
+            session with no error shown.  On the phone app that is exactly what
+            happened: the operator had no Camera Status tab at all.  Now only a
+            real 404 (endpoint not deployed) hides it. */}
+        {csAvail !== false && <Tab id="camstatus" label="Camera Status"
                          badge={camSt ? camSt.kpis.not_cutting || "" : ""} badgeColor={camSt?.kpis.not_cutting ? "#dc2626" : null} />}
         <Tab id="missing" label="Missing cycles" badge={k ? num(k.missing) : ""} />
-        {!csAvail && <Tab id="cameras" label="Cameras" />}
+        {csAvail === false && <Tab id="cameras" label="Cameras" />}
         <Tab id="agent" label="Video Agent" badge={openFindings || ""} badgeColor={openFindings ? "#ea580c" : null} />
       </div>
 
@@ -485,7 +531,7 @@ export default function VideoCoverage() {
             <div style={kpiRow}>
               <Kpi label="Total cameras" value={num(K.total_cameras)} color={C.accent} sub={`${K.unbound} not on a machine`} />
               <Kpi label="Online" value={num(K.online)} color="#16a34a" sub={`of ${num(K.cameras)} on machines`} />
-              <Kpi label="Hung" value={num(K.hung)} color="#ea580c" sub="ping OK, no video — power-cycle" />
+              <Kpi label="Hung" value={num(K.hung)} color="#ea580c" sub="ping OK, no video — press Recover" />
               <Kpi label="Wrong address" value={num(K.wrong_ip)} color="#be185d" sub="IP is a PLC — fix in Camera Master" />
               <Kpi label="Offline" value={num(K.offline)} color="#dc2626" />
               <Kpi label="Clips cutting" value={num(K.cutting)} color="#16a34a" />
@@ -508,10 +554,50 @@ export default function VideoCoverage() {
               </select>
               <input value={csSearch} onChange={e => setCsSearch(e.target.value)} placeholder="Search IP / machine" style={{ ...inp, minWidth: 170 }} />
               <span style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
+                <button onClick={recoverHung} disabled={recovering || !K.hung}
+                        title={"Leave every hung camera completely alone for a couple of minutes "
+                               + "so it can drop the stuck RTSP session. Nothing is restarted — "
+                               + "recording comes back on its own."}
+                        style={{ ...btn, fontWeight: 800, border: "1px solid #ea580c",
+                                 background: recovering ? "#ea580c" : "transparent",
+                                 color: recovering ? "#fff" : "#ea580c",
+                                 cursor: (recovering || !K.hung) ? "default" : "pointer",
+                                 opacity: (!K.hung && !recovering) ? 0.45 : 1 }}>
+                  {recovering ? "Recovering…" : `Recover ${num(K.hung)} hung`}
+                </button>
                 <button onClick={() => setCsOpen(Object.fromEntries(camSt.zones.flatMap(z => z.lines.map(L => [L.line_id, true]))))} style={btn}>Expand all</button>
                 <button onClick={() => setCsOpen({})} style={btn}>Collapse all</button>
               </span>
             </div>
+            {recoverMsg && (
+              <div style={{ fontSize: 12, margin: "8px 0", whiteSpace: "normal",
+                            color: recoverMsg.ok ? "#15803d" : "#dc2626" }}>
+                <div>{recoverMsg.text}</div>
+                {recoverMsg.stats && (
+                  <table style={{ marginTop: 6, borderCollapse: "collapse", fontSize: 11.5, color: C.sub }}>
+                    <tbody>
+                      {[["Cameras tried", recoverMsg.stats.asked],
+                        ["Stuck recorders stopped", recoverMsg.stats.killed_stale],
+                        ["Already recording, left alone", recoverMsg.stats.already_recording],
+                        ["Retry back-offs cleared", recoverMsg.stats.backoff_cleared],
+                        ["Taken off the unreachable list", recoverMsg.stats.unreachable_cleared],
+                        ["Quiet windows ended", recoverMsg.stats.quiet_cleared],
+                        ["Attempt rate", recoverMsg.stats.per_minute != null
+                           ? `${recoverMsg.stats.per_minute} per minute` : null]]
+                        .filter(([, v]) => v !== null && v !== undefined && v !== 0)
+                        .map(([k, v]) => (
+                          <tr key={k}>
+                            <td style={{ padding: "1px 12px 1px 0" }}>{k}</td>
+                            <td style={{ padding: "1px 0", fontWeight: 700, color: C.fg }}>{v}</td>
+                          </tr>))}
+                      {Object.entries(recoverMsg.stats.kill_reasons || {}).map(([w, n]) => (
+                        <tr key={w}>
+                          <td style={{ padding: "1px 12px 1px 0" }}>&nbsp;&nbsp;why: {w}</td>
+                          <td style={{ padding: "1px 0", fontWeight: 700, color: C.fg }}>{n}</td>
+                        </tr>))}
+                    </tbody>
+                  </table>)}
+              </div>)}
 
             <div style={{ ...card, padding: 0, overflow: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 980 }}>
@@ -538,10 +624,10 @@ export default function VideoCoverage() {
                               {cell(L.cutting, "#16a34a")}{cell(L.not_cutting, "#dc2626")}{cell(L.idle, C.sub)}
                             </tr>
                             {open && (
-                              <tr><td colSpan={10} style={{ padding: "4px 10px 10px 40px", background: C.soft }}>
+                              <tr><td colSpan={11} style={{ padding: "4px 10px 10px 40px", background: C.soft }}>
                                 <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                                  <thead><tr>{["Camera IP", "Machine", "State", "Since", "Cycles", "Clips", "Clip %", "Status", "Reason"].map(h =>
-                                    <th key={h} style={{ ...(["Cycles", "Clips", "Clip %"].includes(h) ? thR : th), background: C.soft }}>{h}</th>)}</tr></thead>
+                                  <thead><tr>{["Camera IP", "Machine", "State", "Since", "Cycles", "Clips", "Clip %", "Status", "Reason", ""].map(h =>
+                                    <th key={h || "fix"} style={{ ...(["Cycles", "Clips", "Clip %"].includes(h) ? thR : th), background: C.soft }}>{h}</th>)}</tr></thead>
                                   <tbody>
                                     {(csFiltering ? L.shown : L.cameras_list).map(c => {
                                       const [slb, scol] = STATE[c.state] || ["Not tracked", C.sub];
@@ -557,6 +643,21 @@ export default function VideoCoverage() {
                                           <td style={tdR}>{c.clip_pct == null ? "—" : `${c.clip_pct}%`}</td>
                                           <td style={td}><Pill text={stl} color={stc} /></td>
                                           <td style={{ ...td, color: C.sub, whiteSpace: "normal" }}>{c.reason || ""}</td>
+                                          <td style={{ ...td, whiteSpace: "nowrap" }}>
+                                            {c.state === "camera_hung" && (
+                                              <button onClick={() => fixCamera(c)} disabled={!!fixing}
+                                                      title="Stop its stuck recorder and ask the camera to reboot. Runs only when you click."
+                                                      style={{ padding: "3px 10px", borderRadius: 6, fontSize: 11.5, fontWeight: 700,
+                                                               cursor: fixing ? "default" : "pointer", border: "1px solid #ea580c",
+                                                               background: fixing === c.camera_id ? "#ea580c" : "transparent",
+                                                               color: fixing === c.camera_id ? "#fff" : "#ea580c",
+                                                               opacity: fixing && fixing !== c.camera_id ? 0.4 : 1 }}>
+                                                {fixing === c.camera_id ? "Fixing…" : "Fix"}
+                                              </button>)}
+                                            {fixMsg?.camera_id === c.camera_id && (
+                                              <div style={{ fontSize: 11, marginTop: 4, whiteSpace: "normal", maxWidth: 260,
+                                                            color: fixMsg.ok ? "#15803d" : "#dc2626" }}>{fixMsg.text}</div>)}
+                                          </td>
                                         </tr>);
                                     })}
                                   </tbody>

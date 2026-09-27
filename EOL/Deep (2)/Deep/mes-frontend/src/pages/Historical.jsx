@@ -485,6 +485,151 @@ function PartSearch({ zones: zonesProp }) {
 // tab — admin can also view the same here, and the writable side stays
 // inside the Maintenance Dashboard.  Reuses ClosureFormModal so the
 // rendered slip looks identical to the Toyota Boshoku BREAK DOWN SLIP.
+// ── Losses tab ──────────────────────────────────────────────
+// 2026-09-26 — one place for every loss, with the Excel the operator asked
+// for.  The figures are the same loss_*_seconds columns the Hourly Report and
+// OEE already read, so this view can never disagree with them.
+function LossesTab() {
+  const today = new Date().toISOString().split("T")[0];
+  const [from, setFrom]   = useState(today);
+  const [to, setTo]       = useState(today);
+  const [shift, setShift] = useState("ALL");
+  const [zone, setZone]   = useState("ALL");
+  const [lineId, setLineId] = useState("");
+  const [data, setData]   = useState(null);
+  const [busy, setBusy]   = useState(false);
+  const [err, setErr]     = useState("");
+
+  const hms = (s) => {
+    s = Math.max(0, Math.round(s || 0));
+    const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60);
+    return h ? `${h}h ${String(m).padStart(2, "0")}m` : `${m}m`;
+  };
+
+  //  One builder for both the table and the Excel, so the download can never
+  //  be for a different slice than what is on screen.
+  const qsFor = () =>
+    `from_date=${from}&to_date=${to || from}`
+    + (shift && shift !== "ALL" ? `&shift=${encodeURIComponent(shift)}` : "")
+    + (zone && zone !== "ALL" ? `&zone=${encodeURIComponent(zone)}` : "")
+    + (lineId ? `&line_id=${lineId}` : "");
+
+  const load = async () => {
+    setBusy(true); setErr("");
+    try {
+      const jwt = sessionStorage.getItem("mes_token") || "";
+      const r = await fetch(`/api/reports/losses?${qsFor()}`,
+                            { headers: { Authorization: `Bearer ${jwt}` } });
+      if (!r.ok) throw new Error((await r.json().catch(() => ({}))).detail || "Could not load losses");
+      setData(await r.json());
+    } catch (e) { setErr(e.message || "Could not load losses"); setData(null); }
+    finally { setBusy(false); }
+  };
+  useEffect(() => { load(); }, []);   // eslint-disable-line
+
+  const download = async () => {
+    setErr("");
+    try {
+      const jwt = sessionStorage.getItem("mes_token") || "";
+      const r = await fetch(`/api/reports/losses-excel?${qsFor()}`,
+                            { headers: { Authorization: `Bearer ${jwt}` } });
+      if (!r.ok) throw new Error((await r.json().catch(() => ({}))).detail || "Download failed");
+      const b = await r.blob();
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(b);
+      a.download = from === to ? `Losses_${from}.xlsx` : `Losses_${from}_to_${to}.xlsx`;
+      a.click(); URL.revokeObjectURL(a.href);
+    } catch (e) { setErr(e.message || "Download failed"); }
+  };
+
+  const inp = { padding: "7px 10px", borderRadius: 8, border: "1px solid #cbd5e1", fontSize: 13 };
+  const th  = { padding: "8px 10px", textAlign: "left", fontSize: 11.5, fontWeight: 700,
+                color: "#475569", borderBottom: "1px solid #e2e8f0", whiteSpace: "nowrap" };
+  const thR = { ...th, textAlign: "right" };
+  const td  = { padding: "7px 10px", fontSize: 12.5, borderBottom: "1px solid #f1f5f9", whiteSpace: "nowrap" };
+  const tdR = { ...td, textAlign: "right", fontVariantNumeric: "tabular-nums" };
+
+  return (
+    <div style={{ display: "grid", gap: 14 }}>
+      <div style={{ display: "flex", gap: 10, alignItems: "flex-end", flexWrap: "wrap" }}>
+        <label style={{ fontSize: 12, color: "#475569" }}>From<br />
+          <input type="date" value={from} onChange={e => setFrom(e.target.value)} style={inp} /></label>
+        <label style={{ fontSize: 12, color: "#475569" }}>To<br />
+          <input type="date" value={to} onChange={e => setTo(e.target.value)} style={inp} /></label>
+        <label style={{ fontSize: 12, color: "#475569" }}>Shift<br />
+          <select value={shift} onChange={e => setShift(e.target.value)} style={inp}>
+            <option value="ALL">All shifts</option><option value="A">A</option><option value="B">B</option>
+          </select></label>
+        <label style={{ fontSize: 12, color: "#475569" }}>Zone<br />
+          <select value={zone} onChange={e => { setZone(e.target.value); setLineId(""); }} style={inp}>
+            <option value="ALL">All zones</option>
+            {(data?.zones || []).map(z => <option key={z} value={z}>{z}</option>)}
+          </select></label>
+        <label style={{ fontSize: 12, color: "#475569" }}>Line<br />
+          <select value={lineId} onChange={e => setLineId(e.target.value)} style={inp}>
+            <option value="">All lines</option>
+            {(data?.lines || [])
+              .filter(l => zone === "ALL" || l.zone === zone)
+              .map(l => <option key={l.id} value={l.id}>{l.line_name}</option>)}
+          </select></label>
+        <button onClick={load} disabled={busy}
+                style={{ ...inp, background: "#1e40af", color: "#fff", border: "none", fontWeight: 700,
+                         cursor: busy ? "default" : "pointer" }}>{busy ? "Loading…" : "Show"}</button>
+        <button onClick={download} disabled={busy || !data?.rows?.length}
+                style={{ ...inp, background: "#15803d", color: "#fff", border: "none", fontWeight: 700,
+                         cursor: (busy || !data?.rows?.length) ? "default" : "pointer",
+                         opacity: (busy || !data?.rows?.length) ? 0.5 : 1 }}>⬇ Excel</button>
+      </div>
+
+      {err && <div style={{ color: "#dc2626", fontSize: 13 }}>{err}</div>}
+
+      {data && !data.rows.length && !busy && (
+        <div style={{ color: "#64748b", fontSize: 13, padding: 20, textAlign: "center" }}>
+          No losses recorded for this range.
+        </div>)}
+
+      {data?.rows?.length > 0 && (<>
+        {/* where the time actually went */}
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          {data.pareto.filter(p => p.seconds > 0).map(p => (
+            <div key={p.kind} style={{ border: "1px solid #e2e8f0", borderRadius: 10, padding: "8px 14px", minWidth: 120 }}>
+              <div style={{ fontSize: 11, color: "#64748b", fontWeight: 600 }}>{p.kind}</div>
+              <div style={{ fontSize: 17, fontWeight: 800 }}>{hms(p.seconds)}</div>
+              <div style={{ fontSize: 11, color: "#64748b" }}>{p.pct}% of all loss</div>
+            </div>))}
+          <div style={{ border: "1px solid #1e40af", borderRadius: 10, padding: "8px 14px", minWidth: 120 }}>
+            <div style={{ fontSize: 11, color: "#1e40af", fontWeight: 700 }}>Total loss</div>
+            <div style={{ fontSize: 17, fontWeight: 800 }}>{hms(data.total_seconds)}</div>
+            <div style={{ fontSize: 11, color: "#64748b" }}>{data.rows.length} line-shifts</div>
+          </div>
+        </div>
+
+        <div style={{ overflow: "auto", border: "1px solid #e2e8f0", borderRadius: 10 }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 860 }}>
+            <thead><tr>
+              <th style={th}>Zone</th><th style={th}>Line</th><th style={th}>Date</th><th style={th}>Shift</th>
+              {data.kinds.map(k => <th key={k} style={thR}>{k}</th>)}
+              <th style={thR}>Total</th>
+            </tr></thead>
+            <tbody>
+              {data.rows.map((r, i) => (
+                <tr key={`${r.line_id}-${r.date}-${r.shift}-${i}`}>
+                  <td style={{ ...td, color: "#64748b" }}>{r.zone}</td>
+                  <td style={{ ...td, fontWeight: 700 }}>{r.line}</td>
+                  <td style={td}>{r.date}</td>
+                  <td style={td}>{r.shift}</td>
+                  {data.kinds.map(k => (
+                    <td key={k} style={{ ...tdR, color: r.losses[k] ? "#0f172a" : "#cbd5e1" }}>
+                      {r.losses[k] ? hms(r.losses[k]) : "—"}</td>))}
+                  <td style={{ ...tdR, fontWeight: 800 }}>{hms(r.total_seconds)}</td>
+                </tr>))}
+            </tbody>
+          </table>
+        </div>
+      </>)}
+    </div>);
+}
+
 // ── Video Archive tab ───────────────────────────────────────
 // 2026-08-19 — operator: "kal ki video bhi dekhni h ... back days ki video
 // with shift and cycle serial no", then: "part id dal di to video direct
@@ -1880,6 +2025,7 @@ export default function Historical() {
   // URL points at a hidden tab we fall back to the first visible one.
   const HIST_TABS = [
     { key: "shift", label: "Hourly Report" },
+    { key: "losses", label: "Losses" },
     { key: "video", label: "Video Archive" },
     { key: "trace", label: "Part Traceability" },
     { key: "slips", label: "Breakdown Slips" },
@@ -2114,6 +2260,7 @@ export default function Historical() {
           {/* Part Traceability tab — 2026-08-24: one part code → its whole
               life (OK/NG at Semi-Auto & Final, load values, every run with
               video, reject signal, remarks) via /api/lines/part-trace. */}
+          {effTab === "losses" && <LossesTab />}
           {effTab === "trace" && <PartTrace />}
 
           {/* Breakdown Slips tab — Production-fill records + viewable

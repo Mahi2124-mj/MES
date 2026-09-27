@@ -371,6 +371,10 @@ def _ensure_sensor_table() -> None:
     _SENSOR_TABLE_OK = True
 
 
+GAS_KEEP_DAYS = int(os.environ.get("GAS_LOG_KEEP_DAYS", "14") or 14)
+_last_trim = [0.0]
+
+
 def _sensor_worker(cfg: dict, stop: Optional[threading.Event] = None) -> None:
     """A continuous analog signal on a card channel (the gas sensor): one
     reading every `sample_s` into mes_gas_log, value = raw x scale + offset.
@@ -383,7 +387,15 @@ def _sensor_worker(cfg: dict, stop: Optional[threading.Event] = None) -> None:
     reg   = base + (ch - 1) * 2
     scale = float(cfg["scale"]) if cfg.get("scale") is not None else 1.0
     off   = float(cfg.get("offset_val") or 0.0)
-    every = max(1.0, float(cfg.get("sample_s") or 2.0))
+    #  2026-09-26 — the floor used to be 1.0 s, so `sample_s` could never ask
+    #  for anything faster and the gas channel sat at 2 s.  A weld is only
+    #  0.2-2 s long (min_weld_s=0.2, gap_s=0.35), so a 2 s sample lands almost
+    #  anywhere except the peak: the gauge on the machine read ~19.5 while the
+    #  stored maximum was ~17.5, and the chart showed the flow "breaking" every
+    #  few seconds because most samples fell between pulses.  The current
+    #  channel on this very card already runs at 50 Hz, so the card is not the
+    #  limit.  Floor is now 0.05 s; the configured value still decides.
+    every = max(0.05, float(cfg.get("sample_s") or 2.0))
     card = _card_for(str(cfg["card_ip"]), int(cfg.get("card_port") or 502),
                      int(cfg.get("unit_id") or 1))
     try:
@@ -399,6 +411,18 @@ def _sensor_worker(cfg: dict, stop: Optional[threading.Event] = None) -> None:
         t0 = time.monotonic()
         try:
             raw = card.read_float(reg)
+            #  2026-09-26 — the card reports "no valid reading" as the signed
+            #  16-bit limits (-32768 / 32767).  Those were being stored as real
+            #  measurements: 91 of them in six hours, which wrecked the chart's
+            #  scale and every min/max taken over the log.  A failed read is not
+            #  a measurement, so skip it the same way a raised error is skipped.
+            if raw is None or abs(raw) >= 32767:
+                fails += 1
+                if fails in (1, 10) or fails % 300 == 0:
+                    print(f"[WELD-LIVE] {station} (sensor): card returned "
+                          f"no-data ({raw}) x{fails}", flush=True)
+                time.sleep(every)
+                continue
             val = raw * scale + off
             with get_conn() as conn:
                 cur = conn.cursor()
@@ -407,6 +431,19 @@ def _sensor_worker(cfg: dict, stop: Optional[threading.Event] = None) -> None:
                             (station, str(cfg["card_ip"]), ch, round(raw, 4), round(val, 4)))
                 conn.commit()
             fails = 0
+            #  2026-09-26 — at 0.2 s this table grows ~430k rows (~55 MB) a day
+            #  and nothing ever trimmed it.  Drop anything past the window,
+            #  once an hour, from this worker.
+            if time.monotonic() - _last_trim[0] > 3600:
+                _last_trim[0] = time.monotonic()
+                try:
+                    with get_conn() as c2:
+                        c2.cursor().execute(
+                            "DELETE FROM mes_gas_log WHERE ts < now() - %s::interval",
+                            (f"{GAS_KEEP_DAYS} days",))
+                        c2.commit()
+                except Exception as exc:
+                    print(f"[WELD-LIVE] gas-log trim skipped: {exc}", flush=True)
             wait = every - (time.monotonic() - t0)
         except Exception as exc:
             fails += 1

@@ -4746,6 +4746,14 @@ export function SensorHealthPage({ lines, toast, token, readOnly = false }) {
   const [sweep,     setSweep]     = useState({ swept_at: null, entries: [] });
   const [search,    setSearch]    = useState("");
   const [zoneFilter, setZoneFilter] = useState("");   // "" = all zones
+  //  2026-09-27 — machine dimension (operator: "open list bhi per machine line
+  //  zone k according ho").  The sweep rows only carry the PY, so the machine
+  //  comes from the PY master (machine_name when filled, else the station
+  //  code, e.g. SS_08 = Final Inspection).  Read-only lookup — the PY
+  //  assignment itself is not touched.
+  const [machineById, setMachineById] = useState({});
+  const [machineFilter, setMachineFilter] = useState("");
+  const [groupByMachine, setGroupByMachine] = useState(true);
 
   // 1-second wall-clock tick so every relative-time label ("13s ago",
   // "Last snapshot 2s old") re-renders smoothly without waiting for the
@@ -4763,6 +4771,20 @@ export function SensorHealthPage({ lines, toast, token, readOnly = false }) {
       .then(z => setZones(Array.isArray(z) ? z : []))
       .catch(() => {});
   }, [token]);
+
+  useEffect(() => {
+    if (!lineId) { setMachineById({}); return; }
+    api.get(`/api/py-config/meta/py-master?line_id=${lineId}`, token)
+      .then(rows => {
+        const m = {};
+        (Array.isArray(rows) ? rows : []).forEach(r => {
+          const label = (r.machineName || "").trim() || (r.stationCode || "").trim();
+          if (r.id != null && label) m[String(r.id)] = label;
+        });
+        setMachineById(m);
+      })
+      .catch(() => setMachineById({}));
+  }, [lineId, token]);
 
   // ── Current model running on the selected line ─────────────────────
   // We poll /api/poka-yoke/live/{line_id} (already filters by current
@@ -4984,8 +5006,13 @@ export function SensorHealthPage({ lines, toast, token, readOnly = false }) {
       g.oldest_toggle_at  = e.last_toggle_at || g.oldest_toggle_at;
     }
   });
-  const entries = Object.values(groupedMap)
-    .map(g => ({ ...g, status: STATUS_BACK[g.best] }));
+  const machineOfPy = (g) => machineById[String(g.py_id)] || "Unassigned machine";
+  const allEntries = Object.values(groupedMap)
+    .map(g => ({ ...g, status: STATUS_BACK[g.best], machine: machineOfPy(g) }));
+  const machineOptions = [...new Set(allEntries.map(e => e.machine))].sort();
+  const entries = machineFilter
+    ? allEntries.filter(e => e.machine === machineFilter)
+    : allEntries;
 
   const total    = entries.length;
   const aliveCt  = entries.filter(e => e.status === "alive").length;
@@ -5064,7 +5091,16 @@ export function SensorHealthPage({ lines, toast, token, readOnly = false }) {
               </option>
             ))}
           </Select>
+          <Select value={machineFilter} onChange={e=>setMachineFilter(e.target.value)}>
+            <option value="">All Machines</option>
+            {machineOptions.map(mn => <option key={mn} value={mn}>{mn}</option>)}
+          </Select>
           <Input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search bit / PY…" style={{width:200}}/>
+          <label style={{display:"flex",alignItems:"center",gap:6,fontSize:12.5,color:"#64748b",whiteSpace:"nowrap"}}>
+            <input type="checkbox" checked={groupByMachine}
+                   onChange={e=>setGroupByMachine(e.target.checked)} />
+            Group by machine
+          </label>
           {!readOnly && <Btn variant="primary" onClick={openAdd}>+ Add Sensor</Btn>}
         </div>
       </div>
@@ -5115,12 +5151,25 @@ export function SensorHealthPage({ lines, toast, token, readOnly = false }) {
           <div style={{overflowX:"auto"}}>
             <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
               <thead><tr>
-                {["Zone","D-Bit","PY Name","X-Bit","Current","Last Toggle","Status", ...(readOnly ? [] : ["Edit"])].map(h=>(
+                {["Zone","Machine","D-Bit","PY Name","X-Bit","Current","Last Toggle","Status", ...(readOnly ? [] : ["Edit"])].map(h=>(
                   <th key={h} style={{padding:"9px 12px",textAlign:"left",fontSize:9,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:"#64748b",borderBottom:"2px solid #e2e8f0",whiteSpace:"nowrap"}}>{h}</th>
                 ))}
               </tr></thead>
               <tbody>
-                {entries.map(g => {
+                {(groupByMachine
+                    ? [...new Set(entries.map(e => e.machine))].sort()
+                        .flatMap(mn => [{ __head: mn, __n: entries.filter(e => e.machine === mn).length },
+                                        ...entries.filter(e => e.machine === mn)])
+                    : entries
+                 ).map(g => {
+                  if (g.__head) return (
+                    <tr key={`h-${g.__head}`}>
+                      <td colSpan={readOnly ? 8 : 9}
+                          style={{background:"#f1f5f9",padding:"6px 12px",fontSize:11,fontWeight:800,
+                                  color:"#334155",letterSpacing:".04em"}}>
+                        {g.__head}<span style={{color:"#64748b",fontWeight:600}}> — {g.__n} sensor{g.__n===1?"":"s"}</span>
+                      </td>
+                    </tr>);
                   const status  = g.status || "alive";
                   const isStuck = status === "stuck";
 
@@ -5162,6 +5211,8 @@ export function SensorHealthPage({ lines, toast, token, readOnly = false }) {
                           </span>
                         ) : <span style={{color:"#cbd5e1"}}>—</span>}
                       </td>
+                      <td style={{padding:"8px 12px",fontSize:11,whiteSpace:"nowrap",color:"#334155",fontWeight:600}}
+                          title={g.machine}>{g.machine}</td>
                       <td style={{padding:"8px 12px",fontFamily:"monospace",fontWeight:700,color:"#7c3aed"}}>{g.d_bit || "—"}</td>
                       <td style={{padding:"8px 12px",color:"#0f172a",maxWidth:240,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}} title={g.py_name||""}>
                         {g.py_name || <span style={{color:"#94a3b8",fontStyle:"italic"}}>(unbound)</span>}
@@ -5802,6 +5853,7 @@ const PAGE_PERM_GROUPS = [
     { key: "logs",              label: "Log Viewer" },
     { key: "video-coverage",    label: "Video Coverage (clips per cycle + Video Agent)" },
     { key: "py-bypass",         label: "PY Bypass (quality approve/reject + machine bit)" },
+    { key: "fault-history",     label: "Fault History (faults read from the assigned bits)" },
     { key: "audit",              label: "Audit Log" },
     { key: "admin",              label: "Admin Core (System Map / Departments / Users)" },
   ]},
