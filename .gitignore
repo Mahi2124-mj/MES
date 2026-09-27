@@ -108,6 +108,7 @@ _collector_cache/
 .network_snapshot.json
 *.jsonl
 _ng_forensics_*
+_py_bypass_log_*
 cycle_state.json
 
 # ============================================================
