@@ -142,6 +142,7 @@ export default function SlideNav({ hideTrigger = false, raise = false }) {
           { key: "quality-dashboard",   label: "Quality Dashboard", icon: "/dashboard-icon.png", iconImg: true, path: "/quality-dashboard" },
           { key: "quality-deviations",  label: "Quality Deviation", icon: "⚠",                   path: "/quality-deviations" },
           { key: "sa-fi-history",       label: "SA / FI History",   icon: "🧾",                  path: "/sa-fi-history" },
+          { key: "redbin-lock",         label: "Red Bin Lock",      icon: "🔒",                  path: "/redbin-lock" },
           { key: "weld-monitor",        label: "Weld Monitor",      icon: "⚡",                   path: "/weld-monitor" },
           // comments-history moved to the base NAV_ITEMS (see there) so every
           // role can surface it via Page Permissions; admin now picks it up
@@ -268,6 +269,13 @@ export default function SlideNav({ hideTrigger = false, raise = false }) {
           label: "Weld Monitor",
           icon:  "⚡",
           path:  "/weld-monitor",
+        });
+        // 2026-10-07 — Red Bin Lock (locked parts rejected at Final)
+        workItems.push({
+          key:   "redbin-lock",
+          label: "Red Bin Lock",
+          icon:  "🔒",
+          path:  "/redbin-lock",
         });
         // 2026-05-27 — Comments History (per-cycle + NG remarks
         // unified audit log).  Quality team's review tool.

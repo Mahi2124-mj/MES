@@ -53,6 +53,80 @@ _NG_STRICT_LINES = {int(x) for x in
                     _os.getenv("NG_STRICT_LINES",
                                "2,4,11,12,13,14,15,18,19").split(",")
                     if x.strip()}
+# 2026-10-07 — NG ECHO guard (Y17-SS first, operator-scoped).  When the PLC's
+# replies run one request late, the D102 read returns D101's answer: the REAL
+# OK count leaks into NG.  Early in a shift that count is small and climbs one
+# part at a time, so every leaked value is a "+1" that the strict guard
+# accepted (7-Oct A: 40 NG logged, real D102 = 1; 6-Oct B: 4 logged, real 1).
+# The same desync always shows on D101 first (it gets the previous reply:
+# 12336 = "00" of the part code, 21061 = "ER"), so an NG step read within
+# NG_OK_SUSPECT_HOLD_S of a junk D101 read is held, not counted.  A real
+# reject stays in D102 and is counted once reads are clean again.
+_NG_OK_SUSPECT_LINES = {int(x) for x in
+                        _os.getenv("NG_OK_SUSPECT_LINES", "15").split(",")
+                        if x.strip()}
+NG_OK_SUSPECT_HOLD_S = 10.0
+
+# 2026-10-06 — SUB-ASSEMBLY count self-protection (operator: "aise kario ki in
+# future kabhi issue repeat na ho … sub assy me kario bas").  On the 12:09
+# restart three SA collectors (YRA-SA-4WAY, YNC-SA-6WAY, Y17-SA-4WAY) took a
+# first read of 0 while their PLCs were at ~1040 (the 34.x link had just
+# dropped); every real read after that was a "big jump on first climb" and was
+# filtered as garbage for 4 hours (same bug as 21-Sep).  Three guards, Sub-
+# Assembly zone only (every other zone keeps its current behaviour):
+#   * SEED GUARD   — a mid-shift first read BELOW the count the shift already
+#                    has is not used as the seed; the old count is held and the
+#                    next read is tried.  A low value is only accepted as a
+#                    genuine reset after it has held AND climbed for
+#                    SA_SEED_CONFIRM_S.
+#   * CLIMB HEAL   — if the filter keeps rejecting reads that form a tight,
+#                    steadily rising band at a believable production rate for
+#                    SA_HEAL_S, that band IS the real count: re-seed to it and
+#                    backfill the gap (up to SA_HEAL_BACKFILL_CAP rows).
+#                    Socket garbage (12336-type spikes, scattered values) can't
+#                    pass: it is neither tight, nor rising at a part rate, nor
+#                    below what the shift could physically have made.
+#   * ROW PER PART — when the register moved by 2-5 between two logged rows,
+#                    every part gets its own ct_log row (LPS-3 logged one row
+#                    for two parts 327 times on 6-Oct, so the hourly table —
+#                    built from ct_log rows — ran 342 parts short).
+SA_ZONE_ID            = int(_os.getenv("SA_ZONE_ID", "7") or 7)
+SA_HEAL_S             = float(_os.getenv("SA_HEAL_S", "60") or 60)
+SA_SEED_CONFIRM_S     = float(_os.getenv("SA_SEED_CONFIRM_S", "120") or 120)
+SA_HEAL_BACKFILL_CAP  = int(_os.getenv("SA_HEAL_BACKFILL_CAP", "3000") or 3000)
+SA_ROW_GAP_MAX        = 5
+
+# Seat Slider part-code capture (2026-10-07).  The Final part code (D5004) is
+# rewritten when the NEXT part is loaded, which can be well after the count
+# pulse.  A single read 2 s after the pulse caught it blank, half-written or
+# still holding the previous part's code on ~15% of rows (6-Oct B shift:
+# YHB-SS 418 blank / 17 garbage / 80 repeated in 3.7k rows).  On zone 1 the
+# code read after a pulse is kept only if VALID and NEW (differs from the code
+# the register held at the previous pulse); blank / garbage / previous-part
+# reads are retried a few times, then the row gets NULL - never a guess.
+# Lines whose D5004 holds a lot code that repeats for hundreds of parts
+# (YRA-SS) are detected and keep storing it.
+# v3: D5004 is read ONCE at +2 s like before and only re-read when that read
+# was not usable.  A 0.5 s watcher (v2, 04:01-09:0x) put the D5004 answer into
+# the next D101/D102 read (12336 = "00", 21061 = "ER") often enough to stick
+# YSD-SS / Y17-SS at OK 0 - never poll D5004 continuously.
+SS_ZONE_ID            = int(_os.getenv("SS_ZONE_ID", "1") or 1)
+SS_PC_READ_AT         = (2.0, 4.0, 7.0, 12.0, 20.0)   # s after a pulse
+SS_PC_TAIL_S          = 5.0     # then every 5 s until the next pulse
+SS_PC_MAX_S           = 600.0
+
+# Red Bin part lock (2026-10-07).  A bar code the Red Bin portal has LOCKED
+# (redbin."PartLock", status 'LOCKED') must not pass Final: at the same moment
+# the Semi-Auto NG check runs, the code is looked up and, if locked, the line's
+# bit from mes_redbin_bit_master is pulsed (initially L230, the SA-NG bit).
+# MES only READS redbin.  Lookup is live per part; if redbin cannot be reached
+# the last list read (refreshed every REDBIN_REFRESH_S) is used, so a locked
+# part is still caught while other parts keep running.
+REDBIN_DB_NAME        = _os.getenv("REDBIN_DB", "redbin")
+REDBIN_REFRESH_S      = 30.0
+REDBIN_RETRY_S        = 30.0    # after a failed connect, use the list until then
+SS_PC_DECIDE_N        = 15      # pulses observed before lot-code mode is decided
+SS_PC_LOT_RATIO       = 0.3     # new-code ratio below this = lot-code line
 
 BACKEND_URL = (
     _os.getenv("BACKEND_URL")
@@ -2295,6 +2369,33 @@ class CollectorEngine:
         if init_cfg.get("defer_hourly"):
             self.cfg["defer_hourly"] = True
         print(f"[ENGINE] Config loaded: {self.cfg['line_name']}")
+        # Sub-Assembly count self-protection (see SA_ZONE_ID notes at the top).
+        try:
+            self._sa_selfheal = int(self.cfg.get("zone_id") or 0) == SA_ZONE_ID
+        except Exception:
+            self._sa_selfheal = False
+        if self._sa_selfheal:
+            print(f"[SA-GUARD] Sub-Assembly line: seed guard + climb self-heal "
+                  f"({SA_HEAL_S:.0f}s) + one row per part are ON", flush=True)
+        # Seat Slider part-code capture (see SS_ZONE_ID notes at the top).
+        try:
+            self._ss_pc_fix = int(self.cfg.get("zone_id") or 0) == SS_ZONE_ID
+        except Exception:
+            self._ss_pc_fix = False
+        self._ss_pc_lock    = threading.Lock()
+        self._ss_seen_pc    = None    # latest stable, valid code in D5004
+        self._ss_fresh      = False   # it changed (or was re-scanned) since the last pulse
+        self._ss_blank      = False   # register read blank since the last pulse
+        self._ss_ref_pc     = None    # code in the register at the last pulse
+        self._ss_row_pc     = None    # code claimed by the pulse being written
+        self._ss_gen        = 0       # newest reader; older ones stop
+        self._ss_obs        = []      # per pulse: was there a NEW code?
+        self._ss_lot_mode   = None    # None = undecided, then True/False
+        if self._ss_pc_fix:
+            print("[PART-SS] Seat Slider part-code capture ON (valid + new code "
+                  "per part, else NULL; read at +2 s, retried only if unusable)",
+                  flush=True)
+            self._ss_start_reader()
         # 2026-05-29 - Log count mode at startup so operator can verify
         # admin UI's register/bit selection actually took effect.
         _cm_startup = self.cfg.get("count_mode") or "bit"
@@ -2390,9 +2491,19 @@ class CollectorEngine:
         self._ng_high_since        = None
         self._ng_counted_this_high = False
 
-        self._cur_model      = 1
-        self._cur_model_name = (list(self.cfg["models"].values())[0]
-                                if self.cfg["models"] else "Unknown")
+        #  2026-10-03 — the sentinel used to be 1, which is also a REAL model
+        #  number.  Once a line had a mapping for 1 the "startup sentinel"
+        #  branch below stopped firing, so a line whose PLC publishes nothing
+        #  sat on model 1 for ever AND displayed the first mapping's name as if
+        #  it had been read.  Loop Pipe showed "YHB TOWEL BAR" while the machine
+        #  was set to YRA/YXA.  None can never collide with a PLC value, so the
+        #  first genuine read always commits.  The name is only auto-filled when
+        #  the line has exactly ONE model configured (then it is not a guess);
+        #  with several mapped we say Unknown until the PLC actually tells us.
+        _models0 = self.cfg.get("models") or {}
+        self._cur_model      = None
+        self._cur_model_name = (list(_models0.values())[0]
+                                if len(_models0) == 1 else "Unknown")
         self._cur_status      = 0
         self._cur_status_name = "IDLE"
 
@@ -2698,6 +2809,36 @@ class CollectorEngine:
                               f"{self._raw_cycle_seq} (shift={self._cur_shift})", flush=True)
                 except Exception:
                     pass
+                # Seat Slider part-code capture: the last code written before
+                # this restart, so the code still sitting in D5004 is not
+                # taken as the next part's.
+                # The same rows also tell whether D5004 carries one serial per
+                # part or a lot code repeated on most parts (YRA-SS).
+                if getattr(self, "_ss_pc_fix", False) and self._ss_ref_pc is None:
+                    try:
+                        _hc.execute(
+                            f"SELECT part_code FROM {self.cfg['table_name']}_ct_log "
+                            f"WHERE part_code IS NOT NULL ORDER BY ts DESC LIMIT 200")
+                        _codes = [str(_c4).strip() for (_c4,) in _hc.fetchall()
+                                  if self._valid_part_code(_c4)]
+                        if _codes:
+                            self._ss_ref_pc = _codes[0]
+                            print(f"[PART-SS] last stored code {self._ss_ref_pc!r}",
+                                  flush=True)
+                        _pairs = len(_codes) - 1
+                        if _pairs >= 30 and self._ss_lot_mode is None:
+                            _rep = sum(1 for _i in range(_pairs)
+                                       if _codes[_i] == _codes[_i + 1]) / _pairs
+                            self._ss_lot_mode = (1.0 - _rep) < SS_PC_LOT_RATIO
+                            print(f"[PART-SS] last {_pairs + 1} codes: {_rep:.0%} repeat "
+                                  f"the previous -> "
+                                  + ("LOT-CODE line: repeated code is kept"
+                                     if self._ss_lot_mode else
+                                     "SERIAL line: a code left from the previous part "
+                                     "is never reused (NULL instead)"), flush=True)
+                    except Exception:
+                        try: self._db.rollback()
+                        except Exception: pass
                 _hc.close()
             except Exception as _e:
                 print(f"[MAIN] hydrate failed: {_e}")
@@ -2967,7 +3108,7 @@ class CollectorEngine:
         except Exception:
             return True
 
-    def _allow_zero_after_seed(self, reg):
+    def _allow_zero_after_seed(self, reg, last=None):
         """A validated reset right after a start-of-shift seed in the SAME
         shift: the row's count came only from the carried-over seed, so the
         next dashboard write may go down to the live value even when it is 0.
@@ -2980,6 +3121,21 @@ class CollectorEngine:
             print(f"[REG-SEED-RESET] {reg} reset after start-of-shift seed "
                   f"{seed[1]} -- carried-over count, row follows the live "
                   f"register", flush=True)
+        # 2026-10-07 — same proof without a restart: the collector kept running
+        # but the PLC was offline at the shift edge, so the start-of-shift reset
+        # could not reach it and the new row took the previous run's count
+        # (LP-03 07-Oct A = 951 until the PLC came back at 08:38 and the reset
+        # landed; the never-down guard then held 951 on the dashboard).  If the
+        # register never climbed above the carried value in this shift, the
+        # row holds nothing but carry-over.  First reset of the shift only.
+        carry = getattr(self, "_shift_carry", None)
+        self._shift_carry = None
+        if (carry and carry[0] == self._shift_id and last is not None
+                and int(last) <= carry[1]):
+            self._reg_allow_zero_write = True
+            print(f"[REG-CARRY-RESET] {reg} reset landed after the shift began "
+                  f"with a carried-over count {carry[1]} (PLC was offline at the "
+                  f"shift edge) -- row follows the live register", flush=True)
 
     def _rate_clamp_climb(self, reg, last, now_val, accept_attr):
         """Physics-based phantom-dump guard for a climbing DATA register.
@@ -3075,6 +3231,8 @@ class CollectorEngine:
         proving the filter is working and the real count is untouched."""
         if not hasattr(self, "_reg_noise"):
             self._reg_noise = {}
+        if reg and reg == self.cfg.get("ok_data_register"):
+            self._ok_suspect_ts = time.time()     # see _NG_OK_SUSPECT_LINES
         st = self._reg_noise.get(reg)
         if st is None:
             st = {"drops": 0, "parts": 0, "lo": now_val, "hi": now_val,
@@ -3092,6 +3250,105 @@ class CollectorEngine:
                   f"{st['parts']} -- real count untouched", flush=True)
             st.update({"drops": 0, "parts": 0, "lo": now_val,
                        "hi": now_val, "last": _now})
+
+    def _sa_seed_suspect(self, reg, val) -> bool:
+        """Sub-Assembly SEED GUARD.  True = do NOT use this first read as the
+        seed (hold the shift's count, try the next read).  A first read is
+        suspect when it is mid-shift and BELOW the count this shift already
+        has (the DB row loaded at start) — the 6-Oct 12:09 restart seeded 0
+        against 802/521/783.  A low value is accepted as a genuine reset only
+        after it has held for SA_SEED_CONFIRM_S AND climbed (production after a
+        real reset counts up; a stream of junk zeros does not)."""
+        if not getattr(self, "_sa_selfheal", False):
+            return False
+        have = int(self.ok_shift or 0)
+        h = getattr(self, "_sa_seed_hold", None)
+        if have <= 0 or val >= have - 2 or self._near_shift_boundary(20):
+            if h is not None:
+                print(f"[REG-SEED-GUARD] {reg} trusted read {val} (shift count "
+                      f"{have}) after holding {time.monotonic() - h['t0']:.0f}s "
+                      f"-- seeding now", flush=True)
+            self._sa_seed_hold = None
+            return False
+        now = time.monotonic()
+        if h is None:
+            self._sa_seed_hold = {"t0": now, "first": val, "lo": val,
+                                  "hi": val, "log": now}
+            print(f"[REG-SEED-GUARD] {reg} first read {val} is BELOW this "
+                  f"shift's count {have} mid-shift -- not used as the seed, "
+                  f"holding {have} and retrying", flush=True)
+            return True
+        h["lo"] = min(h["lo"], val)
+        h["hi"] = max(h["hi"], val)
+        if now - h["t0"] >= SA_SEED_CONFIRM_S and val >= h["first"] + 1:
+            print(f"[REG-SEED-GUARD] {reg} low value held and climbed "
+                  f"{h['first']}->{val} for {now - h['t0']:.0f}s -- accepted as "
+                  f"a genuine mid-shift reset", flush=True)
+            self._sa_seed_hold = None
+            return False
+        if now - h["log"] >= 30:
+            h["log"] = now
+            print(f"[REG-SEED-GUARD] {reg} still holding {have}; reads "
+                  f"{h['lo']}..{h['hi']} below it", flush=True)
+        return True
+
+    def _sa_climb_heal(self, reg, last, val) -> bool:
+        """Sub-Assembly CLIMB HEAL.  Called for every climbing read the rate
+        clamp REJECTED.  Returns True once those rejected reads have formed, for
+        SA_HEAL_S seconds, a band that is
+          * tight      — in each 5 s bucket the middle 80 % of reads span <= 3
+                         counts (a stray garbage spike is ignored, scattered
+                         garbage is not tight),
+          * rising     — bucket medians never fall and climb by >= 1,
+          * at a part rate — the climb fits SA_HEAL_S at >= 0.25 x ideal CT,
+          * believable — no more than the shift could have made so far,
+        AND the current read sits on that band (so the re-seed is never a
+        spike).  That band is the real count the filter has been holding back."""
+        if not getattr(self, "_sa_selfheal", False):
+            return False
+        now = time.monotonic()
+        p = getattr(self, "_sa_probe", None)
+        if p is None:
+            self._sa_probe = {"buckets": [], "cur_t": now, "cur": [val]}
+            return False
+        if now - p["cur_t"] >= 5.0:
+            vals = sorted(p["cur"])
+            n = len(vals)
+            p["buckets"].append((vals[n // 10], vals[n // 2], vals[min(n - 1, (9 * n) // 10)]))
+            p["cur_t"], p["cur"] = now, [val]
+        elif len(p["cur"]) < 400:
+            p["cur"].append(val)
+        need = max(2, int(SA_HEAL_S // 5))
+        if len(p["buckets"]) > 4 * need:
+            p["buckets"] = p["buckets"][-need:]
+        if len(p["buckets"]) < need:
+            return False
+        bk = p["buckets"][-need:]
+        try:
+            ideal = max(1.0, float(self.cfg.get("ideal_ct") or 15.0))
+        except Exception:
+            ideal = 15.0
+        tight = sum(1 for lo, _m, hi in bk if hi - lo <= 3) >= 0.8 * len(bk)
+        meds = [m for _lo, m, _hi in bk]
+        steady = all(b >= a - 1 for a, b in zip(meds, meds[1:]))
+        rise = meds[-1] - meds[0]
+        rate_ok = 1 <= rise <= SA_HEAL_S / (0.25 * ideal) + 3
+        on_band = abs(val - meds[-1]) <= 3
+        size_ok = True
+        try:
+            ss = getattr(self, "_shift_start_ts", None)
+            if ss:
+                size_ok = val <= max(0.0, time.time() - float(ss)) / (0.25 * ideal) + 50
+        except Exception:
+            size_ok = True
+        if tight and steady and rate_ok and on_band and size_ok and val > last:
+            print(f"[REG-SELFHEAL] {reg} held at {last} while the PLC count "
+                  f"climbed steadily {meds[0]}->{val} for {SA_HEAL_S:.0f}s -- "
+                  f"that is the real count: re-seeding to {val} and backfilling "
+                  f"the gap", flush=True)
+            self._sa_probe = None
+            return True
+        return False
 
     def _count_src_label(self, side: str = "ok") -> str:
         """Human label for the count SOURCE — the data register in
@@ -3253,6 +3510,8 @@ class CollectorEngine:
                         if first_err is None:
                             first_err = ("ok_reg", _e)
                 _grab_ok()
+                if _ok_v["v"] is None:
+                    self._ok_suspect_ts = time.time()     # failed / garbage read
                 if _ok_v["v"] is not None:
                     _raw_val = int(_ok_v["v"])
                     _last = getattr(self, "_last_ok_reg_value", None)
@@ -3261,7 +3520,7 @@ class CollectorEngine:
                     # subtracting the baseline here once keeps the whole mirror
                     # in "since-shift-start" space with no other change.
                     _base = getattr(self, "_ok_reg_base", 0)
-                    if _last is None:
+                    if _last is None and getattr(self, "_sa_seed_hold", None) is None:
                         # First read after (re)start — decide if the register
                         # carries a missed-reset from a previous shift.  A base
                         # saved earlier THIS shift wins over the time-heuristic,
@@ -3287,7 +3546,12 @@ class CollectorEngine:
                     _now_val = max(0, _raw_val - _base)
                     data["ok_reg_value"] = _now_val
                     _apply_ok = True   # mirror this read into ok_shift/_last?
-                    if _last is None:
+                    if _last is None and self._sa_seed_suspect(_ok_reg, _now_val):
+                        # Sub-Assembly SEED GUARD: untrusted low first read
+                        # mid-shift — hold the shift's count, retry next poll.
+                        data["ok_bit"] = 0
+                        _apply_ok = False
+                    elif _last is None:
                         # First read after (re)start — snap dashboard to PLC.
                         print(f"[REGISTER-MIRROR] {_ok_reg} seed={_now_val} "
                               f"-> ok_shift snapped (was {self.ok_shift})",
@@ -3340,6 +3604,18 @@ class CollectorEngine:
                             data["ok_delta"] = _accept
                             data["ok_bit"]   = 1
                             _now_val = _mirror
+                            self._sa_probe = None
+                        elif self._sa_climb_heal(_ok_reg, _last, _now_val):
+                            # Sub-Assembly CLIMB HEAL: the "garbage" has been the
+                            # real, steadily rising count for SA_HEAL_S — re-seed
+                            # to it (EXACT-MIRROR below writes _now_val) and arm
+                            # the graph-point backfill for the parts in between.
+                            data["ok_bit"] = 0
+                            self._reg_resync_seed = _now_val
+                            self._reg_resync_pending = True
+                            self._reg_backfill_cap_once = SA_HEAL_BACKFILL_CAP
+                            self._last_ok_accept_mono = time.monotonic()
+                            self._ok_pending_high = None
                         else:
                             data["ok_bit"] = 0
                             _apply_ok = False
@@ -3373,7 +3649,7 @@ class CollectorEngine:
                                   f"{_last}->{_now_val} (L110 reset in "
                                   f"progress) -- ok_shift mirrors down",
                                   flush=True)
-                            self._allow_zero_after_seed(_ok_reg)
+                            self._allow_zero_after_seed(_ok_reg, _last)
                             data["ok_bit"] = 0
                             self._ok_pending_high = None
                             self._ok_drop_garbage_streak = 0
@@ -3417,7 +3693,7 @@ class CollectorEngine:
                                       f"-- ok_shift snapped DOWN to live, no "
                                       f"backfill", flush=True)
                                 self._ok_shift_peak = _now_val   # new baseline
-                                self._allow_zero_after_seed(_ok_reg)
+                                self._allow_zero_after_seed(_ok_reg, _last)
                                 self._reg_resnap_armed = False
                                 self._reg_resnap_low1  = None
                                 self._ok_drop_garbage_streak = 0
@@ -3595,6 +3871,23 @@ class CollectorEngine:
                         if _delta == 0:
                             data["ng_bit"] = 0
                             self._ng_jump_cand = None
+                        elif (0 < _delta <= _NG_SANE
+                              and self.cfg.get("line_id") in _NG_OK_SUSPECT_LINES
+                              and (time.time() - getattr(self, "_ok_suspect_ts", 0.0))
+                                  < NG_OK_SUSPECT_HOLD_S):
+                            # D101 was junk moments ago: replies are out of
+                            # step, this "+1" may be the OK count.  Hold.
+                            data["ng_bit"] = 0
+                            self._ng_jump_cand = None
+                            self._note_reg_noise(_ng_reg, _now_val, _delta)
+                            _t = time.time()
+                            if _t - getattr(self, "_ng_echo_log_ts", 0.0) > 10:
+                                self._ng_echo_log_ts = _t
+                                print(f"[NG-ECHO-HOLD] {_ng_reg} {_last}->{_now_val} "
+                                      f"not counted: {self.cfg.get('ok_data_register')} "
+                                      f"read junk {_t - self._ok_suspect_ts:.1f}s ago "
+                                      f"(PLC replies out of step); a real NG is "
+                                      f"counted once reads are clean", flush=True)
                         elif 0 < _delta <= _NG_SANE:
                             data["ng_delta"] = _delta
                             data["ng_bit"]   = 1
@@ -3788,6 +4081,17 @@ class CollectorEngine:
         if "ideal_ct" in changed and getattr(self, "ct", None) is not None:
             try: self.ct.ideal_ct = self.cfg["ideal_ct"]
             except Exception: pass
+        #  2026-10-03 — if the NAME of the model we are already showing was
+        #  edited (admin renamed it in mes_model_mappings), pick it up here.
+        #  Without this the display only refreshes when the model VALUE
+        #  changes, so a rename on a line that is sitting on one model stayed
+        #  stale until the next changeover or a collector restart.
+        if "models" in changed and getattr(self, "_cur_model", None) is not None:
+            _nm = (self.cfg.get("models") or {}).get(self._cur_model)
+            if _nm and _nm != getattr(self, "_cur_model_name", None):
+                print(f"[MODEL] naam badla: {self._cur_model_name!r} -> {_nm!r} "
+                      f"(model {self._cur_model} wahi hai)", flush=True)
+                self._cur_model_name = _nm
         if changed:
             print(f"[CFG-RELOAD] applied: {', '.join(changed)}", flush=True)
 
@@ -4491,6 +4795,9 @@ class CollectorEngine:
         one-shot PLC read 2s after the current pulse — the result
         becomes _cur_part_code, which the NEXT pulse will use when
         writing its L6 audit + ct_log row."""
+        if getattr(self, "_ss_pc_fix", False):
+            self._ss_claim()
+            return
         import threading as _th
         def _do_read():
             try:
@@ -4680,6 +4987,8 @@ class CollectorEngine:
                     except Exception:
                         pass
                 _pc = (self._cur_part_code or "").strip().rstrip(":") or None
+                if getattr(self, "_ss_pc_fix", False):
+                    _pc = self._ss_take_row_pc()
                 self._last_any_pulse_dt = _now_dt
                 self._last_ct_for_chart_ok = _ct
                 _shift_ok = self._shift_label()
@@ -4699,6 +5008,19 @@ class CollectorEngine:
                 _delta_rows = int(getattr(self, "_pending_ok_delta", 1) or 1)
                 if _delta_rows < 1:
                     _delta_rows = 1
+                # 2026-10-06 — Sub-Assembly ROW PER PART: two +1 reads landing
+                # in consecutive polls advance ok_shift by 2 but raise ONE edge,
+                # so one row covered two parts and the hourly table (built from
+                # ct_log rows) ran short.  Give every part since the last logged
+                # row its own row; small gaps only — anything bigger is a
+                # reconnect, which REG-BACKFILL owns.
+                if getattr(self, "_sa_selfheal", False):
+                    try:
+                        _gap = int(self.ok_shift or 0) - int(self._raw_cycle_seq or 0)
+                        if _delta_rows < _gap <= SA_ROW_GAP_MAX:
+                            _delta_rows = _gap
+                    except Exception:
+                        pass
                 # 2026-05-30 — Phantom-dump BACKSTOP.  The register guard in
                 # _read_plc already bounds the per-poll delta, so for normal
                 # flow this never trips.  It is a hard last line of defence: no
@@ -4735,7 +5057,8 @@ class CollectorEngine:
                         bit_address  = _bit_addr,
                         ts           = _row_ts,
                         ct_seconds   = _row_ct,
-                        part_code    = _pc,
+                        part_code    = (_pc if (_i == 0 or not getattr(self, "_ss_pc_fix", False))
+                                        else None),
                         counter_val_override = _row_seq,
                     )
                     # ct_log — one row per part with cycle_seq also
@@ -4745,7 +5068,8 @@ class CollectorEngine:
                         _row_ts, _rec_dt, _shift_ok,
                         round(float(_row_ct or 0.0), 2),
                         _row_seq,
-                        _pc, False,  # is_ng = False
+                        (_pc if (_i == 0 or not getattr(self, "_ss_pc_fix", False))
+                         else None), False,  # is_ng = False
                     ))
                 if _delta_rows > 1:
                     print(f"[REG-MULTI] expanded delta={_delta_rows} "
@@ -4766,6 +5090,9 @@ class CollectorEngine:
                 if not self.cfg.get("fi_fetch_bit"):
                     self._sa_ng_signal_final(_pc, _shift_ok, _rec_dt,
                                              int(self.ok_shift))
+                    if getattr(self, "_ss_pc_fix", False):
+                        self._redbin_block_final(_pc, _shift_ok, _rec_dt,
+                                                 int(self.ok_shift))
                 # 2026-05-29 — Update last-committed part_code for
                 # the part-code chatter dedup check at top of this fn.
                 # Only stamp when this commit had a non-empty pc;
@@ -4910,6 +5237,8 @@ class CollectorEngine:
                     except Exception:
                         pass
                 _ng_pc = (self._cur_part_code or "").strip().rstrip(":") or None
+                if getattr(self, "_ss_pc_fix", False):
+                    _ng_pc = self._ss_take_row_pc()
                 self._last_any_pulse_dt    = _ng_now_dt
                 self._last_ct_for_chart_ng = _ng_ct_raw
                 # L6 audit write - ALWAYS
@@ -4956,6 +5285,26 @@ class CollectorEngine:
                 print(f"[COUNT-SKIP] _should_record_pulse=False "
                       f"ok_edge={_ok_edge_now} ng_edge={_ng_edge_now} "
                       f"— edge dropped", flush=True)
+            # 2026-10-07 — a part made DURING a scheduled break is still a part.
+            # In register mode the PLC count (ok_shift / ng_shift) and ct_log
+            # already include it; only the hourly bucket skipped it (this
+            # early return), so the hourly ACTUAL ran short whenever a line
+            # worked through a break (YHB-SS 14:05-15:05 202 vs 240, GEAR
+            # LIFTER lunch 400 vs 576).  Put it in its hour.  GAP is left out
+            # (no hour slot); bit mode is left as it was (its total does not
+            # count break parts either); Sub-Assembly / Loop Pipe hourly comes
+            # from ct_log (hourly_sync), so they are left out.
+            if ((_ok_edge_now or _ng_edge_now)
+                    and not self._is_in_gap_period()
+                    and str(self.cfg.get("count_mode") or "bit").lower() == "register"
+                    and not getattr(self, "_sa_selfheal", False)
+                    and not str(self.cfg.get("table_name") or "").startswith("loop_pipe")):
+                if _ok_edge_now and getattr(self, "_ok_gap_ok_this_press", True):
+                    self._hourly_extra_ok = (getattr(self, "_hourly_extra_ok", 0)
+                                             + int(getattr(self, "_pending_ok_delta", 1) or 1))
+                if _ng_edge_now and getattr(self, "_ng_gap_ok_this_press", True):
+                    self._hourly_extra_ng = (getattr(self, "_hourly_extra_ng", 0)
+                                             + int(getattr(self, "_pending_ng_delta", 1) or 1))
             self._last_ok_state = ok_bit
             self._last_ng_state = ng_bit
             return 0, 0
@@ -5277,6 +5626,14 @@ class CollectorEngine:
         pc = (self._read_part_code() or "").strip().rstrip(":") or None
         if not pc:
             return                              # still blank — retry next poll
+        # 2026-10-07 — a garbled / half-written read is retried inside the same
+        # window: it can never match a Semi-Auto verdict or a Red Bin lock.
+        if not self._valid_part_code(pc):
+            self._fi_last_bad = pc
+            if time.time() + 0.05 >= self._fi_pending_until:
+                print(f"[FI-FETCH] no readable part code in the window (last "
+                      f"read {pc!r}) -- this part was not checked", flush=True)
+            return
         self._fi_pending_until = 0.0            # got the code — close the window
         _shift = self._shift_label()
         if _shift.startswith("GAP"):
@@ -5284,6 +5641,155 @@ class CollectorEngine:
         _rec = getattr(self, "_cur_shift_record_date", None) or date.today()
         # Same compare-and-pulse as the count-commit path, just triggered here.
         self._sa_ng_signal_final(pc, _shift, _rec, int(self.ok_shift))
+        self._redbin_block_final(pc, _shift, _rec, int(self.ok_shift))
+
+    # ── Red Bin part lock (2026-10-07, see REDBIN_DB_NAME) ─────────────────
+    def _redbin_bit_cfg(self):
+        """(bit, hold_sec) from mes_redbin_bit_master for this line, or None
+        when the line has no enabled row.  Re-read every REDBIN_REFRESH_S so a
+        change made on the Quality tab applies without a restart."""
+        now = time.time()
+        if now - getattr(self, "_rb_bit_ts", 0.0) < REDBIN_REFRESH_S:
+            return getattr(self, "_rb_bit", None)
+        self._rb_bit_ts = now
+        try:
+            if not _db_reachable(timeout=1.0):
+                return getattr(self, "_rb_bit", None)
+            _c = _db_conn()
+            try:
+                _cur = _c.cursor()
+                _cur.execute("SELECT bit_address, hold_sec, enabled "
+                             "  FROM mes_redbin_bit_master WHERE line_id = %s",
+                             (int(self.cfg["line_id"]),))
+                _r = _cur.fetchone()
+                _cur.close()
+            finally:
+                try: _c.close()
+                except Exception: pass
+            _new = ((_r[0].strip(), float(_r[1] or 2.0))
+                    if (_r and _r[2] and _r[0] and _r[0].strip()) else None)
+            if _new != getattr(self, "_rb_bit", None):
+                print(f"[REDBIN] lock check on Final: "
+                      + (f"bit {_new[0]} hold {_new[1]:.1f}s" if _new else "OFF"),
+                      flush=True)
+            self._rb_bit = _new
+        except Exception as _e:
+            print(f"[REDBIN] bit master read failed: {_e}", flush=True)
+        return getattr(self, "_rb_bit", None)
+
+    def _redbin_conn(self):
+        c = getattr(self, "_rb_conn", None)
+        if c is not None and not c.closed:
+            return c
+        if time.time() < getattr(self, "_rb_down_until", 0.0):
+            raise ConnectionError("redbin unreachable (retry pending)")
+        try:
+            c = psycopg2.connect(
+                **{**DB_CONFIG, "database": REDBIN_DB_NAME, "connect_timeout": 2},
+                options="-c default_transaction_read_only=on "
+                        "-c statement_timeout=2000")
+        except Exception:
+            self._rb_down_until = time.time() + REDBIN_RETRY_S
+            raise
+        c.autocommit = True
+        self._rb_conn = c
+        return c
+
+    _RB_COLS = ('"redBinNumber", "recordStatus", "zoneName", "lineName", '
+                '"lockedByName", "lockedAt"')
+
+    def _redbin_lookup(self, code):
+        """(locked, info, source): locked True/False, or None when no answer
+        at all (redbin never reached).  Live indexed lookup; on failure the
+        last full lock list is used."""
+        try:
+            c = self._redbin_conn()
+            cur = c.cursor()
+            cur.execute(f'SELECT {self._RB_COLS} FROM "PartLock" '
+                        f' WHERE "partCode" = %s AND status = %s',
+                        (code, "LOCKED"))
+            r = cur.fetchone()
+            if time.time() - getattr(self, "_rb_list_ts", 0.0) > REDBIN_REFRESH_S:
+                cur.execute(f'SELECT "partCode", {self._RB_COLS} FROM "PartLock" '
+                            f' WHERE status = %s', ("LOCKED",))
+                self._rb_list = {row[0].strip(): row[1:] for row in cur.fetchall()}
+                self._rb_list_ts = time.time()
+            cur.close()
+            return (r is not None, r, "live")
+        except Exception as e:
+            try:
+                if getattr(self, "_rb_conn", None) is not None:
+                    self._rb_conn.close()
+            except Exception:
+                pass
+            self._rb_conn = None
+            _t = time.time()
+            if _t - getattr(self, "_rb_err_log", 0.0) > 60:
+                self._rb_err_log = _t
+                print(f"[REDBIN] lock list unreachable ({e}) -- using the last "
+                      f"list read" if getattr(self, "_rb_list_ts", 0.0) else
+                      f"[REDBIN] lock list unreachable ({e}) -- no list read yet, "
+                      f"parts NOT checked", flush=True)
+            if getattr(self, "_rb_list_ts", 0.0):
+                info = self._rb_list.get(code)
+                return (info is not None, info, "last-list")
+            return (None, None, "down")
+
+    def _redbin_block_final(self, part_code, shift_name, rec_date, cycle_seq):
+        """Final: a part whose bar code is LOCKED in the Red Bin portal must not
+        pass -> pulse this line's Red Bin bit and log the restriction."""
+        try:
+            cfg = self._redbin_bit_cfg()
+            if not cfg or not part_code:
+                return
+            code = str(part_code).strip()
+            if not self._valid_part_code(code):
+                return
+            locked, info, src = self._redbin_lookup(code)
+            if not locked:
+                return
+            _now = time.time()
+            _prev = getattr(self, "_rb_last_block", None)
+            if _prev and _prev[0] == code and _now - _prev[1] < 10:
+                return                      # same part, same presentation
+            self._rb_last_block = (code, _now)
+            bit, hold = cfg
+            _lp = getattr(self, "_last_final_pulse", None)
+            _shared = bool(_lp and _lp[0] == code and _lp[1] == bit
+                           and _now - _lp[2] < 30)
+            _written = _shared
+            if not _shared:
+                if getattr(self, "_plc_ok", False) and self._plc is not None:
+                    try:
+                        self._plc.batchwrite_bitunits(headdevice=bit, values=[1])
+                        time.sleep(hold)
+                        self._plc.batchwrite_bitunits(headdevice=bit, values=[0])
+                        _written = True
+                        self._last_final_pulse = (code, bit, time.time())
+                    except Exception as _be:
+                        print(f"[REDBIN->FI] {bit} write FAILED for part={code}: "
+                              f"{_be}", flush=True)
+                else:
+                    print(f"[REDBIN->FI] PLC not connected -- {bit} not written "
+                          f"for part={code}", flush=True)
+            rb_no, rec_st, rb_zone, rb_line, by, at = (list(info) + [None] * 6)[:6]
+            print(f"[REDBIN->FI] part={code} is LOCKED in Red Bin {rb_no} "
+                  f"({rec_st}) -- {'pulsed ' + bit if _written and not _shared else ('shared SA-NG pulse on ' + bit if _shared else 'NOT written')} "
+                  f"[{src}]", flush=True)
+            _buffered_exec_own(
+                "INSERT INTO mes_redbin_final_block "
+                "(record_date, shift_name, line_id, line_name, plc_id, machine_name, "
+                " part_code, red_bin_number, record_status, rb_zone, rb_line, "
+                " locked_by, locked_at, bit_address, bit_written, lookup_source, note) "
+                "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+                (rec_date, shift_name, self.cfg["line_id"], self.cfg.get("line_name"),
+                 int(self.cfg.get("main_plc_id") or 0) or None,
+                 self.cfg.get("main_machine_name") or "Final Inspection",
+                 code, rb_no, rec_st, rb_zone, rb_line, by, at, bit, _written, src,
+                 "shared pulse with Semi-Auto NG" if _shared else None))
+        except Exception as _e:
+            print(f"[REDBIN->FI] check failed for part={part_code}: {_e}",
+                  flush=True)
 
     @staticmethod
     def _valid_part_code(code) -> bool:
@@ -5307,6 +5813,10 @@ class CollectorEngine:
         except Exception:
             return False
         if len(c) < 10:
+            return False
+        # 2026-10-07 — a scanner no-read writes "ERROR" over the code
+        # (YSD-SS: 'ERROR61006-1999606240007'): not an identity.
+        if "ERROR" in c.upper():
             return False
         return all(ch.isalnum() or ch == "-" for ch in c)
 
@@ -5362,6 +5872,7 @@ class CollectorEngine:
                     time.sleep(float(self.cfg.get("fi_sa_ng_hold") or 2.0))
                     self._plc.batchwrite_bitunits(headdevice=_bit, values=[0])
                     _written = True
+                    self._last_final_pulse = (str(part_code).strip(), _bit, time.time())
                     print(f"[SA-NG->FI] part={part_code} was NG at Semi-Auto "
                           f"-- pulsed {_bit} on Final", flush=True)
                 except Exception as _be:
@@ -7457,16 +7968,23 @@ class CollectorEngine:
     _PART_CODE_LEN  = 13
 
     def _read_part_code(self) -> str:
+        return self._read_part_code_raw() or ""
+
+    def _read_part_code_raw(self, quiet: bool = False):
+        """D5004 as text; None when the read itself failed (a blank register
+        returns "").  The SS capture window needs the difference: a failed
+        read is no evidence, a blank one means the register was cleared."""
         if not self._plc_ok or self._plc is None:
-            return ""
+            return None
         try:
             regs = self._plc.batchread_wordunits(
                 headdevice=self._PART_CODE_ADDR,
                 readsize=self._PART_CODE_LEN,
             )
         except Exception as exc:
-            print(f"[PLC] Part code read error: {exc}")
-            return ""
+            if not quiet:
+                print(f"[PLC] Part code read error: {exc}")
+            return None
         chars = []
         for reg in regs:
             high_byte = reg & 0xFF
@@ -7476,6 +7994,105 @@ class CollectorEngine:
             if low_byte > 0:
                 chars.append(chr(low_byte))
         return "".join(chars).strip().strip("\x00")
+
+    # ── Seat Slider part-code capture (2026-10-07, see SS_ZONE_ID) ──────────
+    def _ss_claim(self):
+        """Count pulse: the code in D5004 now belongs to the part just counted.
+        Use it only if it changed since the previous pulse (or the register
+        was cleared and re-scanned); a code still left from the previous part
+        is never reused - the row gets NULL instead.  Lot-code lines keep the
+        repeated code.  Every pulse resets the reference, so one bad read can
+        never shift the following rows."""
+        with self._ss_pc_lock:
+            pc = self._ss_seen_pc
+            fresh = bool(pc) and self._ss_fresh
+            if fresh:
+                row = pc
+            elif pc and self._ss_lot_mode is not False:
+                row = pc                      # lot code / not decided yet
+            else:
+                row = None
+            self._ss_row_pc = row
+            self._ss_ref_pc = pc
+            self._ss_fresh = False
+            self._ss_blank = False
+            self._cur_part_code = row or ""
+        self._ss_start_reader()
+        if pc:
+            self._ss_observe(fresh)
+        if pc and not row:
+            print(f"[PART-SS] no new code since the last pulse (D5004 still "
+                  f"{pc!r}) - row stored without part code", flush=True)
+
+    def _ss_take_row_pc(self):
+        with self._ss_pc_lock:
+            pc = self._ss_row_pc
+            self._ss_row_pc = None
+        return pc if (pc and self._valid_part_code(pc)) else None
+
+    def _ss_observe(self, found_new: bool):
+        if self._ss_lot_mode is not None:
+            return
+        self._ss_obs.append(bool(found_new))
+        if len(self._ss_obs) >= SS_PC_DECIDE_N:
+            ratio = sum(self._ss_obs) / len(self._ss_obs)
+            self._ss_lot_mode = ratio < SS_PC_LOT_RATIO
+            print(f"[PART-SS] new code on {ratio:.0%} of {len(self._ss_obs)} parts -> "
+                  + ("LOT-CODE line: repeated code is kept"
+                     if self._ss_lot_mode else
+                     "SERIAL line: a repeated code is never reused (NULL instead)"),
+                  flush=True)
+
+    def _ss_start_reader(self):
+        with self._ss_pc_lock:
+            self._ss_gen += 1
+            gen = self._ss_gen
+        threading.Thread(target=self._ss_pc_reader, args=(gen,), daemon=True,
+                         name="ss-pc-read").start()
+
+    def _ss_pc_reader(self, gen: int) -> None:
+        """After a pulse: read D5004 at +2 s; re-read (+4/7/12/20 s, then every
+        5 s) only while the read is blank, garbled or still the previous
+        part's code.  Stops at the first valid NEW code or the next pulse."""
+        t0 = time.time()
+        i = 0
+        try:
+            while gen == self._ss_gen:
+                if i < len(SS_PC_READ_AT):
+                    at = SS_PC_READ_AT[i]
+                else:
+                    at = SS_PC_READ_AT[-1] + SS_PC_TAIL_S * (i - len(SS_PC_READ_AT) + 1)
+                i += 1
+                if at > SS_PC_MAX_S:
+                    return
+                wait = at - (time.time() - t0)
+                if wait > 0:
+                    time.sleep(wait)
+                if gen != self._ss_gen:
+                    return
+                raw = self._read_part_code_raw(quiet=True)
+                if raw is None:
+                    continue                    # failed read: no evidence
+                pc = raw.strip().rstrip(":")
+                new = False
+                with self._ss_pc_lock:
+                    if gen != self._ss_gen:
+                        return
+                    if not pc:
+                        self._ss_blank = True   # register cleared
+                        continue
+                    if not self._valid_part_code(pc):
+                        continue                # control bytes / half-written
+                    new = (pc != self._ss_ref_pc) or self._ss_blank
+                    self._ss_seen_pc = pc
+                    self._ss_fresh = new
+                if new:
+                    print(f"[PART] scanned {pc!r}", flush=True)
+                    return
+                if self._ss_lot_mode is True:
+                    return                      # lot code: one read is enough
+        except Exception as e:
+            print(f"[PC-DELAYED-ERR] {e}", flush=True)
 
     def _flush_ct_log(self):
         """Write buffered cycle time entries to the ct_log table."""
@@ -7592,6 +8209,12 @@ class CollectorEngine:
             if gap <= 0:
                 return  # DB already at/above the register — nothing missed.
             cap = int(self.cfg.get("reg_backfill_cap") or 500)
+            # Sub-Assembly CLIMB HEAL proved the new count over SA_HEAL_S, so
+            # its gap may be refilled beyond the normal phantom-dump cap.
+            _cap_once = int(getattr(self, "_reg_backfill_cap_once", 0) or 0)
+            if _cap_once:
+                cap = max(cap, _cap_once)
+                self._reg_backfill_cap_once = 0
             if gap > cap:
                 print(f"[REG-BACKFILL] gap {db_max}->{target} = {gap} "
                       f"exceeds cap {cap} (shift={shift} {rec_dt}); "
@@ -7612,20 +8235,27 @@ class CollectorEngine:
                     span_s = max((now_dt - t0).total_seconds(), 0.0)
                 except Exception:
                     span_s = 0.0
-            ct_per = (span_s / gap) if gap > 0 else 0.0
-            _ideal = float(self.cfg.get("ideal_ct") or 0.0)
-            _ct_cap = max(float(self.cfg.get("max_ct") or 0.0),
-                          3.0 * _ideal, 60.0)
-            if ct_per <= 0.0 or ct_per > _ct_cap:
-                # No usable window (or absurd) -> ideal CT for a clean,
-                # non-spiky graph point.
-                ct_per = _ideal if _ideal > 0 else 0.0
+            # 2026-10-05 — operator: backfilled rows must never paint RED.
+            # These parts were made while the collector could not read the
+            # PLC; their true per-part time is unknown, and charging them the
+            # whole downtime (downtime / parts) made every one of them land
+            # above ideal — a wall of red cycles the line never actually ran.
+            # So the two jobs are now separate:
+            #   _spread  = downtime / parts -> only WHERE the rows sit in time,
+            #              so they still land across the real outage window;
+            #   ct_per   = the line's ideal CT -> what is RECORDED as the cycle
+            #              time, so the graph shows them at ideal (green).
+            _spread = (span_s / gap) if gap > 0 else 0.0
+            _ideal  = float(self.cfg.get("ideal_ct") or 0.0)
+            ct_per  = _ideal if _ideal > 0 else _spread
+            if _spread <= 0.0:
+                _spread = ct_per
             if t0 is None:
-                t0 = now_dt - timedelta(seconds=ct_per * gap)
+                t0 = now_dt - timedelta(seconds=_spread * gap)
             n = 0
             for _i in range(gap):
                 seq = db_max + 1 + _i
-                row_ts = t0 + timedelta(seconds=ct_per * (_i + 1))
+                row_ts = t0 + timedelta(seconds=_spread * (_i + 1))
                 if row_ts > now_dt:
                     row_ts = now_dt
                 # L6 audit row — counter_val pinned; part_code None means
@@ -7651,7 +8281,7 @@ class CollectorEngine:
                 n += 1
             print(f"[REG-BACKFILL] filled {n} graph-point rows "
                   f"#{db_max + 1}..{target} shift={shift} {rec_dt} "
-                  f"(ct~{ct_per:.1f}s/part over {span_s:.0f}s downtime; "
+                  f"(ct={ct_per:.1f}s = ideal, spread over {span_s:.0f}s downtime; "
                   f"video by-ts online, part_code unknown).", flush=True)
             # 2026-07-03 — also mirror the backfilled parts into the hourly
             # bucket.  Without this, resync-backfilled parts land in the count +
@@ -8126,16 +8756,23 @@ class CollectorEngine:
         impact on pulse polling is negligible compared to the count
         correctness this restores."""
         # Wait for main connection to be up first.
-        for _ in range(30):
-            if self._plc_ok and self._plc is not None:
-                break
+        # 2026-10-07 — wait for as long as it takes.  This used to give up
+        # after 30 s and exit for good: the 6-Oct 12:09 restart found the
+        # Loop Pipe PLCs (192.168.36.x) unreachable, so LP-1/LP-2 published
+        # no sensor data again and Sensor Health sat on "2/2 unknown" while
+        # counting (main loop) had long recovered.
+        _waited = 0
+        while not (self._plc_ok and self._plc is not None):
             if self._stop.wait(1.0):
                 return
-        if not (self._plc_ok and self._plc is not None):
-            print(f"[PY-CHECK] main PLC connection never came up -- "
-                  f"bypass detection disabled, pulse counting still "
-                  f"active.", flush=True)
-            return
+            _waited += 1
+            if _waited == 30:
+                print(f"[PY-CHECK] main PLC not connected yet -- sensor "
+                      f"health / bypass detection will start when it is "
+                      f"(pulse counting still active).", flush=True)
+        if _waited >= 30:
+            print(f"[PY-CHECK] main PLC connected after {_waited}s -- "
+                  f"sensor health / bypass detection starting", flush=True)
         print(f"[PY-CHECK] sharing main PLC connection "
               f"({self.cfg['plc_ip']}:{self.cfg['plc_port']}) via "
               f"lock-proxy (no separate session = no bleed-through)",
@@ -9971,6 +10608,7 @@ class CollectorEngine:
                     # bit-mode machines are excluded downstream by the
                     # count_mode=register AND shift_reset_bit guard.
                     _old_shift = self._cur_shift
+                    _start_reset = False
                     if (should_complete and _old_shift
                             and not _old_shift.startswith("GAP")):
                         self._shift_reset_epoch += 1
@@ -10003,6 +10641,7 @@ class CollectorEngine:
                     if (_old_shift and _old_shift.startswith("GAP")
                             and shift_name and not shift_name.startswith("GAP")
                             and self._check_ot_active() != shift_name):
+                        _start_reset = True
                         self._shift_reset_epoch += 1
                         print(f"[SHIFT-RESET] shift {shift_name} starting -> "
                               f"L110 pulse epoch {self._shift_reset_epoch} "
@@ -10040,6 +10679,17 @@ class CollectorEngine:
                     if self._db_ok:
                         self._shift_id = self._get_or_create_shift(
                             shift_name, record_date)
+                        # Count carried into a genuine new shift (see
+                        # _allow_zero_after_seed); never on an OT resumption.
+                        _carry_ok = int(self.ok_shift or 0)
+                        self._shift_carry = (
+                            (self._shift_id, _carry_ok)
+                            if (_start_reset and self._shift_id and _carry_ok > 0)
+                            else None)
+                        if self._shift_carry:
+                            print(f"[SHIFT] shift {shift_name} starts with "
+                                  f"{_carry_ok} carried over -- waiting for the "
+                                  f"register reset", flush=True)
                         if self._shift_id:
                             try:
                                 _rc = self._db.cursor()
@@ -10122,7 +10772,8 @@ class CollectorEngine:
                         _MIN_VOTES = 5
                         _MIN_SECS  = 8.0
                         _now = time.time()
-                        if self._cur_model not in self.cfg["models"]:
+                        if (self._cur_model is None
+                                or self._cur_model not in self.cfg["models"]):
                             # Startup sentinel (init _cur_model = 1, not a real
                             # model) — first valid read commits instantly, same
                             # as before, so boot-time display is unchanged.
@@ -10131,7 +10782,7 @@ class CollectorEngine:
                             self._model_candidate  = None
                             self._model_cand_votes = 0
                             print(f"[MODEL] -> {self._cur_model_name} "
-                                  f"(D6048={m}, instant switch)")
+                                  f"({self.cfg.get('model_addr','model')}={m}, instant switch)")
                         else:
                             if m == getattr(self, "_model_candidate", None):
                                 self._model_cand_votes = getattr(
@@ -10150,7 +10801,7 @@ class CollectorEngine:
                                 self._model_candidate  = None
                                 self._model_cand_votes = 0
                                 print(f"[MODEL] -> {self._cur_model_name} "
-                                      f"(D6048={m}, confirmed: {_MIN_VOTES}+ "
+                                      f"({self.cfg.get('model_addr','model')}={m}, confirmed: {_MIN_VOTES}+ "
                                       f"reads over {_MIN_SECS:.0f}s)")
                     else:
                         # Throttle the rejection log so socket bleeds
@@ -10159,7 +10810,7 @@ class CollectorEngine:
                         _mcount = getattr(self, "_model_reject_count", 0) + 1
                         self._model_reject_count = _mcount
                         if time.time() - _mlast >= 10:
-                            print(f"[MODEL-REJECT] D6048={m} not in "
+                            print(f"[MODEL-REJECT] {self.cfg.get('model_addr','model')}={m} not in "
                                   f"mes_model_mappings for line "
                                   f"{self.cfg['line_id']} "
                                   f"(valid={sorted(self.cfg['models'].keys())}) "
@@ -10308,8 +10959,12 @@ class CollectorEngine:
                     print(f"[BREAK] {bname}")
                     self._last_break_log = now
 
-                # Hourly update
-                self._update_hourly(new_ok, new_ng)
+                # Hourly update (+ parts made during a scheduled break, see
+                # _update_counts COUNT-SKIP branch)
+                _xo = getattr(self, "_hourly_extra_ok", 0)
+                _xn = getattr(self, "_hourly_extra_ng", 0)
+                self._hourly_extra_ok = self._hourly_extra_ng = 0
+                self._update_hourly(new_ok + _xo, new_ng + _xn)
 
                 # Backfill plans every 30 seconds
                 if now - self._last_plan_calc > 30:

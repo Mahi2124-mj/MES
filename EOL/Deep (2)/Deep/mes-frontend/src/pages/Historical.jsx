@@ -5,6 +5,8 @@ import AIAssistant from "../components/AIAssistant";
 import VideoProgressBar from "../components/VideoProgressBar";
 import PartTrace from "./PartTrace";
 import PeffDetails from "../components/PeffDetails";
+import CycleTimeStudy from "../components/CycleTimeStudy";
+import BreakdownSlipView from "../components/BreakdownSlipPaper";
 import { useAuth } from "../context/AuthContext";
 
 const api = axios.create({ baseURL: "" });
@@ -668,6 +670,29 @@ function ArchiveCycleComments({ lineId, partCode, shift, recordDate, machineName
   const [busy,    setBusy]    = useState(false);
   const [loading, setLoading] = useState(true);
   const [err,     setErr]     = useState("");
+  //  2026-09-28 — Leader attribution, same as the MANAGEMENT player.  Without
+  //  it every remark written from the Video Archive saved leader_name NULL, so
+  //  Comments History showed "—" for the Leader column.
+  const [leaderOpts, setLeaderOpts] = useState([]);
+  const [leaderName, setLeaderName] = useState("");
+
+  //  Default = the leader the shift-incharge assigned to this line for the
+  //  CYCLE's own date+shift; options = the line's leaders (all leaders if the
+  //  line has none mapped), so the remark can be re-attributed per comment.
+  useEffect(() => {
+    if (!lineId) { setLeaderOpts([]); setLeaderName(""); return; }
+    const cDate = recordDate
+      || (String(partCode || "").match(/(\d{4}-\d{2}-\d{2})/) || [])[1] || "";
+    const qs = new URLSearchParams({ line_id: String(lineId) });
+    if (cDate) qs.set("date", cDate);
+    if (shift) qs.set("shift", shift);
+    api.get(`/api/leaders/for-line?${qs.toString()}`)
+      .then(r => {
+        setLeaderOpts(Array.isArray(r.data?.options) ? r.data.options : []);
+        setLeaderName(r.data?.default || "");
+      })
+      .catch(() => { setLeaderOpts([]); setLeaderName(""); });
+  }, [lineId, partCode, shift, recordDate]);
 
   const load = () => {
     if (!lineId || !partCode) return;
@@ -691,6 +716,7 @@ function ArchiveCycleComments({ lineId, partCode, shift, recordDate, machineName
       // always wrong on a back-day clip.
       await api.post(`/api/lines/${lineId}/cycles/${encodeURIComponent(partCode)}/comments`, {
         comment: txt, machine_name: machineName || null,
+        leader_name: leaderName || null,
         shift: shift || null, record_date: recordDate || null,
       });
       setText("");
@@ -729,6 +755,25 @@ function ArchiveCycleComments({ lineId, partCode, shift, recordDate, machineName
             </div>
           </div>
         ))}
+      </div>
+
+      <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center",
+                    gap: 6, marginBottom: 8 }}>
+        <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: ".06em",
+                       color: "#8092af", textTransform: "uppercase" }}>Leader</span>
+        <select value={leaderName} onChange={e => setLeaderName(e.target.value)}
+          title="Line leader this remark is attributed to"
+          style={{ padding: "4px 8px", fontSize: 12, background: "#ffffff",
+                   color: "#0f172a", border: "1px solid #1d2942", borderRadius: 6,
+                   maxWidth: 200 }}>
+          <option value="">— select leader —</option>
+          {leaderName && !leaderOpts.some(o => o.username === leaderName) && (
+            <option value={leaderName}>{leaderName}</option>
+          )}
+          {leaderOpts.map(o => (
+            <option key={o.id} value={o.username}>{o.username}</option>
+          ))}
+        </select>
       </div>
 
       <div style={{ display: "flex", gap: 7 }}>
@@ -1745,25 +1790,41 @@ function BreakdownSlipsTab() {
 }
 
 
-// ── Breakdown History (master mes_breakdown_log) sub-component ──────────
-// 2026-06-18 — All-plant breakdown MASTER: FY25-26 historical base + manual
-// entries, ONE flat format, ONE table.  All-lines = whole master; pick
-// zone→line to drill.  Zone/line/machine dropdowns are derived from the
-// master itself (independent of MES production lines).  "+ Add Breakdown"
-// writes a new row (source='manual') that shows up here instantly.
+// ── Breakdown History sub-component ─────────────────────────────────────
+// 2026-10-07 — ONE list of every breakdown slip from the moment it is raised
+// until it is closed: Maintenance_DX slips (auto Maintenance / auto Toolroom
+// from andon calls + manual 9965 slips) merged with the MES entries (this
+// tab's "+ Add Breakdown" and the old Breakdown Slips).  Stage shows where an
+// auto slip is (production pending -> maintenance pending -> closed); a row
+// opens the full slip, both halves, as filled.  Source: /api/breakdown-history.
+const BD_SRC_LABEL = {
+  "AUTO-MAINT": "Auto · Maint", "AUTO-TOOLROOM": "Auto · Toolroom",
+  "MANUAL": "Manual slip", "MES-LOG": "MES entry", "MES-SLIP": "MES slip",
+};
+const BD_STAGE_CLR = {
+  PENDING_PRODUCTION:  ["#fef3c7", "#b45309"],
+  PENDING_MAINTENANCE: ["#fee2e2", "#b91c1c"],
+  COMPLETED: ["#dcfce7", "#15803d"], CLOSED: ["#dcfce7", "#15803d"],
+  RESOLVED:  ["#dcfce7", "#15803d"], OPEN: ["#fee2e2", "#b91c1c"],
+};
+
 function BreakdownLogTab() {
   const { theme } = useAuth();
   const [master, setMaster]   = useState({ zones: [], depts: [], categories: [] });
+  const [opts,   setOpts]     = useState([]);
   const [fZone,  setFZone]    = useState("");
   const [fLine,  setFLine]    = useState("");
   const [fFrom,  setFFrom]    = useState("");
   const [fTo,    setFTo]      = useState("");
+  const [fStage, setFStage]   = useState("");
+  const [fSrc,   setFSrc]     = useState("");
   const [fq,     setFq]       = useState("");
   const [rows,   setRows]     = useState([]);
-  const [total,  setTotal]    = useState(0);
-  const [hours,  setHours]    = useState(0);
+  const [sum,    setSum]      = useState(null);
+  const [warn,   setWarn]     = useState("");
   const [loading,setLoading]  = useState(true);
   const [addOpen,setAddOpen]  = useState(false);
+  const [view,   setView]     = useState(null);     // row whose slip is open
 
   useEffect(() => {
     api.get("/api/breakdowns/log/master")
@@ -1778,16 +1839,24 @@ function BreakdownLogTab() {
     if (fLine)      q.set("line", fLine);
     if (fFrom)      q.set("date_from", fFrom);
     if (fTo)        q.set("date_to", fTo);
+    if (fStage)     q.set("stage", fStage);
+    if (fSrc)       q.set("src", fSrc);
     if (fq.trim())  q.set("q", fq.trim());
-    api.get(`/api/breakdowns/log?${q.toString()}`)
-      .then(r => { setRows(r.data?.rows || []); setTotal(r.data?.total || 0); setHours(r.data?.total_hours || 0); })
-      .catch(() => { setRows([]); setTotal(0); setHours(0); })
+    api.get(`/api/breakdown-history?${q.toString()}`)
+      .then(r => { setRows(r.data?.rows || []); setSum(r.data?.summary || null);
+                   setOpts(r.data?.options || []); setWarn(r.data?.warning || ""); })
+      .catch(e => { setRows([]); setSum(null);
+                    setWarn(e?.response?.status === 404
+                      ? "Breakdown History starts working after the next MES server restart."
+                      : "Could not load breakdowns."); })
       .finally(() => setLoading(false));
   };
-  useEffect(() => { reload(); /* eslint-disable-next-line */ }, [fZone, fLine, fFrom, fTo]);
+  useEffect(() => { reload(); /* eslint-disable-next-line */ }, [fZone, fLine, fFrom, fTo, fStage, fSrc]);
 
-  const allZones    = master.zones.map(z => z.zone);
-  const linesOfZone = (z) => { const zo = master.zones.find(x => x.zone === z); return zo ? zo.lines.map(l => l.line) : []; };
+  const linesOfZone = (z) => (opts.find(o => o.zone === z)?.lines || []);
+  const chip = (label, val, color) => (
+    <div><b style={{fontSize:22,fontFamily:"monospace",color}}>{val ?? 0}</b> <span style={{color:"#64748b"}}>{label}</span></div>
+  );
 
   return (
     <div className="result-card">
@@ -1796,7 +1865,7 @@ function BreakdownLogTab() {
           <label>Zone</label>
           <select value={fZone} onChange={e=>{ setFZone(e.target.value); setFLine(""); }}>
             <option value="">All zones</option>
-            {allZones.map(z=><option key={z} value={z}>{z}</option>)}
+            {opts.map(o=><option key={o.zone} value={o.zone}>{o.zone}</option>)}
           </select>
         </div>
         <div className="ff" style={{minWidth:150}}>
@@ -1814,6 +1883,21 @@ function BreakdownLogTab() {
           <label>To</label>
           <input type="date" value={fTo} onChange={e=>setFTo(e.target.value)} />
         </div>
+        <div className="ff" style={{minWidth:150}}>
+          <label>Status</label>
+          <select value={fStage} onChange={e=>setFStage(e.target.value)}>
+            <option value="">All</option>
+            <option value="open">Open (not closed)</option>
+            <option value="closed">Closed</option>
+          </select>
+        </div>
+        <div className="ff" style={{minWidth:150}}>
+          <label>Source</label>
+          <select value={fSrc} onChange={e=>setFSrc(e.target.value)}>
+            <option value="">All sources</option>
+            {Object.entries(BD_SRC_LABEL).map(([k,v])=><option key={k} value={k}>{v}</option>)}
+          </select>
+        </div>
         <div className="ff" style={{flex:1,minWidth:170}}>
           <label>Search</label>
           <input type="text" value={fq} placeholder="machine / problem / action / person…"
@@ -1825,47 +1909,56 @@ function BreakdownLogTab() {
             background:theme.accentDark,color:"#fff",fontWeight:800,cursor:"pointer"}}>+ Add Breakdown</button>
       </div>
 
-      <div style={{display:"flex",gap:26,marginBottom:14,fontSize:13,alignItems:"baseline"}}>
-        <div><b style={{fontSize:22,fontFamily:"monospace"}}>{total}</b> <span style={{color:"#64748b"}}>breakdowns</span></div>
-        <div><b style={{fontSize:22,fontFamily:"monospace"}}>{hours}</b> <span style={{color:"#64748b"}}>downtime hrs</span></div>
-        {(fZone||fLine||fFrom||fTo) && <div style={{color:"#94a3b8"}}>filter: {fZone||"all"}{fLine?` / ${fLine}`:""}</div>}
+      {warn && <div style={{background:"#fef2f2",border:"1px solid #fecaca",color:"#b91c1c",borderRadius:10,
+                            padding:"9px 12px",fontSize:13,fontWeight:600,marginBottom:12}}>{warn}</div>}
+
+      <div style={{display:"flex",gap:26,marginBottom:14,fontSize:13,alignItems:"baseline",flexWrap:"wrap"}}>
+        {chip("breakdowns", sum?.total)}
+        {chip("open", sum?.open, "#b91c1c")}
+        {chip("production pending", sum?.production_pending, "#b45309")}
+        {chip("maintenance pending", sum?.maintenance_pending, "#b91c1c")}
+        {chip("closed", sum?.closed, "#15803d")}
+        {chip("downtime hrs", sum?.downtime_hours)}
       </div>
 
       <div style={{overflowX:"auto"}}>
-        <table className="slot-tbl" style={{minWidth:1120}}>
+        <table className="slot-tbl" style={{minWidth:1250}}>
           <thead><tr>
-            {["Date","Zone","Line","Machine","Sh","Problem","Action","Spares","By","Dept","Cat","Min","Src"].map(h=>
+            {["Date","Zone","Line","Machine","Sh","Problem","Action","Spares","By","Dept","Cat","Min","Status","Src"].map(h=>
               <th key={h}>{h}</th>)}
           </tr></thead>
           <tbody>
             {loading
-              ? <tr><td colSpan={13} style={{padding:24,textAlign:"center",color:"#94a3b8"}}>Loading…</td></tr>
+              ? <tr><td colSpan={14} style={{padding:24,textAlign:"center",color:"#94a3b8"}}>Loading…</td></tr>
               : rows.length===0
-                ? <tr><td colSpan={13} style={{padding:24,textAlign:"center",color:"#94a3b8"}}>No breakdowns for this filter.</td></tr>
-                : rows.map(r=>(
-                  <tr key={r.id}>
-                    <td style={{whiteSpace:"nowrap"}}>{r.bd_date||"—"}</td>
-                    <td>{r.zone_code||"—"}</td>
-                    <td style={{fontWeight:700}}>{r.line_code||"—"}</td>
+                ? <tr><td colSpan={14} style={{padding:24,textAlign:"center",color:"#94a3b8"}}>No breakdowns for this filter.</td></tr>
+                : rows.map(r=>{
+                  const sc = BD_STAGE_CLR[r.stage] || ["#f1f5f9","#475569"];
+                  return (
+                  <tr key={r.key} onClick={()=>setView(r)} style={{cursor:"pointer"}} title="Open the full slip">
+                    <td style={{whiteSpace:"nowrap"}}>{r.date||"—"}</td>
+                    <td>{r.zone||"—"}</td>
+                    <td style={{fontWeight:700}}>{r.line||"—"}</td>
                     <td>{r.machine_name||"—"}{r.machine_no?<span style={{color:"#94a3b8"}}> ({r.machine_no})</span>:null}</td>
                     <td>{r.shift||"—"}</td>
-                    <td style={{maxWidth:230}}>{r.problem_production||r.problem_maintenance||"—"}</td>
-                    <td style={{maxWidth:230}}>{r.action_taken||"—"}</td>
-                    <td style={{maxWidth:130}}>{r.spares_detail||"—"}</td>
+                    <td style={{maxWidth:230}}>{r.problem||r.observed||"—"}</td>
+                    <td style={{maxWidth:230}}>{r.action||"—"}</td>
+                    <td style={{maxWidth:130}}>{r.spares||"—"}</td>
                     <td>{r.attended_by||"—"}</td>
                     <td>{r.dept||"—"}</td>
                     <td>{r.category||"—"}</td>
-                    <td style={{textAlign:"right",fontFamily:"monospace"}}>{r.solve_time_min!=null?r.solve_time_min:"—"}</td>
-                    <td><span style={{fontSize:9,fontWeight:700,padding:"2px 7px",borderRadius:99,
-                        background:r.source==="manual"?"rgba(59,130,246,.12)":"#f1f5f9",
-                        color:r.source==="manual"?"#1e40af":"#64748b"}}>
-                        {r.source==="manual"?"manual":r.source==="live"?"live":"hist"}</span></td>
-                  </tr>
-                ))}
+                    <td style={{textAlign:"right",fontFamily:"monospace"}}>{r.down_min!=null?r.down_min:"—"}</td>
+                    <td><span style={{fontSize:10,fontWeight:800,padding:"2px 8px",borderRadius:99,whiteSpace:"nowrap",
+                        background:sc[0],color:sc[1]}}>{r.stage_label}</span></td>
+                    <td><span style={{fontSize:9,fontWeight:700,padding:"2px 7px",borderRadius:99,whiteSpace:"nowrap",
+                        background:"#f1f5f9",color:"#64748b"}}>{BD_SRC_LABEL[r.src]||r.src}</span></td>
+                  </tr>);
+                })}
           </tbody>
         </table>
       </div>
 
+      {view && <BreakdownSlipView row={view} onClose={()=>setView(null)} />}
       {addOpen && <BreakdownLogAddModal master={master}
                     onClose={()=>setAddOpen(false)}
                     onSaved={()=>{ setAddOpen(false); reload(); }} />}
@@ -2015,7 +2108,8 @@ export default function Historical() {
   // state, so a page REFRESH stays on the same tab (only the data reloads) and
   // the browser BACK button returns to the previous tab.  Default: hourly.
   const [searchParams, setSearchParams] = useSearchParams();
-  const activeTab = searchParams.get("tab") || "shift";
+  // 2026-10-07 — Breakdown Slips merged into Breakdown History (old links land there)
+  const activeTab = (searchParams.get("tab") === "slips" ? "bdlog" : searchParams.get("tab")) || "shift";
   const setActiveTab = (t) => setSearchParams(
     (prev) => { const p = new URLSearchParams(prev); p.set("tab", t); return p; },
     { replace: false },   // push → BACK returns to the previous tab
@@ -2028,8 +2122,8 @@ export default function Historical() {
     { key: "losses", label: "Losses" },
     { key: "video", label: "Video Archive" },
     { key: "trace", label: "Part Traceability" },
-    { key: "slips", label: "Breakdown Slips" },
     { key: "bdlog", label: "Breakdown History" },
+    { key: "ctstudy", label: "Cycle Time Study" },
   ];
   const visibleTabs = HIST_TABS.filter(t => canAccessModule("historical", t.key));
   const effTab = visibleTabs.some(t => t.key === activeTab)
@@ -2268,11 +2362,15 @@ export default function Historical() {
               Maintenance Historical page, but presented as a flat
               filterable list (no MTBF / MTTR roll-ups since those are
               maintenance-side metrics). */}
-          {effTab === "slips" && <BreakdownSlipsTab />}
+          {/* 2026-10-07 — merged into Breakdown History below. */}
 
           {/* Breakdown History tab — master mes_breakdown_log (FY25-26 base +
               manual entries), zone/line filter + Add form, all-plant. */}
           {effTab === "bdlog" && <BreakdownLogTab />}
+
+          {/* Cycle Time Study — part-to-part CT of one machine over any
+              window, optional model / part code, + output prediction. */}
+          {effTab === "ctstudy" && <CycleTimeStudy />}
 
           {/* Shift Data tab (existing content) */}
           {effTab === "shift" && <>

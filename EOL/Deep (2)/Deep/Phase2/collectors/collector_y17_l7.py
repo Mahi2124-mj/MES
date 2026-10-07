@@ -3,7 +3,7 @@
 AUTO-GENERATED COLLECTOR — Y17-SS
 Line ID    : 15
 Table      : y17_l7_complete
-Generated  : 2026-09-24 14:05:14
+Generated  : 2026-10-05 09:11:08
 
 DO NOT EDIT MANUALLY — regenerate via admin panel if config changes.
 """

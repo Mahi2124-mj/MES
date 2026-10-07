@@ -20,8 +20,8 @@ export const PAGE_MODULES = {
     { key: "losses", label: "Losses" },
     { key: "video", label: "Video Archive" },
     { key: "trace", label: "Part Traceability" },
-    { key: "slips", label: "Breakdown Slips" },
     { key: "bdlog", label: "Breakdown History" },
+    { key: "ctstudy", label: "Cycle Time Study" },
   ],
   // 2026-09-14 — Comments History now has two independently-assignable modules:
   // the comment/remark table and the new Pareto analysis.

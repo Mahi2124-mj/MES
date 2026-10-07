@@ -53,7 +53,7 @@
       "machine_id": "mes:65",
       "camera_id": "cam_lower_rail_cam_yfg_1783077757",
       "plc_id": "mes_plc_65",
-      "plc_ip": "192.168.30.162",
+      "plc_ip": "192.168.30.152",
       "trigger_type": "SUB",
       "ok_bit": "D601",
       "ng_bit": "D602",
@@ -1212,7 +1212,7 @@
       "m_bit_address": "",
       "target_time": 16,
       "extract_per_cycle": false,
-      "machine_name": "Projection Welding of Washer with Lwr Arm UprBKT\uff58Nut PJW M/C",
+      "machine_name": "Projection Welding of Washer with Lwr Arm UprBKTｘNut PJW M/C",
       "zone_name": "Recliner",
       "line_name": "YMC Recliner"
     },
@@ -1349,14 +1349,14 @@
       "machine_id": "mes:109",
       "camera_id": "cam_projection_welding_of_washer_with_lwr_arm_uprbkt_nut_pjw_m_c_1786350106",
       "plc_id": "mes_plc_109",
-      "plc_ip": "190.168.32.70",
+      "plc_ip": "192.168.32.70",
       "trigger_type": "SUB",
       "ok_bit": "D6001",
       "ng_bit": "D6002",
       "m_bit_address": "",
       "target_time": 16,
       "extract_per_cycle": false,
-      "machine_name": "Projection Welding of Washer with Lwr Arm UprBKT\uff58Nut PJW M/C",
+      "machine_name": "Projection Welding of Washer with Lwr Arm UprBKTｘNut PJW M/C",
       "zone_name": "Recliner",
       "line_name": "YHB Recliner"
     },
@@ -1484,7 +1484,7 @@
       "m_bit_address": "",
       "target_time": 16,
       "extract_per_cycle": false,
-      "machine_name": "Projection Welding of Washer with Lwr Arm UprBKT\uff58Nut PJW M/C",
+      "machine_name": "Projection Welding of Washer with Lwr Arm UprBKTｘNut PJW M/C",
       "zone_name": "Recliner",
       "line_name": "YRA Recliner"
     },
@@ -1628,7 +1628,7 @@
       "m_bit_address": "",
       "target_time": 16,
       "extract_per_cycle": false,
-      "machine_name": "Projection Welding of Washer with Lwr Arm UprBKT\uff58Nut PJW",
+      "machine_name": "Projection Welding of Washer with Lwr Arm UprBKTｘNut PJW",
       "zone_name": "Recliner",
       "line_name": "YNC Recliner"
     },
@@ -1756,7 +1756,7 @@
       "m_bit_address": "",
       "target_time": 16,
       "extract_per_cycle": false,
-      "machine_name": "Projection Welding of Washer with Lwr Arm UprBKT\uff58Nut PJW M/C",
+      "machine_name": "Projection Welding of Washer with Lwr Arm UprBKTｘNut PJW M/C",
       "zone_name": "Recliner",
       "line_name": "YSD Recliner"
     },
@@ -2060,7 +2060,7 @@
       "m_bit_address": "",
       "target_time": 11,
       "extract_per_cycle": false,
-      "machine_name": "Upr Rail \u00d7Bolt Fr PJW M/C  ( 4 Way )",
+      "machine_name": "Upr Rail ×Bolt Fr PJW M/C  ( 4 Way )",
       "zone_name": "Sub-Assembly",
       "line_name": "YNC-SA-4WAY"
     },
@@ -2092,7 +2092,7 @@
       "m_bit_address": "",
       "target_time": 11,
       "extract_per_cycle": false,
-      "machine_name": "\"Rinforce\u00d7Bolt PJW M/C Upr BKT Rail \u00d7Bolt PJW M/C Upr Rail Rr\uff09 \"",
+      "machine_name": "\"Rinforce×Bolt PJW M/C Upr BKT Rail ×Bolt PJW M/C Upr Rail Rr） \"",
       "zone_name": "Sub-Assembly",
       "line_name": "YNC-SA-4WAY"
     },
@@ -2108,7 +2108,7 @@
       "m_bit_address": "",
       "target_time": 12,
       "extract_per_cycle": false,
-      "machine_name": "\"Rinforce\u00d7Bolt PJW M/C Upr BKT Rail \u00d7Bolt PJW M/C Upr Rail Rr\uff09 \"",
+      "machine_name": "\"Rinforce×Bolt PJW M/C Upr BKT Rail ×Bolt PJW M/C Upr Rail Rr） \"",
       "zone_name": "Sub-Assembly",
       "line_name": "YNC-SA-4WAY"
     },
@@ -2124,7 +2124,7 @@
       "m_bit_address": "",
       "target_time": 11,
       "extract_per_cycle": false,
-      "machine_name": "Upr \u00d7Rinforce S/A\u00d7UprINRBKT PJW M/C ",
+      "machine_name": "Upr ×Rinforce S/A×UprINRBKT PJW M/C ",
       "zone_name": "Sub-Assembly",
       "line_name": "YNC-SA-4WAY"
     },
@@ -2156,7 +2156,7 @@
       "m_bit_address": "",
       "target_time": 12,
       "extract_per_cycle": false,
-      "machine_name": "\"Rinforce\u00d7Bolt PJW M/C Upr BKT Rail \u00d7Bolt PJW M/C Upr Rail Rr\uff09\"",
+      "machine_name": "\"Rinforce×Bolt PJW M/C Upr BKT Rail ×Bolt PJW M/C Upr Rail Rr）\"",
       "zone_name": "Sub-Assembly",
       "line_name": "YHB-SA-4WAY"
     },
@@ -2172,7 +2172,7 @@
       "m_bit_address": "",
       "target_time": 12,
       "extract_per_cycle": false,
-      "machine_name": "Upr Rail \u00d7Bolt Fr PJW M/C  ( 4 Way )",
+      "machine_name": "Upr Rail ×Bolt Fr PJW M/C  ( 4 Way )",
       "zone_name": "Sub-Assembly",
       "line_name": "YHB-SA-4WAY"
     },
@@ -2188,7 +2188,7 @@
       "m_bit_address": "",
       "target_time": 12,
       "extract_per_cycle": false,
-      "machine_name": "Upr \u00d7Rinforce S/A\u00d7UprINRBKT PJW M/C",
+      "machine_name": "Upr ×Rinforce S/A×UprINRBKT PJW M/C",
       "zone_name": "Sub-Assembly",
       "line_name": "YHB-SA-4WAY"
     },
@@ -2236,7 +2236,7 @@
       "m_bit_address": "",
       "target_time": 12,
       "extract_per_cycle": false,
-      "machine_name": "\"Rinforce\u00d7Bolt PJW M/C Upr BKT Rail \u00d7Bolt PJW M/C Upr Rail Rr\uff09\"",
+      "machine_name": "\"Rinforce×Bolt PJW M/C Upr BKT Rail ×Bolt PJW M/C Upr Rail Rr）\"",
       "zone_name": "Sub-Assembly",
       "line_name": "YSD-SA-4WAY"
     },
@@ -2252,7 +2252,7 @@
       "m_bit_address": "",
       "target_time": 12,
       "extract_per_cycle": false,
-      "machine_name": "Upr Rail \u00d7Bolt Fr PJW M/C  ( 4 Way )",
+      "machine_name": "Upr Rail ×Bolt Fr PJW M/C  ( 4 Way )",
       "zone_name": "Sub-Assembly",
       "line_name": "YSD-SA-4WAY"
     },
@@ -2268,7 +2268,7 @@
       "m_bit_address": "",
       "target_time": 12,
       "extract_per_cycle": false,
-      "machine_name": "Upr \u00d7Rinforce S/A\u00d7UprINRBKT PJW M/c",
+      "machine_name": "Upr ×Rinforce S/A×UprINRBKT PJW M/c",
       "zone_name": "Sub-Assembly",
       "line_name": "YSD-SA-4WAY"
     },
@@ -2316,7 +2316,7 @@
       "m_bit_address": "",
       "target_time": 12,
       "extract_per_cycle": false,
-      "machine_name": "\"Rinforce\u00d7Bolt PJW M/C Upr  Rail \u00d7Reinforce x Bolt PJW M/C\"",
+      "machine_name": "\"Rinforce×Bolt PJW M/C Upr  Rail ×Reinforce x Bolt PJW M/C\"",
       "zone_name": "Sub-Assembly",
       "line_name": "Y17-SA-4WAY"
     },
@@ -2364,7 +2364,7 @@
       "m_bit_address": "",
       "target_time": 12,
       "extract_per_cycle": false,
-      "machine_name": "\"Rinforce\u00d7Bolt PJW M/C Upr BKT Rail \u00d7Bolt PJW M/C Upr Rail Rr\uff09(4 Way)\"",
+      "machine_name": "\"Rinforce×Bolt PJW M/C Upr BKT Rail ×Bolt PJW M/C Upr Rail Rr）(4 Way)\"",
       "zone_name": "Sub-Assembly",
       "line_name": "YRA-SA-4WAY"
     },
@@ -2380,7 +2380,7 @@
       "m_bit_address": "",
       "target_time": 12,
       "extract_per_cycle": false,
-      "machine_name": "Upr Rail \u00d7Bolt Fr PJW M/C  ( 4 Way )",
+      "machine_name": "Upr Rail ×Bolt Fr PJW M/C  ( 4 Way )",
       "zone_name": "Sub-Assembly",
       "line_name": "YRA-SA-4WAY"
     },
@@ -2396,7 +2396,7 @@
       "m_bit_address": "",
       "target_time": 12,
       "extract_per_cycle": false,
-      "machine_name": "Upr \u00d7Rinforce S/A\u00d7UprINRBKT PJW M/C (4 Way)",
+      "machine_name": "Upr ×Rinforce S/A×UprINRBKT PJW M/C (4 Way)",
       "zone_name": "Sub-Assembly",
       "line_name": "YRA-SA-4WAY"
     },
@@ -2428,7 +2428,7 @@
       "m_bit_address": "",
       "target_time": 10,
       "extract_per_cycle": true,
-      "machine_name": "Upr \u00d7Rinforce S/A\u00d7UprINRBKT PJW\u3000M/C (6 Way)",
+      "machine_name": "Upr ×Rinforce S/A×UprINRBKT PJW　M/C (6 Way)",
       "zone_name": "Sub-Assembly",
       "line_name": "NUT WELDING SA"
     },
@@ -2444,7 +2444,7 @@
       "m_bit_address": "",
       "target_time": 21,
       "extract_per_cycle": false,
-      "machine_name": "Upr \u00d7Rinforce S/A\u00d7UprINRBKT PJW\u3000M/C (6 Way)",
+      "machine_name": "Upr ×Rinforce S/A×UprINRBKT PJW　M/C (6 Way)",
       "zone_name": "Sub-Assembly",
       "line_name": "YNC-SA-6WAY"
     },
@@ -2476,7 +2476,7 @@
       "m_bit_address": "",
       "target_time": 21,
       "extract_per_cycle": false,
-      "machine_name": "Mag WELD Upr Brkt With T-Nut \uff06Bolt M/C",
+      "machine_name": "Mag WELD Upr Brkt With T-Nut ＆Bolt M/C",
       "zone_name": "Sub-Assembly",
       "line_name": "YNC-SA-6WAY"
     },
@@ -2492,7 +2492,7 @@
       "m_bit_address": "",
       "target_time": 21,
       "extract_per_cycle": false,
-      "machine_name": "Mag WELD Upr Brkt With T-Nut \uff06Bolt M/C",
+      "machine_name": "Mag WELD Upr Brkt With T-Nut ＆Bolt M/C",
       "zone_name": "Sub-Assembly",
       "line_name": "YNC-SA-6WAY"
     },
@@ -2524,7 +2524,7 @@
       "m_bit_address": "",
       "target_time": 15,
       "extract_per_cycle": false,
-      "machine_name": "Ball Guide-01 \u00b7 Camera 1",
+      "machine_name": "Ball Guide-01 · Camera 1",
       "zone_name": "SEAT SLIDER",
       "line_name": "YSD-SS"
     },
@@ -2540,7 +2540,7 @@
       "m_bit_address": "",
       "target_time": 15,
       "extract_per_cycle": false,
-      "machine_name": "Ball Guide-01 \u00b7 Camera 2",
+      "machine_name": "Ball Guide-01 · Camera 2",
       "zone_name": "SEAT SLIDER",
       "line_name": "YSD-SS"
     },

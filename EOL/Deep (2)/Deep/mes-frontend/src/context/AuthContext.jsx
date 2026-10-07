@@ -385,7 +385,7 @@ export function AuthProvider({ children }) {
       // back to the cycle that produced it.
       return ["dashboard", "historical", "process-graphs",
               "quality-dashboard", "quality-deviations", "comments-history",
-              "sa-fi-history",
+              "sa-fi-history", "redbin-lock",
               "weld-monitor", "admin-quality",
               "anything-wrong", "five-s", "pdca",
               "department-panel", "settings"].includes(page);
@@ -425,7 +425,7 @@ export function AuthProvider({ children }) {
         //                          dashboard banner (see ManpowerAlertBanner).
         return ["dashboard", "department-panel", "admin-quality",
                 "quality-dashboard", "quality-deviations", "weld-monitor",
-                "sa-fi-history",
+                "sa-fi-history", "redbin-lock",
                 "shift-allocation", "settings"].includes(page);
       }
       if (slug === "production") {
@@ -521,7 +521,8 @@ export function AuthProvider({ children }) {
       if (isProductionIncharge)
         return ["import", "store", "dispatch", "shift-calculator"].includes(page);
       if (isQualityIncharge)
-        return ["quality-deviations", "comments-history", "weld-monitor"].includes(page);
+        return ["quality-deviations", "comments-history", "weld-monitor",
+                "redbin-lock"].includes(page);
       return false;                      // section incharge: report, don't edit
     }
     // No explicit perm — historical default: only admins write,

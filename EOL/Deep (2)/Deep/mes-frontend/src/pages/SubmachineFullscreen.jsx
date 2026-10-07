@@ -29,6 +29,8 @@ const STATUS_CLR = {
   IDLE:            "#94a3b8",
   RUNNING:         "#22c55e",
   BREAKDOWN:       "#ef4444",
+  MAINTENANCE:     "#ef4444",   // 2026-10-07 — andon call's own status
+  TOOLROOM:        "#ec4899",
   QUALITY_ISSUE:   "#f97316",
   SETUP:           "#3b82f6",
   MATERIAL_WAIT:   "#eab308",
@@ -301,15 +303,23 @@ export default function SubmachineFullscreen() {
   }, [shiftBuckets]);
 
   // Full chart dataset (all cycles)
+  // 2026-10-07 — the number shown is the part's place in the shift when the
+  // machine's count register does not reset per shift (YMC-SS Semi-Auto D5201
+  // showed #61327… for a 1050-part shift); cycle_seq stays for the video.
   const chartDataAll = useMemo(
-    () => ctRows.map(r => ({
-      x: r.cycle_seq,
+    () => {
+      const mx = ctRows.length ? Math.max(...ctRows.map(r => Number(r.cycle_seq) || 0)) : 0;
+      const perShift = mx > 0 && mx <= ctRows.length * 1.5;
+      return ctRows.map((r, i) => ({
+      no: perShift ? r.cycle_seq : i + 1,
+      x: perShift ? r.cycle_seq : i + 1,
       y: Number(r.ct_seconds) || 0,
       ts_start: r.ts_start,
       ts_end:   r.ts_end,
       model_name: r.model_name,
       cycle_seq:  r.cycle_seq,
-    })),
+    }));
+    },
     [ctRows],
   );
 
@@ -590,7 +600,7 @@ export default function SubmachineFullscreen() {
             Cycle time
           </div>
           <div style={{ fontSize: 11, color: textMut, fontFamily: "monospace" }}>
-            {ctRows.length ? `${ctRows.length} cycles · last #${ctRows[ctRows.length-1]?.cycle_seq}` : ""}
+            {ctRows.length ? `${ctRows.length} cycles · last #${chartDataAll[chartDataAll.length-1]?.no}` : ""}
           </div>
         </div>
         {chartData.length === 0 ? (
@@ -695,7 +705,7 @@ export default function SubmachineFullscreen() {
                 }}>
                   <div>
                     <div style={{ fontSize: 12, fontWeight: 800, color: text }}>
-                      Cycle #{picked.cycle_seq}
+                      Cycle #{picked.no ?? picked.cycle_seq}
                       <span style={{
                         marginLeft: 8,
                         color: picked.y > ideal ? "#ef4444" : "#22c55e",
@@ -792,7 +802,7 @@ export default function SubmachineFullscreen() {
               display: "flex", justifyContent: "space-between",
               fontSize: 10, color: textSub, marginTop: 2,
             }}>
-              <span>#{chartDataAll[0]?.cycle_seq}</span>
+              <span>#{chartDataAll[0]?.no}</span>
               <span style={{ color: textMut }}>
                 showing {windowStart + 1}–{Math.min(windowStart + WINDOW, chartDataAll.length)} of {chartDataAll.length}
                 {viewStart !== null && (
@@ -805,7 +815,7 @@ export default function SubmachineFullscreen() {
                     }}>latest ▶</button>
                 )}
               </span>
-              <span>#{chartDataAll[chartDataAll.length - 1]?.cycle_seq}</span>
+              <span>#{chartDataAll[chartDataAll.length - 1]?.no}</span>
             </div>
           </div>
         )}

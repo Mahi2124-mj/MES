@@ -3,7 +3,7 @@
 AUTO-GENERATED COLLECTOR — LOCATION PIN STACKING - LPS-3
 Line ID    : 40
 Table      : locationpin_lps3_dashboard
-Generated  : 2026-09-25 14:44:40
+Generated  : 2026-09-28 14:48:38
 
 DO NOT EDIT MANUALLY — regenerate via admin panel if config changes.
 """
@@ -24,12 +24,12 @@ CONFIG = {
     "ng_bit":     "D6002",
     "status_addr":"D6005",
     "model_addr": "D6048",
-    "ideal_ct":   2.9,
-    "max_ct":     3.5,
+    "ideal_ct":   8.2,
+    "max_ct":     9.2,
     "models":     {},
-    "status_map": {},
+    "status_map": {0: {'name': 'IDLE', 'loss': None}, 1: {'name': 'RUNNING', 'loss': None}, 2: {'name': 'BREAKDOWN', 'loss': 'breakdown'}, 3: {'name': 'QUALITY_ISSUE', 'loss': 'quality'}, 4: {'name': 'MODEL_SETUP', 'loss': 'setup'}, 5: {'name': 'MATERIAL_WAIT', 'loss': 'material'}, 6: {'name': 'OTHER_LOSS', 'loss': 'others'}, 7: {'name': 'CHANGE_OVER', 'loss': 'change_over'}, 8: {'name': 'BREAK', 'loss': 'break'}},
     "breaks":     [{'start': '01:00:00', 'end': '01:10:00', 'name': 'Night Tea Break'}, {'start': '04:00:00', 'end': '04:10:00', 'name': 'Early Morning Break'}, {'start': '10:00:00', 'end': '10:10:00', 'name': 'Morning Tea Break'}, {'start': '12:00:00', 'end': '12:35:00', 'name': 'Lunch Break'}, {'start': '14:30:00', 'end': '14:40:00', 'name': 'Evening Tea Break'}, {'start': '18:00:00', 'end': '18:10:00', 'name': 'Dinner Break 1'}, {'start': '20:00:00', 'end': '20:10:00', 'name': 'Tea Break'}, {'start': '22:00:00', 'end': '22:35:00', 'name': 'Dinner Break 2'}],
-    "shifts":     {'A': {'start': '08:30:00', 'end': '17:15:00', 'plan': 2475, 'crosses_midnight': False}, 'B': {'start': '18:30:00', 'end': '03:15:00', 'plan': 2475, 'crosses_midnight': True}},
+    "shifts":     {'A': {'start': '08:30:00', 'end': '17:15:00', 'plan': 3435, 'crosses_midnight': False}, 'B': {'start': '18:30:00', 'end': '03:15:00', 'plan': 3435, 'crosses_midnight': True}},
 }
 
 if __name__ == "__main__":

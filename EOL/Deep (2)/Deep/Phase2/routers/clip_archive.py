@@ -385,18 +385,59 @@ def _pick_ts(camera_id: str, ts_start: datetime, ts_end: datetime):
     except Exception:
         return None
     prefix = f"cam_{camera_id}_"
+    a, b = ts_start.timestamp(), ts_end.timestamp()
+    hits = []
     for name in names:
         if not (name.startswith(prefix) and name.endswith(".ts")):
             continue
         p = os.path.join(VIDEO_ROOT, name)
+        # 2026-10-07 — cheap bounds before the ffprobe.  With 30-min segments a
+        # camera has ~100 files in the 48 h hold; the name is never after the
+        # first frame and the mtime is the last write, so a file outside them
+        # cannot overlap this cycle and is not worth a probe.
+        m = _TS_NAME_RE.match(name)
+        if m:
+            try:
+                if int(m.group(2)) / 1000.0 > b + 60 or os.path.getmtime(p) < a - 60:
+                    continue
+            except OSError:
+                continue
         w = _ts_window(p)
         if not w:
             continue
         cs, ce, _dur = w
         overlap = (min(ts_end, ce) - max(ts_start, cs)).total_seconds()
+        if overlap > 0:
+            hits.append((cs, ce, p))
         if overlap > best_overlap:
             best_overlap, best = overlap, (p, cs)
-    return best
+    if not best:
+        return None
+    return best + (_contiguous_span(hits, ts_start, ts_end),)
+
+
+_SPAN_GAP_S = 3.0   # files of one recorder session follow on within this
+
+
+def _contiguous_span(hits, ts_start, ts_end):
+    """Files to stitch when a cycle runs across a segment roll, else None.
+
+    Only files that follow on without a gap (one recorder session, segment
+    mode): their concat timeline is wall-clock from the first file's start.
+    Rotated files from different sessions always have a gap (respawn hold), so
+    for them this returns None and the single best file is used as before."""
+    if len(hits) < 2:
+        return None
+    hits = sorted(hits)
+    first = max((i for i, h in enumerate(hits) if h[0] <= ts_start), default=0)
+    span = [hits[first]]
+    for cs, ce, p in hits[first + 1:]:
+        if span[-1][1] >= ts_end:
+            break
+        if (cs - span[-1][1]).total_seconds() > _SPAN_GAP_S:
+            break
+        span.append((cs, ce, p))
+    return span if len(span) > 1 else None
 
 
 def _render_direct(camera_id: str, ts_start: datetime, ts_end: datetime,
@@ -408,7 +449,21 @@ def _render_direct(camera_id: str, ts_start: datetime, ts_end: datetime,
     pick = _pick_ts(camera_id, ts_start, ts_end)
     if not pick:
         return False
-    ts_file, content_start = pick
+    ts_file, content_start, span = pick
+    # 2026-10-07 — a cycle across a segment roll: cut from the joined files,
+    # positioned from the first file's start (see _contiguous_span).
+    src, cat, cat_lst = ts_file, [], None
+    if span:
+        try:
+            import tempfile
+            fd, cat_lst = tempfile.mkstemp(prefix="_arccat_", suffix=".txt")
+            with os.fdopen(fd, "w", encoding="utf-8") as fh:
+                for _cs, _ce, _p in span:
+                    fh.write("file '%s'\n" % _p.replace("'", "'\\''"))
+            src, cat = cat_lst, ["-f", "concat", "-safe", "0"]
+            content_start = span[0][0]
+        except OSError:
+            src, cat, cat_lst = ts_file, [], None
 
     off = (ts_start - content_start).total_seconds()
     dur = (ts_end - ts_start).total_seconds()
@@ -416,6 +471,11 @@ def _render_direct(camera_id: str, ts_start: datetime, ts_end: datetime,
         dur += off
         off = 0.0
     if dur <= 0:
+        if cat_lst:
+            try:
+                os.remove(cat_lst)
+            except OSError:
+                pass
         return False
     if _CLIP_MAX_SECONDS > 0 and dur > _CLIP_MAX_SECONDS:
         off += dur - _CLIP_MAX_SECONDS      # keep the END of a long cycle
@@ -456,7 +516,7 @@ def _render_direct(camera_id: str, ts_start: datetime, ts_end: datetime,
             FFMPEG_BIN, "-y",
             "-fflags", "+genpts+discardcorrupt", "-err_detect", "ignore_err",
             "-hwaccel", "cuda", "-hwaccel_output_format", "cuda",
-            "-ss", f"{in_ss:.3f}", "-i", ts_file,
+            *cat, "-ss", f"{in_ss:.3f}", "-i", src,
             "-ss", f"{out_ss:.3f}", "-t", f"{trim:.3f}",
             "-vf", "scale_cuda=w='min(iw,854)':h=-2",
             "-c:v", "h264_nvenc", "-preset", "p4", "-cq", "26",
@@ -473,7 +533,7 @@ def _render_direct(camera_id: str, ts_start: datetime, ts_end: datetime,
             "-fflags", "+genpts+discardcorrupt", "-err_detect", "ignore_err",
             "-ec", "favor_inter",
             "-threads", "2",
-            "-ss", f"{in_ss:.3f}", "-i", ts_file,
+            *cat, "-ss", f"{in_ss:.3f}", "-i", src,
             "-ss", f"{out_ss:.3f}", "-t", f"{trim:.3f}",
             "-c:v", "libx264", "-preset", "ultrafast", "-crf", "27",
             "-threads", str(CPU_THREADS),
@@ -509,6 +569,11 @@ def _render_direct(camera_id: str, ts_start: datetime, ts_end: datetime,
             _GPU_SEM.release()
         if cpu_slot:
             _CPU_SEM.release()
+        if cat_lst:
+            try:
+                os.remove(cat_lst)
+            except OSError:
+                pass
 _started   = False
 _start_lock = threading.Lock()
 _stats = {"archived": 0, "failed": 0, "skipped": 0, "last_run": None, "last_error": ""}

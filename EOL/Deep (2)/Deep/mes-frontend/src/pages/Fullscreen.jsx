@@ -180,6 +180,10 @@ const STATUS_CLR = {
   "IDLE":          "#94a3b8",
   "RUNNING":       "#22c55e",
   "BREAKDOWN":     "#ef4444",
+  // 2026-10-07 — andon calls show their own name: Maintenance (red, it IS the
+  // breakdown call) and Toolroom (pink) — both still count as breakdown loss.
+  "MAINTENANCE":   "#ef4444",
+  "TOOLROOM":      "#ec4899",
   "QUALITY ISSUE": "#f97316",
   "QUALITY_ISSUE": "#f97316",
   "SETUP":         "#3b82f6",
@@ -1572,6 +1576,7 @@ export default function Fullscreen() {
         statusLogRef.current = arr.map(e => ({
           ts:         typeof e.ts === "number" ? e.ts : Date.parse(e.ts),
           status:     e.status,
+          andon:      e.andon || null,   // every andon call open in this segment
           nowMinFrac: typeof e.nowMinFrac === "number" ? e.nowMinFrac : e.nowminfrac,
           shift:      e.shift || e.shift_name || shiftNm,
         })).filter(e => Number.isFinite(e.ts));
@@ -2317,6 +2322,15 @@ export default function Fullscreen() {
     const idealCT = line?.plc_config?.ideal_cycle_time || 15;
     const CT_TOL  = 0.009; // anything > ideal+0.009 = spike
 
+    // 2026-09-28 — Loop Pipe shows the Ideal line only.  Those lines run
+    // several processes off one register, so the DERIVED takt (working
+    // minutes / plan) sat a fraction below ideal and drew a second
+    // near-identical horizontal line that was read as cycle data.  The
+    // takt figure is still on the Takt Time card.  Matched by name so a
+    // future Loop Pipe line is covered without touching this file.
+    const isLoopPipe = /^\s*loop\s*pipe/i.test(line?.line_name || "");
+    const hideTakt = isLoopPipe;
+
     // ── Hourly slot dividers ─────────────────────────────────────
     // Shift slots from refs (avoids stale closure dep issues).
     // Sort by relative position within the shift so night shifts that wrap
@@ -2435,7 +2449,12 @@ export default function Fullscreen() {
     // H".  Clamp the plotted values at 40s; tooltip + dot-click stay
     // on the REAL ct_value (so video URL + numeric readouts honor
     // the true cycle time).
-    const Y_CAP   = 40;
+    //  2026-09-28 — Operator: Loop Pipe ka graph 30s tak hi.  Its ideal is
+    //  9.5s, so a 40s ceiling left the band the cycles actually live in
+    //  squashed into the bottom quarter.  Everything else keeps 40s.
+    //  Cycles above the cap still plot at the ceiling with a white ring and
+    //  the tooltip reads the real value, exactly as it did at 40s.
+    const Y_CAP   = isLoopPipe ? 30 : 40;
     const ptBorder  = visSlice.map(cy => cy.ct_value > Y_CAP
                                        ? "#ffffff"
                                        : (D2 ? "#060912" : "#ffffff"));
@@ -2527,7 +2546,7 @@ export default function Fullscreen() {
           // cell doesn't carry an extra 33.63s horizontal line that
           // operators mistake for cycle data.  Takt info is still
           // shown in the Takt Time card to the right of the gauges.
-          ...(!isPortrait && rt?.takt_seconds && Math.abs(rt.takt_seconds - idealCT) > 0.1 ? [{
+          ...(!isPortrait && !hideTakt && rt?.takt_seconds && Math.abs(rt.takt_seconds - idealCT) > 0.1 ? [{
             type: "line",
             label: `Takt ${Number(rt.takt_seconds).toFixed(2)}s`,
             data: Array(visSlice.length).fill(Number(rt.takt_seconds)),
@@ -2722,7 +2741,7 @@ export default function Fullscreen() {
     // 2026-05-18-r7 — Clamp the fallback live values at the same 40s
     // cap used for the main chart, otherwise an outlier coming
     // through the rt path would still blow up the y-axis.
-    const Y_CAP2 = 40;
+    const Y_CAP2 = /^\s*loop\s*pipe/i.test(line?.line_name || "") ? 30 : 40;
     cmsChartInst.current.data.datasets[0].data =
       vals.map(v => v == null ? null : Math.min(v, Y_CAP2));
     cmsChartInst.current.data.datasets[0].pointBackgroundColor =
@@ -3344,6 +3363,7 @@ export default function Fullscreen() {
       .filter(e => e.shift === shift)
       .map(e => ({
         status:  e.status,
+        andon:   e.andon || null,
         relFrac: e.nowMinFrac >= sStart
           ? e.nowMinFrac - sStart
           : e.nowMinFrac + 1440 - sStart,
@@ -3367,7 +3387,7 @@ export default function Fullscreen() {
 
     // Build the ordered sequence covering [ssRel, seRel]
     let sequence = [];
-    if (carryOver) sequence.push({ status: carryOver.status, relFrac: ssRel });
+    if (carryOver) sequence.push({ status: carryOver.status, andon: carryOver.andon || null, relFrac: ssRel });
     sequence.push(...inSlot);
 
     // Collapse adjacent same-status entries — the collector writes periodic
@@ -3376,6 +3396,7 @@ export default function Fullscreen() {
     // transitions where status actually changes.
     sequence = sequence.filter((e, i) =>
       i === 0 || e.status !== sequence[i - 1].status
+              || (e.andon || null) !== (sequence[i - 1].andon || null)
     );
 
     // For the current (live) slot don't paint beyond sElapsed;
@@ -3417,7 +3438,7 @@ export default function Fullscreen() {
         widthPct: Math.min(widthPct, 100 - Math.max(0, startPct)),
         color:    getStatusColor(e.status),
         status:   e.status,
-        tooltip:  `${e.status}  ${toClk(startRel)} – ${toClk(endRel)}  (${durMin}m ${durSec}s)`,
+        tooltip:  `${e.status}${e.andon ? ` — andon: ${e.andon}` : ""}  ${toClk(startRel)} – ${toClk(endRel)}  (${durMin}m ${durSec}s)`,
       });
     }
 
@@ -3682,7 +3703,9 @@ export default function Fullscreen() {
             <span style={{padding:"3px 12px",borderRadius:99,fontSize:11,fontWeight:800,
               color:statusColor,background:`${statusColor}18`,border:`1px solid ${statusColor}33`,
               letterSpacing:".06em",
-              animation:status==="RUNNING"?"pulse 2s infinite":status==="BREAKDOWN"?"blink 1s infinite":"none"}}>
+              animation:status==="RUNNING"?"pulse 2s infinite"
+                       :(status==="BREAKDOWN"||status==="MAINTENANCE"||status==="TOOLROOM")?"blink 1s infinite":"none"}}
+              title={rt?.andon_calls ? `Andon: ${rt.andon_calls}` : undefined}>
               {status}
             </span>
             {/* 2026-05-16 — MACHINE PILL (yellow-box position).
@@ -5374,7 +5397,8 @@ export default function Fullscreen() {
           <div style={{display:"flex",gap:14,flexWrap:"wrap"}}>
             {[
               { l:"RUNNING",     c:STATUS_CLR["RUNNING"]       },
-              { l:"BREAKDOWN",   c:STATUS_CLR["BREAKDOWN"]     },
+              { l:"BREAKDOWN / MAINT", c:STATUS_CLR["BREAKDOWN"] },
+              { l:"TOOLROOM",    c:STATUS_CLR["TOOLROOM"]      },
               { l:"QUAL ISSUE",  c:STATUS_CLR["QUALITY ISSUE"] },
               { l:"MATERIAL",    c:STATUS_CLR["MATERIAL WAIT"] },
               { l:"SETUP",       c:STATUS_CLR["SETUP"]         },
@@ -8085,6 +8109,70 @@ function LossRemarkModal({ lineId, payload, onClose, border, bgDeep, text, textS
   const [savedAt, setSavedAt] = useState(null);
   const token = (typeof window !== "undefined"
                    && sessionStorage.getItem("mes_token")) || "";
+  // 2026-10-07 — andon breakup for this slot (operator: "is card me har call
+  // ka breakup bhi de de — kitne maintenance ke, kitne time ka").
+  const [andon, setAndon] = useState(null);
+  useEffect(() => {
+    if (!lineId || !date || !slot_label) return;
+    let stop = false;
+    const qs = new URLSearchParams({ line_id: String(lineId), date, slot: slot_label });
+    if (shift_name) qs.set("shift", shift_name);
+    // 2026-10-07 (2) — only the CLICKED loss's calls (operator: "breakdown pe
+    // click kiya to sirf breakdown ke call, aur har call pe remark").
+    if (loss_type) qs.set("loss_type", loss_type);
+    fetch(`/api/andon/slot-calls?${qs.toString()}`,
+          { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (stop) return;
+        setAndon(d);
+        const dr = {};
+        ((d && d.calls) || []).forEach(c => { dr[`${c.type}|${c.machine}|${c.start}`] = c.remark || ""; });
+        setCallDraft(dr);
+      })
+      .catch(() => { if (!stop) setAndon(null); });
+    return () => { stop = true; };
+  }, [lineId, date, shift_name, slot_label, loss_type, token]);
+  const [callDraft,   setCallDraft]   = useState({});
+  const [callSaving,  setCallSaving]  = useState(false);
+  const [callSavedAt, setCallSavedAt] = useState(null);
+  const callKey  = (c) => `${c.type}|${c.machine}|${c.start}`;
+  const callMode = !!(andon && andon.covered && andon.andon_bucket !== false
+                      && (andon.calls || []).length > 0);
+  const callChanged = callMode && (andon.calls || []).some(
+    c => (callDraft[callKey(c)] || "").trim() && (callDraft[callKey(c)] || "").trim() !== (c.remark || ""));
+  const saveCalls = async () => {
+    if (!callMode || callSaving || !callChanged) return;
+    if (!token) { setError("Login required to save remark"); return; }
+    setCallSaving(true); setError("");
+    try {
+      const items = (andon.calls || [])
+        .filter(c => (callDraft[callKey(c)] || "").trim()
+                     && (callDraft[callKey(c)] || "").trim() !== (c.remark || ""))
+        .map(c => ({ type: c.type, machine: c.machine, start: c.start,
+                     remark: callDraft[callKey(c)].trim() }));
+      const r = await fetch("/api/andon/call-remarks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+        body: JSON.stringify({ line_id: lineId, date, slot: slot_label,
+                               shift: shift_name || null, loss_type, items }),
+      });
+      if (!r.ok) throw new Error((await r.text().catch(() => `HTTP ${r.status}`)).slice(0, 200));
+      const d = await r.json();
+      if (Array.isArray(d.calls)) setAndon(a => ({ ...a, calls: d.calls }));
+      setCallSavedAt(new Date().toLocaleTimeString("en-GB"));
+    } catch (e) {
+      setError(e.message || String(e));
+    } finally {
+      setCallSaving(false);
+    }
+  };
+  const dur = (sec) => {
+    const t = Math.max(0, Math.round(sec || 0));
+    const m = Math.floor(t / 60), ss = t % 60;
+    return m ? `${m}m ${String(ss).padStart(2, "0")}s` : `${ss}s`;
+  };
+  const clk = (iso) => iso ? iso.slice(11, 19) : "now";
 
   // Format seconds → HH:MM:SS for display
   const fmt = (sec) => {
@@ -8204,7 +8292,99 @@ function LossRemarkModal({ lineId, payload, onClose, border, bgDeep, text, textS
           }}>×</button>
         </div>
 
-        {loading ? (
+        {andon && andon.covered && andon.andon_bucket !== false && (
+          <div style={{ marginBottom: 12, border: `1px solid ${border}`, borderRadius: 8,
+                        padding: "8px 10px", background: "rgba(255,255,255,0.02)",
+                        overflowY: "auto", maxHeight: "52vh" }}>
+            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: ".06em",
+                           color: textSub, marginBottom: 6, textTransform: "uppercase" }}>
+              {(loss_label || loss_type)} andon calls in this slot
+            </div>
+            {!callMode ? (
+              <div style={{ fontSize: 12, color: textMut }}>
+                No {(loss_label || loss_type || "").toLowerCase()} andon call in this slot.
+              </div>
+            ) : (
+              <>
+                {(andon.by_type || []).map(g => {
+                  const c = STATUS_CLR[g.status] || "#94a3b8";
+                  return (
+                    <div key={g.status} style={{ display: "flex", alignItems: "center", gap: 8,
+                                                 fontSize: 12, padding: "2px 0" }}>
+                      <span style={{ width: 9, height: 9, borderRadius: 2, background: c, flexShrink: 0 }} />
+                      <span style={{ fontWeight: 800, color: c, minWidth: 92 }}>{g.type}</span>
+                      <span style={{ color: text, fontWeight: 700 }}>×{g.count}</span>
+                      <span style={{ color: textSub }}>· open {dur(g.open_s)}</span>
+                      <span style={{ color: textSub }}>· loss <b style={{ color: text }}>{dur(g.lost_s)}</b></span>
+                    </div>
+                  );
+                })}
+                {(andon.calls || []).map((cl, i) => {
+                  const c = STATUS_CLR[cl.status] || "#94a3b8";
+                  const full = Math.round(((cl.end ? Date.parse(cl.end) : Date.now())
+                                           - Date.parse(cl.start)) / 1000);
+                  const k = callKey(cl);
+                  return (
+                    <div key={k} style={{ marginTop: 8, borderTop: `1px solid ${border}`, paddingTop: 7 }}>
+                      <div style={{ display: "flex", gap: 8, fontSize: 12, color: textSub,
+                                    flexWrap: "wrap", alignItems: "baseline", marginBottom: 4 }}>
+                        <span style={{ color: text, fontWeight: 800 }}>#{i + 1}</span>
+                        <span style={{ fontFamily: "monospace", color: text }}>
+                          {clk(cl.start)}–{cl.ongoing ? "open" : clk(cl.end)}
+                        </span>
+                        <span style={{ color: c, fontWeight: 800 }}>{cl.type}</span>
+                        {cl.machine && <span>{cl.machine}</span>}
+                        <span>{dur(cl.open_s)}{full - cl.open_s > 1 ? ` of ${dur(full)}` : ""}</span>
+                        {cl.fault && <span style={{ color: textMut }}>· {cl.fault}</span>}
+                      </div>
+                      <textarea
+                        value={callDraft[k] || ""}
+                        onChange={e => { const v = e.target.value; setCallDraft(d => ({ ...d, [k]: v })); }}
+                        placeholder={`Remark for this ${cl.type.toLowerCase()} call…`}
+                        rows={2}
+                        maxLength={2000}
+                        style={{
+                          width: "100%", padding: "6px 9px", fontSize: 13,
+                          background: "rgba(255,255,255,0.04)", color: text,
+                          border: `1px solid ${border}`, borderRadius: 6, resize: "vertical",
+                          fontFamily: "'Barlow',sans-serif", boxSizing: "border-box",
+                        }}
+                        onKeyDown={e => {
+                          if ((e.ctrlKey || e.metaKey) && e.key === "Enter") { e.preventDefault(); saveCalls(); }
+                        }}
+                      />
+                      {cl.remark_by && (
+                        <div style={{ fontSize: 10, color: textMut, marginTop: 2 }}>
+                          by <span style={{ color: "#60a5fa", fontWeight: 700 }}>{cl.remark_by}</span>
+                          {cl.remark_at && <> · {new Date(cl.remark_at).toLocaleString("en-GB", {
+                            day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}</>}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+                <div style={{ marginTop: 10, display: "flex", justifyContent: "space-between",
+                              alignItems: "center", gap: 10 }}>
+                  <div style={{ fontSize: 10, color: textMut, lineHeight: 1.4 }}>
+                    Loss = time the line made no parts while the call was open (breaks excluded).
+                    {callSavedAt && <span style={{ marginLeft: 6, color: "#22c55e" }}>✓ saved at {callSavedAt}</span>}
+                  </div>
+                  <button onClick={saveCalls} disabled={callSaving || !callChanged}
+                    style={{
+                      padding: "6px 16px", fontSize: 12, fontWeight: 800, flexShrink: 0,
+                      background: (callSaving || !callChanged) ? "rgba(34,197,94,.3)" : "#16a34a",
+                      color: "#fff", border: "none", borderRadius: 6, letterSpacing: ".04em",
+                      cursor: (callSaving || !callChanged) ? "not-allowed" : "pointer",
+                    }}>
+                    {callSaving ? "…" : "SAVE"}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
+        {callMode ? null : loading ? (
           <div style={{ padding: 24, textAlign: "center", color: textMut }}>
             Loading…
           </div>

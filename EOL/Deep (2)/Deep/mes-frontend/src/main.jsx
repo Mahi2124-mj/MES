@@ -32,6 +32,51 @@ window.addEventListener("vite:preloadError", (e) => {
   } catch (_) { try { window.location.reload(); } catch (__) {} }
 });
 
+// 2026-10-06 — NEW-BUILD AUTO-RELOAD.  A screen that stays open (supervisor
+// wallboards, the 65" panels, TVs, a phone left on a dashboard) kept running
+// the JS it loaded first, so a deployed change never reached it until someone
+// pressed refresh — the AVG CT button was live but YHB-SS's open screen didn't
+// have it.  Every minute, read the served index.html (no-store) and compare its
+// entry chunk with the one this page booted from; when a new build is out,
+// reload — but only once nobody has touched the page for 60 s and no text box
+// is focused, so nobody loses a half-typed comment.  One reload per new build
+// (sessionStorage guard), so a stale proxy can never cause a reload loop.
+if (import.meta.env.PROD) {
+  try {
+    const ENTRY_RE = /assets\/index-[\w-]+\.js/;
+    const tag = document.querySelector('script[type="module"][src*="/assets/index-"]');
+    const current = ((tag && tag.getAttribute("src")) || "").match(ENTRY_RE)?.[0] || null;
+    let lastInput = Date.now();
+    ["pointerdown", "keydown", "wheel", "touchstart"].forEach(ev =>
+      window.addEventListener(ev, () => { lastInput = Date.now(); },
+                              { passive: true, capture: true }));
+    const typing = () => {
+      const a = document.activeElement;
+      return !!a && (a.tagName === "INPUT" || a.tagName === "TEXTAREA"
+                     || a.tagName === "SELECT" || a.isContentEditable);
+    };
+    let newer = null;
+    const check = async () => {
+      try {
+        if (!current) return;
+        if (!newer) {
+          const r = await fetch(`/?_v=${Date.now()}`, { cache: "no-store" });
+          if (!r.ok) return;
+          const found = (await r.text()).match(ENTRY_RE)?.[0];
+          if (found && found !== current) newer = found;
+        }
+        if (newer && !typing() && Date.now() - lastInput > 60000) {
+          const KEY = "mes_build_reload_to";
+          if (sessionStorage.getItem(KEY) === newer) return;   // already tried this build
+          sessionStorage.setItem(KEY, newer);
+          window.location.reload();
+        }
+      } catch (_) { /* offline / server busy — try again next minute */ }
+    };
+    setInterval(check, 60000);
+  } catch (_) {}
+}
+
 // Native app (Capacitor): make the phone status bar a solid blue bar that does
 // NOT overlap the web content, keeping time/battery/signal visible with white
 // icons. No-op in a normal browser (guarded by isNativePlatform).

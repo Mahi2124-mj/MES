@@ -179,6 +179,136 @@ function OtBars({ title, rows, metric, color = "#f59e0b", onToday }) {
   );
 }
 
+// 2026-10-06 — AVG CT view inside the OVER TARGET popup (operator: "har hour
+// me jitne parts bane unka avg cycle time", on every process).  One bar per
+// hourly slot of the chosen date + shift; defaults to the shift the board is
+// showing.  Data from GET /hourly-avg-ct: avg CT = the hour's planned working
+// time ÷ parts made in it (operator: "ek ghante me 3600 seconds … plan ke
+// according"), not the mean of the cycle times.
+function OtHourlyAvg({ lineId, subId, ideal, D }) {
+  const [sel, setSel]   = useState({ date: "", shift: "" });   // "" = server default
+  const [data, setData] = useState(null);
+  const [err, setErr]   = useState(false);
+  useEffect(() => {
+    if (!lineId) return;
+    let stop = false;
+    const qs = new URLSearchParams();
+    if (subId) qs.set("sub_id", String(subId));
+    if (sel.date)  qs.set("date", sel.date);
+    if (sel.shift) qs.set("shift", sel.shift);
+    setErr(false);
+    fetch(`/api/lines/${lineId}/hourly-avg-ct?${qs.toString()}`)
+      .then(r => r.ok ? r.json() : Promise.reject(r.status))
+      .then(d => { if (!stop) setData(d); })
+      .catch(() => { if (!stop) { setData(null); setErr(true); } });
+    return () => { stop = true; };
+  }, [lineId, subId, sel.date, sel.shift]);
+
+  const idealCt = Number((data && data.ideal_ct) || ideal || 0);
+  const slots   = (data && data.slots) || [];
+  const maxV    = Math.max(idealCt * 1.25, 1, ...slots.map(s => Number(s.avg_ct) || 0));
+  const curDate  = sel.date  || (data && data.date)  || "";
+  const curShift = sel.shift || (data && data.shift) || "";
+  const muted = D ? "#64748b" : "#94a3b8";
+  const sBtn = (s) => (
+    <button key={s} onClick={() => setSel(p => ({ ...p, shift: s, date: p.date || curDate }))} style={{
+      padding: "3px 12px", fontSize: 11, fontWeight: 800, borderRadius: 6, cursor: "pointer",
+      border: "1px solid rgba(245,158,11,0.5)",
+      background: curShift === s ? "#f59e0b" : "transparent",
+      color: curShift === s ? "#1a1205" : "#f59e0b",
+    }}>{s} SHIFT</button>
+  );
+
+  return (
+    <div style={{ marginTop: 12 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 6 }}>
+        <input type="date" value={curDate}
+               max={new Date().toLocaleDateString("en-CA")}
+               onChange={e => e.target.value && setSel(p => ({ ...p, date: e.target.value, shift: p.shift || curShift }))}
+               style={{ padding: "3px 6px", fontSize: 11, borderRadius: 6,
+                        border: "1px solid rgba(245,158,11,0.5)", background: "transparent",
+                        color: D ? "#e2e8f0" : "#0f172a", colorScheme: D ? "dark" : "light" }} />
+        {sBtn("A")}{sBtn("B")}
+        {data && (
+          <span style={{ fontSize: 11, color: D ? "#9fb0c9" : "#475569", marginLeft: 6 }}>
+            Shift avg <b style={{ color: "#f59e0b" }}>{data.avg_ct != null ? `${data.avg_ct}s` : "—"}</b>
+            {data.excluded != null
+              ? <>{"  ·  "}avg of {data.counted} parts up to {data.avg_max_s || 60}s
+                  {data.excluded > 0 && <>{"  ·  "}<span style={{ color: "#f59e0b" }}>{data.excluded} parts over {data.avg_max_s || 60}s not counted</span></>}</>
+              : <>{"  ·  "}{data.total_cycles} parts in {Math.round((data.working_seconds || 0) / 60)} min working time</>}
+            {"  ·  "}ideal {idealCt}s
+          </span>
+        )}
+      </div>
+      {err ? (
+        <div style={{ fontSize: 12, color: "#ef4444", padding: "14px 0" }}>Could not load hourly average CT.</div>
+      ) : !data ? (
+        <div style={{ fontSize: 12, color: muted, padding: "14px 0" }}>Loading…</div>
+      ) : slots.length === 0 ? (
+        <div style={{ fontSize: 12, color: muted, fontStyle: "italic", padding: "14px 0" }}>
+          No hourly slots configured for this shift.
+        </div>
+      ) : (() => {
+        const PLOT = 150;                                  // px of bar travel
+        const px = (v) => Math.max(2, Math.round((v / maxV) * PLOT));
+        return (
+          <>
+            <div style={{ position: "relative", display: "flex", alignItems: "flex-end", gap: 6,
+                          height: PLOT + 18, borderBottom: "1px solid rgba(255,255,255,0.14)" }}>
+              {idealCt > 0 && (
+                <div style={{ position: "absolute", left: 0, right: 0, bottom: px(idealCt),
+                              borderTop: "1px dashed rgba(34,197,94,0.75)", pointerEvents: "none" }}>
+                  <span style={{ position: "absolute", right: 0, top: -13, fontSize: 9,
+                                 color: "#22c55e", fontFamily: "monospace" }}>ideal {idealCt}s</span>
+                </div>
+              )}
+              {slots.map((s, i) => {
+                const v = s.avg_ct == null ? null : Number(s.avg_ct);
+                const clr = v == null ? muted : v > idealCt ? "#ef4444" : "#22c55e";
+                return (
+                  <div key={i}
+                       title={v == null
+                         ? `${s.label}\n${s.cycles ? `${s.cycles} parts, all over ${data.avg_max_s || 60}s — not averaged` : (s.working_seconds ? "no parts made" : "not started")}`
+                         : (s.excluded != null
+                             ? `${s.label}\nAvg ${v}s of ${s.counted} parts (up to ${data.avg_max_s || 60}s)`
+                               + `\n${s.excluded} parts over ${data.avg_max_s || 60}s — not counted in avg`
+                               + `\nTotal parts ${s.cycles}`
+                             : `${s.label}\n${s.cycles} parts in ${Math.round((s.working_seconds || 0) / 60)} min working time → avg ${v}s`)
+                           + `\nfastest cycle ${s.min_ct ?? "—"}s · slowest ${s.max_ct ?? "—"}s\ncycles over ideal: ${s.over}`}
+                       style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column",
+                                alignItems: "center", justifyContent: "flex-end" }}>
+                    <span style={{ fontSize: 11, color: clr, fontFamily: "monospace", fontWeight: 800,
+                                   marginBottom: 2, whiteSpace: "nowrap" }}>
+                      {v == null ? "—" : `${v.toFixed(1)}s`}
+                    </span>
+                    <div style={{ width: "70%", height: v == null ? 2 : px(v), background: clr,
+                                  borderRadius: "2px 2px 0 0", opacity: 0.9 }} />
+                  </div>
+                );
+              })}
+            </div>
+            <div style={{ display: "flex", gap: 6, marginTop: 3 }}>
+              {slots.map((s, i) => (
+                <div key={i} style={{ flex: 1, minWidth: 0, textAlign: "center", fontFamily: "monospace",
+                                      lineHeight: 1.35, overflow: "hidden" }}>
+                  <div style={{ fontSize: 9, color: D ? "#cbd5e1" : "#334155", whiteSpace: "nowrap",
+                                overflow: "hidden", textOverflow: "ellipsis" }}>{s.label}</div>
+                  <div style={{ fontSize: 9, color: muted }}>{s.cycles} pcs</div>
+                </div>
+              ))}
+            </div>
+          </>
+        );
+      })()}
+      {data && data.unslotted > 0 && (
+        <div style={{ fontSize: 10, color: muted, marginTop: 6 }}>
+          {data.unslotted} cycles fall outside the hourly slots and are not in the averages.
+        </div>
+      )}
+    </div>
+  );
+}
+
 function OtTable({ cycles, ideal, onVideo, onBack, D, lineId, isMain, machineId, shiftName }) {
   // 2026-06-09 — CT sort toggle: default = cycle_seq DESC (latest first);
   // click CT header → max→min (▼) → min→max (▲) → default.
@@ -341,7 +471,7 @@ function OtTable({ cycles, ideal, onVideo, onBack, D, lineId, isMain, machineId,
           <tbody>
             {rows.map((c, i) => (
               <tr key={`${c.cycle_seq}-${i}`}>
-                <td style={td}>#{c.cycle_seq}</td>
+                <td style={td}>#{c._no ?? c.cycle_seq}</td>
                 <td style={{ ...td, color: "#ef4444", fontWeight: 700 }}>{Number(c.ct).toFixed(2)}s</td>
                 <td style={td}>{c.ts ? new Date(c.ts).toLocaleTimeString("en-GB") : "—"}</td>
                 <td style={td}>
@@ -372,7 +502,7 @@ function OtTable({ cycles, ideal, onVideo, onBack, D, lineId, isMain, machineId,
   );
 }
 
-function OtModal({ data, metric, setMetric, machineName, onClose, D, otCycles, otIdeal, onVideo, lineId, isMain, lossAll, machineId, lossSeconds, shiftName }) {
+function OtModal({ data, metric, setMetric, machineName, onClose, D, otCycles, otIdeal, onVideo, lineId, isMain, lossAll, machineId, subId, lossSeconds, shiftName }) {
   const rows = (data && data.rows) || [];
   const [showTbl, setShowTbl] = useState(false);
   const tBtn = (m, label) => (
@@ -488,14 +618,24 @@ function OtModal({ data, metric, setMetric, machineName, onClose, D, otCycles, o
         ) : (
           <>
             <div style={{ fontSize: 10, color: "#64748b", margin: "2px 0 10px" }}>
-              Cycles slower than ideal{data && data.ideal_ct ? ` (${data.ideal_ct}s)` : ""} — A &amp; B shift, toggle % / cycle count. Tap today's bar for its over-target videos.
+              {metric === "avg"
+                ? "Average cycle time per hour = the hour's planned working time (breaks excluded) ÷ parts made in it — an hour at plan reads exactly the ideal CT. Pick a date and shift. Red = slower than ideal, green = at or under ideal. Hover a bar for details."
+                : <>Cycles slower than ideal{data && data.ideal_ct ? ` (${data.ideal_ct}s)` : ""} — A &amp; B shift, toggle % / cycle count. Tap today's bar for its over-target videos.</>}
             </div>
             <div style={{ display: "flex", gap: 8, marginBottom: 4 }}>
               {tBtn("pct", "% OVER")}
               {tBtn("count", "No. OF CYCLES")}
+              {tBtn("avg", "AVG CT")}
             </div>
-            <OtBars title="A SHIFT" rows={rows.filter(r => r.shift === "A")} metric={metric} onToday={() => setShowTbl(true)} />
-            <OtBars title="B SHIFT" rows={rows.filter(r => r.shift === "B")} metric={metric} onToday={() => setShowTbl(true)} />
+            {metric === "avg" ? (
+              <OtHourlyAvg lineId={lineId} subId={isMain ? null : subId}
+                           ideal={data && data.ideal_ct} D={D} />
+            ) : (
+              <>
+                <OtBars title="A SHIFT" rows={rows.filter(r => r.shift === "A")} metric={metric} onToday={() => setShowTbl(true)} />
+                <OtBars title="B SHIFT" rows={rows.filter(r => r.shift === "B")} metric={metric} onToday={() => setShowTbl(true)} />
+              </>
+            )}
           </>
         )}
       </div>
@@ -522,6 +662,17 @@ function MachineRow({ machine, idealCt, onPick, onCycleVideo, isMain = false, lo
   const _isBurstPhantom = (c) =>
     c.ct != null && idealCt > 0 && Number(c.ct) < idealCt * 0.5;
   const allCycles  = _rawCycles.filter(c => !_isPhantom(c) && !_isBurstPhantom(c));
+  // 2026-10-07 — the NUMBER shown for a cycle.  cycle_seq is the machine's
+  // own count register: on most machines it resets every shift (= the part
+  // number), but some PLCs never reset it — YMC-SS Semi-Auto D5201 showed
+  // #61327… on a shift that had made 1050 parts.  Same rule as the OK tag
+  // (_seqCount below): when the register runs far past this shift's cycle
+  // count, number the parts by their place in the shift (1, 2, 3 …) instead.
+  // cycle_seq itself is untouched (video lookup, comment keys).
+  const _seqMaxAll  = allCycles.length ? Math.max(...allCycles.map(c => Number(c.cycle_seq) || 0)) : 0;
+  const _seqIsShift = _seqMaxAll > 0 && _seqMaxAll <= allCycles.length * 1.5;
+  allCycles.forEach((c, i) => { c._no = _seqIsShift ? c.cycle_seq : i + 1; });
+  const cycNo = (c) => (c && c._no != null ? c._no : c?.cycle_seq);
   // 2026-05-28 — Operator: "thoda gap kr de ct to ct kuch dikh nhi rha".
   // Window halved (50 → 25) so each cycle gets ~2x horizontal space —
   // CT labels above dots no longer overlap, stats clearly readable.
@@ -535,7 +686,7 @@ function MachineRow({ machine, idealCt, onPick, onCycleVideo, isMain = false, lo
 
   // 2026-06-06 — OVER TARGET 30-day popup (click the badge).
   const [otModal,  setOtModal]  = useState(null);    // {rows, ideal_ct} | null
-  const [otMetric, setOtMetric] = useState("pct");   // "pct" | "count"
+  const [otMetric, setOtMetric] = useState("pct");   // "pct" | "count" | "avg"
   const _otOpen = () => {
     const url = `/api/lines/${lineId}/over-target-history`
               + (isMain ? "" : `?sub_id=${machine.sub_id}`);
@@ -635,7 +786,7 @@ function MachineRow({ machine, idealCt, onPick, onCycleVideo, isMain = false, lo
                                         : (cy.ct > Y_CAP ? 2 : 0.5));
 
     const data = {
-      labels: cycles.map(c => c.cycle_seq),
+      labels: cycles.map(c => cycNo(c)),
       datasets: [
         {
           label: "Cycle Time",
@@ -771,7 +922,7 @@ function MachineRow({ machine, idealCt, onPick, onCycleVideo, isMain = false, lo
             // tag — autoscale handles outliers now.
             title: i => {
               const cy = cycles[i[0].dataIndex];
-              return `Cycle #${cy?.cycle_seq ?? i[0].label}`;
+              return `Cycle #${cy ? cycNo(cy) : i[0].label}`;
             },
             label: t => {
               const cy = cycles[t.dataIndex];
@@ -1103,6 +1254,7 @@ function MachineRow({ machine, idealCt, onPick, onCycleVideo, isMain = false, lo
             lossAll={lossAll}
             lineId={lineId} isMain={isMain}
             machineId={machine.id || machine.sub_id || 0}
+            subId={isMain ? null : machine.sub_id}
             onVideo={(cy) => { if (typeof onCycleVideo === "function") onCycleVideo(machine, cy, isMain); }}
           />, document.body)}
       </div>
@@ -1116,7 +1268,7 @@ function MachineRow({ machine, idealCt, onPick, onCycleVideo, isMain = false, lo
                        gap: 8, height: 16 }}>
           <span style={{ fontSize: 9, color: textMut, fontFamily: "monospace",
                           width: 32, textAlign: "right" }}>
-            #{allCycles[winStart].cycle_seq}
+            #{cycNo(allCycles[winStart])}
           </span>
           <input
             type="range" min={0} max={maxWin} step={1}
@@ -1130,7 +1282,7 @@ function MachineRow({ machine, idealCt, onPick, onCycleVideo, isMain = false, lo
           />
           <span style={{ fontSize: 9, color: textMut, fontFamily: "monospace",
                           width: 32 }}>
-            #{allCycles[Math.min(allCycles.length - 1, winStart + WIN - 1)].cycle_seq}
+            #{cycNo(allCycles[Math.min(allCycles.length - 1, winStart + WIN - 1)])}
           </span>
           <button
             onClick={() => { setWinStart(maxWin); setSticky(true); }}
@@ -1746,12 +1898,18 @@ export default function WallboardLeft() {
           {/* RUNNING / status pill — colour from summary KPI if present */}
           {(() => {
             const st = (summary?.kpi?.operating_status || "RUNNING").toUpperCase();
-            const sc = st === "RUNNING"   ? okClr
-                     : st === "BREAKDOWN" ? badClr
-                     : st === "IDLE"      ? "#94a3b8"
-                     : warnClr;
+            // 2026-10-07 — on andon lines this is the open call's own status
+            // (MAINTENANCE / TOOLROOM / QUALITY_ISSUE …), same colours as the
+            // MANAGEMENT screen's timeline.
+            const SC = { RUNNING: okClr, BREAKDOWN: badClr, MAINTENANCE: badClr,
+                         TOOLROOM: "#ec4899", QUALITY_ISSUE: "#f97316",
+                         MATERIAL_WAIT: "#eab308", MODEL_SETUP: "#3b82f6",
+                         SETUP: "#3b82f6", OTHER_LOSS: "#a855f7",
+                         CHANGE_OVER: "#06b6d4", BREAK: "#7dd3fc", IDLE: "#94a3b8" };
+            const sc = SC[st] || warnClr;
             return (
-              <span style={{ fontSize: 11, fontWeight: 800,
+              <span title={summary?.kpi?.andon_calls ? `Andon: ${summary.kpi.andon_calls}` : undefined}
+                    style={{ fontSize: 11, fontWeight: 800,
                               padding: "3px 12px", borderRadius: 99,
                               background: `${sc}18`,
                               border: `1px solid ${sc}33`,
@@ -1986,7 +2144,7 @@ export default function WallboardLeft() {
                 <span style={{ color: textMut, margin: "0 8px" }}>·</span>
                 {videoCycle.machine.machine_name}
                 <span style={{ color: textMut, margin: "0 8px" }}>·</span>
-                Cycle #{videoCycle.cy.cycle_seq}
+                Cycle #{videoCycle.cy._no ?? videoCycle.cy.cycle_seq}
                 <span style={{ color: textMut, margin: "0 8px" }}>·</span>
                 <span style={{
                   fontFamily:"monospace",
@@ -2874,6 +3032,30 @@ function CycleCommentsPanel({ lineId, partCode, machineName, border, text, textS
   const token = (typeof window !== "undefined"
                    && sessionStorage.getItem("mes_token")) || "";
   const taRef = useRef(null);
+  //  2026-09-28 — Leader attribution, same as the MANAGEMENT player.  This
+  //  screen had no leader field at all, so every remark written here saved
+  //  leader_name NULL and Comments History showed "—" in the Leader column.
+  const [leaderOpts, setLeaderOpts] = useState([]);
+  const [leaderName, setLeaderName] = useState("");
+
+  //  Default = the leader the shift-incharge assigned to this line for the
+  //  CYCLE's own date+shift; options = the line's leaders (all leaders if the
+  //  line has none mapped), so it can be re-attributed per comment.
+  useEffect(() => {
+    if (!lineId) { setLeaderOpts([]); setLeaderName(""); return; }
+    const cDate = (String(partCode || "").match(/(\d{4}-\d{2}-\d{2})/) || [])[1] || "";
+    const qs = new URLSearchParams({ line_id: String(lineId) });
+    if (cDate) qs.set("date", cDate);
+    if (shift) qs.set("shift", shift);
+    fetch(`/api/leaders/for-line?${qs.toString()}`,
+          { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+      .then(r => r.ok ? r.json() : Promise.reject(`HTTP ${r.status}`))
+      .then(d => {
+        setLeaderOpts(Array.isArray(d.options) ? d.options : []);
+        setLeaderName(d.default || "");
+      })
+      .catch(() => { setLeaderOpts([]); setLeaderName(""); });
+  }, [lineId, partCode, shift, token]);
 
   // 2026-06-17 — autofill suggestions for this main-cycle comment box
   // (mined from mes_cycle_comments history; frequency + periodicity).
@@ -2927,6 +3109,7 @@ function CycleCommentsPanel({ lineId, partCode, machineName, border, text, textS
           // Stamp the CYCLE's own shift + date (date parsed from the part_code
           // `cycle_<seq>_<YYYY-MM-DD>`), not the wall clock.
           body: JSON.stringify({ comment: txt, machine_name: machineName,
+                                 leader_name: leaderName || null,
                                  shift: shift || null,
                                  record_date: (String(partCode || "").match(/_(\d{4}-\d{2}-\d{2})$/) || [])[1] || null }),
         }
@@ -2937,10 +3120,11 @@ function CycleCommentsPanel({ lineId, partCode, machineName, border, text, textS
       }
       const row = await r.json();
       setItems(prev => [...prev, {
-        id:         row.id,
-        comment:    row.comment,
-        author:     row.author,
-        created_at: row.created_at,
+        id:          row.id,
+        comment:     row.comment,
+        author:      row.author,
+        leader_name: row.leader_name,
+        created_at:  row.created_at,
       }]);
       setDraft("");
     } catch (e) {
@@ -2948,7 +3132,7 @@ function CycleCommentsPanel({ lineId, partCode, machineName, border, text, textS
     } finally {
       setPosting(false);
     }
-  }, [lineId, partCode, draft, token]);
+  }, [lineId, partCode, draft, token, leaderName, machineName, shift]);
 
   // Auto-grow textarea heightless on small content
   return (
@@ -2995,6 +3179,10 @@ function CycleCommentsPanel({ lineId, partCode, machineName, border, text, textS
                   day: "2-digit", month: "short",
                   hour: "2-digit", minute: "2-digit",
                 }) : ""}
+                {c.leader_name ? (
+                  <><span style={{ margin: "0 6px" }}>·</span>
+                    Leader: <b style={{ color: "#a5b4fc" }}>{c.leader_name}</b></>
+                ) : null}
               </div>
               <div style={{ fontSize: 13, color: text, whiteSpace: "pre-wrap",
                              wordBreak: "break-word" }}>
@@ -3004,6 +3192,27 @@ function CycleCommentsPanel({ lineId, partCode, machineName, border, text, textS
           ))}
         </div>
       )}
+
+      {/* Leader attribution — default = the line's shift-assigned leader
+          (set pre-shift by the shift incharge); overridable per comment. */}
+      <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center",
+                    gap: 6, marginBottom: 8 }}>
+        <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: ".06em",
+                       color: textMut, textTransform: "uppercase" }}>Leader</span>
+        <select value={leaderName} onChange={e => setLeaderName(e.target.value)}
+          title="Line leader this remark is attributed to"
+          style={{ padding: "4px 8px", fontSize: 12, background: "#ffffff",
+                   color: "#0f172a", border: `1px solid ${border}`, borderRadius: 6,
+                   maxWidth: 200 }}>
+          <option value="">— select leader —</option>
+          {leaderName && !leaderOpts.some(o => o.username === leaderName) && (
+            <option value={leaderName}>{leaderName}</option>
+          )}
+          {leaderOpts.map(o => (
+            <option key={o.id} value={o.username}>{o.username}</option>
+          ))}
+        </select>
+      </div>
 
       {/* Compose */}
       <div style={{ display: "flex", gap: 6 }}>

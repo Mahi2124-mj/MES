@@ -205,6 +205,81 @@ ORPHAN_MIN_AGE_S = float(os.environ.get("CAM_ORPHAN_MIN_AGE_S", "60"))
 #                          the rotation used to undo the cameras that had just
 #                          come back.
 SEGMENT_MIN = float(os.environ.get("TS_SEGMENT_MIN", "0") or 0)
+# 2026-10-07 — TS DELETE WINDOW (operator: "ts jab shift nahi run hai tab delete
+# hogi").  A footage file past the TS_KEEP_HOURS hold is deleted only inside this
+# daily window ("HH:MM-HH:MM", may cross midnight), when no shift is running.  The
+# clip archiver looks back the same 48 h, so by the time a file is old enough it
+# has had its full chance to cut every clip from it.  The disk guard in
+# api_server still runs at any hour: recording must never stop for lack of disk.
+# Empty / "always" = old behaviour (delete as soon as the hold expires).
+TS_DELETE_WINDOW = (os.environ.get("TS_DELETE_WINDOW", "03:30-08:00") or "").strip()
+
+
+def ts_delete_allowed(now: Optional[datetime] = None) -> bool:
+    """True when an expired footage file may be deleted right now."""
+    w = TS_DELETE_WINDOW
+    if not w or w.lower() == "always":
+        return True
+    try:
+        a, b = [x.strip() for x in w.split("-", 1)]
+        ah, am = (int(v) for v in a.split(":"))
+        bh, bm = (int(v) for v in b.split(":"))
+    except Exception:
+        return True                      # unreadable setting -> never block deletes
+    t = (now or datetime.now())
+    m, lo, hi = t.hour * 60 + t.minute, ah * 60 + am, bh * 60 + bm
+    return lo <= m < hi if lo <= hi else (m >= lo or m < hi)
+
+
+_SEG_NAME_RE = re.compile(r"_(\d{13})\.ts$")
+_SEG_JOIN_GAP_S = 5.0     # consecutive segments of one recorder follow on within this
+
+
+def _segment_span(ts_file: str, start_dt: datetime, end_dt: datetime) -> list:
+    """Segment mode: the segments of ts_file's camera that hold [start_dt, end_dt].
+
+    Each segment is named after the wall-clock second ffmpeg opened it and its own
+    timestamps start at 0 (-reset_timestamps 1), so a position inside a segment
+    must be measured from the segment's NAME — not from when the recorder started,
+    which after the first roll points past the end of the file.  A cycle that runs
+    across a roll needs the next segment too; segments are joined only while they
+    follow on without a gap (one recorder session), because a concat across a gap
+    would shift every later frame.
+    Returns [(segment_start, path), ...] in time order, the first one holding
+    start_dt, or [] when nothing usable is found (caller keeps old behaviour)."""
+    import glob as _g
+    base = os.path.basename(ts_file or "")
+    m = _SEG_NAME_RE.search(base)
+    if not m:
+        return []
+    prefix = base[:m.start()]
+    folder = os.path.dirname(ts_file)
+    segs = []
+    for p in _g.glob(os.path.join(folder, _g.escape(prefix) + "_*.ts")):
+        mm = _SEG_NAME_RE.search(os.path.basename(p))
+        if not mm or os.path.basename(p)[:mm.start()] != prefix:
+            continue
+        try:
+            s = datetime.fromtimestamp(int(mm.group(1)) / 1000.0)
+            e = datetime.fromtimestamp(os.path.getmtime(p))
+        except (OSError, ValueError):
+            continue
+        if e >= start_dt - timedelta(seconds=5) and s <= end_dt:
+            segs.append((s, e, p))
+    if not segs:
+        return []
+    segs.sort()
+    first = max((i for i, x in enumerate(segs) if x[0] <= start_dt), default=0)
+    out = [segs[first]]
+    for s, e, p in segs[first + 1:]:
+        if out[-1][1] >= end_dt:
+            break
+        if (s - out[-1][1]).total_seconds() > _SEG_JOIN_GAP_S:
+            break
+        out.append((s, e, p))
+    return [(s, p) for s, _e, p in out]
+
+
 ROTATE_MIN_AGE_S = float(os.environ.get("TS_ROTATE_MIN_AGE_S", "1800") or 0)
 ROTATE_QUIET_S = float(os.environ.get("TS_ROTATE_QUIET_S", "20"))
 _PRODUCING: set = set()
@@ -1011,6 +1086,9 @@ class PlcMonitor:
                 continue
             # Keep recent rotated TS files so historical clip lookups work.
             if _age < TS_KEEP_GRACE_SEC:
+                continue
+            # 2026-10-07 — expired footage goes only in TS_DELETE_WINDOW.
+            if not ts_delete_allowed():
                 continue
             try:
                 os.remove(old_ts)
@@ -2142,8 +2220,9 @@ class PlcMonitor:
         except Exception:
             pass
         # Nuke the empty TS stub the dead ffmpeg left behind.
+        # (ts_file is None in segment mode — ffmpeg names the files itself.)
         try:
-            if os.path.exists(ts_file) and os.path.getsize(ts_file) < 65536:
+            if ts_file and os.path.exists(ts_file) and os.path.getsize(ts_file) < 65536:
                 os.remove(ts_file)
         except OSError:
             pass
@@ -2157,12 +2236,25 @@ class PlcMonitor:
         """
         import glob as _glob
         pat = os.path.join(videos_abs, f"cam_{camera_id}_*.ts")
+        # 2026-10-07 — only THIS recorder's segments.  With the 48 h hold the
+        # folder also holds this camera's older files; before the first new
+        # segment exists the newest of those would be picked, and the stall
+        # watchdog would then watch a file that never grows and kill a recorder
+        # that is still connecting.  Segment names are >= the spawn second.
+        try:
+            _born = int(cam["record_start"].timestamp()) - 2
+        except Exception:
+            _born = 0
         while True:
             proc = cam.get("proc")
             if proc is None or proc.poll() is not None:
                 return
             try:
-                files = _glob.glob(pat)
+                files = []
+                for f in _glob.glob(pat):
+                    _m = _SEG_NAME_RE.search(f)
+                    if _m and int(_m.group(1)) // 1000 >= _born:
+                        files.append(f)
                 if files:
                     newest = max(files, key=lambda f: os.path.getmtime(f))
                     if newest != cam.get("ts_file"):
@@ -2727,6 +2819,15 @@ class PlcMonitor:
             ss = max(0.0, ts_cycle_start)
         else:
             ss = max(0.0, (start_dt - record_start).total_seconds())
+        # 2026-10-07 — SEGMENT MODE: ts_cycle_start is measured from the
+        # recorder's start, but each segment restarts at 0.  Re-anchor on the
+        # segment that holds the cycle start (its file name), and pick up the
+        # following segment when the cycle runs across a roll (see
+        # _segment_span; stitched further down).
+        _seg_list = _segment_span(ts_file, start_dt, end_dt) if SEGMENT_MIN > 0 else []
+        if _seg_list:
+            ts_file = _seg_list[0][1]
+            ss = max(0.0, (start_dt - _seg_list[0][0]).total_seconds())
         raw_duration = (end_dt - start_dt).total_seconds()
 
         # 2026-05-13 — operator spec change:
@@ -2939,6 +3040,22 @@ class PlcMonitor:
         _eff_ss  = ss
         _concat_in = []
         _concat_lst = None
+        if len(_seg_list) > 1:
+            # 2026-10-07 — segments of ONE recorder session follow on without a
+            # gap, so their concat timeline is wall-clock from the first
+            # segment's start: the gap problem that retired the stitch above
+            # cannot occur (_segment_span stops at any gap).
+            try:
+                import tempfile as _tf
+                _fd, _concat_lst = _tf.mkstemp(prefix="_segcat_", suffix=".txt")
+                with os.fdopen(_fd, "w", encoding="utf-8") as _fh:
+                    for _s, _p in _seg_list:
+                        _fh.write("file '%s'\n" % _p.replace("'", "'\\''"))
+                _concat_in = ["-f", "concat", "-safe", "0"]
+                _eff_src = _concat_lst
+            except OSError as _exc:
+                print(f"[PLC] segment stitch skipped for #{cycle_number}: {_exc}")
+                _concat_in, _concat_lst, _eff_src = [], None, ts_file
         _input_ss  = max(0.0, ss - 4.0)   # 2026-08-02: 1.5→4.0, keyframe slack (see api_server)
         _output_ss = max(0.0, ss - _input_ss)
         # 2026-05-19 — Hardware-accelerated H.264 re-encode (NVENC > QSV > libx264).
@@ -3038,6 +3155,9 @@ class PlcMonitor:
                     try:
                         if os.path.exists(snap_ts): os.remove(snap_ts)
                     except OSError: pass
+                if _concat_lst:
+                    try: os.remove(_concat_lst)
+                    except OSError: pass
                 return ""
         except Exception as exc:
             print(f"[PLC] Extraction error: {exc}")
@@ -3047,9 +3167,17 @@ class PlcMonitor:
                     break
                 except OSError:
                     time.sleep(0.3)
-            try:
-                if os.path.exists(snap_ts): os.remove(snap_ts)
-            except OSError: pass
+            # 2026-10-07 — same guard as the other two paths.  snap_ts IS the
+            # camera's footage file whenever there is no snapshot (always, since
+            # extraction became single-stage), so without it a failed Popen
+            # deleted the TS that every later clip of that camera needs.
+            if snap_ts != ts_file:
+                try:
+                    if os.path.exists(snap_ts): os.remove(snap_ts)
+                except OSError: pass
+            if _concat_lst:
+                try: os.remove(_concat_lst)
+                except OSError: pass
             return ""
 
         # Snapshot served its purpose — ditch it (Windows file-lock retry).
@@ -3220,12 +3348,18 @@ class PlcMonitor:
                     for _ in range(5):
                         try: os.remove(tmp_abs); break
                         except OSError: time.sleep(0.3)
+                    if _concat_lst:
+                        try: os.remove(_concat_lst)
+                        except OSError: pass
                     return ""
             except Exception as exc:
                 print(f"[PLC] #{cycle_number} retry error: {exc}")
                 for _ in range(5):
                     try: os.remove(tmp_abs); break
                     except OSError: time.sleep(0.3)
+                if _concat_lst:
+                    try: os.remove(_concat_lst)
+                    except OSError: pass
                 return ""
             size_actual = os.path.getsize(tmp_abs) if os.path.exists(tmp_abs) else 0
             actual_dur, probe_ok = (_probe_duration(tmp_abs)
@@ -3355,6 +3489,10 @@ class PlcMonitor:
             if age < TS_KEEP_GRACE_SEC:
                 # Re-schedule cleanup for later via the finalize path;
                 # not deleting now is safe (extra MB on disk for ~1 min).
+                return
+            # 2026-10-07 — expired footage goes only in TS_DELETE_WINDOW; the
+            # hourly sweep in api_server picks it up there.
+            if not ts_delete_allowed():
                 return
             os.remove(ts_file)
             print(f"[PLC] Cleaned up old TS: {os.path.basename(ts_file)} "

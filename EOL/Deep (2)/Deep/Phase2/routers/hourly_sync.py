@@ -61,25 +61,52 @@ def _register_only_lines(cur):
 
 
 def _current_prod_shift(cur, line_id: int):
-    """Return the production shift name live now (by wall clock), else None."""
+    """Return (shift_name, production_date, shift_start_time) of the production
+    shift live now (by wall clock), else None.
+
+    production_date is the day the shift STARTED — the dashboard row and the
+    ct_log record_date both use it.  2026-10-07: a midnight-crossing shift
+    (B 18:30-03:15) after 00:00 still belongs to YESTERDAY; using today's date
+    found no row, so nothing after midnight was synced (Loop Pipe B-shift hours
+    00:05-03:15 stayed 0, the 23:05-00:05 hour stopped short at 00:00)."""
     cur.execute("""SELECT shift_name, start_time, end_time, crosses_midnight
                      FROM mes_shift_configs
                     WHERE line_id=%s AND COALESCE(is_production,TRUE)=TRUE
                       AND shift_name NOT ILIKE 'GAP%%'""", (line_id,))
-    now_t = datetime.now().time()
+    now = datetime.now()
+    now_t = now.time()
     for r in cur.fetchall() or []:
         s, e = r["start_time"], r["end_time"]
         if s is None or e is None:
             continue
         if r["crosses_midnight"]:
-            if now_t >= s or now_t < e:
-                return r["shift_name"]
+            if now_t >= s:
+                return r["shift_name"], now.date(), s
+            if now_t < e:
+                return r["shift_name"], now.date() - timedelta(days=1), s
         elif s <= now_t < e:
-            return r["shift_name"]
+            return r["shift_name"], now.date(), s
     return None
 
 
-def _sync_line(cur, line_id: int, db_table: str, rec_date: date, shift: str) -> int:
+def _slot_window(rec_date: date, a: dtime, b: dtime, shift_start):
+    """Real datetimes of one hour slot of the shift that started on rec_date.
+    2026-10-07: in a shift that crosses midnight, a slot that starts before the
+    shift's own start time (00:05, 01:05, 02:05 in an 18:30 shift) is on the
+    NEXT day.  Dated on rec_date instead, those slots looked finished at 18:30,
+    and their full plan was added to the running PLAN (YRA-SA-4WAY showed 1137
+    at 19:05 on 6-Oct)."""
+    start = datetime.combine(rec_date, a)
+    if shift_start is not None and a < shift_start:
+        start += timedelta(days=1)
+    end = datetime.combine(start.date(), b)
+    if end <= start:
+        end += timedelta(days=1)
+    return start, end
+
+
+def _sync_line(cur, line_id: int, db_table: str, rec_date: date, shift: str,
+               shift_start=None) -> int:
     if not db_table or not _TABLE_RE.match(db_table):
         return 0
     ct_tbl = f"{db_table}_ct_log"
@@ -110,12 +137,10 @@ def _sync_line(cur, line_id: int, db_table: str, rec_date: date, shift: str) -> 
         a, b = m.group(1), m.group(2)
         prefix = k[:-5]                     # strip "_plan"
         try:
-            start = datetime.combine(rec_date, dtime(int(a[:2]), int(a[2:])))
-            end   = datetime.combine(rec_date, dtime(int(b[:2]), int(b[2:])))
+            start, end = _slot_window(rec_date, dtime(int(a[:2]), int(a[2:])),
+                                      dtime(int(b[:2]), int(b[2:])), shift_start)
         except Exception:
             continue
-        if end <= start:
-            end += timedelta(days=1)
         # never count a window that hasn't started yet
         if start > datetime.now():
             continue
@@ -181,12 +206,10 @@ def _sync_line(cur, line_id: int, db_table: str, rec_date: date, shift: str) -> 
             if not p:
                 continue
             try:
-                ss = datetime.combine(rec_date, s["start_time"])
-                se = datetime.combine(rec_date, s["end_time"])
+                ss, se = _slot_window(rec_date, s["start_time"], s["end_time"],
+                                      shift_start)
             except Exception:
                 continue
-            if s["xm"] or se <= ss:
-                se += timedelta(days=1)
             if _now >= se:
                 # completed slot → its full plan (== the frontend's hour_*_plan)
                 plan_done += int(row.get(f"{p}_plan") or 0)
@@ -222,14 +245,15 @@ def _tick():
     with get_conn() as conn:
         cur = dict_cursor(conn)
         lines = _register_only_lines(cur)
-        today = date.today()
         total = 0
         for ln in lines:
-            sh = _current_prod_shift(cur, ln["line_id"])
-            if not sh:
+            cs = _current_prod_shift(cur, ln["line_id"])
+            if not cs:
                 continue
+            sh, prod_date, sh_start = cs
             try:
-                total += _sync_line(cur, ln["line_id"], ln["db_table_name"], today, sh)
+                total += _sync_line(cur, ln["line_id"], ln["db_table_name"],
+                                    prod_date, sh, sh_start)
             except Exception as e:
                 conn.rollback()
                 print(f"[HOURLY-SYNC] line {ln['line_id']} failed: {e}")

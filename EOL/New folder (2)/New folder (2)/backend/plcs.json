@@ -2,7 +2,7 @@
   "plcs": [
     {
       "id": "mes_plc_8",
-      "ip": "192.168.30.190",
+      "ip": "192.168.30.130",
       "port": 502,
       "bit_address": "M100",
       "enabled": true,
@@ -10,7 +10,7 @@
     },
     {
       "id": "mes_plc_12",
-      "ip": "192.168.30.152",
+      "ip": "192.168.30.135",
       "port": 502,
       "bit_address": "M157",
       "enabled": true,
@@ -34,7 +34,7 @@
     },
     {
       "id": "mes_plc_13",
-      "ip": "192.168.30.156",
+      "ip": "192.168.30.133",
       "port": 502,
       "bit_address": "M100",
       "enabled": true,
@@ -42,7 +42,7 @@
     },
     {
       "id": "mes_plc_14",
-      "ip": "192.168.30.157",
+      "ip": "192.168.30.134",
       "port": 502,
       "bit_address": "M100",
       "enabled": true,
@@ -50,7 +50,7 @@
     },
     {
       "id": "mes_plc_2",
-      "ip": "192.168.30.150",
+      "ip": "192.168.30.136",
       "port": 502,
       "bit_address": "M100",
       "enabled": true,
@@ -58,102 +58,6 @@
     },
     {
       "id": "mes_plc_29",
-      "ip": "192.168.30.50",
-      "port": 502,
-      "bit_address": "M100",
-      "enabled": true,
-      "description": "Upper Rail Greasing m/c"
-    },
-    {
-      "id": "mes_plc_30",
-      "ip": "192.168.30.51",
-      "port": 502,
-      "bit_address": "M100",
-      "enabled": true,
-      "description": "Lock Bar Insert M/c"
-    },
-    {
-      "id": "mes_plc_31",
-      "ip": "192.168.30.52",
-      "port": 502,
-      "bit_address": "M100",
-      "enabled": true,
-      "description": "Lower Rail Grease & Bar Coding M/c"
-    },
-    {
-      "id": "mes_plc_32",
-      "ip": "192.168.30.53",
-      "port": 502,
-      "bit_address": "M100",
-      "enabled": true,
-      "description": "Rail Assy M/c # 01"
-    },
-    {
-      "id": "mes_plc_33",
-      "ip": "192.168.30.54",
-      "port": 502,
-      "bit_address": "M100",
-      "enabled": true,
-      "description": "Rail Assy M/c # 02"
-    },
-    {
-      "id": "mes_plc_34",
-      "ip": "192.168.30.55",
-      "port": 502,
-      "bit_address": "M100",
-      "enabled": true,
-      "description": "Semi Automatic & Bending M/c"
-    },
-    {
-      "id": "mes_plc_35",
-      "ip": "192.168.30.56",
-      "port": 502,
-      "bit_address": "M100",
-      "enabled": true,
-      "description": "Final Inspection M/c"
-    },
-    {
-      "id": "mes_plc_23",
-      "ip": "192.168.30.231",
-      "port": 502,
-      "bit_address": "M100",
-      "enabled": true,
-      "description": "2UA"
-    },
-    {
-      "id": "mes_plc_27",
-      "ip": "192.168.30.233",
-      "port": 502,
-      "bit_address": "M100",
-      "enabled": true,
-      "description": "YWD SS"
-    },
-    {
-      "id": "mes_plc_24",
-      "ip": "192.168.30.230",
-      "port": 502,
-      "bit_address": "M157",
-      "enabled": true,
-      "description": "Gear Lifter"
-    },
-    {
-      "id": "mes_plc_25",
-      "ip": "192.168.30.232",
-      "port": 502,
-      "bit_address": "M100",
-      "enabled": true,
-      "description": "Nut Lifting"
-    },
-    {
-      "id": "mes_plc_28",
-      "ip": "192.168.30.234",
-      "port": 502,
-      "bit_address": "M100",
-      "enabled": true,
-      "description": "YWD RC"
-    },
-    {
-      "id": "mes_plc_36",
       "ip": "192.168.30.70",
       "port": 502,
       "bit_address": "M100",
@@ -161,7 +65,7 @@
       "description": "Upper Rail Greasing m/c"
     },
     {
-      "id": "mes_plc_37",
+      "id": "mes_plc_30",
       "ip": "192.168.30.71",
       "port": 502,
       "bit_address": "M100",
@@ -169,7 +73,7 @@
       "description": "Lock Bar Insert M/c"
     },
     {
-      "id": "mes_plc_38",
+      "id": "mes_plc_31",
       "ip": "192.168.30.72",
       "port": 502,
       "bit_address": "M100",
@@ -177,7 +81,7 @@
       "description": "Lower Rail Grease & Bar Coding M/c"
     },
     {
-      "id": "mes_plc_39",
+      "id": "mes_plc_32",
       "ip": "192.168.30.73",
       "port": 502,
       "bit_address": "M100",
@@ -185,7 +89,7 @@
       "description": "Rail Assy M/c # 01"
     },
     {
-      "id": "mes_plc_40",
+      "id": "mes_plc_33",
       "ip": "192.168.30.74",
       "port": 502,
       "bit_address": "M100",
@@ -193,7 +97,7 @@
       "description": "Rail Assy M/c # 02"
     },
     {
-      "id": "mes_plc_41",
+      "id": "mes_plc_34",
       "ip": "192.168.30.75",
       "port": 502,
       "bit_address": "M100",
@@ -201,8 +105,104 @@
       "description": "Semi Automatic & Bending M/c"
     },
     {
-      "id": "mes_plc_42",
+      "id": "mes_plc_35",
       "ip": "192.168.30.76",
+      "port": 502,
+      "bit_address": "M100",
+      "enabled": true,
+      "description": "Final Inspection M/c"
+    },
+    {
+      "id": "mes_plc_23",
+      "ip": "192.168.30.211",
+      "port": 502,
+      "bit_address": "M100",
+      "enabled": true,
+      "description": "2UA"
+    },
+    {
+      "id": "mes_plc_27",
+      "ip": "192.168.30.213",
+      "port": 502,
+      "bit_address": "M100",
+      "enabled": true,
+      "description": "YWD SS"
+    },
+    {
+      "id": "mes_plc_24",
+      "ip": "192.168.30.210",
+      "port": 502,
+      "bit_address": "M157",
+      "enabled": true,
+      "description": "Gear Lifter"
+    },
+    {
+      "id": "mes_plc_25",
+      "ip": "192.168.30.212",
+      "port": 502,
+      "bit_address": "M100",
+      "enabled": true,
+      "description": "Nut Lifting"
+    },
+    {
+      "id": "mes_plc_28",
+      "ip": "192.168.30.214",
+      "port": 502,
+      "bit_address": "M100",
+      "enabled": true,
+      "description": "YWD RC"
+    },
+    {
+      "id": "mes_plc_36",
+      "ip": "192.168.30.50",
+      "port": 502,
+      "bit_address": "M100",
+      "enabled": true,
+      "description": "Upper Rail Greasing m/c"
+    },
+    {
+      "id": "mes_plc_37",
+      "ip": "192.168.30.51",
+      "port": 502,
+      "bit_address": "M100",
+      "enabled": true,
+      "description": "Lock Bar Insert M/c"
+    },
+    {
+      "id": "mes_plc_38",
+      "ip": "192.168.30.52",
+      "port": 502,
+      "bit_address": "M100",
+      "enabled": true,
+      "description": "Lower Rail Grease & Bar Coding M/c"
+    },
+    {
+      "id": "mes_plc_39",
+      "ip": "192.168.30.53",
+      "port": 502,
+      "bit_address": "M100",
+      "enabled": true,
+      "description": "Rail Assy M/c # 01"
+    },
+    {
+      "id": "mes_plc_40",
+      "ip": "192.168.30.54",
+      "port": 502,
+      "bit_address": "M100",
+      "enabled": true,
+      "description": "Rail Assy M/c # 02"
+    },
+    {
+      "id": "mes_plc_41",
+      "ip": "192.168.30.55",
+      "port": 502,
+      "bit_address": "M100",
+      "enabled": true,
+      "description": "Semi Automatic & Bending M/c"
+    },
+    {
+      "id": "mes_plc_42",
+      "ip": "192.168.30.56",
       "port": 502,
       "bit_address": "M100",
       "enabled": true,
@@ -250,7 +250,7 @@
     },
     {
       "id": "mes_plc_53",
-      "ip": "192.168.30.121",
+      "ip": "192.168.30.111",
       "port": 502,
       "bit_address": "M100",
       "enabled": true,
@@ -258,7 +258,7 @@
     },
     {
       "id": "mes_plc_54",
-      "ip": "192.168.30.122",
+      "ip": "192.168.30.112",
       "port": 502,
       "bit_address": "M100",
       "enabled": true,
@@ -266,7 +266,7 @@
     },
     {
       "id": "mes_plc_55",
-      "ip": "192.168.30.123",
+      "ip": "192.168.30.113",
       "port": 502,
       "bit_address": "M100",
       "enabled": true,
@@ -274,7 +274,7 @@
     },
     {
       "id": "mes_plc_56",
-      "ip": "192.168.30.124",
+      "ip": "192.168.30.114",
       "port": 502,
       "bit_address": "M100",
       "enabled": true,
@@ -282,7 +282,7 @@
     },
     {
       "id": "mes_plc_57",
-      "ip": "192.168.30.120",
+      "ip": "192.168.30.110",
       "port": 502,
       "bit_address": "M100",
       "enabled": true,
@@ -290,7 +290,7 @@
     },
     {
       "id": "mes_plc_58",
-      "ip": "192.168.30.125",
+      "ip": "192.168.30.115",
       "port": 502,
       "bit_address": "M100",
       "enabled": true,
@@ -298,7 +298,7 @@
     },
     {
       "id": "mes_plc_59",
-      "ip": "192.168.30.126",
+      "ip": "192.168.30.116",
       "port": 502,
       "bit_address": "M100",
       "enabled": true,
@@ -314,7 +314,7 @@
     },
     {
       "id": "mes_plc_70",
-      "ip": "192.168.30.180",
+      "ip": "192.168.30.170",
       "port": 502,
       "bit_address": "M100",
       "enabled": true,
@@ -322,7 +322,7 @@
     },
     {
       "id": "mes_plc_72",
-      "ip": "192.168.30.188",
+      "ip": "192.168.30.172",
       "port": 502,
       "bit_address": "M100",
       "enabled": true,
@@ -330,7 +330,7 @@
     },
     {
       "id": "mes_plc_73",
-      "ip": "192.168.30.183",
+      "ip": "192.168.30.173",
       "port": 502,
       "bit_address": "M100",
       "enabled": true,
@@ -338,7 +338,7 @@
     },
     {
       "id": "mes_plc_74",
-      "ip": "192.168.30.184",
+      "ip": "192.168.30.174",
       "port": 502,
       "bit_address": "M100",
       "enabled": true,
@@ -346,7 +346,7 @@
     },
     {
       "id": "mes_plc_75",
-      "ip": "192.168.30.189",
+      "ip": "192.168.30.175",
       "port": 502,
       "bit_address": "M100",
       "enabled": true,
@@ -354,7 +354,7 @@
     },
     {
       "id": "mes_plc_69",
-      "ip": "192.168.30.186",
+      "ip": "192.168.30.176",
       "port": 502,
       "bit_address": "M100",
       "enabled": true,
@@ -362,7 +362,7 @@
     },
     {
       "id": "mes_plc_63",
-      "ip": "192.168.30.160",
+      "ip": "192.168.30.150",
       "port": 502,
       "bit_address": "M100",
       "enabled": true,
@@ -370,7 +370,7 @@
     },
     {
       "id": "mes_plc_65",
-      "ip": "192.168.30.162",
+      "ip": "192.168.30.152",
       "port": 502,
       "bit_address": "M100",
       "enabled": true,
@@ -378,7 +378,7 @@
     },
     {
       "id": "mes_plc_66",
-      "ip": "192.168.30.163",
+      "ip": "192.168.30.153",
       "port": 502,
       "bit_address": "M100",
       "enabled": true,
@@ -386,7 +386,7 @@
     },
     {
       "id": "mes_plc_67",
-      "ip": "192.168.30.164",
+      "ip": "192.168.30.154",
       "port": 502,
       "bit_address": "M100",
       "enabled": true,
@@ -394,7 +394,7 @@
     },
     {
       "id": "mes_plc_68",
-      "ip": "192.168.30.165",
+      "ip": "192.168.30.155",
       "port": 502,
       "bit_address": "M100",
       "enabled": true,
@@ -402,7 +402,7 @@
     },
     {
       "id": "mes_plc_62",
-      "ip": "192.168.30.166",
+      "ip": "192.168.30.156",
       "port": 502,
       "bit_address": "M100",
       "enabled": true,
@@ -410,7 +410,7 @@
     },
     {
       "id": "mes_plc_94",
-      "ip": "192.168.31.60",
+      "ip": "192.168.32.51",
       "port": 502,
       "bit_address": "M100",
       "enabled": true,
@@ -418,15 +418,15 @@
     },
     {
       "id": "mes_plc_93",
-      "ip": "192.168.31.66",
+      "ip": "192.168.32.50",
       "port": 502,
       "bit_address": "M100",
       "enabled": true,
-      "description": "Projection Welding of Washer with Lwr Arm UprBKT\uff58Nut PJW M/C"
+      "description": "Projection Welding of Washer with Lwr Arm UprBKTｘNut PJW M/C"
     },
     {
       "id": "mes_plc_98",
-      "ip": "192.168.31.64",
+      "ip": "192.168.32.56",
       "port": 502,
       "bit_address": "M100",
       "enabled": true,
@@ -434,7 +434,7 @@
     },
     {
       "id": "mes_plc_92",
-      "ip": "192.168.31.65",
+      "ip": "192.168.32.57",
       "port": 502,
       "bit_address": "M100",
       "enabled": true,
@@ -442,7 +442,7 @@
     },
     {
       "id": "mes_plc_97",
-      "ip": "192.168.31.63",
+      "ip": "192.168.32.55",
       "port": 502,
       "bit_address": "M100",
       "enabled": true,
@@ -450,7 +450,7 @@
     },
     {
       "id": "mes_plc_95",
-      "ip": "192.168.31.61",
+      "ip": "192.168.32.53",
       "port": 502,
       "bit_address": "M100",
       "enabled": true,
@@ -458,7 +458,7 @@
     },
     {
       "id": "mes_plc_96",
-      "ip": "192.168.31.62",
+      "ip": "192.168.32.54",
       "port": 502,
       "bit_address": "M100",
       "enabled": true,

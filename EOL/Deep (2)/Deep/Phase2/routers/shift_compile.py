@@ -470,10 +470,12 @@ def detail(line_id: int = Query(...),
                           "change_over": _mn("loss_change_over_seconds"),
                           "others":    _mn("loss_others_seconds")}
                 # andon-covered line: breakdown loss = andon Maintenance+Toolroom
-                # (union), matching the Dashboard OEE + the breakdowns list below.
+                # (union), matching the Dashboard OEE + the breakdowns list below;
+                # quality / setup / material / others = the stored value + that
+                # andon button's time (2026-10-06 — same rule as the Dashboard).
                 try:
-                    from routers.andon import (andon_line_set,
-                                               andon_breakdown_seconds, _norm as _an)
+                    from routers.andon import (andon_line_set, andon_loss_detail,
+                                               SHIFT_START_SETUP_S, _norm as _an)
                     if _an(ln["line_name"]) in andon_line_set():
                         cur.execute("""SELECT start_time, end_time,
                                               COALESCE(crosses_midnight,false) AS xm
@@ -486,8 +488,13 @@ def detail(line_id: int = Query(...),
                             _we = datetime.combine(rec_date, _wsc["end_time"])
                             if _wsc["xm"] or _we <= _ws:
                                 _we += timedelta(days=1)
-                            losses["breakdown"] = round(
-                                andon_breakdown_seconds(ln["line_name"], _ws, _we) / 60.0, 1)
+                            _al, _moved = andon_loss_detail(
+                                ln["line_name"], _ws, _we,
+                                setup_until=_ws + timedelta(seconds=SHIFT_START_SETUP_S))
+                            losses["breakdown"] = round(_al["breakdown"] / 60.0, 1)
+                            losses["speed"] = round(max(0.0, losses["speed"] - _moved / 60.0), 1)
+                            for _k in ("quality", "setup", "material", "others"):
+                                losses[_k] = round(losses[_k] + _al[_k] / 60.0, 1)
                 except Exception:
                     pass
                 losses["total"] = round(sum(v for k, v in losses.items()
@@ -1198,8 +1205,10 @@ def _andon_intervals_by_line(norm_names, start_dt, end_dt):
     if not norm_names:
         return {}
     try:
-        from routers.andon import _maint_conn, BREAKDOWN_CALL_TYPES
+        from routers.andon import (_maint_conn, BREAKDOWN_CALL_TYPES,
+                                   ANDON_LINE_ALIAS, _expand_keys)
         norm_sql = "UPPER(REGEXP_REPLACE(COALESCE(line,''),'[^A-Za-z0-9]','','g'))"
+        norm_names = _expand_keys(norm_names)   # + andon spellings (LOOPPIPE1 …)
         out = {}
         with _maint_conn() as mconn:
             mcur = mconn.cursor()
@@ -1217,7 +1226,7 @@ def _andon_intervals_by_line(norm_names, start_dt, end_dt):
                  BREAKDOWN_CALL_TYPES, list(norm_names), end_dt))
             for n, a, b in mcur.fetchall():
                 if a and b and b > a:
-                    out.setdefault(n, []).append((a, b))
+                    out.setdefault(ANDON_LINE_ALIAS.get(n, n), []).append((a, b))
         return out
     except Exception as exc:
         print(f"[shift-compile] zone summary andon read failed: {exc}")

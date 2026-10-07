@@ -3,7 +3,7 @@
 AUTO-GENERATED COLLECTOR — YHB-SA-4WAY
 Line ID    : 35
 Table      : yhb_sa_l3_dashboard
-Generated  : 2026-09-26 20:03:25
+Generated  : 2026-10-03 09:29:10
 
 DO NOT EDIT MANUALLY — regenerate via admin panel if config changes.
 """

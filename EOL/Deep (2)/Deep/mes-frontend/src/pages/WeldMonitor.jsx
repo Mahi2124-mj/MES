@@ -125,7 +125,57 @@ function WeldChart({ title, paramKey, unit, readings, spec, color, xMode }) {
  * 2026-09-22 — shown as "Gas Flow" with the sign flipped (operator): the card
  * reports flow as negative, so negative readings display positive and positive
  * readings negative.  Display only — the stored readings are unchanged. */
-const flip = (v) => (v == null || v === "" || isNaN(Number(v)) ? null : (Number(v) === 0 ? 0 : -Number(v)));
+//  2026-10-05 — the real fix is in mes_weld_master: the gas channel now has
+//  scale = -1, so NEW readings are stored the right way up.  Readings logged
+//  before that are still negative, and gas flow can never physically be
+//  negative, so take the magnitude: old rows and new rows both read correctly
+//  and no historical row had to be rewritten.
+//  2026-10-06 — plotting is now a rolling average so the pulse train reads as
+//  a trend instead of a comb: see GAS_AVG_S / rollingAvg below.
+const flip = (v) => (v == null || v === "" || isNaN(Number(v)) ? null : Math.abs(Number(v)));
+
+/* 2026-10-06 — the channel pulses between 0 and ~16 L/min every couple of
+ * seconds, so plotting the raw samples drew a solid comb that hid the trend.
+ * The plotted line is now a ROLLING AVERAGE: each point is the mean of every
+ * reading in the last GAS_AVG_S seconds, which averages the fast on/off pulse
+ * down to the flow actually going through the line while keeping the shape of
+ * the last 30 min.  The window is measured in TIME, not in samples, so it
+ * stays a true 60 s average even when /api/weld/gas decimates a long window
+ * down to ~900 points.  The big readout is the SAME average, i.e. the last
+ * point on the line, and the raw instantaneous reading sits under it as
+ * "now" so a real cut-off is still visible. */
+const GAS_AVG_S = 60;
+/* 2026-10-06 (2) — operator: machine display reads ~19 L/min, MES showed ~5.6.
+ * Two causes.  (a) Units: card ch6 reports (mA - 4) = 0-16, saturating at
+ * exactly 16 (= 20 mA = sensor F.S. 20 L/min), so it was ×1.25 low — fixed at
+ * the source (Weld Master scale -1.25).  (b) The 60 s average counted the
+ * zeros BETWEEN welds, so it showed flow × duty-cycle, not the flow the
+ * machine display shows.  The average now uses only gas-ON samples (above
+ * GAS_ON_MIN); a window with no gas at all plots 0.
+ * The green band is the healthy shielding-gas range for MIG/MAG welding:
+ * below ~12 L/min → porosity, above ~20 → turbulence pulls air in. */
+const GAS_ON_MIN = 0.5;
+const GAS_LO = 12, GAS_HI = 20;
+function rollingAvg(series, windowS) {
+  const out = [];
+  let lo = 0;
+  for (let hi = 0; hi < series.length; hi++) {
+    const t = series[hi].t;
+    if (t == null) { out.push(series[hi].v); continue; }
+    while (lo < hi && series[lo].t != null && series[lo].t < t - windowS * 1000) lo++;
+    let sum = 0, n = 0, seen = false;
+    for (let k = lo; k <= hi; k++) {
+      const v = series[k].v;
+      if (v == null) continue;
+      seen = true;
+      if (v <= GAS_ON_MIN) continue;
+      sum += v; n++;
+    }
+    out.push(n ? sum / n : seen ? 0 : null);
+  }
+  return out;
+}
+
 function GasChart({ token }) {
   const [g, setG] = useState(null);
   const [err, setErr] = useState("");
@@ -140,11 +190,21 @@ function GasChart({ token }) {
   }, [token]);
 
   const unit = (g && g.unit) || "";
-  const data = ((g && g.readings) || []).map(r => ({
+  const series = ((g && g.readings) || []).map(r => ({
+    t: r.ts ? new Date(r.ts).getTime() : null,
     x: r.ts ? new Date(r.ts).toLocaleTimeString("en-GB", { hour12: false }) : "",
     v: flip(r.v),
   }));
+  const avg = rollingAvg(series, GAS_AVG_S);
+  const data = series.map((d, i) => ({ x: d.x, v: avg[i] }));
   const latest = g ? flip(g.latest) : null;
+  // 2026-10-06 — the card first showed the instantaneous reading as the big
+  // number while the line was the 60 s average, so the two disagreed: a 0.4
+  // L/min pulse sample sat next to a line running at ~6 and looked like a bug.
+  // The big number is now the average as well — the last point of the line —
+  // and the instantaneous reading stays underneath as "now" so an actual
+  // cut-off still shows up.
+  const avgLatest = avg.length ? avg[avg.length - 1] : null;
   const live = g && g.age_s != null && g.age_s <= 30;
   const badge = latest == null ? "NO DATA" : live ? "LIVE" : "NO NEW DATA";
 
@@ -161,14 +221,16 @@ function GasChart({ token }) {
           <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 2 }}>
             Card {(g && g.card) || "192.168.32.52"} · every {(g && g.every_s) || 2}s · last 30 min
             {" · x-axis: "}<b style={{ color: "#64748b" }}>Time</b>
+            {" · line: "}<b style={{ color: "#0f766e" }}>{GAS_AVG_S}s avg (gas on)</b>
+            {" · healthy: "}<b style={{ color: "#16a34a" }}>{GAS_LO}–{GAS_HI} {unit}</b>
             {latest != null && !live && g.age_s != null &&
               <span style={{ color: "#b45309", fontWeight: 700 }}> · last reading {Math.round(g.age_s / 60)} min ago</span>}
           </div>
         </div>
         <div style={{ textAlign: "right" }}>
           <span style={{ fontSize: 34, fontWeight: 800, fontFamily: "monospace",
-                          color: latest == null ? "#94a3b8" : "#0f766e", lineHeight: 1 }}>
-            {num(latest, 2)}<span style={{ fontSize: 15, marginLeft: 3 }}>{unit}</span>
+                          color: avgLatest == null ? "#94a3b8" : (avgLatest > 0 && (avgLatest < GAS_LO || avgLatest > GAS_HI)) ? "#dc2626" : "#0f766e", lineHeight: 1 }}>
+            {num(avgLatest, 2)}<span style={{ fontSize: 15, marginLeft: 3 }}>{unit}</span>
           </span>
           <div style={{ marginTop: 4 }}>
             <span style={{
@@ -177,6 +239,11 @@ function GasChart({ token }) {
               color: live ? "#0f766e" : "#64748b",
             }}>{badge}</span>
           </div>
+          {latest != null && (
+            <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 4, fontFamily: "monospace" }}>
+              now {num(latest, 2)} {unit}
+            </div>
+          )}
         </div>
       </div>
       {data.length === 0 ? (
@@ -191,8 +258,11 @@ function GasChart({ token }) {
           <LineChart data={data} margin={{ top: 6, right: 12, left: 0, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#eef2f7" />
             <XAxis dataKey="x" tick={{ fontSize: 10, fill: "#94a3b8" }} minTickGap={24} />
-            <YAxis domain={["auto", "auto"]} tick={{ fontSize: 10, fill: "#94a3b8" }} width={44} />
-            <Tooltip formatter={(v) => [`${num(v, 2)} ${unit}`.trim(), "Gas flow"]} />
+            <YAxis domain={[0, (max) => Math.max(GAS_HI + 5, Math.ceil(max || 0))]}
+                   tick={{ fontSize: 10, fill: "#94a3b8" }} width={44} />
+            <ReferenceArea y1={GAS_LO} y2={GAS_HI} fill="#16a34a" fillOpacity={0.12}
+                           stroke="#16a34a" strokeOpacity={0.35} strokeDasharray="4 3" ifOverflow="extendDomain" />
+            <Tooltip formatter={(v) => [`${num(v, 2)} ${unit}`.trim(), `${GAS_AVG_S}s average (gas on)`]} />
             <Line type="monotone" dataKey="v" stroke="#0f766e" strokeWidth={2}
                   dot={false} isAnimationActive={false} connectNulls />
           </LineChart>

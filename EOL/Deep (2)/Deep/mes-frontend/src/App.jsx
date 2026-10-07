@@ -20,6 +20,7 @@ const QualityDashboard = lazy(() => import("./pages/QualityDashboard"));
 const WeldMonitor = lazy(() => import("./pages/WeldMonitor"));
 const QualityDeviations = lazy(() => import("./pages/QualityDeviations"));
 const SaFiQualityHistory = lazy(() => import("./pages/SaFiQualityHistory"));
+const RedBinLock = lazy(() => import("./pages/RedBinLock"));
 const CommentsHistory = lazy(() => import("./pages/CommentsHistory"));
 const Historical = lazy(() => import("./pages/Historical"));
 const Audit = lazy(() => import("./pages/Audit"));
@@ -819,6 +820,12 @@ function AppRoutes() {
           see quality data get it without a new access key to hand out. */}
       <Route path="/sa-fi-history" element={
         <Protected requiredAccess="quality-dashboard"><SaFiQualityHistory /></Protected>
+      } />
+
+      {/* 2026-10-07 — Red Bin Lock: parts locked in the Red Bin portal are
+          rejected at Final; locked list, restrictions, per-line bit master. */}
+      <Route path="/redbin-lock" element={
+        <Protected requiredAccess="quality-dashboard"><RedBinLock /></Protected>
       } />
 
       {/* 2026-06-18 — Weld Monitor (Quality): live robot weld current/voltage. */}

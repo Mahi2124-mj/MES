@@ -3,7 +3,7 @@
 AUTO-GENERATED COLLECTOR — YRA-SS
 Line ID    : 18
 Table      : yra_l1_complete
-Generated  : 2026-07-05 14:08:37
+Generated  : 2026-10-05 12:29:35
 
 DO NOT EDIT MANUALLY — regenerate via admin panel if config changes.
 """
@@ -18,11 +18,11 @@ CONFIG = {
     "line_id":    18,
     "line_name":  "YRA-SS",
     "table_name": "yra_l1_complete",
-    "plc_ip":     "192.168.10.38",
+    "plc_ip":     "192.168.30.39",
     "plc_port":   5002,
     "ok_bit":     "D101",
     "ng_bit":     "D102",
-    "status_addr":"D6005",
+    "status_addr":"D7999",
     "model_addr": "D1016",
     "ideal_ct":   15.0,
     "max_ct":     16.0,

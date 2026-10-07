@@ -26,7 +26,7 @@ from plc_config import list_plcs, add_plc, update_plc, delete_plc, load_plc_conf
 from shifts_config import list_shifts, add_or_update_shift, delete_shift
 from camera_bindings import list_bindings, add_binding, delete_binding
 import mes_client
-from plc_monitor import PlcMonitor
+from plc_monitor import PlcMonitor, ts_delete_allowed as _ts_delete_allowed
 from recorder import DEFAULT_METADATA_CSV, ensure_metadata_file, open_rtsp_capture
 from camera_stream import get_stream, stop_all as stop_all_streams
 from zone_config import (
@@ -2679,7 +2679,12 @@ def _run_video_cleanup(reason: str = "manual") -> dict:
                     # 2026-09-21 — 48 h FOOTAGE HOLD: kept until it is older
                     # than TS_KEEP_HOURS so clips can still be cut later (was:
                     # deleted on sight, every hour and at every shift start).
-                    if os.path.getmtime(p) >= ts_cutoff:
+                    # 2026-10-07 — and an expired one is deleted only inside
+                    # TS_DELETE_WINDOW (no shift running).  Outside it, it is
+                    # kept like a fresh one, so the disk guard below still sees
+                    # it and can free space at any hour if it must.
+                    if (os.path.getmtime(p) >= ts_cutoff
+                            or not _ts_delete_allowed()):
                         kept_ts.append((os.path.getmtime(p), p))
                         continue
                     sz = os.path.getsize(p)
@@ -2984,7 +2989,16 @@ def submachine_clip():
             # flat minute, so a file that does not actually reach the cycle could
             # out-score the one that does.  _ts_content_window() derives both ends
             # from the probed duration; on failure we keep the old estimate.
-            _cw = _ts_content_window(cand)
+            # 2026-10-07 — probe only a file that can overlap the cycle.  With
+            # 30-min segments a camera has ~100 files in the 48 h hold and each
+            # probe costs ~0.1 s.  The name is never after the first frame and
+            # the mtime is the last write, so a file outside those bounds cannot
+            # win on overlap; it still competes on distance with the cheap bounds.
+            if (cand_mtime < ts_naive_start - _td(seconds=60)
+                    or cand_start > ts_naive_end + _td(seconds=60)):
+                _cw = None
+            else:
+                _cw = _ts_content_window(cand)
             if _cw:
                 cand_start, cand_end = _cw[0], _cw[1]
             else:
@@ -3316,6 +3330,17 @@ def submachine_clip():
             for _cf in _glob3.glob(os.path.join(_vdir, f"cam_{camera_id}_*.ts")):
                 _mm = _re3.search(r"_(\d{13})\.ts$", os.path.basename(_cf))
                 if not _mm:
+                    continue
+                # 2026-10-07 — cheap bounds first (name = never after the first
+                # frame, mtime = last write): skip the ffprobe for the ~100
+                # segments of the 48 h hold that cannot touch this cycle.
+                try:
+                    if (int(_mm.group(1)) / 1000.0
+                            > ts_naive_end.timestamp() + 60
+                            or os.path.getmtime(_cf)
+                            < ts_naive_start.timestamp() - 60):
+                        continue
+                except (OSError, ValueError):
                     continue
                 try:
                     # 2026-08-03 — content window, not filename stamp + mtime.

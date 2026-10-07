@@ -6,6 +6,15 @@ import OperatorBadge from "../components/OperatorBadge";
 import ManpowerAlertBanner from "../components/ManpowerAlertBanner";
 import { ClosureFormModal } from "./MaintenanceDashboard";
 
+// 2026-10-07 — live andon call colour by its status (same palette as the
+// MANAGEMENT timeline): Maintenance red, Toolroom pink, Quality orange,
+// Material yellow, Model Setup blue, Other Loss purple.
+const ANDON_CLR = {
+  MAINTENANCE: "#dc2626", BREAKDOWN: "#dc2626", TOOLROOM: "#db2777",
+  QUALITY_ISSUE: "#ea580c", MATERIAL_WAIT: "#ca8a04", MODEL_SETUP: "#2563eb",
+  OTHER_LOSS: "#9333ea",
+};
+
 function todayISO() {
   return new Date().toISOString().slice(0, 10);
 }
@@ -307,7 +316,11 @@ function ZoneOeeDetailModal({ zone, lines, getRt, onClose }) {
       ok:    rt.ok_count      || 0,
       ng:    rt.ng_count      || 0,
       running: cell.collectorStatus === "running",
-      andon: rt.andon_status ? (rt.andon_call || "Andon call") : null,
+      // 2026-10-07 — only when a call is actually OPEN (andon_status is true
+      // for every andon-covered line, so every such line used to read
+      // "🔴 Andon call"), coloured by the call's own status.
+      andon: rt.andon_call ? (rt.andon_calls || rt.andon_call) : null,
+      andonColor: ANDON_CLR[(rt.operating_status || "").toUpperCase()] || "#b91c1c",
       losses, topLoss,
     };
   });
@@ -419,7 +432,7 @@ function ZoneOeeDetailModal({ zone, lines, getRt, onClose }) {
             <div style={{ background: "rgba(220,38,38,.06)", border: "1px solid rgba(220,38,38,.3)", borderRadius: 10, padding: "10px 14px", marginBottom: 22 }}>
               <div style={{ fontSize: 12, fontWeight: 700, color: "#b91c1c", marginBottom: 4 }}>🔴 Abhi live andon (valid reason)</div>
               {liveAndon.map(r => (
-                <div key={r.id} style={{ fontSize: 12, color: "#7f1d1d" }}>{r.name} — {r.andon}</div>
+                <div key={r.id} style={{ fontSize: 12, color: "#7f1d1d" }}>{r.name} — <span style={{ color: r.andonColor, fontWeight: 700 }}>● {r.andon}</span></div>
               ))}
             </div>
           )}
@@ -444,7 +457,7 @@ function ZoneOeeDetailModal({ zone, lines, getRt, onClose }) {
                     <td style={{ ...td, color: r.hasData ? band(r.qual) : "#94a3b8" }}>{r.hasData ? `${r.qual.toFixed(0)}%` : "—"}</td>
                     <td style={td}>{r.ok}/<span style={{ color: r.ng > 0 ? "#dc2626" : "#64748b" }}>{r.ng}</span></td>
                     <td style={td}>{r.topLoss ? <span style={{ color: r.topLoss.color, fontWeight: 600 }}>{r.topLoss.label} <span style={{ color: "#94a3b8", fontWeight: 400 }}>{fmtMin(r.topLoss.sec / 60)}</span></span> : <span style={{ color: "#94a3b8" }}>—</span>}</td>
-                    <td style={td}>{r.andon ? <span style={{ color: "#b91c1c", fontWeight: 600 }}>🔴 {r.andon}</span> : (r.running ? <span style={{ color: "#16a34a" }}>Running</span> : <span style={{ color: "#94a3b8" }}>Stopped</span>)}</td>
+                    <td style={td}>{r.andon ? <span style={{ color: r.andonColor, fontWeight: 600 }}>● {r.andon}</span> : (r.running ? <span style={{ color: "#16a34a" }}>Running</span> : <span style={{ color: "#94a3b8" }}>Stopped</span>)}</td>
                     <td style={{ ...td, color: "#3b82f6" }}>↗</td>
                   </tr>
                 ))}

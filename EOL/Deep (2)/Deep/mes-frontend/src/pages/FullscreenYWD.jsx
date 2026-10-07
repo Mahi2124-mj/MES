@@ -75,6 +75,12 @@ export default function FullscreenYWD() {
   const planFull = mp?.totals?.plan_full ?? 0;
   const variance = actual - planNow;
   const running  = (rt?.operating_status || "").toUpperCase() === "RUNNING";
+  // 2026-10-07 — andon lines report the open call's own status; colour it
+  // like the MANAGEMENT timeline (grey for anything not listed).
+  const stClr = ({ RUNNING: "#22c55e", BREAKDOWN: "#ef4444", MAINTENANCE: "#ef4444",
+                   TOOLROOM: "#ec4899", QUALITY_ISSUE: "#f97316", MATERIAL_WAIT: "#eab308",
+                   MODEL_SETUP: "#3b82f6", OTHER_LOSS: "#a855f7", BREAK: "#7dd3fc" }
+                 )[(rt?.operating_status || "").toUpperCase()] || "#94a3b8";
 
   const changeovers = mp?.changeovers || [];
   const lastChange  = changeovers[changeovers.length - 1];
@@ -96,9 +102,9 @@ export default function FullscreenYWD() {
           {shiftName ? `${shiftName} SHIFT` : "—"}
         </span>
         <span style={{ display:"inline-flex", alignItems:"center", gap:6, fontSize:12, fontWeight:800, padding:"4px 10px", borderRadius:99,
-          background: running ? "rgba(34,197,94,.12)" : "rgba(148,163,184,.12)", color: running ? "#22c55e" : "#94a3b8",
-          border:`1px solid ${running ? "#166534" : "#334155"}` }}>
-          <span style={{ width:7, height:7, borderRadius:"50%", background: running ? "#22c55e" : "#94a3b8" }}/>
+          background: `${stClr}1f`, color: stClr,
+          border:`1px solid ${stClr}66` }}>
+          <span style={{ width:7, height:7, borderRadius:"50%", background: stClr }}/>
           {rt?.operating_status || "—"}
         </span>
         <div style={{ marginLeft:"auto", display:"flex", alignItems:"center", gap:14 }}>

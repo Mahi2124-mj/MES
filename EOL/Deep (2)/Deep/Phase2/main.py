@@ -59,6 +59,9 @@ from routers.maintenance_kpi import router as maintenance_kpi_router
 from routers.capa            import router as capa_router
 from routers.quality         import router as quality_router
 from routers.sa_fi_quality  import router as sa_fi_quality_router
+from routers.redbin_lock    import router as redbin_lock_router
+from routers.breakdown_history import router as breakdown_history_router
+from routers.ct_study       import router as ct_study_router
 from routers.wallboard       import router as wallboard_router
 from routers.ui_timing      import router as ui_timing_router
 from routers.shift_compile   import router as shift_compile_router
@@ -161,6 +164,9 @@ app.include_router(maintenance_kpi_router)
 app.include_router(capa_router)
 app.include_router(quality_router)
 app.include_router(sa_fi_quality_router)   # SEAT SLIDER: Semi-Auto <-> Final NG trace + history/export
+app.include_router(redbin_lock_router)      # Quality: Red Bin part lock (redbin.PartLock -> Final reject) + bit master
+app.include_router(breakdown_history_router)  # Historical: all breakdown slips (Maintenance_DX + MES), open -> closed
+app.include_router(ct_study_router)           # Historical: Cycle Time Study (part-to-part CT + prediction)
 app.include_router(reports_router)
 app.include_router(operators_router)
 app.include_router(manpower_router)

@@ -2562,14 +2562,21 @@ def get_line_realtime(line_id: int, user=Depends(get_current_user_optional)):
                 cur.execute("SELECT line_name FROM mes_lines WHERE id=%s", (line_id,))
                 _lname = (cur.fetchone() or {}).get("line_name")
                 if _lname and _anorm(_lname) in andon_line_set():
-                    # LIVE STATUS from andon (maintenance side): ANY open andon
-                    # call → a loss is running → BREAKDOWN; none open → RUNNING.
-                    # Replaces the PLC status_address view for these lines.
+                    # LIVE STATUS from andon (maintenance side): an open andon
+                    # call → the status of ITS button (Maintenance/Toolroom →
+                    # BREAKDOWN, Material → MATERIAL_WAIT, Other Loss →
+                    # OTHER_LOSS, Quality → QUALITY_ISSUE, Model Setup →
+                    # MODEL_SETUP); none open → RUNNING.  2026-10-06 — this used
+                    # to paint EVERY open call BREAKDOWN, whichever button was
+                    # pressed.  Replaces the PLC status_address view for these lines.
                     _oc = andon_open_call(_lname)
-                    data["operating_status"] = "BREAKDOWN" if _oc else "RUNNING"
+                    # 2026-10-07 — Maintenance / Toolroom show their own name
+                    # (MAINTENANCE / TOOLROOM) instead of the generic BREAKDOWN.
+                    data["operating_status"] = (_oc.get("status") or "BREAKDOWN") if _oc else "RUNNING"
                     data["andon_status"] = True
                     if _oc and _oc.get("display_name"):
                         data["andon_call"] = _oc["display_name"]
+                        data["andon_calls"] = _oc.get("calls") or _oc["display_name"]
                     cur.execute("""SELECT start_time, end_time,
                                           COALESCE(crosses_midnight,false) AS xm
                                      FROM mes_shift_configs
@@ -2586,6 +2593,14 @@ def get_line_realtime(line_id: int, user=Depends(get_current_user_optional)):
                         _res = recompute_oee_with_andon(_lname, data, _start, _end)
                         if _res:
                             data["loss_breakdown_seconds"] = _res["breakdown_seconds"]
+                            # 2026-10-06 — every andon button lands in its own
+                            # bucket (Material → material, Other Loss → others…).
+                            for _lk, _lv in (_res.get("losses") or {}).items():
+                                data[f"loss_{_lk}_seconds"] = _lv
+                            # stop time the collector had filed as speed and the
+                            # andon now names moves out of speed (not counted twice)
+                            if _res.get("speed_seconds") is not None:
+                                data["loss_speed_seconds"] = _res["speed_seconds"]
                             data["andon_breakdown"] = True
                             if _res["availability"] is not None:
                                 data["availability"] = _res["availability"]
@@ -2653,6 +2668,68 @@ def get_line_realtime(line_id: int, user=Depends(get_current_user_optional)):
                             data["shift_plan_completed"] = int(round(total))
         except Exception as _spx:
             print(f"[LINES] sub-assembly plan compute skipped: {_spx}")
+
+        # ── LOOP PIPE + SUB-ASSEMBLY — loss time from parts short ────────
+        # 2026-10-03 — operator asked for the loss the line is JUDGED on to be
+        # the one they can check by eye: plan minus actual, valued at ideal CT.
+        # 2026-10-06 — same formula on the Sub-Assembly lines (operator: "sub-
+        # assy me loss time nikalne ka formula same vahi kar do jo loop pipe pe
+        # kiya tha … as per part loss").  Their PLCs, too, report no stop
+        # reason, so stops only ever showed up as speed loss with the >300 s
+        # gaps dropped.
+        #
+        # Why these lines need it: Loop Pipe's PLC never publishes a stop
+        # reason (D6005 is always 0), so every stop lands in Speed Loss — and
+        # the speed-loss accumulator ignores any gap longer than 300 s, so the
+        # two long stops on 3-Oct (33 min + 10 min) were reported NOWHERE.
+        # Counting parts cannot lose a stop that way: a stop of any length
+        # shows up as parts not made.  Running faster than ideal also offsets
+        # itself, because a faster line simply makes more parts and the
+        # shortfall shrinks — no separate credit needed.
+        #
+        # DISPLAY ONLY — nothing is written back, the collector's own numbers,
+        # the counting path and every other zone are untouched.  Loop Pipe has
+        # no reason codes, so the whole figure goes to speed (where it already
+        # went); the per-reason buckets stay exactly as the collector set them.
+        try:
+            cur.execute("SELECT z.zone_name FROM mes_lines l "
+                        "LEFT JOIN mes_zones z ON z.id = l.zone_id WHERE l.id=%s",
+                        (line_id,))
+            _zr = cur.fetchone()
+            if ((_zr or {}).get("zone_name") or "").strip().lower() in ("loop pipe", "sub-assembly"):
+                _plan = int(data.get("shift_plan_completed") or 0)
+                _made = int(data.get("ok_count") or 0)
+                #  realtime exposes the ideal CT as `cycle_time_plan` — there is
+                #  no plc_config block on this response.  Fall back to the DB so
+                #  a missing/zero field can never silently disable the override.
+                _ict = 0.0
+                for _k in ("cycle_time_plan", "ideal_cycle_time"):
+                    try:
+                        _ict = float(data.get(_k) or 0)
+                    except (TypeError, ValueError):
+                        _ict = 0.0
+                    if _ict > 0:
+                        break
+                if _ict <= 0:
+                    cur.execute("SELECT ideal_cycle_time FROM mes_plc_configs "
+                                "WHERE line_id=%s ORDER BY id ASC LIMIT 1", (line_id,))
+                    _ic = cur.fetchone()
+                    try:    _ict = float((_ic or {}).get("ideal_cycle_time") or 0)
+                    except (TypeError, ValueError): _ict = 0.0
+                if _plan > 0 and _ict > 0:
+                    _short = max(0, _plan - _made)        # aage ho to loss 0
+                    # 2026-10-06 — Loop Pipe's andon now reaches the dashboard
+                    # (LOOP_PIPE_n alias), so stops the andon names (breakdown,
+                    # material, other…) are already in their own buckets.  Speed
+                    # is what is LEFT of the parts shortfall, so the total stays
+                    # plan − actual and the same stop is never counted twice.
+                    _avail = sum(int(data.get(f"loss_{_k}_seconds") or 0)
+                                 for _k in ("breakdown", "quality", "setup",
+                                            "material", "others", "change_over"))
+                    data["loss_speed_seconds"] = max(0, int(round(_short * _ict)) - _avail)
+                    data["loss_from_parts"]    = True     # UI/debug ke liye
+        except Exception as _lpx:
+            print(f"[LINES] parts-based loss (loop pipe / sub-assembly) skipped: {_lpx}")
 
         return data
 
@@ -3454,6 +3531,25 @@ def _ensure_energy_per_part_column(conn) -> None:
     global _ENERGY_PER_PART_COL_READY
     if _ENERGY_PER_PART_COL_READY:
         return
+    # 2026-10-07 — catalog check FIRST.  `ADD COLUMN IF NOT EXISTS` takes an
+    # ACCESS EXCLUSIVE lock on mes_lines even when the column exists, and this
+    # flag was only set after the ALTER succeeded.  After the 13:46 restart the
+    # ALTER kept losing to the readers (lock timeout), so EVERY /realtime call
+    # re-issued it and every mes_lines read queued behind it: 100+ lock
+    # waiters, "connection pool exhausted", 500s on all dashboards.  The column
+    # exists, so a lock-free catalog lookup ends it here.
+    try:
+        _c = conn.cursor()
+        _c.execute("SELECT 1 FROM pg_attribute WHERE attrelid = 'mes_lines'::regclass "
+                   "AND attname = 'energy_per_part' AND NOT attisdropped")
+        _have = _c.fetchone() is not None
+        _c.close()
+        if _have:
+            _ENERGY_PER_PART_COL_READY = True
+            return
+    except Exception:
+        try: conn.rollback()
+        except Exception: pass
     try:
         cur = conn.cursor()
         cur.execute("""
@@ -3743,22 +3839,63 @@ def get_status_log(
             }
             for r in rows
         ]
-        # ANDON-covered lines: overlay the andon breakdown intervals onto the
-        # timeline as BREAKDOWN segments (union of Maintenance+Toolroom calls,
-        # completed + in-progress), so the timeline matches the andon-driven
-        # status/loss. Collector points strictly inside a breakdown are dropped;
-        # boundaries restore the collector status that resumes after. Guarded.
+        # ANDON-covered lines: overlay the andon calls onto the timeline, each
+        # as the status of ITS button (Maintenance/Toolroom → BREAKDOWN,
+        # Material → MATERIAL_WAIT, Other Loss → OTHER_LOSS, Quality →
+        # QUALITY_ISSUE, Model Setup → MODEL_SETUP), completed + in-progress,
+        # so the timeline matches the andon-driven status/loss.  2026-10-06 —
+        # used to overlay breakdown calls only.  Non-breakdown andon time in a
+        # shift's first 5 min stays the collector's MODEL_SETUP, exactly as the
+        # loss numbers count it.  Collector points strictly inside a segment
+        # are dropped; a segment's end restores the collector status that
+        # resumes after it.  Guarded.
         try:
-            from routers.andon import (andon_line_set, andon_breakdown_intervals,
+            from routers.andon import (andon_line_set, andon_status_intervals,
+                                       BREAKDOWN_STATUSES, SHIFT_START_SETUP_S,
                                        _norm as _anorm)
             cur.execute("SELECT line_name FROM mes_lines WHERE id=%s", (line_id,))
             _lname = (cur.fetchone() or {}).get("line_name")
             if base and _lname and _anorm(_lname) in andon_line_set():
                 from datetime import datetime as _dt2, timedelta as _td2
-                _ivs = andon_breakdown_intervals(
+                # (start, end, status, calls) — the call's own status
+                # (MAINTENANCE / TOOLROOM / QUALITY_ISSUE …) + every open call
+                _segs = andon_status_intervals(
                     _lname, _dt2.now() - _td2(hours=24), _dt2.now())
-                if _ivs:
-                    _ivms = [(a.timestamp() * 1000, b.timestamp() * 1000) for a, b in _ivs]
+                # shift-start setup windows of the target day (and the day
+                # before, for a night shift still on the 24 h window)
+                _carve = []
+                try:
+                    cur.execute("SELECT start_time FROM mes_shift_configs WHERE line_id=%s",
+                                (line_id,))
+                    _d0 = _dt2.strptime(str(target)[:10], "%Y-%m-%d").date()
+                    for _r in cur.fetchall():
+                        if not _r.get("start_time"):
+                            continue
+                        for _dd in (_d0 - _td2(days=1), _d0):
+                            _w0 = _dt2.combine(_dd, _r["start_time"])
+                            _carve.append((_w0, _w0 + _td2(seconds=SHIFT_START_SETUP_S)))
+                except Exception:
+                    _carve = []
+                _pieces = []
+                for (sa, sb, sc, scalls) in _segs:
+                    parts = [(sa, sb)]
+                    if sc not in BREAKDOWN_STATUSES:
+                        for (w0, w1) in _carve:
+                            nxt = []
+                            for (x, y) in parts:
+                                if y <= w0 or x >= w1:
+                                    nxt.append((x, y))
+                                    continue
+                                if x < w0:
+                                    nxt.append((x, w0))
+                                if y > w1:
+                                    nxt.append((w1, y))
+                            parts = nxt
+                    _pieces += [(x, y, sc, scalls) for (x, y) in parts if y > x]
+                _pieces.sort(key=lambda t: t[0])
+                if _pieces:
+                    _ivms = [(x.timestamp() * 1000, y.timestamp() * 1000, c, cl)
+                             for x, y, c, cl in _pieces]
 
                     def _status_at(t):
                         s = "RUNNING"
@@ -3769,14 +3906,29 @@ def get_status_log(
                                 break
                         return s
                     _sh = base[0]["shift"]
+
+                    # 2026-10-07 — nowMinFrac = minutes since LOCAL midnight,
+                    # exactly as the collector writes it.  The dashboard places
+                    # every timeline point by nowMinFrac, and these overlay
+                    # points used to carry 0.0: A-shift andon segments fell
+                    # outside the shift (never drawn) and B-shift ones all piled
+                    # up at 00:00 — so the timeline never showed the calls.
+                    def _mf(ms):
+                        d = _dt2.fromtimestamp(ms / 1000.0)
+                        return round(d.hour * 60 + d.minute + d.second / 60.0
+                                     + d.microsecond / 60e6, 6)
                     kept = [p for p in base
-                            if not any(a < p["ts"] < b for (a, b) in _ivms)]
+                            if not any(x < p["ts"] < y for (x, y, _, _c) in _ivms)]
+                    _starts = {x for (x, _, _, _c) in _ivms}
                     extra = []
-                    for (a, b) in _ivms:
-                        extra.append({"ts": a, "nowMinFrac": 0.0,
-                                      "status": "BREAKDOWN", "shift": _sh})
-                        extra.append({"ts": b, "nowMinFrac": 0.0,
-                                      "status": _status_at(b), "shift": _sh})
+                    for (x, y, st, cl) in _ivms:
+                        # `andon` = every call open in this segment, for the
+                        # timeline tooltip ("Quality + Maintenance").
+                        extra.append({"ts": x, "nowMinFrac": _mf(x),
+                                      "status": st, "shift": _sh, "andon": cl})
+                        if y not in _starts:          # next segment takes over here
+                            extra.append({"ts": y, "nowMinFrac": _mf(y),
+                                          "status": _status_at(y), "shift": _sh})
                     base = sorted(kept + extra, key=lambda p: p["ts"])
         except Exception as _abx:
             print(f"[LINES] andon timeline overlay skipped: {_abx}")
@@ -4059,6 +4211,44 @@ def get_hourly_loss_breakdown(
                 if b > a:
                     slot_loss[idx][span_key] += int((b - a).total_seconds())
 
+        # 4a. ANDON-covered lines: the andon calls (completed + in-progress),
+        # clipped to each slot — the SAME source the Dashboard status/OEE use.
+        # breakdown = andon Maintenance+Toolroom (replaces the PLC status-log
+        # value); quality / setup / material / others = PLC value + that andon
+        # button's time (2026-10-06 — a Material or Other Loss press used to be
+        # counted nowhere).  The andon intervals are read ONCE for the whole
+        # shift and clipped per slot in Python.  Runs before the speed split so
+        # each slot's running time already excludes andon downtime.  Guarded.
+        _andon_speed_moved = 0.0
+        try:
+            from routers.andon import (andon_line_set, andon_lost_intervals,
+                                       andon_loss_split, SHIFT_START_SETUP_S,
+                                       _carve_setup, _overlap, _norm as _anorm)
+            cur.execute("SELECT line_name FROM mes_lines WHERE id=%s", (line_id,))
+            _lname = (cur.fetchone() or {}).get("line_name")
+            if _lname and _anorm(_lname) in andon_line_set() and slot_windows:
+                cur.execute("""SELECT start_time FROM mes_shift_configs
+                                WHERE line_id=%s AND shift_name=%s""", (line_id, shift))
+                _scr = cur.fetchone()
+                _setup_until = None
+                if _scr and _scr.get("start_time"):
+                    _setup_until = (_dt.combine(base_date, _scr["start_time"])
+                                    + timedelta(seconds=SHIFT_START_SETUP_S))
+                _w0 = min(w[1] for w in slot_windows)
+                _w1 = max(w[2] for w in slot_windows)
+                # what the line really lost while each call was open (its
+                # producing time + breaks taken out), the same as the Dashboard
+                _lost, _slow = andon_lost_intervals(_lname, _w0, _w1)
+                _lost = _carve_setup(_lost, _setup_until)
+                _andon_speed_moved = _overlap(_slow, _lost)
+                for idx, (slot, slot_st, slot_en) in enumerate(slot_windows):
+                    _al = andon_loss_split(_lost, slot_st, slot_en)
+                    slot_loss[idx]["loss_breakdown"] = int(round(_al["breakdown"]))
+                    for _k in ("quality", "setup", "material", "others"):
+                        slot_loss[idx][f"loss_{_k}"] += int(round(_al[_k]))
+        except Exception as _abx:
+            print(f"[LINES] andon loss-breakdown override skipped: {_abx}")
+
         # 4b. 2026-06-09 — Speed loss per slot.  Speed loss is NOT a status
         # (the line is RUNNING, just slower than ideal), so it never shows up
         # in the status-log walk above.  The dashboard's Loss-Distribution
@@ -4081,6 +4271,8 @@ def get_hourly_loss_breakdown(
                     speed_total = int(_sr["loss_speed_seconds"])
         except Exception:
             speed_total = 0
+        # andon-named stop time the collector had filed as speed (see 4a)
+        speed_total = max(0, int(round(speed_total - _andon_speed_moved)))
 
         now_naive = _dt.now()
         running = []
@@ -4099,23 +4291,6 @@ def get_hourly_loss_breakdown(
                     alloc[order[k % len(order)]] += 1
             for idx in range(len(slot_loss)):
                 slot_loss[idx]["loss_speed"] = alloc[idx]
-
-        # 4c. ANDON-covered lines: the breakdown bucket is driven by the
-        # physical andon Maintenance+Toolroom calls (completed + in-progress),
-        # clipped to each slot — the SAME source the Dashboard status/OEE use.
-        # Overrides the PLC-status-log breakdown so the loss-time matches the
-        # andon breakdown everywhere. Guarded; other buckets stay as computed.
-        try:
-            from routers.andon import (andon_line_set, andon_breakdown_seconds,
-                                       _norm as _anorm)
-            cur.execute("SELECT line_name FROM mes_lines WHERE id=%s", (line_id,))
-            _lname = (cur.fetchone() or {}).get("line_name")
-            if _lname and _anorm(_lname) in andon_line_set():
-                for idx, (slot, slot_st, slot_en) in enumerate(slot_windows):
-                    slot_loss[idx]["loss_breakdown"] = int(round(
-                        andon_breakdown_seconds(_lname, slot_st, slot_en)))
-        except Exception as _abx:
-            print(f"[LINES] andon loss-breakdown override skipped: {_abx}")
 
         # 5. Build response
         out_slots = []

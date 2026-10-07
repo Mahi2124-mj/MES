@@ -693,6 +693,24 @@ def wallboard_summary(
             "cycle_time_plan":     shift_row.get("cycle_time_plan"),
         }
 
+        # 2026-10-07 — andon-covered lines: the Supervisor header shows the SAME
+        # andon-driven status as the MANAGEMENT screen (/realtime) — the open
+        # call's own status (MAINTENANCE / TOOLROOM / QUALITY_ISSUE / …), or
+        # RUNNING with no call open — instead of the PLC status register.
+        try:
+            from routers.andon import (andon_line_set, andon_open_call,
+                                       _norm as _anorm)
+            if (line_name and _anorm(line_name) in andon_line_set()
+                    and not str(shift_name).upper().startswith(("GAP", "UNKNOWN"))):
+                _oc = andon_open_call(line_name)
+                kpi["operating_status"] = (_oc.get("status") or "BREAKDOWN") if _oc else "RUNNING"
+                kpi["andon_status"] = True
+                if _oc:
+                    kpi["andon_call"]  = _oc.get("display_name")
+                    kpi["andon_calls"] = _oc.get("calls") or _oc.get("display_name")
+        except Exception as _ax:
+            print(f"[WALLBOARD] andon status override skipped: {_ax}")
+
         # ── MAIN LINE per-slot breakdown (from shift row columns) ────
         # The collector writes hour_HHMM_HHMM_plan / _actual / _ok / _ng
         # for each slot directly to the shift-row.  Read them by the
@@ -906,6 +924,254 @@ def over_target_history(
                 "pct":   round(ov / tot * 100, 1) if tot else 0.0,
             })
         return {"ideal_ct": ideal, "rows": rows}
+
+
+# ══════════════════════════════════════════════════════════════════
+# 4c. HOURLY AVG CT — one machine, one shift, per hourly slot
+# ══════════════════════════════════════════════════════════════════
+# 2026-10-06 — operator: "AVG CT button — har hour me jitne parts bane unka
+# avg cycle time", on every process (Final + each sub-machine).
+#
+# 2026-10-06 (3) — the average is now PLAN-BASED, not the mean of the cycle
+# times (operator: "ek ghante me 3600 seconds hote hai … plan ke according jo
+# data hai uske hisaab se avg cycle time").  The mean of individual cycles
+# was pulled up by single long stops and did not tie to the hour's output
+# (YRA-SS 11:30-13:05: 220 parts read 21.7 s).  Now:
+#
+#     avg CT = the slot's working seconds  ÷  parts made in the slot
+#
+# working seconds = mes_hourly_slots.working_minutes (the plan's own time,
+# breaks and the shift-start setup already taken out) for a finished slot; for
+# the slot in progress, the working time elapsed so far (breaks and the first
+# 5 min of the shift taken out).  Parts = the hour's ACTUAL from the shift row
+# (the Hourly Report's figure) for the Final machine, the sub-machine's cycle
+# count for a sub.  So a slot at plan reads exactly the ideal CT, and every
+# second the line lost in that hour shows up in the number.  min / max / over
+# still describe the individual cycles (tooltip).  This replaces the 120 s cap.
+# Read-only, auth-optional like the rest of the wallboard routes.
+STARTUP_SETUP_S = 5 * 60      # collector_engine.STARTUP_DELAY_MIN
+# 2026-10-07 — operator: the hourly AVG CT uses only parts that took up to 60 s;
+# slower parts (stoppages inside the cycle) are left out of the average and
+# reported per hour as "N parts over 60 s not counted".  Replaces the
+# working-time ÷ parts basis.
+AVG_CT_MAX_S = 60.0
+
+
+@router.get("/{line_id}/hourly-avg-ct")
+def hourly_avg_ct(
+    line_id: int,
+    sub_id: Optional[int] = Query(None, description="sub-machine id; omit for the main/Final machine"),
+    date_: Optional[str] = Query(None, alias="date", description="YYYY-MM-DD; default = the shift the boards show"),
+    shift: Optional[str] = Query(None, description="A / B; default = the shift the boards show"),
+    user=Depends(get_current_user_optional),
+):
+    with get_conn() as conn:
+        line = _resolve_line(line_id, conn)
+        cur = dict_cursor(conn)
+        if sub_id:
+            cur.execute("SELECT ideal_cycle_time FROM mes_plc_configs WHERE id = %s", (sub_id,))
+            r = cur.fetchone()
+            ideal = float((r and r["ideal_cycle_time"]) or line["ideal_cycle_time"] or 15.0)
+            table, ctcol, tscol = "mes_submachine_ct_log", "ct_seconds", "ts_end"
+            where, params = "sub_plc_id = %(sid)s AND ", {"sid": sub_id}
+        else:
+            ideal = float(line["ideal_cycle_time"] or 15.0)
+            table, ctcol, tscol = line["db_table_name"] + "_ct_log", "ct_value", "ts"
+            where, params = "", {}
+
+        rec_date, shift_name = date_, (shift or "").strip().upper() or None
+        if not rec_date or not shift_name:
+            # Default = the shift the wallboard is showing right now.
+            sr = None
+            cur.execute("SELECT to_regclass(%s) AS t", (line["db_table_name"],))
+            if (cur.fetchone() or {}).get("t"):
+                sr = _current_shift_row(line["db_table_name"],
+                                        line["current_shift_row_id"], conn, line_id)
+            rec_date   = rec_date or (str(sr["record_date"]) if sr else str(date.today()))
+            shift_name = shift_name or ((sr or {}).get("shift_name") or "A")
+        try:
+            rdate = datetime.strptime(str(rec_date)[:10], "%Y-%m-%d").date()
+        except ValueError:
+            raise HTTPException(400, "date must be YYYY-MM-DD")
+        rec_date = str(rdate)
+
+        cur.execute("""
+            SELECT slot_label, start_time, end_time, working_minutes, plan_pieces,
+                   db_column_prefix
+              FROM mes_hourly_slots
+             WHERE line_id = %s AND shift_name = %s
+             ORDER BY slot_order, start_time
+        """, (line_id, shift_name))
+        slots = [dict(r) for r in cur.fetchall()]
+        cur.execute("SELECT start_time FROM mes_shift_configs WHERE line_id=%s AND shift_name=%s",
+                    (line_id, shift_name))
+        _sc = cur.fetchone() or {}
+        sh_start_t = _sc.get("start_time") or (slots[0]["start_time"] if slots else None)
+        cur.execute("SELECT start_time, end_time FROM mes_break_configs WHERE line_id=%s",
+                    (line_id,))
+        breaks = [(r["start_time"], r["end_time"]) for r in cur.fetchall()
+                  if r.get("start_time") and r.get("end_time")]
+
+        out = {"ideal_ct": ideal, "date": rec_date, "shift": shift_name,
+               "basis": "working_time", "slots": [], "total_cycles": 0,
+               "avg_ct": None, "working_seconds": 0, "unslotted": 0}
+
+        # ── wall-clock window of each slot (night shift: slots that start
+        #    before the shift's start time belong to the next calendar day)
+        def _at(t):
+            d = rdate
+            if sh_start_t and t < sh_start_t:
+                d = rdate + timedelta(days=1)
+            return datetime.combine(d, t)
+        win = []
+        for sl in slots:
+            st = _at(sl["start_time"])
+            en = datetime.combine(st.date(), sl["end_time"])
+            if en <= st:
+                en += timedelta(days=1)
+            win.append((st, en))
+        sh_start = datetime.combine(rdate, sh_start_t) if sh_start_t else None
+
+        def _worked(a, b):
+            """Working seconds in [a, b]: breaks and the shift-start setup out."""
+            if b <= a:
+                return 0.0
+            cuts = []
+            d = a.date() - timedelta(days=1)
+            while d <= b.date():
+                for bs, be in breaks:
+                    x = datetime.combine(d, bs)
+                    y = datetime.combine(d, be)
+                    if y <= x:
+                        y += timedelta(days=1)
+                    cuts.append((x, y))
+                d += timedelta(days=1)
+            if sh_start:
+                cuts.append((sh_start, sh_start + timedelta(seconds=STARTUP_SETUP_S)))
+            cuts.sort()
+            tot, cur_t = 0.0, a
+            for x, y in cuts:
+                if y <= cur_t or x >= b:
+                    continue
+                if x > cur_t:
+                    tot += (min(x, b) - cur_t).total_seconds()
+                cur_t = max(cur_t, y)
+                if cur_t >= b:
+                    break
+            if cur_t < b:
+                tot += (b - cur_t).total_seconds()
+            return tot
+
+        # ── cycles per slot (count, min, max, over ideal) — one grouped query
+        stats = {}
+        cur.execute("SELECT to_regclass(%s) AS t", (table,))
+        have_log = bool((cur.fetchone() or {}).get("t"))
+        if have_log and slots:
+            slot_values = ",".join(
+                cur.mogrify("(%s,%s::time,%s::time)",
+                            (i, s["start_time"], s["end_time"])).decode()
+                for i, s in enumerate(slots))
+            # A slot whose end is earlier than its start (23:05-00:05) wraps
+            # midnight, so it takes "after start OR before end".
+            cur.execute(f"""
+                SELECT s.slot_idx,
+                       COUNT(*)                                        AS n,
+                       MIN(c.{ctcol})                                  AS min_ct,
+                       MAX(c.{ctcol})                                  AS max_ct,
+                       COUNT(*) FILTER (WHERE c.{ctcol} > %(ideal)s)   AS over,
+                       COUNT(*) FILTER (WHERE c.{ctcol} <= %(cap)s)    AS n_in,
+                       SUM(c.{ctcol}) FILTER (WHERE c.{ctcol} <= %(cap)s) AS sum_in,
+                       COUNT(*) FILTER (WHERE c.{ctcol} > %(cap)s)     AS n_out
+                  FROM {table} c
+                  JOIN (VALUES {slot_values}) AS s(slot_idx, st, en)
+                    ON (s.st < s.en AND c.{tscol}::time >= s.st AND c.{tscol}::time < s.en)
+                    OR (s.st >= s.en AND (c.{tscol}::time >= s.st OR c.{tscol}::time < s.en))
+                 WHERE {where}c.record_date = %(d)s AND c.shift_name = %(s)s
+                   AND c.{ctcol} > 0
+                 GROUP BY s.slot_idx
+            """, {**params, "ideal": ideal, "cap": AVG_CT_MAX_S, "d": rec_date, "s": shift_name})
+            stats = {r["slot_idx"]: r for r in cur.fetchall()}
+
+        # ── Final machine: the hour's ACTUAL from the shift row (Hourly Report)
+        hour_actual = {}
+        if not sub_id:
+            try:
+                cur.execute("SELECT to_regclass(%s) AS t", (line["db_table_name"],))
+                if (cur.fetchone() or {}).get("t"):
+                    cur.execute(f"""SELECT * FROM {line["db_table_name"]}
+                                     WHERE record_date=%s AND shift_name=%s
+                                     ORDER BY id DESC LIMIT 1""", (rec_date, shift_name))
+                    row = cur.fetchone() or {}
+                    for i, sl in enumerate(slots):
+                        pfx = sl.get("db_column_prefix")
+                        v = row.get(f"{pfx}_actual") if pfx else None
+                        if v is not None:
+                            hour_actual[i] = int(v)
+            except Exception:
+                conn.rollback()
+                hour_actual = {}
+
+        r2 = lambda v: round(float(v), 2) if v is not None else None
+        now = datetime.now()
+        tot_parts, tot_secs, logged = 0, 0.0, 0
+        tot_in_n, tot_in_sum, tot_out = 0, 0.0, 0
+        for i, sl in enumerate(slots):
+            st = stats.get(i) or {}
+            n_log = int(st.get("n") or 0)
+            logged += n_log
+            # 2026-10-07 — pcs = the cycles the average is built from (counted
+            # + over-60 s), so "N pcs" and the hover always add up.
+            parts = n_log
+            a, b = win[i]
+            if now >= b:                                   # finished slot: plan time
+                secs = float(sl.get("working_minutes") or 0) * 60.0 or _worked(a, b)
+            elif now > a:                                  # in progress: time so far
+                secs = min(_worked(a, now),
+                           float(sl.get("working_minutes") or 0) * 60.0 or 1e12)
+            else:
+                secs = 0.0
+            # Average of the parts that took up to AVG_CT_MAX_S; slower ones
+            # are only counted (shown on hover), never averaged.
+            n_in  = int(st.get("n_in") or 0)
+            s_in  = float(st.get("sum_in") or 0.0)
+            n_out = int(st.get("n_out") or 0)
+            avg = (s_in / n_in) if n_in > 0 else None
+            tot_in_n += n_in
+            tot_in_sum += s_in
+            tot_out += n_out
+            # Shift average = all the working time ÷ all the parts.  A PLANNED
+            # hour that made nothing still adds its time (that is the loss); an
+            # unplanned OT slot only counts once it has produced something.
+            if secs > 0 and (parts > 0 or int(sl.get("plan_pieces") or 0) > 0):
+                tot_parts += parts
+                tot_secs  += secs
+            out["slots"].append({
+                "label":           sl["slot_label"],
+                "cycles":          parts,
+                "working_seconds": int(round(secs)),
+                "avg_ct":          r2(avg),
+                "min_ct":          r2(st.get("min_ct")),
+                "max_ct":          r2(st.get("max_ct")),
+                "over":            int(st.get("over") or 0),
+                "counted":         n_in,
+                "excluded":        n_out,
+            })
+
+        if have_log:
+            cur.execute(f"""
+                SELECT COUNT(*) AS n FROM {table} c
+                 WHERE {where}c.record_date = %(d)s AND c.shift_name = %(s)s
+                   AND c.{ctcol} > 0
+            """, {**params, "d": rec_date, "s": shift_name})
+            out["unslotted"] = max(0, int((cur.fetchone() or {}).get("n") or 0) - logged)
+        out["total_cycles"]    = sum(sl["cycles"] for sl in out["slots"])
+        out["working_seconds"] = int(round(tot_secs))
+        out["avg_ct"]          = r2(tot_in_sum / tot_in_n) if tot_in_n else None
+        out["basis"]           = "parts_up_to_60s"
+        out["avg_max_s"]       = AVG_CT_MAX_S
+        out["counted"]         = tot_in_n
+        out["excluded"]        = tot_out
+        return out
 
 
 # ══════════════════════════════════════════════════════════════════

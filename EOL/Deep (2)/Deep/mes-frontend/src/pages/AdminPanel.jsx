@@ -5840,6 +5840,7 @@ const PAGE_PERM_GROUPS = [
     // per-user toggle appear in the Page Permissions dialog.
     { key: "comments-history",   label: "Comments History" },
     { key: "sa-fi-history",      label: "SA / FI History" },
+    { key: "redbin-lock",        label: "Red Bin Lock" },
     { key: "weld-monitor",       label: "Weld Monitor" },
     { key: "admin-quality",      label: "Admin → Quality Panel" },
   ]},
