@@ -169,6 +169,9 @@ export default function ShiftAllocation() {
 
   const [lines,     setLines]     = useState([]);
   const [lineId,    setLineId]    = useState("");
+  // 2026-10-08 — Zone filter in front of Line.  null = follow the selected
+  // line's zone (so the remembered line opens with its own zone picked).
+  const [zoneSel,   setZoneSel]   = useState(null);
   const [date,      setDate]      = useState(() => new Date().toISOString().slice(0, 10));
   const [shift,     setShift]     = useState("A");
   const [processes, setProcesses] = useState([]);
@@ -584,11 +587,31 @@ export default function ShiftAllocation() {
             </div>
 
             <div style={{ display: "flex", gap: 12, alignItems: "end", marginTop: 18, flexWrap: "wrap" }}>
-              <FilterCell label="Line">
-                <select value={lineId} onChange={e => setLineId(Number(e.target.value))} style={glassSelect}>
-                  {lines.map(l => <option key={l.id} value={l.id}>{l.line_name}</option>)}
-                </select>
-              </FilterCell>
+              {(() => {
+                const zoneOf  = (l) => l?.zone_name || "No zone";
+                const zones   = [...new Set(lines.map(zoneOf))].sort((a, b) => a.localeCompare(b));
+                const curZone = zoneSel ?? zoneOf(lines.find(l => String(l.id) === String(lineId)));
+                const shown   = curZone === "__all" ? lines : lines.filter(l => zoneOf(l) === curZone);
+                const pickZone = (z) => {
+                  setZoneSel(z);
+                  const inZone = z === "__all" ? lines : lines.filter(l => zoneOf(l) === z);
+                  if (inZone.length && !inZone.some(l => String(l.id) === String(lineId)))
+                    setLineId(inZone[0].id);
+                };
+                return (<>
+                  <FilterCell label="Zone">
+                    <select value={curZone} onChange={e => pickZone(e.target.value)} style={glassSelect}>
+                      <option value="__all">All zones</option>
+                      {zones.map(z => <option key={z} value={z}>{z}</option>)}
+                    </select>
+                  </FilterCell>
+                  <FilterCell label="Line">
+                    <select value={lineId} onChange={e => setLineId(Number(e.target.value))} style={glassSelect}>
+                      {shown.map(l => <option key={l.id} value={l.id}>{l.line_name}</option>)}
+                    </select>
+                  </FilterCell>
+                </>);
+              })()}
               <FilterCell label="Date">
                 <input type="date" value={date} onChange={e => setDate(e.target.value)} style={glassSelect} />
               </FilterCell>

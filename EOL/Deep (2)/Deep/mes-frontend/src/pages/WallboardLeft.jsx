@@ -1495,6 +1495,25 @@ export default function WallboardLeft() {
       .catch(() => { /* keep last known list on transient errors */ });
     return () => { alive = false; };
   }, [lineId]);
+  // 2026-10-08 — pending breakdown slips of this line (operator: "supervisor
+  // dashboard me upar number, click pe kaun si slip pending aur kab se").
+  // Polled every minute; the header pill opens the list.
+  const [bdPend, setBdPend] = useState(null);
+  const [bdOpen, setBdOpen] = useState(false);
+  useEffect(() => {
+    if (!lineId) return;
+    let alive = true;
+    const load = () => {
+      const _tok = (typeof window !== "undefined" && sessionStorage.getItem("mes_token")) || "";
+      axios.get(`/api/prod-breakdown-slips/line-pending?line_id=${lineId}`,
+                { headers: _tok ? { Authorization: `Bearer ${_tok}` } : {} })
+        .then(r => { if (alive) setBdPend(r.data || null); })
+        .catch(() => { /* keep the last count on a transient error */ });
+    };
+    load();
+    const t = setInterval(load, 60000);
+    return () => { alive = false; clearInterval(t); };
+  }, [lineId]);
   // 2026-05-18-r5 — `pickedMachine` / hourly-panel wiring removed per
   // operator spec.  Chart-dot clicks now go straight to the video
   // popup; the per-machine slot summary panel is dead code (kept in
@@ -1777,6 +1796,85 @@ export default function WallboardLeft() {
           Trigger hidden; opened by the header-logo click below via the
           "tbdi:open-nav" window event. */}
       {createPortal(<SlideNav hideTrigger raise />, document.body)}
+      {/* 2026-10-08 — pending breakdown slips list (header B/D SLIPS pill).
+          Portal for the same reason as SlideNav: the wall may be rotated. */}
+      {bdOpen && createPortal((() => {
+        const slips = bdPend?.slips || [];
+        const fmtAge = (m) => m == null ? "—"
+          : m >= 1440 ? `${Math.floor(m / 1440)}d ${Math.floor((m % 1440) / 60)}h`
+          : m >= 60 ? `${Math.floor(m / 60)}h ${m % 60}m` : `${m}m`;
+        const hhmm = (iso) => iso ? String(iso).replace("T", " ").slice(5, 16) : "—";
+        const groups = [];
+        for (const s of slips) {
+          const k = `${s.slip_date || (s.bd_start || "").slice(0, 10)} · ${s.shift || "—"} SHIFT`;
+          let g = groups.find(x => x.k === k);
+          if (!g) { g = { k, items: [] }; groups.push(g); }
+          g.items.push(s);
+        }
+        return (
+          <div onClick={() => setBdOpen(false)}
+               style={{ position: "fixed", inset: 0, background: "rgba(2,6,23,.6)", zIndex: 10050,
+                        display: "flex", alignItems: "flex-start", justifyContent: "center",
+                        padding: "6vh 12px", overflowY: "auto" }}>
+            <div onClick={e => e.stopPropagation()}
+                 style={{ width: "100%", maxWidth: 760, background: card, color: text,
+                          border: `1px solid ${border}`, borderRadius: 12,
+                          boxShadow: "0 20px 60px rgba(0,0,0,.5)", overflow: "hidden" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 16px",
+                            borderBottom: `1px solid ${border}` }}>
+                <strong style={{ fontSize: 15 }}>Pending breakdown slips</strong>
+                <span style={{ fontSize: 12, color: textMut }}>{summary?.kpi?.line_name || ""} · {slips.length}</span>
+                <span style={{ marginLeft: "auto", fontSize: 11, color: textMut }}>
+                  After shift end + {bdPend?.grace_min ?? 30} min only the Shift Incharge can fill
+                </span>
+                <button onClick={() => setBdOpen(false)}
+                  style={{ border: "none", background: "transparent", color: textMut, fontSize: 20,
+                           cursor: "pointer", lineHeight: 1 }}>×</button>
+              </div>
+              {slips.length === 0 && (
+                <div style={{ padding: 18, color: textMut, fontSize: 13 }}>No breakdown slip pending for this line.</div>
+              )}
+              {groups.map(g => (
+                <div key={g.k}>
+                  <div style={{ padding: "8px 16px", fontSize: 11, fontWeight: 800, letterSpacing: ".06em",
+                                color: textSub, background: D ? "#0a1322" : "#f1f5f9" }}>
+                    {g.k} · {g.items.length}
+                  </div>
+                  {g.items.map(s => (
+                    <div key={`${s.src}-${s.id}`}
+                         style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",
+                                  padding: "10px 16px", borderTop: `1px solid ${border}`, fontSize: 13 }}>
+                      <strong>#{s.id}</strong>
+                      <span style={{ minWidth: 0, flex: "1 1 220px" }}>
+                        {s.machine_name || s.machine_no || "—"}
+                        <span style={{ color: textMut }}> · {s.src === "toolroom" ? "Tool Room" : "Maintenance"}</span>
+                      </span>
+                      <span style={{ color: textSub }}>B/D start {hhmm(s.bd_start)}</span>
+                      <span style={{ color: s.pending_min >= 60 ? badClr : warnClr, fontWeight: 800 }}>
+                        pending {fmtAge(s.pending_min)}
+                      </span>
+                      {s.locked && (
+                        <span title={`Window closed ${hhmm(s.fill_deadline)}`}
+                              style={{ fontSize: 11, fontWeight: 800, color: badClr,
+                                       border: `1px solid ${badClr}55`, borderRadius: 99, padding: "1px 8px" }}>
+                          🔒 Shift Incharge only
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ))}
+              <div style={{ padding: "10px 16px", borderTop: `1px solid ${border}`, display: "flex", justifyContent: "flex-end" }}>
+                <button onClick={() => window.open("/prod-breakdown-slip", "_blank")}
+                  style={{ fontSize: 12, fontWeight: 800, padding: "6px 14px", borderRadius: 8, cursor: "pointer",
+                           background: "#2563eb", color: "#fff", border: "1px solid #2563eb" }}>
+                  Open Breakdown Slip page
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })(), document.body)}
       {/* Header bar — 2026-05-18-r13 — Rebuilt to match Fullscreen.jsx
           header style (operator spec: "second screenshot wale me
           light dark ka option nhi aaya or ye line 2 kya h same head
@@ -1918,6 +2016,26 @@ export default function WallboardLeft() {
                               whiteSpace: "nowrap" }}>
                 {st}
               </span>
+            );
+          })()}
+
+          {/* 2026-10-08 — pending breakdown slips of this line; click = list */}
+          {bdPend && (() => {
+            const n = bdPend.count || 0;
+            const late = (bdPend.slips || []).filter(s => s.locked).length;
+            const c = n ? badClr : textMut;
+            return (
+              <button onClick={() => setBdOpen(true)}
+                title={n ? `${n} breakdown slip(s) pending — click for the list` : "No breakdown slip pending"}
+                style={{ fontSize: 11, fontWeight: 800, padding: "3px 10px", borderRadius: 99,
+                         cursor: "pointer", whiteSpace: "nowrap",
+                         background: n ? `${badClr}18` : "transparent",
+                         border: `1px solid ${n ? `${badClr}66` : border}`, color: c,
+                         display: "inline-flex", alignItems: "center", gap: 6 }}>
+                <span style={{ fontSize: 9, opacity: .8, textTransform: "uppercase", letterSpacing: ".06em" }}>B/D Slips</span>
+                <strong style={{ fontSize: 13 }}>{n}</strong>
+                {late > 0 && <span style={{ fontSize: 9, fontWeight: 800 }}>🔒 {late}</span>}
+              </button>
             );
           })()}
 

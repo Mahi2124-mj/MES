@@ -974,8 +974,9 @@ def _scope_lines_compiled(cur, user, zone_only=False, zone_id=None, line_ids=Non
 def _required_manpower(cur, line_id):
     try:
         cur.execute("SAVEPOINT _rm")
+        # is_active: hidden columns (machine no longer on the line) need nobody
         cur.execute("""SELECT COALESCE(SUM(required_manpower_count),0) AS n
-                         FROM mes_processes WHERE line_id=%s""", (line_id,))
+                         FROM mes_processes WHERE line_id=%s AND is_active""", (line_id,))
         n = int((cur.fetchone() or {}).get("n") or 0)
         cur.execute("RELEASE SAVEPOINT _rm")
         return n

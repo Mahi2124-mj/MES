@@ -98,10 +98,15 @@ def peff_data(line_id: int = Query(...),
         #    Rows were first created in machine_no order, so ORDER BY id
         #    reproduces the physical SS-01.. sequence; the manual (NULL-
         #    machine) "Manual Movement" step is excluded here.
+        # 2026-10-08 — columns now follow the MES machine editor (plc_config_id);
+        # E-Ring has no PLC and became a manual column but is still a station,
+        # so it stays on the sheet.  Order = the Shift Allocation order.
         cur.execute("""
             SELECT id, process_name FROM mes_processes
-             WHERE line_id=%s AND machine_id IS NOT NULL AND is_active
-             ORDER BY id
+             WHERE line_id=%s AND is_active
+               AND (plc_config_id IS NOT NULL OR machine_id IS NOT NULL
+                    OR process_name ~* 'e[ _-]*ring')
+             ORDER BY display_order, id
         """, (line_id,))
         mrows = cur.fetchall()
 

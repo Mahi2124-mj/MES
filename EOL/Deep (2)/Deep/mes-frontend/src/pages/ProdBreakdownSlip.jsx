@@ -3,7 +3,7 @@
 //   first (PENDING_PRODUCTION). Production fills its half in the EXACT Toyota
 //   Boshoku "BREAK DOWN SLIP" (TBDI/MAINT/F/001) format — same as 9965 — and
 //   submits → PENDING_MAINTENANCE. Backed by /api/prod-breakdown-slips/*.
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { api } from "../api/client";
 import { useAuth } from "../context/AuthContext";
 import PageTopbar from "../components/PageTopbar";
@@ -21,7 +21,15 @@ const ageTxt = (d, t) => {
 
 // production-editable fields on an AUTO slip (rest come from ANDON, locked)
 const EDITABLE = new Set(["machine_no", "line_leader_name", "machine_operator_name", "model_no",
-                          "category", "frequency", "problem_reported_by_production"]);
+                          // frequency: read-only since 2026-10-08 (operator)
+                          "category", "problem_reported_by_production",
+                          "bd_attended_by"]);
+
+// B/D ATTENDED BY is stored as one text column ("A, B").  Older slips were
+// typed by hand with "/", "&" etc. between names, so split on those too.
+const BD_ATTENDED_MAX = 160;   // maintenance_db column is VARCHAR(160)
+const splitNames = (s) => [...new Set(String(s || "")
+  .split(/\s*(?:,|\/|&|;|\n)\s*/).map(x => x.trim().toUpperCase()).filter(Boolean))];
 
 export default function ProdBreakdownSlip() {
   const { token } = useAuth();
@@ -35,6 +43,12 @@ export default function ProdBreakdownSlip() {
   // manpower allocation.  /api/leaders/slip-defaults returns both.
   const [leaderOpts, setLeaderOpts] = useState([]);   // [{id,name,signature_image}]
   const [signature,  setSignature]  = useState(null); // data URL of the picked leader
+  // 2026-10-08 — B/D ATTENDED BY options: the maintenance people on duty now
+  // (attendance board, current shift).  MACHINE OPERATOR NAME comes from Shift
+  // Allocation for the picked machine; autoOp remembers what WE filled so a
+  // machine change replaces it but never a name the user typed.
+  const [attendees, setAttendees] = useState({ shift: "", people: [] });
+  const autoOp = useRef("");
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState(null);
 
@@ -49,11 +63,74 @@ export default function ProdBreakdownSlip() {
   useEffect(() => { load(); }, [load]);
   useEffect(() => { const t = setInterval(load, 15000); return () => clearInterval(t); }, [load]);
 
+  // 2026-10-08 — ZONE / LINE buttons like Shift Compile, each with how many
+  // slips are pending there.  Built from the pending list itself, so a button
+  // appears only where something is pending; "" = all.
+  const [zoneSel, setZoneSel] = useState("");
+  const [lineSel, setLineSel] = useState("");
+  const zoneGroups = useMemo(() => {
+    const zs = new Map();
+    for (const r of rows) {
+      const z = r.zone || "—", l = r.line || "—";
+      if (!zs.has(z)) zs.set(z, { name: z, count: 0, lines: new Map() });
+      const g = zs.get(z);
+      g.count += 1;
+      g.lines.set(l, (g.lines.get(l) || 0) + 1);
+    }
+    return [...zs.values()].sort((a, b) => b.count - a.count || a.name.localeCompare(b.name))
+      .map(g => ({ ...g, lines: [...g.lines.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])) }));
+  }, [rows]);
+  // a refresh can empty the selected zone / line → fall back to all
+  useEffect(() => {
+    const g = zoneGroups.find(z => z.name === zoneSel);
+    if (zoneSel && !g) { setZoneSel(""); setLineSel(""); }
+    else if (lineSel && !(g ? g.lines : zoneGroups.flatMap(z => z.lines)).some(([l]) => l === lineSel)) setLineSel("");
+  }, [zoneGroups, zoneSel, lineSel]);
+  const lineChoices = zoneSel
+    ? (zoneGroups.find(z => z.name === zoneSel)?.lines || [])
+    : zoneGroups.flatMap(z => z.lines).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+  const shown = rows.filter(r => (!zoneSel || (r.zone || "—") === zoneSel)
+                              && (!lineSel || (r.line || "—") === lineSel));
+
+  // Operator(s) Shift Allocation put on this machine for the slip's shift.
+  const lookupOperator = useCallback(async (s, machineName) => {
+    if (!s || !String(machineName || "").trim()) return [];
+    const q = new URLSearchParams({ line: s.line || "", machine_name: machineName });
+    const d0 = s.slip_date || s.bd_start_date;
+    if (d0) q.set("date", String(d0).slice(0, 10));
+    if (s.shift) q.set("shift", s.shift);
+    if (s.bd_start_time) q.set("time", String(s.bd_start_time).slice(0, 5));
+    try {
+      const d = await api.get(`/api/prod-breakdown-slips/allocated-operator?${q}`, token);
+      return Array.isArray(d?.operators) ? d.operators : [];
+    } catch { return []; }
+  }, [token]);
+
+  // Fill MACHINE OPERATOR NAME unless the user typed their own name there.
+  const applyOperator = (ops) => setSlip(s2 => {
+    if (!s2) return s2;
+    const cur = String(s2.machine_operator_name || "").trim();
+    if (cur && cur !== autoOp.current) return s2;
+    const next = ops.length ? ops.join(", ").toUpperCase() : (cur === autoOp.current ? "" : cur);
+    autoOp.current = ops.length ? next : "";
+    return { ...s2, machine_operator_name: next };
+  });
+
   const open = async (r) => {
     // fetch the full slip (all fields) so the slip form is complete
     let t = r;
     try { t = await api.get(`/api/prod-breakdown-slips/${r.id}?src=${r.src}`, token); } catch {}
+    autoOp.current = "";
     setSlip({ ...t, src: r.src });
+    // on-duty maintenance people → B/D ATTENDED BY dropdown
+    setAttendees({ shift: "", people: [] });
+    api.get("/api/prod-breakdown-slips/attendees", token)
+      .then(a => setAttendees({ shift: a?.shift || "", people: Array.isArray(a?.people) ? a.people : [] }))
+      .catch(() => {});
+    // ANDON usually sends the machine already → fill its operator straight away
+    if (t.machine_name && !String(t.machine_operator_name || "").trim()) {
+      lookupOperator(t, t.machine_name).then(applyOperator);
+    }
     // machine master for this (zone, line) → MACHINE NO. dropdown
     setMachines([]);
     try {
@@ -73,14 +150,13 @@ export default function ProdBreakdownSlip() {
       if (t.shift)     q.set("shift", t.shift);
       const d = await api.get(`/api/leaders/slip-defaults?${q}`, token);
       setLeaderOpts(d.leader_options || []);
-      const opNames = (d.operators || []).map(o => o.name).filter(Boolean);
+      // (operator name now comes per machine from lookupOperator above,
+      //  not as every operator allocated to the line)
       setSlip(s2 => {
         if (!s2) return s2;
         const next = { ...s2 };
         if (!String(next.line_leader_name || "").trim() && d.leader?.name)
           next.line_leader_name = d.leader.name;
-        if (!String(next.machine_operator_name || "").trim() && opNames.length)
-          next.machine_operator_name = opNames.join(", ");
         return next;
       });
       if (d.leader?.signature_image) setSignature(d.leader.signature_image);
@@ -94,11 +170,13 @@ export default function ProdBreakdownSlip() {
     setSlip(s2 => ({ ...s2, line_leader_name: name }));
   };
   const set = (k) => (v) => setSlip(s => ({ ...s, [k]: v }));
-  // picking a MACHINE NO. auto-fills MACHINE NAME (like the 9965 form)
-  const onPickMachine = (mno) => setSlip(s => {
+  // picking a MACHINE NO. auto-fills MACHINE NAME (like the 9965 form), and
+  // MACHINE OPERATOR NAME from Shift Allocation for that machine
+  const onPickMachine = (mno) => {
     const hit = machines.find(m => String(m.machine_no) === String(mno));
-    return { ...s, machine_no: mno, machine_name: hit ? hit.machine_name : s.machine_name };
-  });
+    setSlip(s => ({ ...s, machine_no: mno, machine_name: hit ? hit.machine_name : s.machine_name }));
+    if (hit?.machine_name && slip) lookupOperator(slip, hit.machine_name).then(applyOperator);
+  };
 
   const submit = async () => {
     if (!slip) return;
@@ -115,6 +193,7 @@ export default function ProdBreakdownSlip() {
           category: slip.category,
           frequency: Number(slip.frequency) || 1,
           problem_reported_by_production: slip.problem_reported_by_production,
+          bd_attended_by: slip.bd_attended_by,
         } }, token);
       flash("Submitted ✓ — maintenance ko bhej diya");
       setSlip(null); await load();
@@ -128,14 +207,18 @@ export default function ProdBreakdownSlip() {
   // editable production field is filled. (frequency defaults to 1; times/dates
   // are ANDON-locked so they don't gate.)
   const REQUIRED = ["machine_no", "line_leader_name", "machine_operator_name",
-                    "model_no", "category", "problem_reported_by_production"];
+                    "model_no", "category", "problem_reported_by_production",
+                    "bd_attended_by"];
   const missing = slip ? REQUIRED.filter(k => !String(slip[k] ?? "").trim())
-                         .concat(Number(slip.frequency) >= 1 ? [] : ["frequency"]) : [];
-  const complete = !!slip && missing.length === 0;
+                         : [];   // frequency is read-only (saved as the slip's value, else 1) — no gate
+  // 30-minute rule: past its shift end + 30 min only the Shift Incharge may
+  // fill a slip (the server refuses everyone else too).
+  const lockedOut = !!slip && slip.can_fill === false;
+  const complete = !!slip && missing.length === 0 && !lockedOut;
   const LBL = { machine_no: "MACHINE NO.", line_leader_name: "LINE LEADER NAME",
                 machine_operator_name: "MACHINE OPERATOR NAME", model_no: "MODEL NO.",
                 category: "CATEGORY", problem_reported_by_production: "PROBLEM REPORTED BY PRODUCTION",
-                frequency: "FREQUENCY" };
+                frequency: "FREQUENCY", bd_attended_by: "B/D ATTENDED BY" };
 
   return (
     <div style={{ padding: "18px 22px 60px", color: "#0f172a" }}>
@@ -148,11 +231,40 @@ export default function ProdBreakdownSlip() {
         <button onClick={load} style={{ ...btnGhost, marginLeft: "auto" }}>↻ Refresh</button>
       </div>
 
+      {/* ZONE / LINE buttons (like Shift Compile) — pending count on each */}
+      {rows.length > 0 && (<>
+        <div style={{ fontSize: 12, fontWeight: 700, color: "#64748b", margin: "6px 0 6px" }}>ZONE</div>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
+          <button onClick={() => { setZoneSel(""); setLineSel(""); }} style={pill(!zoneSel)}>
+            All <span style={badge(!zoneSel)}>{rows.length}</span>
+          </button>
+          {zoneGroups.map(z => (
+            <button key={z.name} onClick={() => { setZoneSel(z.name); setLineSel(""); }}
+              style={pill(zoneSel === z.name)}>
+              {z.name.replace(/_/g, " ")} <span style={badge(zoneSel === z.name)}>{z.count}</span>
+            </button>
+          ))}
+        </div>
+        <div style={{ fontSize: 12, fontWeight: 700, color: "#64748b", margin: "6px 0 6px" }}>LINE</div>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 14 }}>
+          <button onClick={() => setLineSel("")} style={pill(!lineSel)}>
+            All lines <span style={badge(!lineSel)}>
+              {zoneSel ? (zoneGroups.find(z => z.name === zoneSel)?.count || 0) : rows.length}
+            </span>
+          </button>
+          {lineChoices.map(([l, n]) => (
+            <button key={l} onClick={() => setLineSel(l)} style={pill(lineSel === l)}>
+              {l.replace(/_/g, "-")} <span style={badge(lineSel === l)}>{n}</span>
+            </button>
+          ))}
+        </div>
+      </>)}
+
       <div style={{ border: "1px solid #e5e7eb", borderRadius: 14, background: "#fff", overflow: "hidden", maxWidth: 900 }}>
         {loading && <div style={{ padding: 16, color: "#94a3b8" }}>Loading…</div>}
         {!loading && rows.length === 0 &&
           <div style={{ padding: 16, color: "#94a3b8" }}>Koi pending breakdown slip nahi. 👍</div>}
-        {rows.map(r => (
+        {shown.map(r => (
           <div key={`${r.src}-${r.id}`} onClick={() => open(r)}
             style={{ padding: "12px 14px", borderTop: "1px solid #eef2f7", cursor: "pointer",
               borderLeft: `4px solid ${r.src === "toolroom" ? "#b45309" : "#0e7490"}` }}>
@@ -166,6 +278,13 @@ export default function ProdBreakdownSlip() {
               <span>{r.zone}</span>{r.model_no && <span>· {r.model_no}</span>}
               <span>· start {String(r.bd_start_time || "").slice(0, 5)}</span>
               {r.mc_down_time_minutes != null && <span>· down {r.mc_down_time_minutes}m</span>}
+              {r.locked && (
+                <span title={`Fill window closed ${String(r.fill_deadline || "").replace("T", " ")}`}
+                  style={{ background: "#fef2f2", color: "#b91c1c", border: "1px solid #fecaca",
+                    borderRadius: 999, padding: "1px 9px", fontWeight: 700 }}>
+                  🔒 Shift Incharge only
+                </span>
+              )}
             </div>
           </div>
         ))}
@@ -256,7 +375,7 @@ export default function ProdBreakdownSlip() {
                 <Cell label="RESPONSE TIME ( MIN )" type="number" value={slip.response_time_minutes} readOnly />
                 <Cell label="B/D OK TIME" type="time" value={slip.bd_ok_time} readOnly />
                 <Cell label="M/C DOWN TIME ( MIN )" type="number" value={slip.mc_down_time_minutes} readOnly />
-                <Cell label="FREQUENCY" type="number" value={slip.frequency} readOnly={!ed("frequency")} onChange={set("frequency")} />
+                <Cell label="FREQUENCY" type="number" value={Number(slip.frequency) || 1} readOnly />
                 <Cell label="B/D START DATE" type="date" value={slip.bd_start_date} readOnly />
                 <Cell label="B/D END DATE" type="date" value={slip.bd_end_date} readOnly />
                 <div />
@@ -266,9 +385,23 @@ export default function ProdBreakdownSlip() {
               <Row label="PROBLEM REPORTED BY PRODUCTION" value={slip.problem_reported_by_production}
                 readOnly={!ed("problem_reported_by_production")} onChange={set("problem_reported_by_production")} />
 
+              {/* B/D ATTENDED BY — filled by production now, picked from the
+                  maintenance people on duty this shift (several allowed). */}
+              <AttendPicker value={slip.bd_attended_by} people={attendees.people}
+                shift={attendees.shift} readOnly={!ed("bd_attended_by")}
+                onChange={set("bd_attended_by")} />
+
               <div className="bds-divider">TO BE FILLED BY MAINTENANCE / TOOL ROOM :-</div>
             </div>
 
+            {slip.locked && (
+              <div style={{ padding: "10px 16px", borderTop: "1.5px solid #0f172a",
+                background: lockedOut ? "#fef2f2" : "#fffbeb",
+                color: lockedOut ? "#b91c1c" : "#92400e", fontSize: 13, fontWeight: 700 }}>
+                🔒 Shift ended more than 30 min ago (window closed {String(slip.fill_deadline || "").replace("T", " ")}).
+                {lockedOut ? " Only the Shift Incharge can fill this slip now." : " You are filling it as Shift Incharge."}
+              </div>
+            )}
             {/* actions — Submit disabled till EVERY field filled (like 9965) */}
             <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap",
               padding: "14px 16px", borderTop: "1.5px solid #0f172a", background: "#f8fafc" }}>
@@ -279,7 +412,7 @@ export default function ProdBreakdownSlip() {
                 {saving ? "Submitting…" : "Submit → Maintenance"}
               </button>
               <button onClick={() => setSlip(null)} style={btnGhost}>Cancel</button>
-              {!complete && (
+              {!complete && missing.length > 0 && (
                 <span style={{ fontSize: 12, color: "#b45309", fontWeight: 700 }}>
                   Baaki bharein: {missing.map(k => LBL[k] || k).join(", ")}
                 </span>
@@ -339,6 +472,80 @@ function Row({ label, value, readOnly, onChange }) {
     </div>
   );
 }
+
+// B/D ATTENDED BY — several names.  The dropdown lists the maintenance people
+// on duty this shift (attendance board); a name that is not on the board (e.g.
+// Tool Room) can still be typed and added.  Stored as "NAME1, NAME2".
+function AttendPicker({ value, people, shift, readOnly, onChange }) {
+  const picked = splitNames(value);
+  const [typed, setTyped] = useState("");
+  const [warn, setWarn] = useState("");
+  const add = (name) => {
+    const v = String(name || "").trim().toUpperCase();
+    if (!v || picked.includes(v)) return;
+    const next = [...picked, v].join(", ");
+    if (next.length > BD_ATTENDED_MAX) { setWarn(`Too many names (max ${BD_ATTENDED_MAX} characters).`); return; }
+    setWarn("");
+    onChange(next);
+  };
+  const remove = (name) => { setWarn(""); onChange(picked.filter(n => n !== name).join(", ")); };
+  const options = (people || []).map(p => String(p.name || "").trim().toUpperCase())
+                                .filter(n => n && !picked.includes(n));
+  const chip = { display: "inline-flex", alignItems: "center", gap: 6, background: "#e0f2fe",
+    color: "#075985", border: "1px solid #7dd3fc", borderRadius: 999, padding: "3px 6px 3px 10px",
+    fontSize: 12, fontWeight: 700 };
+  const ctl = { border: "1px solid #cbd5e1", borderRadius: 6, padding: "5px 8px", fontSize: 12,
+    fontWeight: 600, fontFamily: "inherit", color: "#0f172a", background: "#fff" };
+  return (
+    <div className="bds-row">
+      <div className="bds-row-label" style={{ flexDirection: "column", alignItems: "flex-start", justifyContent: "center", gap: 2 }}>
+        <span>B/D ATTENDED BY</span>
+        {!readOnly && shift && (
+          <span style={{ fontSize: 9, fontWeight: 600, color: "#64748b" }}>On duty now: {shift} shift</span>
+        )}
+      </div>
+      <div className="bds-row-input" style={{ display: "flex", flexWrap: "wrap", alignItems: "center",
+        gap: 6, padding: "6px 10px" }}>
+        {picked.map(n => (
+          <span key={n} style={chip}>
+            {n}
+            {!readOnly && (
+              <button type="button" onClick={() => remove(n)} title="Remove"
+                style={{ border: "none", background: "transparent", color: "#0369a1", cursor: "pointer",
+                  fontSize: 14, fontWeight: 800, lineHeight: 1, padding: "0 2px" }}>×</button>
+            )}
+          </span>
+        ))}
+        {!readOnly && (
+          <>
+            <select value="" onChange={e => add(e.target.value)} style={{ ...ctl, cursor: "pointer" }}
+              disabled={!options.length}>
+              <option value="">{options.length ? "+ Select name" : "No one else on duty"}</option>
+              {options.map(n => <option key={n} value={n}>{n}</option>)}
+            </select>
+            <input value={typed} placeholder="Other name"
+              onChange={e => setTyped(e.target.value.toUpperCase())}
+              onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); add(typed); setTyped(""); } }}
+              style={{ ...ctl, width: 140 }} />
+            <button type="button" onClick={() => { add(typed); setTyped(""); }} disabled={!typed.trim()}
+              style={{ ...ctl, cursor: typed.trim() ? "pointer" : "not-allowed", color: "#2563eb" }}>Add</button>
+          </>
+        )}
+        {readOnly && !picked.length && <span style={{ color: "#94a3b8", fontSize: 12 }}>—</span>}
+        {warn && <span style={{ fontSize: 11, color: "#b91c1c", fontWeight: 700 }}>{warn}</span>}
+      </div>
+    </div>
+  );
+}
+
+// ZONE / LINE pills — same look as Shift Compile; the count badge is red while
+// anything is pending there.
+const pill = (on) => ({ background: on ? "#2563eb" : "#fff", color: on ? "#fff" : "#334155",
+  border: `1px solid ${on ? "#2563eb" : "#cbd5e1"}`, borderRadius: 999, padding: "7px 16px",
+  fontSize: 14, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 8 });
+const badge = (on) => ({ background: on ? "#fff" : "#fee2e2", color: on ? "#1d4ed8" : "#b91c1c",
+  borderRadius: 999, padding: "0 8px", fontSize: 12, fontWeight: 800, lineHeight: "20px", minWidth: 20,
+  textAlign: "center" });
 
 const btnPrimary = { background: "#2563eb", color: "#fff", border: "1px solid #2563eb", borderRadius: 8,
   padding: "10px 20px", fontSize: 14, fontWeight: 700, cursor: "pointer" };

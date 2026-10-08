@@ -105,6 +105,16 @@ def _ensure_tables() -> None:
         # Late-migration for installs created before machine_id column
         cur.execute("ALTER TABLE mes_processes ADD COLUMN IF NOT EXISTS machine_id INTEGER")
         cur.execute("CREATE UNIQUE INDEX IF NOT EXISTS uq_processes_line_machine ON mes_processes (line_id, machine_id) WHERE machine_id IS NOT NULL")
+        # 2026-10-08 — columns now follow the MES machine editor
+        # (mes_plc_configs); this links a column to its machine there.
+        # Catalog check first: ALTER takes an exclusive lock even when the
+        # column already exists (see the energy_per_part convoy).
+        cur.execute("""SELECT 1 FROM pg_attribute
+                        WHERE attrelid = 'mes_processes'::regclass
+                          AND attname = 'plc_config_id' AND NOT attisdropped""")
+        if not cur.fetchone():
+            cur.execute("ALTER TABLE mes_processes ADD COLUMN IF NOT EXISTS plc_config_id INTEGER")
+        cur.execute("CREATE UNIQUE INDEX IF NOT EXISTS uq_processes_line_plc ON mes_processes (line_id, plc_config_id) WHERE plc_config_id IS NOT NULL")
         # 2) Operator skill column on existing master
         cur.execute("""
             ALTER TABLE mes_operators
@@ -326,6 +336,149 @@ def _seed_processes_from_machines(line_id: int) -> None:
         conn.commit()
 
 
+# ── 2026-10-08 — columns follow the MES machine editor ───────────────────
+# Operator: "shift allocation me jo machine line me hai hi nahi vo kyu aa rahi".
+# The columns used to come from mes_machines (the maintenance machine master),
+# which for several lines is a copied template: YNC-SS showed Rail Assy /
+# E-Ring / Advance Bending although the line has Ball Guide 1/2, Loop Pipe-2
+# had duplicates, recliners lacked ST #1 / ST #2.  Now the source is
+# mes_plc_configs — the machines the line actually runs with (the dashboards
+# use the same list).  _seed_processes_from_machines above is no longer called.
+#
+# First run per line ADOPTS the existing column that matches a machine by name,
+# so its skill / manpower / order and every past allocation stay with it.
+# Leftover machine columns are hidden (never deleted — history keeps them),
+# except E-Ring, which has no PLC but is a manned station: it becomes a manual
+# column like Manual Movement (operator's decision).  Manual columns are never
+# touched, and a column an admin hid stays hidden.
+import difflib
+import re as _re
+
+_ADOPT_MIN = 0.80
+_ERING = _re.compile(r"\be[\s_-]*ring", _re.I)
+
+
+def _pname(s: str) -> str:
+    s = _re.sub(r"[^a-z0-9]", "", (s or "").lower())
+    return s.replace("machine", "mc")
+
+
+def _name_score(a: str, b: str) -> float:
+    x, y = _pname(a), _pname(b)
+    if not x or not y:
+        return 0.0
+    if x == y:
+        return 1.0
+    r = difflib.SequenceMatcher(None, x, y).ratio()
+    short, long_ = sorted((x, y), key=len)
+    if len(short) >= 6 and long_.startswith(short):
+        r = max(r, 0.85)                     # "Semi-Auto" vs "Semi Automatic & Bending"
+    if len(_os_commonprefix(x, y)) >= 14:
+        r = max(r, 0.82)                     # "LOWER RAIL GREASING" vs "Lower Rail Grease & Bar Coding"
+    return r
+
+
+def _os_commonprefix(a: str, b: str) -> str:
+    n = 0
+    while n < min(len(a), len(b)) and a[n] == b[n]:
+        n += 1
+    return a[:n]
+
+
+def _plan_columns(cfgs: list, rows: list) -> dict:
+    """What has to change so a line's columns match its machines.
+
+    cfgs: [{id, machine_name}] in editor order.  rows: the line's mes_processes.
+    Pure — the seed applies it, the dry run only prints it."""
+    plan = {"rename": [], "adopt": [], "hide": [], "manual": [], "new": []}
+    cfg_ids = {c["id"] for c in cfgs}
+    linked = {r["plc_config_id"]: r for r in rows if r.get("plc_config_id") is not None}
+    for cid, r in linked.items():
+        if cid not in cfg_ids and r["is_active"]:
+            plan["hide"].append((r["id"], r["process_name"], "machine removed from the line"))
+    legacy = [r for r in rows if r.get("plc_config_id") is None and r.get("machine_id") is not None]
+    want = [c for c in cfgs if c["id"] not in linked]
+    pairs = sorted(((_name_score(c["machine_name"], r["process_name"]), c["id"], r["id"])
+                    for c in want for r in legacy), reverse=True)
+    took_c, took_r, row_of = set(), set(), {}
+    for s, cid, rid in pairs:
+        if s < _ADOPT_MIN or cid in took_c or rid in took_r:
+            continue
+        took_c.add(cid); took_r.add(rid); row_of[cid] = rid
+    # A one-machine line (2UA RECLINER "2UA" vs "Hinge Pin Push Nut In
+    # Recliner 2UA M/c") names the same station differently in the two
+    # masters: one machine, one active machine column → the same thing.
+    if len(cfgs) == 1 and not took_c and want:
+        lone = [r for r in legacy if r["is_active"] and not _ERING.search(r["process_name"] or "")]
+        if len(lone) == 1:
+            took_c.add(want[0]["id"]); took_r.add(lone[0]["id"]); row_of[want[0]["id"]] = lone[0]["id"]
+    by_id = {r["id"]: r for r in rows}
+    for c in cfgs:
+        name = c["machine_name"].strip()
+        if c["id"] in linked and linked[c["id"]]["process_name"] != name:
+            plan["rename"].append((linked[c["id"]]["id"], name))
+        if c["id"] in row_of:
+            plan["adopt"].append((row_of[c["id"]], c["id"], name, by_id[row_of[c["id"]]]["process_name"]))
+    for r in legacy:
+        if r["id"] in took_r or not r["is_active"]:
+            continue
+        if _ERING.search(r["process_name"] or ""):
+            plan["manual"].append((r["id"], r["process_name"]))
+        else:
+            plan["hide"].append((r["id"], r["process_name"], "no such machine on the line"))
+    # new machines go right after their predecessor in the editor's order
+    order_of = {}
+    for r in rows:
+        if r.get("plc_config_id") is not None:
+            order_of[r["plc_config_id"]] = r["display_order"]
+    for rid, cid, _n, _o in plan["adopt"]:
+        order_of[cid] = by_id[rid]["display_order"]
+    last = 0
+    for c in cfgs:
+        if c["id"] in order_of:
+            last = order_of[c["id"]]
+        else:
+            last += 1
+            plan["new"].append((c["id"], c["machine_name"].strip(), last))
+    return plan
+
+
+def _seed_processes_from_plc_configs(line_id: int) -> Optional[dict]:
+    """Apply _plan_columns for one line.  Serialised per line with an advisory
+    lock, since every API worker seeds on GET."""
+    with get_conn() as conn:
+        cur = dict_cursor(conn)
+        cur.execute("SELECT pg_advisory_xact_lock(%s, %s)", (7_202_610, line_id))
+        cur.execute("""SELECT id, machine_name FROM mes_plc_configs
+                        WHERE line_id = %s ORDER BY machine_seq NULLS LAST, id""", (line_id,))
+        cfgs = [r for r in cur.fetchall() if (r["machine_name"] or "").strip()]
+        if not cfgs:
+            return None                      # no machines in the editor → leave the columns alone
+        cur.execute("""SELECT id, machine_id, plc_config_id, process_name, display_order, is_active
+                         FROM mes_processes WHERE line_id = %s""", (line_id,))
+        plan = _plan_columns(cfgs, cur.fetchall())
+        w = conn.cursor()
+        for rid, name in plan["rename"]:
+            w.execute("UPDATE mes_processes SET process_name=%s, updated_at=NOW() WHERE id=%s",
+                      (name[:120], rid))
+        for rid, cid, name, _old in plan["adopt"]:
+            w.execute("""UPDATE mes_processes SET plc_config_id=%s, process_name=%s,
+                                is_active=TRUE, updated_at=NOW() WHERE id=%s""",
+                      (cid, name[:120], rid))
+        for rid, _name, _why in plan["hide"]:
+            w.execute("UPDATE mes_processes SET is_active=FALSE, updated_at=NOW() WHERE id=%s", (rid,))
+        for rid, _name in plan["manual"]:
+            w.execute("UPDATE mes_processes SET machine_id=NULL, updated_at=NOW() WHERE id=%s", (rid,))
+        for cid, name, order in plan["new"]:
+            w.execute("""INSERT INTO mes_processes
+                             (line_id, plc_config_id, process_name, required_skill_level,
+                              required_manpower_count, machines_covered, display_order, is_active)
+                         VALUES (%s, %s, %s, 3, 1, 1, %s, TRUE)""",
+                      (line_id, cid, name[:120], order))
+        conn.commit()
+        return plan
+
+
 class ProcessUpdate(BaseModel):
     """What Section Incharge is allowed to change."""
     required_skill_level:    int = 3
@@ -337,14 +490,14 @@ class ProcessUpdate(BaseModel):
 
 @router.get("/processes")
 def list_processes(line_id: Optional[int] = None, user=Depends(get_current_user)):
-    """Auto-seeds from mes_machines on every call so the list always
-    matches the live machine master.  Renames propagate, new machines
-    appear automatically, retired machines stay (so historical
-    allocations resolve their name)."""
+    """Auto-seeds from the MES machine editor (mes_plc_configs) on every call
+    so the columns always match the line's machines.  Renames propagate,
+    new machines appear automatically, removed ones are hidden (kept, so
+    historical allocations resolve their name)."""
     _ensure_tables()
     if line_id is not None:
         try:
-            _seed_processes_from_machines(line_id)
+            _seed_processes_from_plc_configs(line_id)
         except Exception as exc:
             # Seeding failure shouldn't kill the GET — log and continue
             # with whatever's already in the table.
