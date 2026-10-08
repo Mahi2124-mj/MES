@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, useRef } from 'react'
 import { GitBranch, MapPin, Video, Radio } from 'lucide-react'
 import { Bar, Cell, CartesianGrid, ComposedChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { api } from '../lib/api'
+import { API_BASE } from '../lib/base'
 import { useToast } from '../context/ToastContext'
 
 function SelectField({ label, value, onChange, options, disabled, icon: Icon }) {
@@ -112,7 +113,7 @@ function CycleGraphCard({ title, cycles, activeCycle, onOpenCycle, onCloseCycle,
   const summary  = summarizeCycles(cycles)
   const maxVal   = cycles.length ? Math.max(...cycles.map((r) => r.duration)) : 80
   const ticks    = logTicks(maxVal)
-  const videoUrl = activeCycle?.file_path ? `/api/video?path=${encodeURIComponent(activeCycle.file_path)}` : null
+  const videoUrl = activeCycle?.file_path ? `${API_BASE}/video?path=${encodeURIComponent(activeCycle.file_path)}` : null
 
   const chartW   = Math.max(500, cycles.length * BAR_PX)
   const scrollRef = useRef(null)

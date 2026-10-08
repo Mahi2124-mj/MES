@@ -167,3 +167,6 @@ temp/
 # ════════════════════════════════════════════════════════════════════
 collector_engine.py.OLD_DUPLICATE_*
 Phase2/collectors/*.OLD_*
+
+# 2026-10-09 — CMS build for the MES (/cms/), built from frontend/src
+dist_mes/

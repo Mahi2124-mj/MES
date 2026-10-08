@@ -21,6 +21,7 @@ const WeldMonitor = lazy(() => import("./pages/WeldMonitor"));
 const QualityDeviations = lazy(() => import("./pages/QualityDeviations"));
 const SaFiQualityHistory = lazy(() => import("./pages/SaFiQualityHistory"));
 const RedBinLock = lazy(() => import("./pages/RedBinLock"));
+const CmsPortal = lazy(() => import("./pages/CmsPortal"));
 const CommentsHistory = lazy(() => import("./pages/CommentsHistory"));
 const Historical = lazy(() => import("./pages/Historical"));
 const Audit = lazy(() => import("./pages/Audit"));
@@ -646,6 +647,8 @@ function AppRoutes() {
         <Protected requiredAccess="admin"><NetworkPanel /></Protected>
       } />
         <Route path="/logs" element={<Protected requiredAccess="logs"><LogViewer /></Protected>} />
+        {/* 2026-10-09 — CMS web app inside the MES, admin role only */}
+        <Route path="/cms-portal" element={<Protected requiredAccess="cms-portal"><CmsPortal /></Protected>} />
         <Route path="/video-coverage" element={<Protected requiredAccess="video-coverage"><VideoCoverage /></Protected>} />
         <Route path="/py-bypass" element={<Protected requiredAccess="py-bypass"><PyBypass /></Protected>} />
         {/* 2026-09-27 — faults recorded from the bits assigned in Fault Config */}

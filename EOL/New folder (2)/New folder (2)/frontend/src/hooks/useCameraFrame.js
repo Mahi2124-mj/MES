@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { cmsUrl } from '../lib/base'
 
 /**
  * Real-time camera feed hook.
@@ -39,7 +40,7 @@ export function useCameraFrame(cameraId, refreshMs = 2000) {
 
     const poll = () => {
       if (!mountedRef.current) return
-      const url = `/camera_frame/${cameraId}?t=${Date.now()}`
+      const url = cmsUrl(`/camera_frame/${cameraId}?t=${Date.now()}`)
       const img = new Image()
 
       img.onload = () => {
@@ -89,7 +90,7 @@ export function useCameraFrame(cameraId, refreshMs = 2000) {
     // 2 s snapshot fallback.  Relative URL fixes both.
     setP('stream')
     setOffline(false)
-    setSrc(`/live_feed/${cameraId}`)
+    setSrc(cmsUrl(`/live_feed/${cameraId}`))
 
     return () => {
       mountedRef.current = false

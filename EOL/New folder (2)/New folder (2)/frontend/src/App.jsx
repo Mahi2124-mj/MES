@@ -21,6 +21,7 @@ const MachineDetail = lazy(() => import('./pages/masters/MachineDetail'))
 const Dashboard     = lazy(() => import('./pages/Dashboard'))
 const CameraGrid    = lazy(() => import('./pages/monitor/CameraGrid'))
 const StorageAdmin  = lazy(() => import('./pages/admin/StorageAdmin'))
+const CameraCleanup  = lazy(() => import('./pages/admin/CameraCleanup'))
 
 function RequireAuth() {
   const { user, loading } = useAuth()
@@ -63,6 +64,7 @@ export default function App() {
               <Route path="/admin/machines"            element={<MachineMaster />} />
               <Route path="/admin/machines/:machineId" element={<MachineDetail />} />
               <Route path="/admin/storage"             element={<StorageAdmin />} />
+              <Route path="/admin/cameras"             element={<CameraCleanup />} />
 
               <Route path="/monitor/camera-grid" element={<CameraGrid />} />
 
@@ -70,7 +72,7 @@ export default function App() {
               <Route path="/masters/zones"     element={<Navigate to="/admin/zones"    replace />} />
               <Route path="/masters/lines"     element={<Navigate to="/admin/lines"    replace />} />
               <Route path="/masters/machines"  element={<Navigate to="/admin/machines" replace />} />
-              <Route path="/masters/cameras"   element={<Navigate to="/admin/machines" replace />} />
+              <Route path="/masters/cameras"   element={<Navigate to="/admin/cameras" replace />} />
               <Route path="/masters/plcs"      element={<Navigate to="/admin/machines" replace />} />
               <Route path="/config/camera-binding" element={<Navigate to="/admin/machines" replace />} />
               <Route path="/reports"           element={<Navigate to="/" replace />} />

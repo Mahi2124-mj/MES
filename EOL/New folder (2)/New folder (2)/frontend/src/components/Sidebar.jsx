@@ -21,6 +21,7 @@ const NAV = [
       { to: '/admin/zones',    label: 'Zones',    icon: MapPin    },
       { to: '/admin/lines',    label: 'Lines',    icon: GitBranch },
       { to: '/admin/machines', label: 'Machines', icon: Cpu       },
+      { to: '/admin/cameras',  label: 'Cameras',  icon: Camera    },
     ],
   },
   {

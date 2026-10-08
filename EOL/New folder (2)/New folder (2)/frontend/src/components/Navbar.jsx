@@ -10,6 +10,7 @@ const PT = {
   '/masters/lines':          { label: 'Line Master',   sub: 'Production lines',         crumbs: ['Masters'] },
   '/masters/machines':       { label: 'Machine Master',sub: 'Machine registry',         crumbs: ['Masters'] },
   '/masters/cameras':        { label: 'Camera Master', sub: 'RTSP source registry',     crumbs: ['Masters'] },
+  '/admin/cameras':          { label: 'Cameras',       sub: 'Delete cameras no machine uses', crumbs: ['Camera Admin'] },
   '/masters/plcs':           { label: 'PLC Master',    sub: 'PLC controllers',          crumbs: ['Masters'] },
   '/config/camera-binding':  { label: 'Camera Config', sub: 'Bind cameras to machines', crumbs: ['Configuration'] },
   '/config/shifts':          { label: 'Shift Config',  sub: 'Shift schedule setup',     crumbs: ['Configuration'] },

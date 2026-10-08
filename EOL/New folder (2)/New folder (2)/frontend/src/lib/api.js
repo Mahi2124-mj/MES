@@ -1,8 +1,9 @@
 import axios from 'axios'
+import { API_BASE, cmsUrl } from './base'
 
 const TOKEN_KEY = 'tb-ems-token'
 
-const http = axios.create({ baseURL: '/api' })
+const http = axios.create({ baseURL: API_BASE })
 
 http.interceptors.request.use(cfg => {
   const t = localStorage.getItem(TOKEN_KEY)
@@ -124,10 +125,10 @@ export const api = {
 // Direct absolute URLs to port 5000 get blocked by Chrome/Edge for multipart/MJPEG streams
 export function streamUrl(cameraId) {
   if (!cameraId) return null
-  return `/live_feed/${cameraId}`
+  return cmsUrl(`/live_feed/${cameraId}`)
 }
 
 export function frameUrl(cameraId, stamp = '') {
   if (!cameraId) return null
-  return `/camera_frame/${cameraId}${stamp ? `?t=${stamp}` : ''}`
+  return cmsUrl(`/camera_frame/${cameraId}${stamp ? `?t=${stamp}` : ''}`)
 }

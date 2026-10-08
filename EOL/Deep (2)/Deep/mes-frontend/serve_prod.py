@@ -22,6 +22,12 @@ from functools import partial
 PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 5656
 DIST = os.path.abspath(sys.argv[2]) if len(sys.argv) > 2 else \
        os.path.join(os.path.dirname(os.path.abspath(__file__)), "dist")
+# 2026-10-09 — the CMS web app inside the MES (admin "CMS" page, reachable
+# through mes.tbdi.in): its production build is served under /cms/ and talks
+# to the CMS through the /cms-api proxy below.  The CMS keeps its own login.
+CMS_DIST = os.path.abspath(os.environ.get("MES_CMS_DIST") or
+    "/run/media/server/5b4e6f01-4c04-4bc3-b34e-b0df376c067f/server backup/"
+    "D DRIVE/EOL/EOL/New folder (2)/New folder (2)/frontend/dist_mes")
 
 ROUTES = [
     ("/api",     "http://127.0.0.1:8080", False),  # keep path
@@ -171,12 +177,15 @@ class Handler(BaseHTTPRequestHandler):
     def _static(self):
         # strip query, normalise, prevent path traversal
         path = self.path.split("?", 1)[0].split("#", 1)[0]
+        root = DIST
+        if path == "/cms" or path.startswith("/cms/"):     # CMS app (see CMS_DIST)
+            root, path = CMS_DIST, path[len("/cms"):]
         rel = path.lstrip("/") or "index.html"
-        full = os.path.normpath(os.path.join(DIST, rel))
-        if not full.startswith(DIST):
+        full = os.path.normpath(os.path.join(root, rel))
+        if not full.startswith(root):
             self.send_error(403); return
         if not os.path.isfile(full):
-            full = os.path.join(DIST, "index.html")   # SPA fallback (/login, /dashboard, refresh)
+            full = os.path.join(root, "index.html")   # SPA fallback (/login, /dashboard, refresh)
         try:
             with open(full, "rb") as f:
                 data = f.read()
@@ -319,5 +328,5 @@ if __name__ == "__main__":
     ThreadingHTTPServer.request_queue_size = 128
     srv = ThreadingHTTPServer(("0.0.0.0", PORT), Handler)
     print(f"MES frontend + API proxy on :{PORT}  (dist={DIST})", flush=True)
-    print("  /api -> :8080   /cms-api -> :5555   else -> static", flush=True)
+    print("  /api -> :8080   /cms-api -> :5555   /cms/ -> CMS app   else -> static", flush=True)
     srv.serve_forever()

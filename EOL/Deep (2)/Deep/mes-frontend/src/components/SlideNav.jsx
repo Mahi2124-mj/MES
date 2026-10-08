@@ -85,6 +85,7 @@ export const NAV_ITEMS = [
       { key: "admin",             label: "Admin Panel",       icon: "/admin-icon.png", iconImg: true, path: "/admin" },
       { key: "network",           label: "Network Panel",     icon: "🖧", path: "/network" },
       { key: "logs",              label: "Log Viewer",        icon: "📜", path: "/logs" },
+      { key: "cms-portal",        label: "CMS (Cameras)",     icon: "🎥", path: "/cms-portal" },
       { key: "video-coverage",    label: "Video Coverage",    icon: "🎞", path: "/video-coverage" },
       { key: "py-bypass",         label: "PY Bypass",         icon: "🛡", path: "/py-bypass" },
       { key: "device-registry",   label: "Device Registry",   icon: "📟", path: "/device-registry" },

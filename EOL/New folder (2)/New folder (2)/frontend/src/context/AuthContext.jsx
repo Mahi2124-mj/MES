@@ -1,12 +1,13 @@
 import { createContext, useContext, useState, useEffect, useMemo } from 'react'
 import axios from 'axios'
+import { API_BASE } from '../lib/base'
 
 const AuthContext = createContext()
 
 const TOKEN_KEY = 'tb-ems-token'
 const USER_KEY = 'tb-ems-user'
 
-const api = axios.create({ baseURL: '/api' })
+const api = axios.create({ baseURL: API_BASE })
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {

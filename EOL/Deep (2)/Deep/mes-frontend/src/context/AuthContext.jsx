@@ -303,6 +303,9 @@ export function AuthProvider({ children }) {
 
   const canAccess = (page) => {
     // Explicit override always wins
+    // 2026-10-09 — the CMS page is for the admin ID only (operator), ahead of
+    // any per-user grant and not opened to plant_head.
+    if (page === "cms-portal") return user?.role === "admin";
     const ep = explicitPerm(page);
     if (ep === "none") return false;
     if (ep === "read" || ep === "full") return true;
