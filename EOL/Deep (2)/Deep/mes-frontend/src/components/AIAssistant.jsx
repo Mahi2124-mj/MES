@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { useAuth } from "../context/AuthContext";
 
 // ───────────────────────────────────────────────────────────────────────
 // AIAssistant — floating production-data chatbot.
@@ -46,16 +48,16 @@ const getStorageKey = () => {
 
 const QUICK_PROMPTS = [
   "Today's OEE summary",
-  "NG parts this shift",
-  "Lowest efficiency line",
-  "Total loss time today",
-  "Compare shifts A vs B",
-  "Poka yoke alerts",
+  "Aaj kitne fault aaye",
+  "Open PY bypass kitne hain",
+  "Kaun si line abhi band hai",
+  "Is hafte sabse zyada breakdown kis line par",
+  "Fault history page kholo",
 ];
 
 const WELCOME = {
   role: "assistant",
-  content: "Hi — I can read your production data.\nAsk about a line's production, OEE, NG, losses or plan, or the plant summary.",
+  content: "Hi — I can read your plant data.\nAsk about production, OEE, NG, losses, faults, PY bypass, cameras or comments — per line, zone, day, week or month.\nI can also open a page: \"fault history kholo\".",
   id: "init",
 };
 
@@ -72,6 +74,8 @@ const C = {
 };
 
 export default function AIAssistant({ pageContext = {} }) {
+  const navigate = useNavigate();
+  const { canAccess } = useAuth();
   const [messages, setMessages] = useState(() => {
     try {
       const s = sessionStorage.getItem(getStorageKey());
@@ -103,7 +107,10 @@ export default function AIAssistant({ pageContext = {} }) {
     const generic = [
       "Today's OEE summary", "Lowest efficiency line", "Highest production today",
       "Total loss time today", "Compare shifts A vs B", "Poka yoke alerts",
-      "NG parts this shift",
+      "NG parts this shift", "Aaj kitne fault aaye", "Open PY bypass kitne hain",
+      "Kaun si line abhi band hai", "Abhi kitne camera hung hain",
+      "Is hafte sabse zyada breakdown kis line par", "Is mahine total production kitna",
+      "Fault history page kholo",
     ];
     const per = [];
     for (const n of lineNames) {
@@ -161,7 +168,19 @@ export default function AIAssistant({ pageContext = {} }) {
         context: pageContext,
         history: messages.slice(-10).map(m => ({ role: m.role, content: m.content })),
       });
-      setMessages(p => [...p, { role: "assistant", content: res.data?.reply || "No answer.", id: Date.now() + "a" }]);
+      // 2026-10-08 — the assistant can open a page ("fault history kholo").
+      // It only goes there if this user may see that page; the key is the
+      // same one SlideNav checks.
+      let reply = res.data?.reply || "No answer.";
+      const act = res.data?.action;
+      if (act?.navigate) {
+        if (!act.page_key || canAccess(act.page_key)) {
+          setTimeout(() => { setOpen(false); navigate(act.navigate); }, 500);
+        } else {
+          reply = "You don't have access to that page.";
+        }
+      }
+      setMessages(p => [...p, { role: "assistant", content: reply, id: Date.now() + "a" }]);
     } catch (e) {
       setMessages(p => [...p, { role: "assistant", content: "Connection error. Please try again.", id: Date.now() + "e" }]);
       setError(e.message);
