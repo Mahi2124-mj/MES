@@ -51,7 +51,9 @@ export DB_PASS="tbdi@123"
 # 46,151 of the misses logged as "camera was recording but no clip was cut in
 # time".  The CPU lane goes wider because the single NVENC engine sits at 100%
 # while ~45 cores are idle; CLIP_ARCHIVE_CPU_MIN_IDLE still throttles it.
-export CLIP_ARCHIVE_WINDOW_MIN="${CLIP_ARCHIVE_WINDOW_MIN:-1440}"
+# 2026-10-08 — 1440 -> 2880: the archiver looks back the whole 48 h TS hold;
+# expired TS is deleted only in TS_DELETE_WINDOW (03:30-08:00), after that.
+export CLIP_ARCHIVE_WINDOW_MIN="${CLIP_ARCHIVE_WINDOW_MIN:-2880}"
 export CLIP_ARCHIVE_CPU_PARALLEL="${CLIP_ARCHIVE_CPU_PARALLEL:-6}"
 export VIDEO_LIVE_ENCODER="${VIDEO_LIVE_ENCODER:-h264_nvenc}"
 echo "  video encoder: VIDEO_LIVE_ENCODER=$VIDEO_LIVE_ENCODER (recorders forced to GPU at boot)"
@@ -439,9 +441,12 @@ elif [[ -f "$CMS_DIR/backend/api_server.py" ]]; then
   # boundary stops killing anything; 0 = old behaviour.  Until that is switched
   # on, TS_ROTATE_MIN_AGE_S stops the rotation from undoing cameras that only
   # just came back (e.g. right after a power cut).
+  # 2026-10-08 — switched ON (30 min): the 18:30 rotation on production days
+  # left 40-105 cameras hung for 1.5-2.5 h every day; with segments the
+  # boundary no longer disconnects any camera.
   CLIP_RENDER_PARALLEL="${CLIP_RENDER_PARALLEL:-24}" \
   TS_ROTATE_QUIET_S="${TS_ROTATE_QUIET_S:-90}" \
-  TS_SEGMENT_MIN="${TS_SEGMENT_MIN:-0}" \
+  TS_SEGMENT_MIN="${TS_SEGMENT_MIN:-30}" \
   TS_ROTATE_MIN_AGE_S="${TS_ROTATE_MIN_AGE_S:-1800}" \
   VIDEO_ALLOW_UDP="${VIDEO_ALLOW_UDP:-0}" \
   launch CMS-API "$CMS_DIR/backend" "$PY_CMS" api_server.py

@@ -265,6 +265,14 @@ def _segment_span(ts_file: str, start_dt: datetime, end_dt: datetime) -> list:
         except (OSError, ValueError):
             continue
         if e >= start_dt - timedelta(seconds=5) and s <= end_dt:
+            # Real content start = last write − probed duration.  The NAME is
+            # the moment ffmpeg opened the file, which for a recorder's first
+            # segment is after it probed the stream (measured 1 s on a local
+            # file; up to several s on a camera) — anchoring on it put clips
+            # late.  Same rule the api_server cutter and the MES archiver use.
+            dur = _probe_duration(p)
+            if dur and dur > 0:
+                s = e - timedelta(seconds=dur)
             segs.append((s, e, p))
     if not segs:
         return []

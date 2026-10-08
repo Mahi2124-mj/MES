@@ -58,10 +58,34 @@ if pid:
         print("  carried env from running process")
     except Exception as e:
         print(f"  env carry skipped: {e}")
+    # 2026-10-08 — a value given on the command line must WIN over the carried
+    # one.  Before this, `TS_SEGMENT_MIN=30 python3 restart_cms.py` relaunched
+    # with the running process's TS_SEGMENT_MIN=0 — silently.  Only these
+    # recorder/clip settings are taken from the shell (same idea as
+    # restart_api.py), so a stray shell variable cannot change DB creds etc.
+    for _k, _v in os.environ.items():
+        if _k.startswith(("TS_", "VIDEO_", "CAM_", "CLIP_")) and env.get(_k) != _v:
+            env[_k] = _v
+            print(f"  shell override: {_k}={_v}")
 
     kids = children_of(pid)
-    print(f"  killing {len(kids)} child ffmpeg (cameras + clip encoders)…")
+    # 2026-10-08 — stop recorders GRACEFULLY first.  SIGINT makes ffmpeg close
+    # the RTSP session (TEARDOWN) and finish the file; SIGKILL drops the TCP
+    # connection mid-stream, and these single-session cameras then keep a ghost
+    # session (see the hung-camera notes).  Whatever is still alive after 10 s
+    # is killed as before.
+    print(f"  stopping {len(kids)} child ffmpeg (cameras + clip encoders) gracefully…")
     for c in kids:
+        try: os.kill(c, signal.SIGINT)
+        except Exception: pass
+    for _ in range(20):
+        time.sleep(0.5)
+        if not [c for c in kids if os.path.exists(f"/proc/{c}")]:
+            break
+    _left = [c for c in kids if os.path.exists(f"/proc/{c}")]
+    if _left:
+        print(f"  {len(_left)} did not exit in 10 s — SIGKILL")
+    for c in _left:
         try: os.kill(c, signal.SIGKILL)
         except Exception: pass
     try: os.kill(pid, signal.SIGTERM)
@@ -99,7 +123,8 @@ if pid:
             _p, _args = int(_parts[0]), _parts[1]
             if "ffmpeg" not in _args or "rtsp://" not in _args:
                 continue
-            if "-f mpegts" not in _args and not _args.rstrip().endswith(".ts"):
+            if ("-f mpegts" not in _args and "-f segment" not in _args
+                    and not _args.rstrip().endswith(".ts")):
                 continue                      # not a continuous TS recorder
             try:
                 os.kill(_p, signal.SIGKILL)
