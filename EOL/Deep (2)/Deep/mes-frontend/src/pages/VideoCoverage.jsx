@@ -415,8 +415,12 @@ export default function VideoCoverage() {
             </div>
             <div style={card}>
               <div style={h3}>Zone coverage</div>
+              {/* Phone: name + bar + "clips / cycles" did not fit one row (the
+                  row pushed the page sideways), so the count drops to a second
+                  line under the name. */}
+              <style>{`@media (max-width:600px){.vc-zrow{grid-template-columns:minmax(80px,1fr) auto !important;row-gap:2px !important}.vc-zrow>span:last-child{grid-column:1 / -1;text-align:left !important;font-size:11px}}`}</style>
               {!zonesSum.length ? <Empty>No checked cycles yet.</Empty> : zonesSum.map(z => (
-                <div key={z.zone} style={{ display: "grid", gridTemplateColumns: "minmax(110px,1fr) 1.6fr 120px", alignItems: "center",
+                <div key={z.zone} className="vc-zrow" style={{ display: "grid", gridTemplateColumns: "minmax(110px,1fr) 1.6fr 120px", alignItems: "center",
                                            gap: 10, padding: "6px 0", fontSize: 12.5, borderBottom: `1px solid ${C.zone}` }}>
                   <b>{z.zone}</b>
                   <Bar p={pct(z.clips, z.cycles)} w={140} />

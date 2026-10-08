@@ -174,7 +174,7 @@ export default function PMPanel() {
       `}</style>
       {/* header */}
       <div style={{ display:"flex", alignItems:"center", gap:12, flexWrap:"wrap", marginBottom:14 }}>
-        <span style={{ fontSize:18, fontWeight:900, color:"#0f172a" }}>🛠 Preventive Maintenance</span>
+        <span className="m-navclear" style={{ fontSize:18, fontWeight:900, color:"#0f172a" }}>🛠 Preventive Maintenance</span>
         <div style={{ display:"flex", gap:4, background:"#e2e8f0", borderRadius:8, padding:3 }}>
           {[["sheets","Check Sheets"],["schedule","Schedule"],["dashboard","Dashboard"]].map(([k,l]) => (
             <button key={k} onClick={()=>setView(k)} style={{

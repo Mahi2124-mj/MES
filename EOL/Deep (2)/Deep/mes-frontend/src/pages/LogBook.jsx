@@ -145,7 +145,7 @@ export default function LogBook() {
         display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center",
         marginBottom: 12, maxWidth: 1180, marginInline: "auto",
       }}>
-        <span style={{ fontSize: 15, fontWeight: 800, color: "#0f172a" }}>📒 Maintenance Log Book</span>
+        <span className="m-navclear" style={{ fontSize: 15, fontWeight: 800, color: "#0f172a" }}>📒 Maintenance Log Book</span>
         <span style={{ flex: 1 }} />
         <label style={{ fontSize: 12, color: "#334155", fontWeight: 600 }}>
           Date{" "}

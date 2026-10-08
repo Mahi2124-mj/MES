@@ -431,7 +431,7 @@ const glassSelect = {
   padding: "10px 12px", fontSize: 13,
   background: "#f8fafc",
   border: "1.5px solid #e2e8f0", borderRadius: 8,
-  color: "#0f172a", outline: "none", width: "100%",
+  color: "#0f172a", outline: "none", width: "100%", boxSizing: "border-box",
   fontFamily: "'Barlow',sans-serif",
 };
 const primaryBtn = {

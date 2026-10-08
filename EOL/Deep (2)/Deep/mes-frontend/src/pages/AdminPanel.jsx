@@ -11148,12 +11148,12 @@ export function OperatorsPage({ toast, readOnly = false }) {
                 Badge → name mapping.  Floor PC scans the badge → frontend POSTs <code>/api/operators/login</code>.
               </div>
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-              <div style={{ position: "relative" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", maxWidth: "100%", minWidth: 0 }}>
+              <div style={{ position: "relative", maxWidth: "100%", minWidth: 0 }}>
                 <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#94a3b8", fontSize: 13, pointerEvents: "none" }}>🔍</span>
                 <input value={q} onChange={e => setQ(e.target.value)}
                        placeholder="Search badge / name / emp ID / zone / dept…"
-                       style={{ padding: "8px 30px 8px 30px", border: "1px solid #cbd5e1", borderRadius: 8, fontSize: 13, minWidth: 260, background: "#fff", color: "#0f172a" }} />
+                       style={{ padding: "8px 30px 8px 30px", border: "1px solid #cbd5e1", borderRadius: 8, fontSize: 13, width: 322, maxWidth: "100%", boxSizing: "border-box", background: "#fff", color: "#0f172a" }} />
                 {q && <button onClick={() => setQ("")} title="Clear"
                               style={{ position: "absolute", right: 6, top: "50%", transform: "translateY(-50%)", border: "none", background: "none", color: "#94a3b8", cursor: "pointer", fontSize: 15, lineHeight: 1 }}>×</button>}
               </div>
@@ -11166,7 +11166,7 @@ export function OperatorsPage({ toast, readOnly = false }) {
 
           {operators.length === 0 ? <EmptyState text="No operators yet" sub="Add badges before scanning on the floor" />
            : filtered.length === 0 ? <EmptyState text="No operator matches your search" sub={`Nothing for “${q}” — check spelling or clear the search`} /> : (
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+            <div style={{ overflowX: "auto", maxWidth: "100%" }}><table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
               <thead>
                 <tr style={{ background: "#f1f5f9", textAlign: "left" }}>
                   <th style={{ padding: 8 }}>Badge</th>
@@ -11214,7 +11214,7 @@ export function OperatorsPage({ toast, readOnly = false }) {
                   );
                 })}
               </tbody>
-            </table>
+            </table></div>
           )}
         </div>
       </Card>
@@ -11252,7 +11252,7 @@ export function OperatorsPage({ toast, readOnly = false }) {
           </div>
 
           {summary.length === 0 ? <EmptyState text="No data" sub="Load a shift after operators have logged in" /> : (
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+            <div style={{ overflowX: "auto", maxWidth: "100%" }}><table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
               <thead>
                 <tr style={{ background: "#f1f5f9", textAlign: "left" }}>
                   <th style={{ padding: 8 }}>Operator</th>
@@ -11280,7 +11280,7 @@ export function OperatorsPage({ toast, readOnly = false }) {
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </table></div>
           )}
         </div>
       </Card>
@@ -11484,7 +11484,7 @@ export function ProcessesPage({ toast, readOnly = false }) {
               text={loading ? "Loading…" : "No machines on this line"}
               sub="Add machines via Admin → Production → Machines.  They will appear here automatically." />
           ) : (
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+            <div style={{ overflowX: "auto", maxWidth: "100%" }}><table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
               <thead>
                 <tr style={{ background: "#f1f5f9", textAlign: "left" }}>
                   <th style={{ padding: 8, width: 60 }}>M#</th>
@@ -11565,7 +11565,7 @@ export function ProcessesPage({ toast, readOnly = false }) {
                   );
                 })}
               </tbody>
-            </table>
+            </table></div>
           )}
         </div>
       </Card>

@@ -174,7 +174,7 @@ export default function SaFiQualityHistory() {
 
   return (
     <div style={{ padding: "18px 22px", maxWidth: 1500, margin: "0 auto" }}>
-      <h2 style={{ fontSize: 20, fontWeight: 900, color: "#0f172a", margin: "0 0 3px" }}>
+      <h2 className="m-navclear" style={{ fontSize: 20, fontWeight: 900, color: "#0f172a", margin: "0 0 3px" }}>
         Semi-Auto ↔ Final Inspection — Quality History
       </h2>
       <div style={{ fontSize: 12, color: "#64748b", marginBottom: 16 }}>

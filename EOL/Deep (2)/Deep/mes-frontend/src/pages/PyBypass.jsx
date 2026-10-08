@@ -583,7 +583,7 @@ export default function PyBypass() {
 
   return (
     <div style={{ padding: 16, maxWidth: 1280, margin: "0 auto" }}>
-      <PageTopbar title="Poka-Yoke Bypass" />
+      <PageTopbar leading="Poka-Yoke" accent="Bypass" />
       <div style={{ color: "#64748b", fontSize: 13, margin: "2px 0 14px" }}>
         Quality approves or rejects each bypass from the mail. Approve creates a deviation;
         reject sets the machine bit. Both clear automatically when the poka-yoke is OK again.

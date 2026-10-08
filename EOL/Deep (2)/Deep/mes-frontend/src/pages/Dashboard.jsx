@@ -1745,7 +1745,16 @@ export default function Dashboard() {
            hamburger, and make the line-card grid a full-width single column. */
         @media (max-width: 600px) {
           .db-body { padding: 10px 12px 0; }
-          .db-topbar { padding: 0 12px 0 56px; }
+          /* Title and the search/zone tools no longer fit one 393px row (the
+             search box pushed the page sideways and the title slid under the
+             nav button): title on its own row clear of the button, tools on a
+             full-width row below. */
+          .db-topbar { padding: 6px 12px 8px; height: auto; min-height: 60px; flex-wrap: wrap; row-gap: 6px; }
+          .db-topbar > .db-logo { display: none; }
+          .db-topbar > .db-ttl { flex: 1 1 100%; padding-left: 64px; line-height: 52px; }
+          .db-topbar > .db-tools { flex: 1 1 100%; margin-left: 0 !important; }
+          .db-tools > div:first-child { flex: 1 1 auto; }
+          .db-tools input { width: 100% !important; box-sizing: border-box; }
           .zone-section { margin-bottom: 24px; }
           .lines-grid { grid-template-columns: 1fr; gap: 12px; }
           .empty-state { padding: 48px 16px; }
@@ -1756,7 +1765,7 @@ export default function Dashboard() {
         {/* Topbar */}
         <div className="db-topbar">
           <div className="db-logo" />
-          <div style={{
+          <div className="db-ttl" style={{
             position:"absolute", left:"50%", transform:"translateX(-50%)",
             fontFamily:"'Barlow Condensed',sans-serif",
             fontSize:37, fontWeight:800, color:"#0f172a", letterSpacing:"-.01em",
@@ -1769,7 +1778,7 @@ export default function Dashboard() {
               absolutely centred, so a loose extra child gets pushed to the
               middle and disappears behind that title — which is exactly what
               happened the first time. */}
-          <div style={{ display:"flex", alignItems:"center", gap:10, marginLeft:"auto", zIndex:1 }}>
+          <div className="db-tools" style={{ display:"flex", alignItems:"center", gap:10, marginLeft:"auto", zIndex:1 }}>
           <div style={{ position:"relative", display:"flex", alignItems:"center" }}>
             <span style={{ position:"absolute", left:10, fontSize:12, color:"#94a3b8",
                            pointerEvents:"none" }}>🔍</span>

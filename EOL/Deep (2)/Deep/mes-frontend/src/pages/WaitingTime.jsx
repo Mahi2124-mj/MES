@@ -209,7 +209,7 @@ export default function WaitingTime() {
           spilled off-screen → kill the horizontal bleed under 600px. */}
       <style>{`@media (max-width:600px){.wt-page{margin-left:0 !important;margin-right:0 !important;padding-left:14px !important;padding-right:14px !important;}}`}</style>
       <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 6 }}>
-        <h2 style={{ margin: 0, fontSize: 20, fontWeight: 900 }}>Waiting Time</h2>
+        <h2 className="m-navclear" style={{ margin: 0, fontSize: 20, fontWeight: 900 }}>Waiting Time</h2>
         <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
           {[1, 7, 30].map(n => (
             <button key={n} onClick={() => setDays(n)} style={{

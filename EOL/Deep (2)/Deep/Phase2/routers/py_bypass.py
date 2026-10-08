@@ -935,12 +935,16 @@ def list_bits(user=Depends(require_admin)):
 
     out = []
     for ln in lines:
-        machines = by_line.get(ln["id"]) or []
+        #  2026-10-08 — the query returns the line's id as "line_id" (not
+        #  "id"); reading ln["id"] raised KeyError and the endpoint was a
+        #  permanent 500, so the "Stop bit and bypass bit" table never loaded.
+        lid = ln["line_id"]
+        machines = by_line.get(lid) or []
         rows = []
         for spec in ([{"key": "", "label": "Whole line"}] + machines):
             mk = spec["key"]
-            c = cfg.get((ln["id"], mk)) or {}
-            m = man.get((ln["id"], mk)) or {}
+            c = cfg.get((lid, mk)) or {}
+            m = man.get((lid, mk)) or {}
             rows.append({
                 "machine_key":   mk,
                 "machine_label": spec["label"],
@@ -949,14 +953,14 @@ def list_bits(user=Depends(require_admin)):
                 "active":  c.get("active", True),
                 "note":    c.get("note"),
                 "updated_by": c.get("updated_by"), "updated_at": c.get("updated_at"),
-                "stop_state":   state_of(ln["id"], c.get("bit_addr")),
-                "bypass_state": state_of(ln["id"], c.get("bypass_bit_addr")),
+                "stop_state":   state_of(lid, c.get("bit_addr")),
+                "bypass_state": state_of(lid, c.get("bypass_bit_addr")),
                 "manual_bypass_on": bool(m.get("is_on")),
                 "manual_by": m.get("turned_by"), "manual_at": m.get("turned_at"),
                 "manual_reason": m.get("reason"),
             })
-        out.append({**ln, "line_id": ln["id"], "machines": rows,
-                    "holding": holding.get(ln["id"], [])})
+        out.append({**ln, "line_id": lid, "machines": rows,
+                    "holding": holding.get(lid, [])})
     return {"lines": out,
             "note": ("State is the last value MES wrote and whether the line's "
                      "collector confirmed it — this system has no live read-back "

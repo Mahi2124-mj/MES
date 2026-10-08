@@ -83,6 +83,11 @@
            below it — instead of scrolling sideways through fixed-width columns. */
         .sa-board { flex-direction: column !important; overflow-x: visible !important; }
         .sa-board > * { width: auto !important; min-width: 0 !important; max-width: 100% !important; }
+        /* Pages with a plain left-aligned heading (no PageTopbar): the fixed
+           nav button sits on top of the first ~56px of the heading. Mark such a
+           heading m-navclear to start its text clear of the button and keep the
+           line under it out of the button's 45px height. */
+        .m-navclear { padding-left: 56px !important; min-height: 40px; box-sizing: border-box; }
 
         [style*="repeat(4, 1fr)"], [style*="repeat(4,1fr)"] { grid-template-columns: repeat(2, 1fr) !important; }
         [style*="repeat(3, 1fr)"], [style*="repeat(3,1fr)"] { grid-template-columns: repeat(2, 1fr) !important; }

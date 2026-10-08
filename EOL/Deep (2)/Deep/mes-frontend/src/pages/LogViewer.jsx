@@ -400,7 +400,7 @@ export default function LogViewer() {
   return (
     <div style={{ minHeight: "100vh", background: bg, padding: 16,
                   color: dark ? "#e6edf7" : "#0f172a" }}>
-      <h2 style={{ margin: "0 0 12px", fontSize: 19, fontWeight: 800 }}>Log Viewer</h2>
+      <h2 className="m-navclear" style={{ margin: "0 0 12px", fontSize: 19, fontWeight: 800 }}>Log Viewer</h2>
 
       <div style={{ display: "flex", gap: 2, marginBottom: 14,
                     borderBottom: `1px solid ${dark ? "#243049" : "#e2e8f0"}` }}>
@@ -424,7 +424,7 @@ export default function LogViewer() {
           <div>
             <label style={{ fontSize: 11, opacity: .7 }}>LOG FILE</label>
             <select value={file} onChange={e => setFile(e.target.value)}
-                    style={{ ...inp, width: "100%" }}>
+                    style={{ ...inp, width: "100%", boxSizing: "border-box" }}>
               {files.map(f => (
                 <option key={f.id} value={f.id}>
                   {f.id} — {f.size_mb} MB{f.age_min > 120 ? `  (stale, ${Math.round(f.age_min / 60)}h old)` : ""}
@@ -436,32 +436,32 @@ export default function LogViewer() {
             <label style={{ fontSize: 11, opacity: .7 }}>SEARCH TEXT</label>
             <input value={q} onChange={e => setQ(e.target.value)}
                    onKeyDown={e => e.key === "Enter" && load()}
-                   placeholder="e.g. Traceback, cycle-video" style={{ ...inp, width: "100%" }} />
+                   placeholder="e.g. Traceback, cycle-video" style={{ ...inp, width: "100%", boxSizing: "border-box" }} />
           </div>
           <div>
             <label style={{ fontSize: 11, opacity: .7 }}>HTTP CODE</label>
             <input value={code} onChange={e => setCode(e.target.value)}
                    onKeyDown={e => e.key === "Enter" && load()}
-                   placeholder="404, 500, or 4xx" style={{ ...inp, width: "100%" }} />
+                   placeholder="404, 500, or 4xx" style={{ ...inp, width: "100%", boxSizing: "border-box" }} />
           </div>
           <div>
             <label style={{ fontSize: 11, opacity: .7 }}>LEVEL</label>
             <select value={level} onChange={e => setLevel(e.target.value)}
-                    style={{ ...inp, width: "100%" }}>
+                    style={{ ...inp, width: "100%", boxSizing: "border-box" }}>
               {LEVELS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
             </select>
           </div>
           <div>
             <label style={{ fontSize: 11, opacity: .7 }}>TIME</label>
             <select value={mins} onChange={e => setMins(e.target.value)}
-                    style={{ ...inp, width: "100%" }}>
+                    style={{ ...inp, width: "100%", boxSizing: "border-box" }}>
               {WINDOWS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
             </select>
           </div>
           <div>
             <label style={{ fontSize: 11, opacity: .7 }}>MAX LINES</label>
             <select value={limit} onChange={e => setLimit(Number(e.target.value))}
-                    style={{ ...inp, width: "100%" }}>
+                    style={{ ...inp, width: "100%", boxSizing: "border-box" }}>
               {[100, 300, 1000, 3000].map(n => <option key={n} value={n}>{n}</option>)}
             </select>
           </div>
