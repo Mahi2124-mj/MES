@@ -299,8 +299,12 @@ export default function ProdBreakdownSlip() {
             background: "#fff", borderRadius: 12, boxShadow: "0 20px 60px rgba(0,0,0,.35)", overflow: "hidden" }}>
             {/* letterhead */}
             <div className="bds-letterhead">
+              {/* 2026-10-09 — the real company logo (same file and markup as the
+                  Breakdown History slip view); the red "TB" text was a stand-in. */}
               <div className="bds-logo">
-                <div className="bds-logo-tb">TB</div>
+                <img src="/logo.jpg" alt="Toyota Boshoku"
+                     style={{ width: "70%", height: "70%", maxHeight: 56, objectFit: "contain" }}
+                     onError={(e) => { e.currentTarget.style.display = "none"; }} />
                 <div className="bds-logo-sub">TOYOTA BOSHOKU</div>
               </div>
               <div className="bds-letter-title">
