@@ -1623,37 +1623,30 @@ async def ai_chat(request: Request, user=Depends(get_current_user)):
     # only when AI_OFFLINE=0 (and credits exist). ai_offline.answer() is robust
     # (always returns a string), so this never 500s.
     #
-    # 2026-10-08 — HYBRID.  The rule-based bot only knows line production / OEE
-    # / NG / loss for today or yesterday; anything else ("kitne fault", "camera
-    # hung", "PY bypass", a zone, this week, "page kholo") used to end in "I
-    # didn't catch that".  Those now go to ai_local.py: a LOCAL model (Ollama on
-    # this box, CPU) that writes one checked, read-only SELECT over curated
-    # views scoped to the user's own lines, or opens a page.  No cloud, no cost.
-    # AI_LOCAL_LLM=0 switches the local model off (offline bot only).
+    # 2026-10-08 — ai_local.py: a LOCAL model (Ollama on this box, CPU) writes
+    # one checked, read-only SELECT over curated views scoped to the user's own
+    # lines, or opens a page.  No cloud, no cost.  AI_LOCAL_LLM=0 switches it
+    # off (rule-based bot only).
+    #
+    # 2026-10-09 — LOCAL MODEL FIRST.  An eval of 2114 real-style questions sent
+    # from the app showed the rule-based bot right on 9% of what it took (it
+    # answers one shift for "aaj", cannot read "5/10/2026" or "is hafte", and
+    # said "no data for today" after midnight) while the local model was right
+    # on 81% before tuning.  So every question now goes to ai_local; the
+    # rule-based bot only answers when the local model is down.
     if os.getenv("AI_OFFLINE", "1") != "0":
-        import re
         from starlette.concurrency import run_in_threadpool
-        offline_reply = None
-        beyond = re.search(
-            r"fault|camera|cam\b|bypass|\bpy\b|comment|remark|machine|zone|hafte|week|"
-            r"mahine|month|parso|band\b|chal\s*rah|kholo|khol\b|open|page|le\s*chal",
-            message, re.I)
-        if not beyond:
-            try:
-                from ai_offline import answer as _offline_answer
-                offline_reply = _offline_answer(message, context, history)
-                if not offline_reply.startswith("I didn't catch that"):
-                    return {"reply": offline_reply, "provider": "offline"}
-            except Exception as e:
-                print(f"[AI] offline error: {e}")
         if os.getenv("AI_LOCAL_LLM", "1") != "0":
             try:
                 import ai_local
-                return await run_in_threadpool(ai_local.answer, message, user, history)
+                try:      # 2026-10-09: the page the user is on goes with the question
+                    r = await run_in_threadpool(ai_local.answer, message, user, history, context)
+                except TypeError:          # an older ai_local without the context argument
+                    r = await run_in_threadpool(ai_local.answer, message, user, history)
+                if not r.pop("llm_down", False):
+                    return r
             except Exception as e:
                 print(f"[AI] local LLM error: {e}")
-        if offline_reply:
-            return {"reply": offline_reply, "provider": "offline"}
         try:
             from ai_offline import answer as _offline_answer
             return {"reply": _offline_answer(message, context, history), "provider": "offline"}

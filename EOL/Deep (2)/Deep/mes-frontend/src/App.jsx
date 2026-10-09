@@ -3,6 +3,8 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from
 import { record as recordTiming, setTimingToken } from "./api/timing";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import UpdateBanner from "./components/UpdateBanner";
+// 2026-10-09 — one assistant for every page (lazy: keeps the first load small)
+const AIAssistant = lazy(() => import("./components/AIAssistant"));
 import Layout from "./components/Layout";
 
 // Pages
@@ -525,6 +527,16 @@ function RootRedirect() {
   return <Navigate to={firstAllowed} replace />;
 }
 
+// 2026-10-09 — operator: "assistant har page pe hona chahiye".  ONE instance
+// here, on every signed-in page, instead of one per page (19 pages had their
+// own and the rest had none).  It reads the route itself to offer that page's
+// questions; the TV wall dashboards and /login are left out (see AIAssistant).
+function GlobalAssistant() {
+  const { token, user } = useAuth();
+  if (!token || !user) return null;
+  return <Suspense fallback={null}><AIAssistant global /></Suspense>;
+}
+
 // ─── App ────────────────────────────────────────────────────────────────────
 function AppRoutes() {
   return (
@@ -539,6 +551,7 @@ function AppRoutes() {
     <LanRefreshButton />
     <LanWatchdog />
     <UpdateBanner />
+    <GlobalAssistant />
     <Suspense fallback={
       <div style={{ position: "fixed", inset: 0, background: "#0f172a", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9998 }}>
         <div style={{ width: 44, height: 44, borderRadius: "50%", border: "4px solid rgba(255,255,255,.2)", borderTopColor: "#3b82f6", animation: "mesBootSpin .9s linear infinite" }} />

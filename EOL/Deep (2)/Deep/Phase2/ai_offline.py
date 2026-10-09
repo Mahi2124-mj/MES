@@ -244,7 +244,11 @@ def answer(message, context=None, history=None):
     if not msg:
         return "Ask me about a line's production, OEE, NG, losses or plan — e.g. \"YSD-SS OEE today\"."
     t = msg.lower()
-    today = datetime.now().date()
+    #  2026-10-09 — "today" is the PRODUCTION date: B shift runs past midnight
+    #  and keeps the previous record_date until 08:30, so after midnight every
+    #  answer used to say "no data for today".
+    _now = datetime.now()
+    today = (_now - timedelta(days=1)).date() if _now.time() < datetime.strptime("08:30", "%H:%M").time() else _now.date()
     date, when = _parse_date(msg, today)
     shift = _parse_shift(msg)
     lines = _lines()

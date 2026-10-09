@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../context/AuthContext";
 
@@ -59,7 +59,45 @@ const WELCOME = {
   role: "assistant",
   content: "Hi — I can read your plant data.\nAsk about production, OEE, NG, losses, faults, PY bypass, cameras or comments — per line, zone, day, week or month.\nI can also open a page: \"fault history kholo\".",
   id: "init",
+  welcome: true,
 };
+
+// 2026-10-09 — the assistant is on every page (mounted once in App.jsx) and
+// opens with that page's own questions.  `key` also goes to the backend so a
+// question with no subject ("aaj kitne aaye?") is read as being about this
+// page's data.  First match wins; anything else gets the general set.
+const PAGE_INFO = [
+  { test: p => p.startsWith("/fault-history"), key: "fault-history", title: "Fault History",
+    prompts: ["Aaj kitne fault aaye", "Aaj sabse zyada kaunsa fault aaya", "Is hafte kis machine pe sabse zyada fault",
+              "Kal sabse zyada fault kis line pe aaye"] },
+  { test: p => p.startsWith("/py-bypass"), key: "py-bypass", title: "PY Bypass",
+    prompts: ["Open PY bypass kitne hain", "Kal kitne bypass aaye", "Is hafte sabse zyada bypass kis line par"] },
+  { test: p => p.startsWith("/video-coverage") || p.startsWith("/cms"), key: "video-coverage", title: "Video Coverage",
+    prompts: ["Abhi kitne camera hung hain", "Kis line pe camera hung hain", "Abhi kitne camera online hain"] },
+  { test: p => p.startsWith("/comments-history"), key: "comments-history", title: "Comments History",
+    prompts: ["Aaj kitne comments likhe gaye", "Kal kis line pe sabse zyada comments", "Is hafte ke comments kitne"] },
+  { test: p => p.startsWith("/shift-compile"), key: "shift-compile", title: "Shift Compile",
+    prompts: ["Aaj shift A vs B production", "Kal shift B me sabse zyada NG kis line par", "Kaun si line abhi band hai"] },
+  { test: p => p.startsWith("/historical"), key: "historical", title: "Historical",
+    prompts: ["Kal ka plant production", "Is hafte sabse zyada breakdown kis line par", "Pichhle hafte sabse kam OEE kis line ka",
+              "Is mahine total production kitna"] },
+  { test: p => p.startsWith("/quality") || p.startsWith("/sa-fi") || p.startsWith("/redbin"), key: "quality", title: "Quality",
+    prompts: ["Aaj plant me kitne NG", "Kal sabse zyada NG kis line par", "Is hafte ka NG line wise", "Open PY bypass kitne hain"] },
+  { test: p => p.startsWith("/maintenance") || p.startsWith("/prod-breakdown") || p.startsWith("/andon"), key: "maintenance", title: "Maintenance",
+    prompts: ["Aaj sabse zyada breakdown kis line par", "Aaj kitne fault aaye", "Kaun si line abhi band hai",
+              "Is hafte kis machine pe sabse zyada fault"] },
+  { test: p => p.startsWith("/dashboard") || p === "/" || p.startsWith("/department"), key: "dashboard", title: "Dashboard",
+    prompts: ["Today's OEE summary", "Aaj sabse zyada production kis line ka", "Kaun si line abhi band hai",
+              "Aaj sabse kam OEE kis line ka", "Aaj plant ka total production"] },
+];
+const GENERAL = { key: "", title: "", prompts: QUICK_PROMPTS };
+const pageInfoFor = (path) => PAGE_INFO.find(i => i.test(path || "")) || GENERAL;
+
+// Not on the TV wall dashboards (they run unattended on the panels and must
+// stay as they are) or before sign-in.
+const NO_ASSISTANT = p => p === "/login" || /\/(MANAGEMENT|SUPERVISOR)$/i.test(p) ||
+  p.startsWith("/fullscreen/") || p.startsWith("/ywd-fullscreen/") ||
+  p.startsWith("/wallboard/") || p.startsWith("/submachine-fullscreen/");
 
 // ── Colors (dark, matches app; no animation) ──────────────────────────────
 const C = {
@@ -73,9 +111,18 @@ const C = {
   accent:  "#3b82f6",
 };
 
-export default function AIAssistant({ pageContext = {} }) {
+// The per-page <AIAssistant /> tags that 19 pages still carry render nothing:
+// the one global instance (App.jsx, `global`) covers every page.
+export default function AIAssistant({ global = false, pageContext = {} }) {
+  const loc = useLocation();
+  if (!global || NO_ASSISTANT(loc.pathname)) return null;
+  return <AssistantPanel pageContext={pageContext} path={loc.pathname} />;
+}
+
+function AssistantPanel({ pageContext = {}, path = "" }) {
   const navigate = useNavigate();
   const { canAccess } = useAuth();
+  const info = pageInfoFor(path);
   const [messages, setMessages] = useState(() => {
     try {
       const s = sessionStorage.getItem(getStorageKey());
@@ -117,8 +164,8 @@ export default function AIAssistant({ pageContext = {} }) {
       per.push(`${n} production today`, `${n} OEE today`, `${n} NG today`,
                `${n} loss today`, `${n} production yesterday shift A`);
     }
-    return [...generic, ...per];
-  }, [lineNames]);
+    return [...info.prompts, ...generic, ...per];
+  }, [lineNames, info]);
 
   // Best completion for the current text (prefix match, case-insensitive; the
   // tightest — shortest — match wins so the ghost stays short).
@@ -165,7 +212,7 @@ export default function AIAssistant({ pageContext = {} }) {
     try {
       const res = await api.post("/api/ai/chat", {
         message: msg,
-        context: pageContext,
+        context: { ...pageContext, page: info.key, page_title: info.title, path },
         history: messages.slice(-10).map(m => ({ role: m.role, content: m.content })),
       });
       // 2026-10-08 — the assistant can open a page ("fault history kholo").
@@ -274,7 +321,9 @@ export default function AIAssistant({ pageContext = {} }) {
                     fontFamily: "'JetBrains Mono', ui-monospace, monospace",
                     border: `1px solid ${isUser ? "#2b4fd0" : C.border}`,
                     whiteSpace: "pre-wrap", wordBreak: "break-word",
-                  }}>{m.content}</div>
+                  }}>{(m.welcome || m.content === WELCOME.content) && info.title
+                        ? `You're on ${info.title}. Tap a question below or type your own.\n` + m.content
+                        : m.content}</div>
                 </div>
               );
             })}
@@ -301,7 +350,7 @@ export default function AIAssistant({ pageContext = {} }) {
           {messages.length <= 2 && (
             <div style={{ padding: "8px 12px", borderTop: `1px solid ${C.border}`, background: C.panel, flexShrink: 0 }}>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                {QUICK_PROMPTS.map(q => (
+                {info.prompts.map(q => (
                   <button key={q} onClick={() => send(q)} style={{
                     background: C.aiBg, border: `1px solid ${C.border}`, borderRadius: 99,
                     padding: "5px 10px", fontSize: 11, color: C.textDim, cursor: "pointer",
