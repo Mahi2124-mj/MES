@@ -51,6 +51,16 @@ def _resolve_line(line_id: int, conn):
     return row
 
 
+def _model_ideal(cur, line_id: int, fallback: float) -> float:
+    """2026-10-09 — model-aware lines (YWD-SS): the main line's ideal is the
+    RUNNING model's cycle time, same rule as /realtime and the collector."""
+    try:
+        from routers.lines import _running_model_ct
+        return _running_model_ct(cur, line_id) or fallback
+    except Exception:
+        return fallback
+
+
 # 2026-08-12 — how long the boards stay dark before a shift starts.
 SHIFT_BLANK_MIN = int(os.environ.get("SHIFT_BLANK_MINUTES", "5") or 5)
 
@@ -449,7 +459,7 @@ def wallboard_cycles(
         # "Final Inspection" — there's no separate machine, the final
         # inspection station IS what counts the line's output.
         # Main line's running-only loss, same rule as the sub-machines above.
-        _main_ideal = float(line["ideal_cycle_time"] or 15.0)
+        _main_ideal = _model_ideal(cur, line_id, float(line["ideal_cycle_time"] or 15.0))
         main_counted = 0
         if main_cycles:
             try:
@@ -893,7 +903,7 @@ def over_target_history(
             where = "sub_plc_id = %(sid)s AND "
             params = {"ideal": ideal, "sid": sub_id, "days": days}
         else:
-            ideal = float(line["ideal_cycle_time"] or 15.0)
+            ideal = _model_ideal(cur, line_id, float(line["ideal_cycle_time"] or 15.0))
             table, ctcol = line["db_table_name"] + "_ct_log", "ct_value"
             where = ""
             params = {"ideal": ideal, "days": days}
@@ -975,7 +985,7 @@ def hourly_avg_ct(
             table, ctcol, tscol = "mes_submachine_ct_log", "ct_seconds", "ts_end"
             where, params = "sub_plc_id = %(sid)s AND ", {"sid": sub_id}
         else:
-            ideal = float(line["ideal_cycle_time"] or 15.0)
+            ideal = _model_ideal(cur, line_id, float(line["ideal_cycle_time"] or 15.0))
             table, ctcol, tscol = line["db_table_name"] + "_ct_log", "ct_value", "ts"
             where, params = "", {}
 

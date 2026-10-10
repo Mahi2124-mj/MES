@@ -1491,6 +1491,64 @@ def list_lines(plant_id: Optional[int] = None, user=Depends(get_current_user)):
         return rows
 
 
+# 2026-10-09 — MODEL-AWARE TARGET (YWD-SS).  Same scope as the collector's
+# MODEL_CT_LINES: on these lines every model has its own cycle time, so the
+# ideal / takt the dashboards show is the RUNNING model's ideal_ct
+# (mes_model_mappings), not the one fixed line CT.
+_MODEL_CT_LINES = {int(x) for x in os.getenv("MODEL_CT_LINES", "6").split(",") if x.strip()}
+_SA_ZONE_ID = int(os.getenv("SA_ZONE_ID", "7") or 7)   # 2026-10-10: Sub-Assembly too
+
+
+_ZONE_CACHE: dict = {}          # line_id -> (zone_id, fetched_at)
+
+
+def _line_zone(cur, line_id: int) -> int:
+    import time as _t
+    z = _ZONE_CACHE.get(int(line_id))
+    if z and _t.time() - z[1] < 300:
+        return z[0]
+    cur.execute("SELECT zone_id FROM mes_lines WHERE id = %s", (line_id,))
+    zid = int((cur.fetchone() or {}).get("zone_id") or 0)
+    _ZONE_CACHE[int(line_id)] = (zid, _t.time())
+    return zid
+
+
+def _running_model_ct(cur, line_id: int, model_no=None):
+    """ideal_ct of the model the line runs now, or None.  Runs inside a
+    SAVEPOINT: a failed lookup (e.g. an unprovisioned line with no dashboard
+    table) must not abort the caller's transaction."""
+    try:
+        cur.execute("SAVEPOINT _model_ct")
+    except Exception:
+        return None
+    try:
+        val = None
+        if int(line_id) in _MODEL_CT_LINES or _line_zone(cur, line_id) == _SA_ZONE_ID:
+            if model_no is None:
+                cur.execute("SELECT db_table_name FROM mes_lines WHERE id = %s", (line_id,))
+                tbl = ((cur.fetchone() or {}).get("db_table_name") or "").strip()
+                if re.fullmatch(r"[a-z0-9_]+", tbl or ""):
+                    cur.execute("SELECT to_regclass(%s) AS t", (tbl,))
+                    if (cur.fetchone() or {}).get("t"):
+                        cur.execute(f"SELECT current_model_number FROM {tbl} ORDER BY id DESC LIMIT 1")
+                        model_no = (cur.fetchone() or {}).get("current_model_number")
+            if model_no:
+                cur.execute("SELECT ideal_ct FROM mes_model_mappings "
+                            "WHERE line_id = %s AND model_number = %s AND ideal_ct > 0",
+                            (line_id, int(model_no)))
+                r = cur.fetchone()
+                val = float(r["ideal_ct"]) if r and r.get("ideal_ct") else None
+        cur.execute("RELEASE SAVEPOINT _model_ct")
+        return val
+    except Exception:
+        try:
+            cur.execute("ROLLBACK TO SAVEPOINT _model_ct")
+            cur.execute("RELEASE SAVEPOINT _model_ct")
+        except Exception:
+            pass
+        return None
+
+
 @router.get("/{line_id}")
 def get_line(line_id: int, user=Depends(get_current_user_optional)):
     """Return full line detail including all config.
@@ -1523,6 +1581,18 @@ def get_line(line_id: int, user=Depends(get_current_user_optional)):
             "WHERE line_id = %s AND parent_plc_id IS NULL",
             (line_id,))
         line["plc_config"] = cur.fetchone()
+        # model-aware line: ideal / max CT of the running model (CT card,
+        # chart ideal line and takt fallback read these)
+        _mct = _running_model_ct(cur, line_id)
+        if _mct and line["plc_config"]:
+            _pc = dict(line["plc_config"])
+            _base = float(_pc.get("ideal_cycle_time") or 0)
+            if _base > 0 and _pc.get("max_allowed_cycle"):
+                _pc["max_allowed_cycle"] = round(float(_pc["max_allowed_cycle"]) * _mct / _base, 2)
+            _pc["ideal_cycle_time"] = _mct
+            _pc["model_ct"] = True
+            line["plc_config"] = _pc
+            line["ideal_cycle_time"] = _mct
 
         cur.execute("SELECT * FROM mes_shift_configs WHERE line_id = %s ORDER BY shift_name", (line_id,))
         line["shifts"] = cur.fetchall()
@@ -2527,6 +2597,11 @@ def get_line_realtime(line_id: int, user=Depends(get_current_user_optional)):
                 tp = ot_row.get("total_plan") or 0
                 data["takt_seconds"] = round((wm * 60.0) / tp, 2) if tp > 0 else None
                 data["working_minutes"] = wm
+            # model-aware line: takt = the running model's cycle time
+            _mct = _running_model_ct(cur, line_id, data.get("current_model_number"))
+            if _mct:
+                data["takt_seconds"] = _mct
+                data["model_ct"] = _mct
 
         # 2026-05-14 — surface admin-configured planned takt time as its
         # own field.  The Fullscreen TAKT TIME card uses this as the "Plan"

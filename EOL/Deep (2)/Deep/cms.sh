@@ -125,6 +125,7 @@ start() {
   [[ -x "$PY_CMS" ]]            || { bad "CMS venv missing: $PY_CMS"; return 1; }
   [[ -f "$BACKEND/api_server.py" ]] || { bad "api_server.py missing in $BACKEND"; return 1; }
   mkdir -p "$LOG_DIR"
+  ulimit -n 65536 2>/dev/null || true   # 2026-10-09: 1024 default ran the CMS out of fds
   # setsid so it leads its own process group and stop can take the whole tree.
   ( cd "$BACKEND" && exec env PYTHONUNBUFFERED=1 PYTHONIOENCODING=utf-8 \
       CLIP_RENDER_PARALLEL="$CLIP_RENDER_PARALLEL" \

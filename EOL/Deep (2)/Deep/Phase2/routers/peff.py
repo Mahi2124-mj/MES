@@ -45,6 +45,100 @@ WC_CHOICES = [
 ]
 
 
+# 2026-10-09 — SEAT SLIDER: fixed operator columns on the sheet (operator ask).
+#   SS-01 Upper Rail Greasing   SS-02 Lock Bar          SS-03 Lower Rail Greasing
+#   SS-04 Rail Assy #1          SS-05 Rail Assy #2      SS-06 Semi Auto
+#   SS-07 Manual Movement       SS-08 Final Inspection
+#   SS-09 E-Ring / Lighter Protector / Advance Bending (whichever the line has)
+# YNC-SS has Ball Guide Insert 1/2 where the others have Rail Assy #1/#2.
+SS_COLUMNS = [f"SS-{i:02d}" for i in range(1, 10)]
+
+
+def _ss_column(name: str) -> Optional[str]:
+    n = (name or "").lower()
+    if re.search(r"final\s*inspection", n):
+        return "SS-08"
+    if re.search(r"manual\s*movement", n):
+        return "SS-07"
+    if re.search(r"\be[\s_-]*ring\b|lighter\s*protector|advance\s*bending", n):
+        return "SS-09"
+    if re.search(r"semi[\s_-]*auto", n):
+        return "SS-06"
+    if re.search(r"rail\s*assy|ball\s*guide|guide\b.*insert", n):
+        nums = re.findall(r"\d+", n)
+        return {1: "SS-04", 2: "SS-05"}.get(int(nums[-1]) if nums else 0)
+    if re.search(r"\block", n):
+        return "SS-02"
+    if "greas" in n and re.search(r"\b(upper|upr)\s*rail", n):
+        return "SS-01"
+    if "greas" in n and re.search(r"\b(lower|lwr)\s*rail", n):
+        return "SS-03"
+    return None
+
+
+# 2026-10-09 — RECLINER: fixed operator columns (operator ask).
+#   PWM Projection Welding   RC-01 MAG Welding of Arm (ST #1 + ST #2)
+#   RC-02 MAG Welding of Lwr Hook   RC-03 Press-in REC with Pin
+#   RC-04 Mag Welding Release   RC-05 SP Insert   RC-06 Final Inspection
+#   Oiling
+RC_COLUMNS = ["PWM", "RC-01", "RC-02", "RC-03", "RC-04", "RC-05", "RC-06", "Oiling"]
+
+
+def _rc_column(name: str) -> Optional[str]:
+    n = (name or "").lower()
+    if re.search(r"projection\s*weld", n):
+        return "PWM"
+    if re.search(r"\b(lwr|lower)\s*hook", n):
+        return "RC-02"
+    if re.search(r"press\s*in", n):
+        return "RC-03"
+    if re.search(r"rele?a?se", n):
+        return "RC-04"
+    if re.search(r"\bsp\s*insert", n):
+        return "RC-05"
+    if re.search(r"final\s*inspection", n):
+        return "RC-06"
+    if re.search(r"oiling", n):
+        return "Oiling"
+    if re.search(r"welding\s*of\s*arm", n):
+        return "RC-01"
+    return None
+
+
+def _seat_slider_columns(cur, line_id: int):
+    """[(column no, [process rows])] for a seat-slider or recliner line whose
+    stations all fit that zone's fixed columns; None otherwise (the caller
+    keeps the line's own order, so a line with other machines — YRA-SS,
+    YWD-SS, YWD/2UA Recliner — never loses a station)."""
+    cur.execute("""SELECT z.zone_name, l.line_name FROM mes_lines l
+                     LEFT JOIN mes_zones z ON z.id = l.zone_id WHERE l.id = %s""", (line_id,))
+    r = cur.fetchone() or {}
+    zn, ln = r.get("zone_name") or "", r.get("line_name") or ""
+    if re.search(r"reclin", zn, re.I) or re.search(r"reclin", ln, re.I):
+        columns, col_of = RC_COLUMNS, _rc_column
+    elif re.search(r"seat\s*slider", zn, re.I) or re.search(r"-SS$", ln, re.I):
+        columns, col_of = SS_COLUMNS, _ss_column
+    else:
+        return None
+    cur.execute("""
+        SELECT id, process_name,
+               (plc_config_id IS NOT NULL OR machine_id IS NOT NULL) AS has_machine
+          FROM mes_processes
+         WHERE line_id = %s AND is_active
+         ORDER BY display_order, id
+    """, (line_id,))
+    cols = {c: [] for c in columns}
+    for p in cur.fetchall():
+        c = col_of(p["process_name"])
+        if c:
+            cols[c].append(p)
+        elif p["has_machine"]:
+            return None          # a real station that has no column here
+    if sum(1 for v in cols.values() if v) < 5:
+        return None
+    return [(c, cols[c]) for c in columns]
+
+
 @once
 def _ensure_wc_col():
     """Add mes_lines.peff_wc (base WC code) once; safe to call repeatedly."""
@@ -140,14 +234,31 @@ def peff_data(line_id: int = Query(...),
                 op_by_pid = _fetch_ops(cr["sd"])
 
         machines = []
-        for i, r in enumerate(mrows):
-            pid = int(r["id"])
-            machines.append({
-                "no": f"SS-{i+1:02d}",
-                "name": r["process_name"] or "",
-                "process_id": pid,
-                "operator": ", ".join(op_by_pid.get(pid, [])) or "",
-            })
+        ss_cols = _seat_slider_columns(cur, line_id)
+        if ss_cols is not None:
+            # seat slider: fixed SS-01..SS-09 columns (see SS_COLUMNS); an
+            # empty column stays in place so every name lands under its SS no.
+            for no, procs in ss_cols:
+                ops = []
+                for p in procs:
+                    for n in op_by_pid.get(int(p["id"]), []):
+                        if n not in ops:
+                            ops.append(n)
+                machines.append({
+                    "no": no,
+                    "name": " / ".join(p["process_name"] or "" for p in procs),
+                    "process_id": int(procs[0]["id"]) if procs else None,
+                    "operator": ", ".join(ops),
+                })
+        else:
+            for i, r in enumerate(mrows):
+                pid = int(r["id"])
+                machines.append({
+                    "no": f"SS-{i+1:02d}",
+                    "name": r["process_name"] or "",
+                    "process_id": pid,
+                    "operator": ", ".join(op_by_pid.get(pid, [])) or "",
+                })
 
         # ── hourly slots: the REAL break-adjusted MES slots (same as the
         #    dashboard and the paper sheet — e.g. 11:30-13:05 — not fixed

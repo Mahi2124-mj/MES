@@ -67,6 +67,31 @@ _NG_OK_SUSPECT_LINES = {int(x) for x in
                         if x.strip()}
 NG_OK_SUSPECT_HOLD_S = 10.0
 
+# 2026-10-09 — TRIAL CYCLES at shift start (YCA-SS first, operator-scoped).
+# The Final Inspection PLC is reset several times in the first minutes of a
+# shift while the line is set up (9-Oct A: D101 reached 1, 8, 11, 4 and was
+# wiped each time).  Every one of those parts had already been logged, so the
+# chart showed 24 cycles the count no longer had.  When a reset is CONFIRMED
+# (REG-RESET-RESNAP), the wiped run's cycle rows are moved — not deleted — to
+# <table>_ct_log_trial, and taken out of the hourly bucket.  At most
+# TRIAL_MOVE_CAP rows from the last TRIAL_MOVE_WINDOW_MIN minutes of this
+# shift; a bigger run is left alone for manual review.
+_TRIAL_RESET_LINES = {int(x) for x in
+                      _os.getenv("TRIAL_RESET_LINES", "12").split(",")
+                      if x.strip()}
+TRIAL_MOVE_CAP = int(_os.getenv("TRIAL_MOVE_CAP", "60") or 60)
+TRIAL_MOVE_WINDOW_MIN = int(_os.getenv("TRIAL_MOVE_WINDOW_MIN", "30") or 30)
+
+# 2026-10-09 — MODEL-AWARE TARGET (YWD-SS first, operator-scoped).  Every model
+# on this line has its own cycle time (INNER RH/LH 23 s, OTR 14.4 s), so the
+# target must follow the model the PLC reports, not one fixed line CT: plan
+# (shift + hourly), shift total, CT target on the dashboard, speed loss / OEE
+# performance and the max-CT window all use the running model's ideal_ct from
+# mes_model_mappings.  Lines not listed here are untouched.
+_MODEL_CT_LINES = {int(x) for x in
+                   _os.getenv("MODEL_CT_LINES", "6").split(",")
+                   if x.strip()}
+
 # 2026-10-06 — SUB-ASSEMBLY count self-protection (operator: "aise kario ki in
 # future kabhi issue repeat na ho … sub assy me kario bas").  On the 12:09
 # restart three SA collectors (YRA-SA-4WAY, YNC-SA-6WAY, Y17-SA-4WAY) took a
@@ -3693,6 +3718,10 @@ class CollectorEngine:
                                       f"-- ok_shift snapped DOWN to live, no "
                                       f"backfill", flush=True)
                                 self._ok_shift_peak = _now_val   # new baseline
+                                if int(self.cfg.get("line_id") or 0) in _TRIAL_RESET_LINES:
+                                    # every part of the wiped run was a trial;
+                                    # moved by _move_trial_rows in the main loop
+                                    self._trial_move_peak = int(_last)
                                 self._allow_zero_after_seed(_ok_reg, _last)
                                 self._reg_resnap_armed = False
                                 self._reg_resnap_low1  = None
@@ -4307,6 +4336,22 @@ class CollectorEngine:
                 ot_s = e
                 end_m = (e.hour * 60 + e.minute + self._OT_DURATION_MIN) % 1440
                 ot_e = dt_time(end_m // 60, end_m % 60)
+        # 2026-10-09 — OT never runs into the next production shift.  A typo'd
+        # end (YCA-SS A: 17:15-06:20) kept shift A "alive" over the whole B
+        # shift; the window now stops at the next production shift's start.
+        if ot_s and ot_e:
+            s_m = ot_s.hour * 60 + ot_s.minute
+            span = ((ot_e.hour * 60 + ot_e.minute) - s_m) % 1440 or 1440
+            for _sn, _sc in (self.cfg.get("shifts") or {}).items():
+                st = _sc.get("start_time")
+                if _sn == shift_name or not _sc.get("is_production") or st is None:
+                    continue
+                if isinstance(st, str):
+                    st = dt_time(*map(int, st.split(":")))
+                off = ((st.hour * 60 + st.minute) - s_m) % 1440
+                if 0 < off < span:
+                    span = off
+                    ot_e = st
         return ot_s, ot_e
 
     def _is_in_ot_window(self, shift_name: str) -> bool:
@@ -4324,6 +4369,206 @@ class CollectorEngine:
         if e_min <= s_min:  # crosses midnight
             return n_min >= s_min or n_min < e_min
         return s_min <= n_min < e_min
+
+    def _ot_arm_path(self) -> str:
+        return _os.path.join(_cache_dir(), f"ot_arm_line{self.cfg['line_id']}.json")
+
+    def _ot_armed_since(self, shift_name: str, now: datetime) -> datetime:
+        """When this collector first saw OT armed for `shift_name`.  Kept in a
+        small file so a restart in between does not move the deadline."""
+        st = getattr(self, "_ot_arm_state", None)
+        if st is None:
+            try:
+                with open(self._ot_arm_path(), "r", encoding="utf-8") as fh:
+                    st = _json_wbuf.load(fh)
+            except Exception:
+                st = {}
+        if st.get("shift") != shift_name or not st.get("since"):
+            st = {"shift": shift_name, "since": now.isoformat(timespec="seconds")}
+            try:
+                with open(self._ot_arm_path(), "w", encoding="utf-8") as fh:
+                    _json_wbuf.dump(st, fh)
+            except Exception:
+                pass
+        self._ot_arm_state = st
+        try:
+            return datetime.fromisoformat(st["since"])
+        except Exception:
+            return now
+
+    def _ot_arm_forget(self) -> None:
+        if getattr(self, "_ot_arm_state", None) == {}:
+            return
+        self._ot_arm_state = {}
+        try:
+            _os.remove(self._ot_arm_path())
+        except OSError:
+            pass
+
+    def _ot_window_passed(self, shift_name: str) -> bool:
+        """True once the OT window this arming was for has ended: the first
+        window end after the moment OT was armed (armed during the window ->
+        that window; armed earlier -> the coming one)."""
+        _shifts = self.cfg.get("shifts") or {}
+        if shift_name not in _shifts:
+            return bool(_shifts)        # not a shift of this line -> clear it
+        if self._is_in_ot_window(shift_name):
+            return False
+        _s, ot_e = self._get_ot_window(shift_name)
+        if not ot_e:
+            return False
+        now = datetime.now()
+        armed = self._ot_armed_since(shift_name, now)
+        end_dt = datetime.combine(armed.date(), ot_e)
+        if end_dt <= armed:
+            end_dt += timedelta(days=1)
+        return now >= end_dt
+
+    # ── model-aware target (see _MODEL_CT_LINES) ──────────────────────
+    def _model_ct_on(self) -> bool:
+        if int(self.cfg.get("line_id") or 0) in _MODEL_CT_LINES:
+            return True
+        # 2026-10-10 — Sub-Assembly too (operator: "same fix as YWD-SS").  On
+        # once the line's models have their own CT in Admin → Models; until
+        # then the line keeps its single fixed CT exactly as before.
+        if int(self.cfg.get("zone_id") or 0) == SA_ZONE_ID:
+            return bool(self._model_ct_map())
+        return False
+
+    def _model_ct_map(self) -> dict:
+        """{model_number: ideal_ct} for this line, re-read every 60 s so a CT
+        edited in Admin → Models applies without a restart."""
+        now = time.time()
+        if now - getattr(self, "_mct_map_at", 0.0) < 60 and hasattr(self, "_mct_map"):
+            return self._mct_map
+        self._mct_map_at = now
+        m = getattr(self, "_mct_map", {})
+        if self._db_ok and self._db:
+            try:
+                cur = self._db.cursor()
+                cur.execute("SELECT model_number, ideal_ct FROM mes_model_mappings "
+                            "WHERE line_id = %s AND ideal_ct > 0", (self.cfg["line_id"],))
+                m = {int(r[0]): float(r[1]) for r in cur.fetchall()}
+                cur.close()
+                self._db.commit()
+            except Exception:
+                self._safe_rollback()
+        self._mct_map = m
+        return m
+
+    def _eff_ideal_ct(self) -> float:
+        """Ideal CT of the model running now (line CT when unknown)."""
+        base = float(self.cfg["ideal_ct"])
+        if not self._model_ct_on() or not self._cur_model:
+            return base
+        ct = self._model_ct_map().get(int(self._cur_model))
+        return float(ct) if ct and ct > 0 else base
+
+    def _mct_path(self) -> str:
+        return _os.path.join(_cache_dir(), f"model_plan_line{self.cfg['line_id']}.json")
+
+    def _mct_seed(self, sid, w_now: int) -> dict:
+        """State for a new shift row, or after a restart: the saved file when it
+        is for this row, else continue from what the dashboard already shows."""
+        try:
+            with open(self._mct_path(), "r", encoding="utf-8") as fh:
+                st = _json_wbuf.load(fh)
+            if st.get("sid") == sid:
+                st["plan"] = float(st.get("plan") or 0.0)
+                st["slots"] = {k: float(v) for k, v in (st.get("slots") or {}).items()}
+                st["w"] = int(st.get("w") or 0)
+                return st
+        except Exception:
+            pass
+        plan = 0.0
+        if sid and self._db_ok and self._db:
+            try:
+                cur = self._db.cursor()
+                cur.execute(f"SELECT shift_plan_completed FROM {self.cfg['table_name']} "
+                            f"WHERE id = %s", (sid,))
+                r = cur.fetchone()
+                cur.close()
+                self._db.commit()
+                plan = float((r or [0])[0] or 0)
+            except Exception:
+                self._safe_rollback()
+        # every hour of this shift already written (past ones too), so a past
+        # hour keeps its model-weighted plan instead of the line-CT static one
+        slots = {}
+        for _sl in (self.cfg.get("hourly_plan") or {}).get(self._cur_shift or "", {}):
+            _p = (self._hourly_data.get(_sl) or {}).get("plan", 0) or 0
+            if _p:
+                slots[_sl] = float(_p)
+        cur_slot = self._get_current_slot()
+        if cur_slot and cur_slot not in slots:
+            slots[cur_slot] = float(self._hourly_data.get(cur_slot, {}).get("plan", 0) or 0)
+        return {"sid": sid, "w": int(w_now), "plan": plan, "slots": slots}
+
+    def _model_ct_tick(self) -> None:
+        """Advance the model-weighted plan by the working seconds since the
+        last call, each at the CT of the model running now.  Cheap and
+        idempotent — called from every place that reads the plan."""
+        if not self._model_ct_on():
+            return
+        try:
+            base = float(self.cfg["ideal_ct"])
+            eff = self._eff_ideal_ct()
+            ratio = eff / base if base > 0 else 1.0
+            # per-cycle speed loss, OEE performance and the stoppage window
+            self.ct.ideal_ct = eff
+            self.ct.max_ct = float(self.cfg["max_ct"]) * ratio
+            sid = self._shift_id
+            w_now = self._working_seconds()
+            st = getattr(self, "_mct", None)
+            if not st or st.get("sid") != sid:
+                st = self._mct_seed(sid, w_now)
+                self._mct_saved_at = 0.0
+            d_w = w_now - st["w"]
+            if d_w < 0:                      # working clock re-anchored
+                st["w"] = w_now
+            elif d_w > 0:
+                add = d_w / eff
+                st["plan"] += add
+                slot = self._get_current_slot()
+                if slot:
+                    st["slots"][slot] = st["slots"].get(slot, 0.0) + add
+                st["w"] = w_now
+            self._mct = st
+            # CT target shown by every dashboard (realtime → cycle_time_plan)
+            if sid and (getattr(self, "_mct_ct_row", None) != (sid, eff)) and self._db_ok and self._db:
+                try:
+                    cur = self._db.cursor()
+                    cur.execute(f"UPDATE {self.cfg['table_name']} SET cycle_time_plan = %s "
+                                f"WHERE id = %s", (eff, sid))
+                    cur.close()
+                    self._db.commit()
+                    self._mct_ct_row = (sid, eff)
+                    print(f"[MODEL-CT] target CT {eff:g}s "
+                          f"({self._cur_model_name or 'line CT'})", flush=True)
+                except Exception:
+                    self._safe_rollback()
+            if time.time() - getattr(self, "_mct_saved_at", 0.0) >= 15:
+                self._mct_saved_at = time.time()
+                try:
+                    with open(self._mct_path(), "w", encoding="utf-8") as fh:
+                        _json_wbuf.dump(st, fh)
+                except Exception:
+                    pass
+        except Exception as e:
+            if time.time() - getattr(self, "_mct_err_at", 0.0) > 60:
+                self._mct_err_at = time.time()
+                print(f"[MODEL-CT] tick skipped: {e}", flush=True)
+
+    def _model_plan_now(self, line_total_plan: int):
+        """(planned so far, shift total) on a model-aware line: the total is
+        what is done plus the rest of the shift at the running model's CT."""
+        self._model_ct_tick()
+        st = getattr(self, "_mct", None) or {}
+        planned = int(round(st.get("plan", 0.0)))
+        base = float(self.cfg["ideal_ct"])
+        rest_s = max(0.0, line_total_plan * base - self._working_seconds())
+        total = planned + int(round(rest_s / self._eff_ideal_ct()))
+        return planned, max(planned, total)
 
     def _get_current_shift(self):
         now   = datetime.now()
@@ -4433,8 +4678,10 @@ class CollectorEngine:
             self._cur_shift_record_date = rec
         return sname or "UNKNOWN"
 
-    def _get_current_slot(self) -> str:
-        t = datetime.now().time()
+    def _get_current_slot(self, at=None) -> str:
+        # `at` (a time) — the slot a part logged a few minutes ago landed in
+        # (_move_trial_rows); default is now.
+        t = at or datetime.now().time()
 
         # ── OT slot priority: if OT is active + window live, route to OT slot
         ot_shift = self._check_ot_active()
@@ -4447,6 +4694,12 @@ class CollectorEngine:
         for sname, slots in self.cfg["hourly_plan"].items():
             for slot_label in slots:
                 if slot_label not in self.cfg["slot_boundaries"]:
+                    continue
+                # 2026-10-09 — an OT slot only takes parts while that OT is
+                # live (handled above).  Matched by clock it stole other time:
+                # YCA-SS's "17:15-06:20 OT" (A) covered the whole B shift, so
+                # every B hour since 28-Sep landed in that one OT column.
+                if str(slot_label).endswith(" OT"):
                     continue
                 s, e, crosses = self.cfg["slot_boundaries"][slot_label]
                 if isinstance(s, str):
@@ -4573,6 +4826,13 @@ class CollectorEngine:
                 break
         if not static_plan or slot_label not in self.cfg["slot_boundaries"]:
             return 0
+        if self._model_ct_on():
+            # model-weighted plan built up while this hour ran (no cap at the
+            # line-CT static plan: a faster model legitimately plans more)
+            self._model_ct_tick()
+            _v = ((getattr(self, "_mct", None) or {}).get("slots") or {}).get(slot_label)
+            if _v is not None:
+                return int(round(_v))
 
         s, e, crosses = self.cfg["slot_boundaries"][slot_label]
         if isinstance(s, str):
@@ -8116,6 +8376,76 @@ class CollectorEngine:
             print(f"[CT_LOG] Flush error: {e}")
             self._safe_rollback()
 
+    def _move_trial_rows(self) -> None:
+        """Move the cycle rows of a PLC-wiped trial run to <ct_log>_trial.
+
+        2026-10-09 — armed by REG-RESET-RESNAP on _TRIAL_RESET_LINES with the
+        count the PLC wiped (`_trial_move_peak`).  The register restarts from
+        0, so the run's rows are this shift's newest OK rows with cycle_seq
+        1..peak.  One atomic DELETE … RETURNING → INSERT on a short-lived
+        connection, so a failure moves nothing.  The moved parts are then
+        taken out of the hourly bucket they were added to.  One-shot."""
+        peak = getattr(self, "_trial_move_peak", None)
+        self._trial_move_peak = None
+        try:
+            peak = int(peak or 0)
+            shift = self._shift_label()
+            rec_dt = getattr(self, "_cur_shift_record_date", None)
+            if peak <= 0 or not shift or shift.startswith("GAP") or rec_dt is None:
+                return
+            if peak > TRIAL_MOVE_CAP:
+                print(f"[TRIAL-MOVE] wiped run of {peak} > cap {TRIAL_MOVE_CAP} "
+                      f"-- rows left in place for review", flush=True)
+                return
+            self._flush_ct_log()          # the run's last rows may be buffered
+            tbl = self.cfg["table_name"] + "_ct_log"
+            conn = psycopg2.connect(**DB_CONFIG)
+            try:
+                cur = conn.cursor()
+                cur.execute("SET lock_timeout = '3s'")
+                cur.execute("SET statement_timeout = '10s'")
+                cur.execute(f"""
+                    WITH run AS (
+                        SELECT id FROM {tbl}
+                         WHERE record_date = %s AND shift_name = %s
+                           AND NOT COALESCE(is_ng, false)
+                           AND cycle_seq BETWEEN 1 AND %s
+                           AND ts >= NOW() - make_interval(mins => %s)
+                         ORDER BY ts DESC, id DESC
+                         LIMIT %s),
+                    moved AS (
+                        DELETE FROM {tbl} WHERE id IN (SELECT id FROM run)
+                        RETURNING id, ts, record_date, shift_name, ct_value,
+                                  cycle_seq, part_code, is_ng)
+                    INSERT INTO {tbl}_trial (id, ts, record_date, shift_name,
+                           ct_value, cycle_seq, part_code, is_ng, reason)
+                    SELECT id, ts, record_date, shift_name, ct_value,
+                           cycle_seq, part_code, is_ng, %s
+                      FROM moved
+                    RETURNING ts""",
+                    (rec_dt, shift, peak, TRIAL_MOVE_WINDOW_MIN, peak,
+                     f"PLC reset wiped run of {peak}"))
+                moved_ts = [r[0] for r in cur.fetchall()]
+                conn.commit()
+                cur.close()
+            finally:
+                conn.close()
+            per_slot = {}
+            for ts in moved_ts:
+                slot = self._get_current_slot(at=ts.time())
+                if slot:
+                    per_slot[slot] = per_slot.get(slot, 0) + 1
+            for slot, n in per_slot.items():
+                hd = self._hourly_data.get(slot)
+                if hd:
+                    hd["ok"] = max(0, int(hd.get("ok", 0)) - n)
+                    self._write_hourly_to_db(slot)
+            print(f"[TRIAL-MOVE] PLC reset wiped {peak} part(s): moved "
+                  f"{len(moved_ts)} cycle row(s) to {tbl}_trial, hourly "
+                  f"{per_slot or '-'}", flush=True)
+        except Exception as e:
+            print(f"[TRIAL-MOVE] skipped: {e}", flush=True)
+
     def _reg_backfill_after_resync(self) -> None:
         """One-shot graph-point backfill after a register resync.
 
@@ -8573,6 +8903,8 @@ class CollectorEngine:
         planned          = min(_shift_plan,
                                 int(round(working_seconds / self.cfg["ideal_ct"]))) \
                             if _shift_plan > 0 else 0
+        if _shift_plan > 0 and self._model_ct_on():
+            planned, _shift_plan = self._model_plan_now(_shift_plan)
         self._plan_completed = planned
 
         oee        = self._oee()
@@ -10552,11 +10884,19 @@ class CollectorEngine:
                 # OT mid-shift now sticks: it kicks in at shift end and auto-
                 # clears only after the OT window truly ends.  (Main shift logic
                 # untouched — this only narrows WHEN the OT flag is cleared.)
+                # 2026-10-09 — "the clock shift is no longer the OT shift" also
+                # matched OT armed AHEAD of time (YHB-SS 8-Oct 16:12: B OT set
+                # during A, cleared 2 s later, every try) and the break between
+                # shift end and OT start (B ends 03:15, OT 03:30): OT never ran,
+                # so its parts, hourly and video were dropped as GAP.  Expired
+                # now = the first OT window ending after the arming has ended.
                 _ot = self._check_ot_active()
-                _ot_expired = False
-                if _ot and not self._is_in_ot_window(_ot):
-                    _clk_shift, _ = self._get_current_shift()
-                    _ot_expired = (_clk_shift != _ot)
+                # forget the arming only after 3 empty reads in a row: a failed
+                # SELECT also returns "" and must not restart the deadline
+                self._ot_empty_reads = 0 if _ot else getattr(self, "_ot_empty_reads", 0) + 1
+                if self._ot_empty_reads >= 3:
+                    self._ot_arm_forget()
+                _ot_expired = bool(_ot) and self._ot_window_passed(_ot)
                 if _ot and _ot_expired:
                     try:
                         _oc = self._db.cursor()
@@ -10861,6 +11201,8 @@ class CollectorEngine:
                 # no-op on bit-mode / semi-auto (never gets armed).
                 if getattr(self, "_do_reg_backfill_to", None) is not None:
                     self._reg_backfill_after_resync()
+                if getattr(self, "_trial_move_peak", None) is not None:
+                    self._move_trial_rows()
 
                 # Count pulses
                 new_ok, new_ng = self._update_counts(
@@ -11002,6 +11344,8 @@ class CollectorEngine:
                     _disp_scfg   = self.cfg["shifts"].get(self._cur_shift, {})
                     _disp_plan   = _disp_scfg.get("total_plan", 0) if not (self._cur_shift or "").startswith("GAP") else 0
                     planned      = min(_disp_plan, int(working_seconds / self.cfg["ideal_ct"])) if _disp_plan > 0 else 0
+                    if _disp_plan > 0 and self._model_ct_on():
+                        planned, _ = self._model_plan_now(_disp_plan)
                     # Stash for the status-table thread so its PLAN column shows
                     # the SAME number as this heartbeat (no recompute divergence).
                     self._last_plan_display = planned

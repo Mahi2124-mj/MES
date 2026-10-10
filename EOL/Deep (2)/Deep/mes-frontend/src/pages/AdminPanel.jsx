@@ -2074,8 +2074,11 @@ export function LinesPage({ toast, readOnly = false }) {
             .filter(Boolean)
             .sort((a,b) => (a.bitNumber ?? 9999) - (b.bitNumber ?? 9999));
           const cleanName = s => String(s||"").replace(/^TYPE-SERIES:\s*/i,"");
-          // Per-model CT editor: only for the model-aware line (YWD-SS).
-          const showModelCT = /ywd[\s_-]*ss/i.test(editing?.line_name || "");
+          // Per-model CT editor: the model-aware lines — YWD-SS and (2026-10-10)
+          // every Sub-Assembly line; the collector follows the running model's CT.
+          const _lineZone = ((zones || []).find(z => String(z.id) === String(editing?.zone_id)) || {}).zone_name || "";
+          const showModelCT = /ywd[\s_-]*ss/i.test(editing?.line_name || "")
+                           || /sub[\s_-]*assembly/i.test(_lineZone);
 
           return (
             <div>
@@ -2086,8 +2089,8 @@ export function LinesPage({ toast, readOnly = false }) {
               {showModelCT && (
                 <p style={{ fontSize:12, color:"#0369a1", background:"rgba(2,132,199,.06)", border:"1px solid #bae6fd",
                   borderRadius:8, padding:"8px 12px", marginBottom:14 }}>
-                  ⏱ <b>Model-aware plan:</b> har model ka <b>ideal CT (sec)</b> set karo — INR vs OTR alag.
-                  Hourly plan aur changeover-impact isi CT se auto-calc hote hain (dedicated YWD-SS fullscreen par).
+                  ⏱ <b>Model-aware target:</b> set each model's <b>ideal CT (sec)</b>. Plan, hourly plan,
+                  target CT and speed loss follow the CT of the model running. Blank = line CT.
                 </p>
               )}
 

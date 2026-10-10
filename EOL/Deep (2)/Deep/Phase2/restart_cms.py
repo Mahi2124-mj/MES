@@ -215,7 +215,14 @@ print(f"  set VIDEO_LIVE_ENCODER={env['VIDEO_LIVE_ENCODER']} — recorders force
 
 # relaunch detached
 logf = open(LOG, "ab")
-p = subprocess.Popen([VENV_PY, SCRIPT], cwd=BACKEND, env=env,
+# 2026-10-09 — never relaunch with the shell's default 1024 open-file limit
+def _raise_nofile():
+    import resource
+    soft, hard = resource.getrlimit(resource.RLIMIT_NOFILE)
+    want = 65536 if hard == resource.RLIM_INFINITY else min(65536, hard)
+    if soft < want:
+        resource.setrlimit(resource.RLIMIT_NOFILE, (want, hard))
+p = subprocess.Popen([VENV_PY, SCRIPT], cwd=BACKEND, env=env, preexec_fn=_raise_nofile,
                      stdout=logf, stderr=logf, stdin=subprocess.DEVNULL,
                      start_new_session=True)
 print(f"Relaunched CMS-API pid {p.pid}")

@@ -199,6 +199,13 @@ def _sync_line(cur, line_id: int, db_table: str, rec_date: date, shift: str,
                          FROM mes_hourly_slots
                         WHERE line_id=%s AND shift_name=%s""", (line_id, shift))
         _slots = cur.fetchall()
+        # 2026-10-10 — model-aware line (its models have their own CT): the
+        # collector writes each hour's plan at the RUNNING model's CT, so the
+        # current hour comes from that column instead of the static
+        # plan_pieces (which is the one fixed line CT).
+        cur.execute("""SELECT EXISTS (SELECT 1 FROM mes_model_mappings
+                                       WHERE line_id=%s AND ideal_ct > 0) AS m""", (line_id,))
+        _model_ct = bool((cur.fetchone() or {}).get("m"))
         _now = datetime.now()
         plan_done = 0.0
         for s in _slots:
@@ -212,6 +219,8 @@ def _sync_line(cur, line_id: int, db_table: str, rec_date: date, shift: str,
                 continue
             if _now >= se:
                 # completed slot → its full plan (== the frontend's hour_*_plan)
+                plan_done += int(row.get(f"{p}_plan") or 0)
+            elif ss <= _now < se and _model_ct:
                 plan_done += int(row.get(f"{p}_plan") or 0)
             elif ss <= _now < se:
                 # CURRENT slot → prorate the static plan by elapsed fraction

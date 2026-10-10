@@ -10,6 +10,22 @@ import time
 from datetime import datetime
 from typing import Any, Dict, List
 
+# 2026-10-09 — open-file limit.  The CMS holds a socket per camera/client, a
+# pipe per recorder and every open .ts segment: ~1000 fds on a normal day.
+# Started from a shell with the default soft limit of 1024 (restart_cms.py /
+# cms.sh run by hand — start_everything.sh sets 65536), it hit EMFILE at the
+# 18:30 segment roll on 9-Oct and stopped answering for the whole B shift.
+# Raise our own soft limit to the hard limit (capped at 65536) right here.
+try:
+    import resource as _resource
+    _soft, _hard = _resource.getrlimit(_resource.RLIMIT_NOFILE)
+    _want = 65536 if _hard == _resource.RLIM_INFINITY else min(65536, _hard)
+    if _soft < _want:
+        _resource.setrlimit(_resource.RLIMIT_NOFILE, (_want, _hard))
+    print(f"[CMS] open-file limit {_resource.getrlimit(_resource.RLIMIT_NOFILE)[0]}", flush=True)
+except Exception as _e:
+    print(f"[CMS] open-file limit not raised: {_e}", flush=True)
+
 import cv2
 from flask import Flask, jsonify, request, send_file, Response
 from flask_cors import CORS

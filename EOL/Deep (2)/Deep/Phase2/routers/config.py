@@ -203,6 +203,18 @@ def get_line_py_models(line_id: int, user=Depends(get_current_user)):
               ON mm.bit_number = lm.model_number
              AND mm.is_active  = true
             WHERE lm.line_id = %s
+              -- 2026-10-09 — many master entries share a bit number across
+              -- lines (bit 1 = INNER RH on YWD, 4 Way Inner on SA, towel bars,
+              -- ...).  Matching on the bit alone listed all of them as this
+              -- line's models, so models the operator never assigned came
+              -- back after every save.  The line row keeps the master's name;
+              -- match on it, and fall back to the bit only for a row whose
+              -- name is in no master entry (older imports).
+              AND (UPPER(BTRIM(mm.model_name)) = UPPER(BTRIM(lm.model_name))
+                   OR NOT EXISTS (
+                        SELECT 1 FROM mes_py_model_master m2
+                         WHERE m2.is_active AND m2.bit_number = lm.model_number
+                           AND UPPER(BTRIM(m2.model_name)) = UPPER(BTRIM(lm.model_name))))
             ORDER BY mm.bit_number NULLS LAST
         """, (line_id,))
         return cur.fetchall()
@@ -229,6 +241,16 @@ def set_line_py_models(line_id: int, ids: List[int], admin=Depends(require_admin
                 ORDER BY bit_number
             """, (ids,))
             rows = d_cur.fetchall()
+            # One line reads one model number from the PLC, so two models on
+            # the same bit cannot both belong to it (and the unique index
+            # would turn the save into a 500).
+            seen = {}
+            for m in rows:
+                if m["bit_number"] in seen:
+                    raise HTTPException(
+                        400, f"Bit {m['bit_number']} is used by two selected models: "
+                             f"{seen[m['bit_number']]} and {m['model_name']}. Keep one.")
+                seen[m["bit_number"]] = m["model_name"]
             for m in rows:
                 cur.execute("""
                     INSERT INTO mes_model_mappings (line_id, model_number, model_name)
