@@ -251,6 +251,8 @@ def submit_wallboard(line_id: int, payload: dict) -> int:
 
     for m in (payload.get("machines") or []):
         sub_id = m.get("sub_id")
+        if m.get("combined_of"):  # its clips are the members' clips, warmed on their own rows
+            continue
         if not sub_id:          # 0 / None = the main-line marker, done above
             continue
         for seq in _newest_seqs(m.get("cycles")):

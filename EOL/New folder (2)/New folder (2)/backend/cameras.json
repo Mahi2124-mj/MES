@@ -1,31 +1,13 @@
 {
-  "active_camera_id": "cam_panasonic_default",
+  "active_camera_id": "cam_upper_rail_greasing_1778650524",
   "cameras": [
-    {
-      "id": "cam_panasonic_default",
-      "name": "Panasonic Default",
-      "ip": "192.168.30.115",
-      "port": 554,
-      "username": "gAAAAABqtlfJnoXE9JoxPTzpNIQ3fdihBnLiHYG5zj37w9rwRVG7QtI12HvfPdgA4ThJlBkqmYLnUcolKYZ0sl2GY5YaSKT49g==",
-      "password": "gAAAAABqtlfJGzskKdgYB4MTmb7bj5clck90k7D05YS229-vkUpmRmeq5og-J18yebTXEWOU5zgiDtEIWZA4Pjn8boaVJ1EROQ==",
-      "path": "/h264/ch1/sub/av_stream"
-    },
     {
       "id": "cam_upper_rail_greasing_1778650524",
       "name": "Lock Bar Insert M/c",
       "ip": "192.168.31.112",
       "port": 554,
-      "username": "gAAAAABqtlfJN7tw1CfiVGE8e1tQcOgCD8mSNTM87HJtRJYxO0w8PzfEcsGyaFWLCn7Hon1BFAjnOvUaKwXJ7Kpz4kX2moxZHA==",
-      "password": "gAAAAABqtlfJppFE6Ka0A2TNtoSA8jfKrOzhb6Q1Zdr6Wr1WeQ3xPFGfr5-XuJlVdcTEPk6-UtEUdJSLAb6fbk02uTtGCOnj0w==",
-      "path": "/h264/ch1/sub/av_stream"
-    },
-    {
-      "id": "cam_semi_auto_1779041507",
-      "name": "Semi auto",
-      "ip": "192.168.30.158",
-      "port": 554,
-      "username": "gAAAAABqtlfJYBsWHdQ3Uu7stxw96_UVfNXU5I0vy7-gu8zDkPMcE6z5h_vyicpqOtZP2hR7xMkxRjTxQG78m3RXR1ehnDutiA==",
-      "password": "gAAAAABqtlfJS36bpGpzLdCsOC98dD6sG7MvxbfqSna02SORKiHWwPwkx7oQCvTd4MH0TRVbu9RIvwTB6a17i2T55bmwtLVFSA==",
+      "username": "gAAAAABq0OmYUm19drPUJjkouKw3Gs1JzY3sW1BE4njHTL2-QUr4l6BGMqF2frMd4w3ipSJio4sdp7cPSK6Z2j9iy-vXmYKa9A==",
+      "password": "gAAAAABq0OmYjKs9WgNOe4TjWlc4a4UOpCGvk6UcOJgRyCWlwSkW2gSACifB1PyxBwNjl7bd-mDok_YRIL31sgL_yxO7UMyyKA==",
       "path": "/h264/ch1/sub/av_stream"
     },
     {
@@ -33,17 +15,8 @@
       "name": "lock-bar",
       "ip": "192.168.31.132",
       "port": 554,
-      "username": "gAAAAABqtlfJBhNhs-7_24KWOm4O3pPIL4_h2rEm6YisTWAur4JgEk_z9rYpe4wPOOkhC-mRWIm7JiB6pOWzjla9nWqxAGYuuA==",
-      "password": "gAAAAABqtlfJpPdU9cj6oUznKrxL9-09e-lBsigf7M_IelKVu1C6LQrcEPYdh9bqawvVTgBPPRIbCs24QvZR66oSvyO5gKFtSA==",
-      "path": "/h264/ch1/sub/av_stream"
-    },
-    {
-      "id": "cam_ball_guide_1779079466",
-      "name": "ball guide",
-      "ip": "192.168.30.152",
-      "port": 554,
-      "username": "gAAAAABqtlfJ6Pk7eOSknR__2Wsfym_FL9d3-GHU3KdCHEHGp6WiNUqO_1aN2Mc2sX3IqD0WRzXOj8pervYa0JuT87VzwuuBOw==",
-      "password": "gAAAAABqtlfJwnfbr_t7fijM_UQiAXr_P9YApW9sDbZeKAdK_5BBXCusdX7MCruIRmYmAd5aRTZ5AQOpbhPR1JT0YiEk0BGmWw==",
+      "username": "gAAAAABq0OmYyxR1auX07KBd14Qtm51tOaIKFQXQ6215d7JyLvu5icHMIw-rA98I59lGt7cesB4gEw9hpVmJFSuWzUFtgkg_Ug==",
+      "password": "gAAAAABq0OmYNnypE8DS6UssQ-yBU4ajhfMhVEuZfDTgpq95w26GMJduNh4E-8MEdUWUgl50OwGAjx-Eg3lVSU3qyXjKjHaanw==",
       "path": "/h264/ch1/sub/av_stream"
     },
     {
@@ -51,8 +24,8 @@
       "name": "Upper Rail Greasing m/c",
       "ip": "192.168.31.50",
       "port": 554,
-      "username": "gAAAAABqtlfJBNrTgOjK4bwrwGo3lugdkF42s2IeDkThMGq_8GJl_rQE_XrmOGHo_w00Tmw2WkhVsWzd49asS5nkTPRtOEw4sA==",
-      "password": "gAAAAABqtlfJwkFNxgfL3Tsle_j9Ym3uvgqKJrGJfwSFnySd6IbpZZ6cEPrM_FU3T02bQvMWBBW_f27ud5tiAI7SHiXM4oExBQ==",
+      "username": "gAAAAABq0OmYDa11viCcdOSic6rHTr9gm9SpdeB9dghLvqn3h5HDfe9fh_F0VhvuJWyz7vQBRa73VqZ417WZAAR2oxm68ME76w==",
+      "password": "gAAAAABq0OmYjZHkep2tKK3UNbecbA7Y_FPJamanqa1opuPMMliNQDq-APevLZ_lW0zebcPUOG2IUUEg_F-7zo_rRRj5lzQ3eQ==",
       "path": "/h264/ch1/sub/av_stream"
     },
     {
@@ -60,8 +33,8 @@
       "name": "Lower Rail Grease & Bar Coding M/c",
       "ip": "192.168.31.52",
       "port": 554,
-      "username": "gAAAAABqtlfJsO6GhkwPW1gWyy7R8MmvwKdZ1nljSfwhnG1bBFRIH5D9UKr8p2PpOkvHBU-my4F6gUCXgzbt3QPAI_cb278Kcw==",
-      "password": "gAAAAABqtlfJGvmeKDHmsG3EILQJ5sMCh9cfO784NW_Hssa4S-Oyo2j0jzwyYszn0XmFYyPQHdLG9LAIa70JL5Uj7RKV8BqKNw==",
+      "username": "gAAAAABq0OmYt71XJOlJXcaGeRz52ldkirFhx6mOCqr2ePp42Za4OvdX5JiZVyh4TlZqVP0gJUzRELwkaz5MqVYYIJ9B1hVT5g==",
+      "password": "gAAAAABq0OmYZNR1F1yU9Hl5TWcd77KTBmg1UTptZrkmYwv87GU0kqjcggfKiQI1RQyKKnxCOTCJ3clRLKnN_OWwdxj-AsfJKg==",
       "path": "/h264/ch1/sub/av_stream"
     },
     {
@@ -69,8 +42,8 @@
       "name": "Rail Assy M/c # 01",
       "ip": "192.168.31.53",
       "port": 554,
-      "username": "gAAAAABqtlfJCE6-o1DFd7_liEZlg3rdz9Sl3EgW9G8-C00KNCGC9PXUJROEHQv9Zt1NzpJdXAWfCaZV2S6tIBLyBpxPZgrMaw==",
-      "password": "gAAAAABqtlfJgOkmBLZGMM811wJTQ1iD3FNfcbsl2A_oMEkm9A7BGTXAHj2az51Q-UkCjb1SjCInN9uyljBBKZtN9HiEN81LUQ==",
+      "username": "gAAAAABq0OmYce-yh2pGjyCnufFngNlQnjvLjrGa7HPj07zndywOdjg23e6sOyhwYorenwB2nTngcYficQ4sIODhKhtHQisp1A==",
+      "password": "gAAAAABq0OmY4qSK-9sZNX1jZ5HXKHgjwdKku33qoT18lcS6M7GHZR75j0eOmORxqRcWogn1YJB3IkcEUZ9Kxh3Tg5r_vJc7Tw==",
       "path": "/h264/ch1/sub/av_stream"
     },
     {
@@ -78,8 +51,8 @@
       "name": "Rail Assy M/c # 02",
       "ip": "192.168.31.54",
       "port": 554,
-      "username": "gAAAAABqtlfJ5heYD8UMuzNWqKaW5mqP2FFiG1R_1YgF8wuKH_mOFwIRfoXUufY-yJAW_6g8iFH8XSyes--uGR7ZbkZnr7blNA==",
-      "password": "gAAAAABqtlfJKxvdLc8tczIhIZuX8oUOBPeHUntpTbs_MViENCggNiFTOzab2TsDHkL_Cw7PjeSnZ0wKC6nOXGDmsg4oJMLxcA==",
+      "username": "gAAAAABq0OmYjB0rRlvwqYJTQqCZbqE4uSY1L1I9jl8E2oXdWhlyJjJMpzIZuf3fkXhrH-6PaecBi2sret2qzHCw-ZsryCPDSg==",
+      "password": "gAAAAABq0OmYRGqA9hW6-TAIrJFfFiWBJwm2mcpKIGpFICP3WU2NOhbi0n55OBB3tzGZRzpkhNOEK7Se3nLpCWvSQQ53JPTwGA==",
       "path": "/h264/ch1/sub/av_stream"
     },
     {
@@ -87,8 +60,8 @@
       "name": "Semi Automatic & Bending M/c",
       "ip": "192.168.31.55",
       "port": 554,
-      "username": "gAAAAABqtlfJ3WGtc8SB1hkkhkRmpKk3Od1EADTc60DMhFWCmSVhsu-Gfbd8-g_RM9tZk9UGyW7mNES0mqbroCdnDZ6smPOO3A==",
-      "password": "gAAAAABqtlfJOG8kUdpp4CRtXGy16otewREh-3y6otq5LM4JQjRDLWMz1ZgpOfe57IillOoj_JLSxYTze7vtsxik9vbibh7s7g==",
+      "username": "gAAAAABq0OmYLuHMQnsBqyv4RI_pv1kLoC-5s4QdkDnW86uOErj0HZhzTatiYAhStdXUW52Ot3BeJj9aCJF7E27DiHXGfe_s6w==",
+      "password": "gAAAAABq0OmYN7bSANkXELvmzXoUjrirGk513dl1zv4JwWl-T5odAtaJaDa1Tax0USaB0WKHcFXY5ciavgYA8PHs0bBDZSZLFw==",
       "path": "/h264/ch1/sub/av_stream"
     },
     {
@@ -96,8 +69,8 @@
       "name": "Final Inspection M/c",
       "ip": "192.168.31.56",
       "port": 554,
-      "username": "gAAAAABqtlfJ_hD_vDwOuJcigxDKXMBqzrggEJuxYYTw4K0d2BfTXLJ1SSFt37FPvC7Rx5s2S3aNuDp_f2x1yNGuIt1bZLE9mQ==",
-      "password": "gAAAAABqtlfJJwtbgSvevC5dyFa6JxGfzJVTAPFXHzF_ABO3x8B4kmZtW0R0DsYOMIBavxa5Rtm2O_KpQbxM0thDWQJCgujFig==",
+      "username": "gAAAAABq0OmY2UGeH5qXvMkkYnFm43nR0f4MzUQquCQxR3FRByugSGruLwOxypCocx8aGKxsajTJisyqHDSsSNhzePOiU68T_A==",
+      "password": "gAAAAABq0OmYk1yW8nzMdX-U05e8lE-5n9BKFMeetyPKVMjyj1rtdISA8GJOUTBowCJYWbFh53xK2xeyF_jNhrY9qKORP1QN1A==",
       "path": "/h264/ch1/sub/av_stream"
     },
     {
@@ -105,8 +78,8 @@
       "name": "2UA",
       "ip": "192.168.31.211",
       "port": 554,
-      "username": "gAAAAABqtlfJN42EPlSI4GU8bK7aPo1WmbPBu3T9AZVCSdBpcrld9-TlR54D4f3n3l7NlX0nTjUtASIifHCD03L-N7MlVz_-Mw==",
-      "password": "gAAAAABqtlfJHRLrS8V8tpqSEhcBpODE0I2eAZ3jFB6aburSKiASjUGpX_E_DHXm0ddDEv2KXaAY6NcO_4FnqrDXq7bJw4XnCQ==",
+      "username": "gAAAAABq0OmYQ-7ydgAcZ8QMN-yhSKWhAlQ4E0NR_tfv8niMuTf3JDZ91BOkyn-YVXlq9zytk8h0lc8RjxrJ97CqwWJsajMOSQ==",
+      "password": "gAAAAABq0OmYayJm01mNKS8p7yIGVHSYOEXChq-Y5upqxnIMTdh2C51LonalW8axg6lCz_lb9yHQHxqXCXz35uEhUZ_V8Xo4Lg==",
       "path": "/h264/ch1/sub/av_stream"
     },
     {
@@ -114,8 +87,8 @@
       "name": "YWD SS",
       "ip": "192.168.31.213",
       "port": 554,
-      "username": "gAAAAABqtlfJjWK2s-E83LjEyinTbnc-91OewDrFozbsNsffpflptixbkU7x0KYimlWyvjNKdcz_4Wu3tsZ_MVehO5eI0lYrtA==",
-      "password": "gAAAAABqtlfJvtoh37XP7nOlHOBtqn3VQvtZeniLvFOysAo6SP_n0Sv5evtRXWKlH-vE8WlJEuXY2mcGWAsC8gpD01UF9Wu3Jg==",
+      "username": "gAAAAABq0OmYKrNl5Adil8YNgKs510hDfeS7MyYG0Om6vPiDgVU7IBZ5mGjn-xCCDjmDq2-gB8aU0U_q_tHmE6H9GYTyeJfgew==",
+      "password": "gAAAAABq0OmYfvRXSmr4FWDoFQSz8GM0EEhgsWpfOt1n8Ki_FvVtg1TmwI-BA2TydHyjOk8_Uv5FgUF-PF-FImQqAcVNZdVp1Q==",
       "path": "/h264/ch1/sub/av_stream"
     },
     {
@@ -123,8 +96,8 @@
       "name": "Gear Lifter",
       "ip": "192.168.31.210",
       "port": 554,
-      "username": "gAAAAABqtlfJu5P2LI5eY-zzq7yf_7AOYLlrN7ArPOAgZNr4-EW70ot4HWn_OELCXkUtYYHVPYGGU4yn-PDvU1Gi5nEqhW48LA==",
-      "password": "gAAAAABqtlfJx5b-vlZcCwk017Qz6LJrdHoOBcxHD61pST4dmawW8quKfT6Sh6zRTQyOvj-T7uH7CN3-plUPpXDAO_lKq11tDA==",
+      "username": "gAAAAABq0OmYWJMjCGv7rPPIYskQlC9p1e0B6W-NEGT50nCXnkp7eWndsSTgsS0Jt6_f3QpPIScoabXjlLaHZ0wMC4sM_xuOfA==",
+      "password": "gAAAAABq0OmYrIxWzhLlh1301XnNfhnldhM3TTxWXl1p0N1z019SsQf8ay1GJRYwk1orUZbWGYqtWGW0eljS44E0KV_e6BXQjw==",
       "path": "/h264/ch1/sub/av_stream"
     },
     {
@@ -132,8 +105,8 @@
       "name": "Nut Lifting",
       "ip": "192.168.31.212",
       "port": 554,
-      "username": "gAAAAABqtlfJE7nmBIKTeIpXN8ov4Wz13rCa7VJZEnopxwzu1x_dCmH-pK6NjijKYUHxwwpNB8sUxw-N6DQnoRC6JNyM6_bGLA==",
-      "password": "gAAAAABqtlfJzl0vAshwPjkhXeSVDYT-c8aGTEpDWC0iD4sHMqn2hOpoVNoseNOzL2TPeJXyyk6I5sDBY-7wSU1fUkIcfMRPdg==",
+      "username": "gAAAAABq0OmYL2M4kglumM0e42lbD5bAZPjKutn4df3uC0EQ0Q6YhhsfqCC-wfGXmzENDL3fcGIeMUB-tzx3dm_VPqacsF4RNQ==",
+      "password": "gAAAAABq0OmYYqXEDWGWFUFqxxmG7j9jXaq9UXJ-SopmLnf6wNF9YqxaNWXIHS6M5SrFf0AG1EAh-PK-EgGA63lqtq75piEIEQ==",
       "path": "/h264/ch1/sub/av_stream"
     },
     {
@@ -141,8 +114,8 @@
       "name": "YWD RC",
       "ip": "192.168.31.214",
       "port": 554,
-      "username": "gAAAAABqtlfJci0Xm2WX_58kjok8GvU9qShZGqqhrYfRldqG6KlCv1VztkxKBBgdTjNCF9-jOxsaWpWrL5HzYjcCLz7giAVHhA==",
-      "password": "gAAAAABqtlfJRanrxx0KomfliLGPr7MVbvmUCU4FWHtyr9_qOk7gPBCKqcpQFzRUMIZVwWO4yuEFu1O_3H57fXsFrq-RbYzTVA==",
+      "username": "gAAAAABq0OmY4ZPmwR-2C9rJY1Ijdb46rff4yKlBNA9tLK2NH4cwFb-NqBk3bF76Qm9iT9RkJXdRn7mKUkqfsER2klt112Y_Og==",
+      "password": "gAAAAABq0OmYRs3oqpEvS2N6CpJVZZtuicaXOu-jPSvHAS1A6_M0nGqFCFxGJOBxTAwixgkodCawY1UgA2WKnGqRCADlCjBlIw==",
       "path": "/h264/ch1/sub/av_stream"
     },
     {
@@ -150,8 +123,8 @@
       "name": "Upper Rail Greasing m/c",
       "ip": "192.168.31.70",
       "port": 554,
-      "username": "gAAAAABqtlfJvEFfnfahrWDvEustGXw0nnG23EBRmfu1kn3hVY9oOcJFdsoryieAO4iOP63yCiHdcML1KmLsFrX5UqpqitTf1g==",
-      "password": "gAAAAABqtlfJtFhT6_I6MgqoI-ymnOtkHugZ6ztXTMySGPGAXOBVlq5lOO0aD0XcrwKz1EeZAi6p-OCx-JROSxyG3tdKq19Y_A==",
+      "username": "gAAAAABq0OmYWzzd7uhWmg-Ow8dP52UGWqaIiXHjdIl_K6hpPxD90KMnwfDnJpsCT3CPnIrZQ26i8WRzCrpnxYDUQuAFTRkljA==",
+      "password": "gAAAAABq0OmYn4xAkRfzFEG_fkhrIChbgK_JgZeMIQjACXmgz8ZFjrH5Y3ERW4SeQbXFf3J5fdVEDgZC--z35sJ6VsXsKBPAPg==",
       "path": "/h264/ch1/sub/av_stream"
     },
     {
@@ -159,8 +132,8 @@
       "name": "Lower Rail Grease & Bar Coding M/c",
       "ip": "192.168.31.72",
       "port": 554,
-      "username": "gAAAAABqtlfJiFVenbCgT4n3qrG3kYcLk_ibE7P_oRYarnZBGAVUfDw_8Ube5DhAUrK18cUeQA9JjAHrSZEXsUo3fQc5cOaamA==",
-      "password": "gAAAAABqtlfJDaSl4ZtTuTOHo5ZWXYM9ha6nopuc2VNlIMycQrwUtssYSWUydjpX80zcXZnul9TLtvtpuI2q9v2j-YzH68yoAg==",
+      "username": "gAAAAABq0OmY71bY57Eyj1OLsXv_sP-TmbBbT3a-5_T-7dCRZjUFz4hhmlEXtz1epfhFAGGE9S2Sar91oFJLkXeZavMOVL9hyA==",
+      "password": "gAAAAABq0OmYbgNO8gJnKKdN7jC7ThBMZnrOTg9ru4T3otH9v9ssoytF6KzXrZ4F3xHI3utuNa1ZEbDxZw6KyItK6Ijvl94SRw==",
       "path": "/h264/ch1/sub/av_stream"
     },
     {
@@ -168,8 +141,8 @@
       "name": "Rail Assy M/c # 01",
       "ip": "192.168.31.73",
       "port": 554,
-      "username": "gAAAAABqtlfJblDBD-lJH_Pb1KKem7vz9utiTvxFBhy-j8HBtkqbws9Bc53lQoIR8xa950qQL3cBWBNZUDLrFInBRGQwk2maLQ==",
-      "password": "gAAAAABqtlfJ4iDNeJjvxRgJ8Q_o9n3s3JnIwvm3q7QmaUL68qaVxYunwMWhhcpY5edj_ofYHwCZWlbBkM7af-hBvUYuIdaong==",
+      "username": "gAAAAABq0OmY3zOVp76zyf_AuamliT4UJdewAoutJ2aHiJPCc180k_FhM8U2Gu3-SPRDSn3l8XFrRvHHCGb09hJ6oubL5Ulzdg==",
+      "password": "gAAAAABq0OmYRWiUDdCUQNRsD29nclro9TBVtJgQiJF_6dco73t_pjIm2skXDgCyGe9UBtFKUpcmVmUNDck_1sgm2GChWaeREw==",
       "path": "/h264/ch1/sub/av_stream"
     },
     {
@@ -177,17 +150,8 @@
       "name": "Rail Assy M/c # 02",
       "ip": "192.168.31.74",
       "port": 554,
-      "username": "gAAAAABqtlfJDOQuukKGg3ykor3C93kuM_6yuJ1kBVI4WAZjFjU6qzKHxWFwDUBYw8Ym2aoBZyHXAcKtmd7wf0NZkIDKNIyKtg==",
-      "password": "gAAAAABqtlfJ1mV7FDC74dEM3l2TO-cs1Px5PzwiiCfnQfqeEmVudC1UuYuNjpaOkicxzAyrdKedXUD6WumCMWEFTc9tQtp43Q==",
-      "path": "/h264/ch1/sub/av_stream"
-    },
-    {
-      "id": "cam_semi_automatic_bending_m_c_1782449984",
-      "name": "Semi Automatic & Bending M/c",
-      "ip": "192.168.30.75",
-      "port": 554,
-      "username": "gAAAAABqtlfJfRduMtGwerUdRscaoRjJaZceQKfHOhH8QklSoTd63MK_P9sGHU3PEk3xGl1GG4PlFIRIJBbdj_AkZ8ca8chG8A==",
-      "password": "gAAAAABqtlfJgZT8zsiMxIxqVFnKsXYWAMR5jfG_5OZnYEEKP537fBB-Zbe-rAozvwG_ihoAz-3v9MI1HGh4lOK2SvUCjeLgFw==",
+      "username": "gAAAAABq0OmYW2IQCQ7dsEKPgjG8KiHMUtTgMrmBlbQKwawVoT-bLMpiRzDSSRpVMYFMf9YNeKwOrAizueoN-LH8MnS3V4-zEw==",
+      "password": "gAAAAABq0OmYqBK2hsz0w6AsvDf3_Dqhm_gEl9dy_TBI-J8PLwBp3ebhv-cKP4-B2P0f_yRbqq9EGuvXz3pTC9NDnl6Af6dgLA==",
       "path": "/h264/ch1/sub/av_stream"
     },
     {
@@ -195,8 +159,8 @@
       "name": "Semi Automatic & Bending M/c",
       "ip": "192.168.31.75",
       "port": 554,
-      "username": "gAAAAABqtlfJl_Kk6_y4iMY3X65Tn0bY5VpRxTQbAuYC23CbzRuVs0romHcDM4R2CVNkPZCCYkZICGzvrOIc9AHXNrOR_Rqowg==",
-      "password": "gAAAAABqtlfJGKpXink9DIhZu1fVZcIIZ7VE9QVIBnyfwXxk5-v4NcesepfqJG15t0vXvT-U1-g-DwhWANviUdxO0N0zkYIVPw==",
+      "username": "gAAAAABq0OmYPQ0WS3z1y3VFgDRfcQBI4jPDlyB_gLw06SXckTwJjErzaeu3X478fMAMIdrLrb_8S7q61_eVVf2NosL7prB66Q==",
+      "password": "gAAAAABq0OmYDlx4416n7v5_b4GIeqnlP59Ngr9Oc3qfrpqCpBNT_XBiru7n4CMI5i-FQ0alUyhQx-okEyUerWyDg1UJfnKrwA==",
       "path": "/h264/ch1/sub/av_stream"
     },
     {
@@ -204,8 +168,8 @@
       "name": "Final Inspection M/c",
       "ip": "192.168.31.76",
       "port": 554,
-      "username": "gAAAAABqtlfJm-KTv8eEBIO6Qmw5k0qQ9Aio8vbIDbotACA1br4tpYhrMokJ395ttzd7ePFoD6xkDDXgB-KWIIu8sK5NaiOhpQ==",
-      "password": "gAAAAABqtlfJdWHe0OGmcLljfyn4S9-VhxYQKY_wXvQCYjGp9kGLV2Di0kTaCi5R3Nt6ogefLRo7Q1RIJmh5YiLD3AHp-2AYCA==",
+      "username": "gAAAAABq0OmYnEJo6EmveVzk9Vz--8Rw0phlLBxbcMNSsClZVOm6WNzWzPHJt-MOr3ciT8XGQDgthafQmmLKPBsXoMRkzTHDoQ==",
+      "password": "gAAAAABq0OmY4Hk0LPGnYxgukDQwHyDSUjpzUpDVLcpQ1GjkYthm-UNgsQ3O3HMC3UHQWJL2cStBhNfpUd3o3ASy_ZqFeOiTrA==",
       "path": "/h264/ch1/sub/av_stream"
     },
     {
@@ -213,17 +177,8 @@
       "name": "Upper Rail Grease Machine",
       "ip": "192.168.31.90",
       "port": 554,
-      "username": "gAAAAABqtlfJHF1elUclRIwT_uPvH2xaE2u8eVkE_eLVjH1tklDSmETLFoeaN6JTxAAJtGNsjF5Xsrl3NFlGxb3kjH2WRXGNoQ==",
-      "password": "gAAAAABqtlfJLEuqkf0U5A-k07zA8C6FiQdp-7HX0bMHbNjJCXC9HvZvDI8wAx5X8yp7RBRwRsrTVIAhXOFuCjfm_iMRLi4HbA==",
-      "path": "/h264/ch1/sub/av_stream"
-    },
-    {
-      "id": "cam_lock_bar_insert_m_c_1782554601",
-      "name": "Lock Bar Insert M/c",
-      "ip": "192.168.30.111",
-      "port": 554,
-      "username": "gAAAAABqtlfJ1A6gtlWQ3rUxxhaO_UTjQ99dU0tDkMHcZTY4zBiU9gt9sE0u6MFJZTx7_7yIrX4H1m1tW2J9y26NJTffoJMZfw==",
-      "password": "gAAAAABqtlfJ5tJtaEH4x1q2v1T6uH92RS_P0Gnx3kPw6r_cALVx3rlLmIE2oqKZjpRTAUrmcWqBbywT5NU_jOnDZAJkjMqcBg==",
+      "username": "gAAAAABq0OmYDPX-DNV7iQBmlQwjM0uN_GbIlOCr0a50AbOb0lGQn2GNAvhfzXc79KSp8MivRyLcu4XA22cpLPmxUmdKLVMMwA==",
+      "password": "gAAAAABq0OmYAbs4FTr22MZHuvCd4W8356aRjj8_lUgB9VxBpmsh6r0at78aBOl7eINZop3G2MMsKozO4youILcTu-i6BalhTw==",
       "path": "/h264/ch1/sub/av_stream"
     },
     {
@@ -231,8 +186,8 @@
       "name": "Lower Rail Grease & Bar Coding M/c",
       "ip": "192.168.31.92",
       "port": 554,
-      "username": "gAAAAABqtlfJwtSZEStvsOE1y54s9Hdp2bnh6AzRgeZaBE4-MiWCwmmO_6PsIJryt6xniACpNtZOTt4cFcHAM95H9Eh_Vv5MxA==",
-      "password": "gAAAAABqtlfJgj6a2n9CEHPT3LgBLlOrZubV-kmp-lONjh2z_wkaNj2LDhBV2XxXwFZEZrgbxP_boBYUVweC6T7QQqCKCpIMHA==",
+      "username": "gAAAAABq0OmYbsQyivrnBqYXTjplyC9yvXyqJ677vSq-YIUUxTha5NFlkE5GGbgDccNgCcG87iGmD2JhCIH00x4qgeuVtsv9rg==",
+      "password": "gAAAAABq0OmYJI_tZUJlhui8Xn-qVYGB1d2auAddNZ_QbNqkrJw4UtLIenx8cNKco9LksiwO8vrBvAD151Dd4mjyl7aIdDhNBQ==",
       "path": "/h264/ch1/sub/av_stream"
     },
     {
@@ -240,17 +195,8 @@
       "name": "Rail Assy M/c # 01",
       "ip": "192.168.31.93",
       "port": 554,
-      "username": "gAAAAABqtlfJ3u64Z6BpHYSs2RcxlCK2T_iPrbMFj6HpW-eIgYeXySmyC9n3Ax8HuGgbz7c8mgE7rD8H33q2JXTfj-2sK1GqCg==",
-      "password": "gAAAAABqtlfJmV4zD7K-vzusDD2b0xG7s0IOAji9O27BQFFCx-44VnAJrOogWE3sO4vZACP3y06b7CyZQbnU-ISLdKQlUTLicg==",
-      "path": "/h264/ch1/sub/av_stream"
-    },
-    {
-      "id": "cam_lock_bar_insert_m_c_1782554794",
-      "name": "Lock Bar Insert M/c",
-      "ip": "192.168.30.131",
-      "port": 554,
-      "username": "gAAAAABqtlfJOWVzAGRekv1M57Xy7P-nmIMumciAXN01rMgVHo7YZP1CLv4Q6m3vPlJu3a96kARo170TIIu06-2Aw_pdWYfK4g==",
-      "password": "gAAAAABqtlfJrLrkIO1nzHtlcDZK4p7fPlEGRWuNiPRTfRPOVklB7Hgclc7_D639l9p21iX84qR91GhekxVfR9B4uUk1JwU8KQ==",
+      "username": "gAAAAABq0OmYYsJX1_sx8pFFje3mdm_TCeiMBkrKCBexDAIQfsgFpvskqQMxk0xCu3Fo-KhJvPNoEOO0fY3wWr_-XH_D7jF42w==",
+      "password": "gAAAAABq0OmYzcjlYDRmXyXD4EaMXPX-v1A2sRERFkptJN5Q57A8zAMCLoVLytuhy_A1Xe0oQNh0gxoO8eg_Fn2W9O8XSdG1AA==",
       "path": "/h264/ch1/sub/av_stream"
     },
     {
@@ -258,8 +204,8 @@
       "name": "Lower Rail Grease & Bar Coding M/c",
       "ip": "192.168.31.192",
       "port": 554,
-      "username": "gAAAAABqtlfJRjbkiF641vgC2ILblqSTHJqS_q1y6wM5oQQT3oHq_p85_2Z6WE4sQVpSSLlrdhk0UhZiHfvuBMomd0ikk6dcOQ==",
-      "password": "gAAAAABqtlfJbO8E5b7ZHMemgZVeQTGoHF1KvCc9DDIVuvV20GBXCnHUwW4kO7tFLyEu6C61c7kz5Gp-UiWrxpbWNVDUIl79Fw==",
+      "username": "gAAAAABq0OmYZ4FG5L29Z7SKIwhm4XNzZsOdlvb60Zmibq72B3suyDxXAubY8YUWACF6H7GsUlIiNYBUvBmP2g3zVuuQBybTTw==",
+      "password": "gAAAAABq0OmYO5jeHrHTIGuQdv4jO01PpCljEA2muyj_Ii03Z6-5NxwcLqqqJpOA1n2lqMLj6YH_NdDAFyMfYtI-TWXnb35vhQ==",
       "path": "/h264/ch1/sub/av_stream"
     },
     {
@@ -267,8 +213,8 @@
       "name": "Rail Assy M/c # 01",
       "ip": "192.168.31.113",
       "port": 554,
-      "username": "gAAAAABqtlfJtOvqpd8wLJYc0VxrTDeXCzeZza5GZt16BORAwXJ68GqC4COUF4Oim2YojY7Z9qV7UU09bipA852Gh1cqQyKgIA==",
-      "password": "gAAAAABqtlfJsRSmJ1hhzN2j4IFpcXykpW_xNjN5PSQ_Mz2hFMF4Ur9K8XLJB1AsDbSpqzBt9RIXflfoBEAgEByRugp5WmTAOA==",
+      "username": "gAAAAABq0OmYePO5d0qtSoJDhliz4W5EgKwlkQhlQCQ-ngRv8EK_EGwdYCXY1meJqiOJ4v4rzGVFeUSETauuRG0LnqDuptvrDw==",
+      "password": "gAAAAABq0OmYi7u-2Os9DziAMFCdqesofT9pqi02Q-TycPOgS2I1zIsPEGVWSTdm37MC95IqBNsN-y6Jtmwc2ikDEiRwN1ISyg==",
       "path": "/h264/ch1/sub/av_stream"
     },
     {
@@ -276,8 +222,8 @@
       "name": "Rail Assy M/c # 02",
       "ip": "192.168.31.114",
       "port": 554,
-      "username": "gAAAAABqtlfJoHQ_Kf0iFlMKoB_Del5_j0Ap9FHqK58xt224glAAQgTpLL6mZp0MKcrkWp_96uUrpRsA9WXc5Pxhg5CwQ2B-0g==",
-      "password": "gAAAAABqtlfJ_sOawvBf215QPORwHTpnK_Qm7HKWP3qoGR0rNJSP6rPRuyAVdzNDyZ63J43O5qqI04lj0WwSkFEwHGLaqrJBtg==",
+      "username": "gAAAAABq0OmYbbX-t-k7jmqpP0FkDHfZXy1VIkAuh3jyMUetvRE24Y58smYs6KIPUWVZ-vGyJLROPPtIW7tX1kAPUkJ9fUAZuA==",
+      "password": "gAAAAABq0OmYukPjvVS4u1B9kKmpV1HjdMQlGE7J1FOy3tRuwmi5sJ4eU_fuxQryRcwBHb0A1wE48bYSPUx8kL-FNdB4_YtseA==",
       "path": "/h264/ch1/sub/av_stream"
     },
     {
@@ -285,8 +231,8 @@
       "name": "Semi Automatic & Bending M/c",
       "ip": "192.168.31.115",
       "port": 554,
-      "username": "gAAAAABqtlfJMrK-jpqDU44yfC-TRWTBA7pZ4MsiGzSpjfdUtJlP9oA0DBV6y_WweE4Hv_EapWptRx0wJGrazZoF1EZGnvJhYw==",
-      "password": "gAAAAABqtlfJIY-H7DhOxkPdx9eEYkrfyotHpNgqTOOa93u1bReNXPcxJGH1qRGH5OT7dE41B41G0Rh8ojBp1aNFQHi8XqoBfQ==",
+      "username": "gAAAAABq0OmY-uG1I8u0EwW7vjqCJ60QFTiK-ULtAdOjnjkqU_6OeHQd6BSQZ1dmE24hoZ1L8y7JZ8qgIJ14zuKlvzIkxhMVDw==",
+      "password": "gAAAAABq0OmYJ9b0mfyrNpoi7kqltatXDl8i2bjQbX7KmCSG89NbBYEUhKi5gqnNuev-hHtJHgGuzG3I8tynOk4rxXOtN_GRgQ==",
       "path": "/h264/ch1/sub/av_stream"
     },
     {
@@ -294,26 +240,17 @@
       "name": "Rail Assy M/c # 02",
       "ip": "192.168.31.94",
       "port": 554,
-      "username": "gAAAAABqtlfJPGDXdkQxtVIRWbNm_D_M1dAuUoJxpf0EQwjq91eww-rAIJOoc9yVk3p2sYxJv7wcvNFE8WaNUH7tkDKGYHB8OA==",
-      "password": "gAAAAABqtlfJSaFTOTbFe7SpCuJkLWgXPgL9wMGhyF4m_hCRXe4MqARCvOLT_05YJr7TSvnfbdKuUifwE9xXZNBiinKa_Gyqsw==",
+      "username": "gAAAAABq0OmYucLhxhnNTB2181OAxJYZjknowyfqrp6UCRRb75wxKewVvLrNcUvqcIix9aX2A-anwHJ50ARCulCCOJN7aIcB7g==",
+      "password": "gAAAAABq0OmYGe2IOzvxlVgGu9D0pLoLr7CYjXplEmUUJZhsuDGg7rpR2snJSvaHAgjHq7cwtgHdLAoq0szKX5DlI8bBGAtLdA==",
       "path": "/h264/ch1/sub/av_stream"
-    },
-    {
-      "id": "cam_semi_automatic_bending_m_c_1782556532",
-      "name": "Semi Automatic & Bending M/c",
-      "ip": "192.168.30.115",
-      "port": 554,
-      "username": "gAAAAABqtlfJStVSyCHoireVpbHZnP5POlsjwHPchS9GzKnHgyjappRvCfyCLUaRsHmYABgBcVSb1GXnp-u29gtqGsWeRv18Ew==",
-      "password": "gAAAAABqtlfJ_uxHmomhs2IRhnJH-y4qe6tw3t9WgwADxtMRNh6P_AELTT-GTRl_sCBmQgVvnU1HBy7dYO0b2SYM_AZtr3SJYw==",
-      "path": "/h264/ch1/main/av_stream"
     },
     {
       "id": "cam_final_inspection_m_c_1782556572",
       "name": "Final Inspection M/c",
       "ip": "192.168.31.96",
       "port": 554,
-      "username": "gAAAAABqtlfJCfaPvyny8lmx4T9UoiJvgFs_rKT9Tdb81jrz1wuAlLD4A58C-1ZfSU4daU4A259k3xuL6QYlcwUTSuvs4d4XHA==",
-      "password": "gAAAAABqtlfJrE8LoVq3E9sA-JDlTRlaRPGY5_i9Gr8YpyjTpuaZ0tQLy394xav4paNxisEAhWot9ZLC5qiQAqFXTZGs1Om27A==",
+      "username": "gAAAAABq0OmYSsyR208OsKYxbpDn3zRa7R2IzT9CBYKgoMBh41m7iEZ3DNv0K_EbavLI792bYeBdwweIoi4umokD3CvwV8TazA==",
+      "password": "gAAAAABq0OmYtTmGVcwGxOa4AZmLi6yDi-kFyApMKmovjuNEZ-3jC8U2wZ2NcYrdSjFQXNK6_9LXmEupYg_IyVMZQuLJEUUHdA==",
       "path": "/h264/ch1/sub/av_stream"
     },
     {
@@ -321,8 +258,8 @@
       "name": "Upper Rail Greasing m/c",
       "ip": "192.168.31.110",
       "port": 554,
-      "username": "gAAAAABqtlfJs84Hw9Rek-WfnJZGuHTumWfOmYW7amK6qvPm61EiVPSD2BhYKf3pDZ7p9lXnQOo37rAFnDYpRnITbEjo9axYhA==",
-      "password": "gAAAAABqtlfJLqZRkwf43lgO4BYurxRYgvr_h3WZ10JDcas_9Q7OSN3hB-RtcdWDAnw3kK1iFirsvOrjiVEwDSQ06UbvLReY3g==",
+      "username": "gAAAAABq0OmYV-lKJWqED-jUsJD3OCMTAdda42EV8Lnzfg7q4RaQ02iJBEAHvfu6911zzxfJ11HvtVe3ckSmIKSDSTHozC68TA==",
+      "password": "gAAAAABq0OmYQ1rDo40v01oTAVGPIBl-ruc4oGDg6uW79l9MRhfaFViL0OSByLt8QYgM7bni2dviWoV28mMxXkm8keBKhYXm_g==",
       "path": "/h264/ch1/sub/av_stream"
     },
     {
@@ -330,8 +267,8 @@
       "name": "Final Inspection M/c",
       "ip": "192.168.31.116",
       "port": 554,
-      "username": "gAAAAABqtlfJcQUwQtOlcqqfkz1_YrZ_yG9PjZeCZXkN2fYXP228vcb8p7_N5YxKuIw8cLqlpEtqH364jNWB5w4579X9XgOesw==",
-      "password": "gAAAAABqtlfJa3L8BbxVSuHLBIqT8qUT4jh-6Ya2RJzXmgXekAMXSBXDlqDpvtjO1Wt4Nb0DegKJCcovppmC0IRbQwsaQ8VFSg==",
+      "username": "gAAAAABq0OmYnBWOUJ2MU3QaaJ95imTSyKap8W46MMv2W3WN5v_K5Ifaq1FMlJgAHSCf-XnTlhd-waFLMB73a8RTMujqZzJUZQ==",
+      "password": "gAAAAABq0OmY41oS-0oeM8iQnSx_SHO6RFQvKknyjxh9rGnYA65tYU4cbqzqLMljug2BAOqkIr7pZccU3dWD7kVCBCZY-C8kEw==",
       "path": "/h264/ch1/sub/av_stream"
     },
     {
@@ -339,8 +276,8 @@
       "name": "Semi Auto Bending",
       "ip": "192.168.31.95",
       "port": 554,
-      "username": "gAAAAABqtlfJ_gk1tV2eJjha5o40vj16adRPY_OhH5fTVAky5XJDnD7jwF6drEt-GhCa6Y0JpCEzMaqfwMx-miwWcIzpNuakAw==",
-      "password": "gAAAAABqtlfJ7N-__pFQg0NekDJwI3TOJ6LK92yo-sTPdham4G_hV3V2oZmDUaEd5mxZkWa533_LdSE_CHZZBwhjcqCL5LzPSA==",
+      "username": "gAAAAABq0OmYbsJbqu0S1BZVPr2_eE917cV5mVYDl-ruO9ahV3IkfqEk-aivhiqmWP4Ptms9y34UPTxokBofR3oNpUqgAitn5w==",
+      "password": "gAAAAABq0OmYdp6RbhBcLwZx-xBcPp1kHmU6P724rvPdB1Q9syQB2LwkGYDOHSq1oDX4PonXb4YF0xO-qy5cNcDOhqhhBn_fbQ==",
       "path": "/h264/ch1/sub/av_stream"
     },
     {
@@ -348,17 +285,8 @@
       "name": "Upper Rail Cam Y17",
       "ip": "192.168.31.170",
       "port": 554,
-      "username": "gAAAAABqtlfJIJsvBYtupx8w9Rf0VRQKEJMBUTLWZWjzwG_Y5znFBYrhqL8l0glOyd58GOkikTfidKbgsaGXMjHUZ6wewnzkrw==",
-      "password": "gAAAAABqtlfJZMvzqLkXW98noclMfIPOdCAvswkZ6uxdKpT3vGc79rMGY2mCoHtjJlejomglRjN0OlfP20oESbuKeHARiDQOHQ==",
-      "path": "/h264/ch1/sub/av_stream"
-    },
-    {
-      "id": "cam_lower_rail_cam_1783077272",
-      "name": "Lower Rail Cam",
-      "ip": "192.168.30.192",
-      "port": 554,
-      "username": "gAAAAABqtlfJivolfmsgKJPrbrwK-cIgNOEKCU7R74OFAnI6ldcS3XR3xLWd9l301Df1iZECDwNQBmZ8JyavMkBnKtGIs_dmzA==",
-      "password": "gAAAAABqtlfJasjCsVRoyYhJbj8j_UouF0bdM_UPBGioLrV9IQI-XId9VtJ9dfBKmQWmoCjikbgx_pqAJOLhY3cQFDmSteSinA==",
+      "username": "gAAAAABq0OmYUoOJh83V-vtmsD1Oy_ZgArj7Lzmy5Dep_LwxFCvTnGifqsEiL33XwUVRTxOyCxWI9Jsh6mhQLlLU0oBQ2za_vA==",
+      "password": "gAAAAABq0OmYNR_Zt7eQF0NaxpUvw4Gst7_CNIz0eafSrJBVMGO7NnOMNov7jVCfZ8I9DuMWcgz7rZ6kL_trBmiQFezhP1J_gw==",
       "path": "/h264/ch1/sub/av_stream"
     },
     {
@@ -366,8 +294,8 @@
       "name": "Rail Assy #01 Cam",
       "ip": "192.168.31.173",
       "port": 554,
-      "username": "gAAAAABqtlfJmvIvNhoCRzqmMyVDwVjcvdtwvuBnQD_9bCoYQSCJG_ScxGjxZUjOSbAjwRt0Qf-1ak-5HosnjYAe3LupCgHzjQ==",
-      "password": "gAAAAABqtlfJvA0SGdkR8Murw8IsG3o7aon8tjOLaahNrCHptgrYc2VF0yWkBQhouJASj9Q_kUrATUHoJ_ndhtzH9lkM9FpZ-Q==",
+      "username": "gAAAAABq0OmYCseUtdtKmJDchy6fSX-d-5Dc7yZHNjzPjZ1OYRWveKwkrMSExIaJx4UrO4JyQUXvRwWOsLzaGrRYHe6jtycvSg==",
+      "password": "gAAAAABq0OmYQBZDuojgLBFTUMInPI0tLVCMIjCwDrD0HFOpVW0St_yD3pgJNr1zjYrF-YWgWnKkRY7zc71gvknN7geRY_AdjQ==",
       "path": "/h264/ch1/sub/av_stream"
     },
     {
@@ -375,8 +303,8 @@
       "name": "Rail Assy #02 Cam",
       "ip": "192.168.31.174",
       "port": 554,
-      "username": "gAAAAABqtlfJ1zB17gSEEepGxQ1KMXxltVXXk0Fe7oddiQgh_a7wKq_0MMBHSxSRaA7T785YdBASaBUS54RWAyz7ilWiJQQnKw==",
-      "password": "gAAAAABqtlfJFprBjfEUjBVsQtPItfN_WqaUttzuZRsrVWOpQkBal0VE9XqR-y9-v8Eg4sXTlFijj42-GNyuU98vdKWLVej-5Q==",
+      "username": "gAAAAABq0OmYH4p9JfK4Vcu7-bJSHbvKavvtx_zwSW0phQ0IHTzhYudq2BbPGtT1bmDyBR2qpKfNGZePKowpW2aCweyN6gG6LQ==",
+      "password": "gAAAAABq0OmYQNkbvjTyk0cqQv3Fv-88SHtJdvzccOVGftN2lceNQkWggAryPzL8ssXWJnp3WSv0JI6AKhzf2w_ZH2Ps-9IwFw==",
       "path": "/h264/ch1/sub/av_stream"
     },
     {
@@ -384,8 +312,8 @@
       "name": "Semi Auto CAM",
       "ip": "192.168.31.175",
       "port": 554,
-      "username": "gAAAAABqtlfJYmyYTHWTi1oeuagLtLVMLHqg90wgLUOzvHgl2Ye3zlElJMK4E6RXx3QoT_d-TkpmfhrmLcs3p6x4ru41RuKm1Q==",
-      "password": "gAAAAABqtlfJLcjIkUyByolwrEFqHhsS363j6B-NxHfRJIoQse2OG3yytQcNSybg4YegjXdaKabRLGFULGS5ICI3TO5xM9GtTg==",
+      "username": "gAAAAABq0OmYpm0HjVJCIkO57MOz-W3n82XgSkxkv-pnqQTAaxrv1jFUTdcPbK5f77mk29cHteiEPzzjT_s6xoWxi9iH2erXrg==",
+      "password": "gAAAAABq0OmYKsfpm8K6mOxagP1jDaPkbdMCRlIxMKl9ZYfFqiaFgOoG2sgj_lCJRwxbq_3c8hOni9UKtKPpNWsJqgrwsHdxhA==",
       "path": "/h264/ch1/sub/av_stream"
     },
     {
@@ -393,8 +321,8 @@
       "name": "Final Inspection Y17",
       "ip": "192.168.31.176",
       "port": 554,
-      "username": "gAAAAABqtlfJCoooNsMxveP1AHLxpUNI9oJfMtqUY_NFgL8qYa0wGawuX-3IQ8DuFqxovbsZWwlZMvUqWtDWEh913-clQSVIJg==",
-      "password": "gAAAAABqtlfJr2ehQEabVrPFQboU9ck4J0UC7VpdNVRAytO6LRAjrVu1iGlKjZht-C3mWGeYdOmZv6LdXHgl42TDjwSM7XVcnQ==",
+      "username": "gAAAAABq0OmYnXRvBy58F64hwhlh64KIIUAjSPFMo0y2pzAvyCQ6tK7hf_ONtNqH5eCCA2pKHXVPxtJaMY5ObDeMH2qm5p2j2A==",
+      "password": "gAAAAABq0OmYhud-2YTnyGGCc3xVQkCcjG2Ag7s8u03AMg4vu5NvvU0Y6SFJTuvtjaHycoZn5e3XEQuWRvGVEkqRIp-KWaH_Mg==",
       "path": "/h264/ch1/sub/av_stream"
     },
     {
@@ -402,8 +330,8 @@
       "name": "Upper Rail Cam Yfg",
       "ip": "192.168.31.150",
       "port": 554,
-      "username": "gAAAAABqtlfJ0RoHUtApAHB0c7mlNFBc0-LuE2SIGpVWxwNOvikVorV8uR-HVMoTwAt2y8I_UcCe0mSr7emju8No6T2TSqz5KQ==",
-      "password": "gAAAAABqtlfJAo_C9QdlwAGczAUMWKvhSd2FXy06RGxwfagYMm5NKv5sNj2vyJjLYraB8hTWW9XgmeTAlq_JBLAL2SbKVd5HiA==",
+      "username": "gAAAAABq0OmYLfDTO7XsBSoS8ONhTu8Cg3RDvTmK6eaUHgsTzaiqtZxJy-d8Bxqhdy8rKL5hJ_db6fzyg4WrDEvedZsl5ZxJkQ==",
+      "password": "gAAAAABq0OmYG74yFvhXtGvlRCeVS8bAoXpDXs2PQyX1r0h_1kglC5hGRDvIuWd7tHONsDxUAPQcygcpL-1VV1I2Zp-JB8SfHw==",
       "path": "/h264/ch1/sub/av_stream"
     },
     {
@@ -411,8 +339,8 @@
       "name": "Lower Rail Cam Yfg",
       "ip": "192.168.31.152",
       "port": 554,
-      "username": "gAAAAABqtlfJDsaHcJEHnqReceNcu3qNLK2xTVxtGoVbbyxSPA2gkYW7cEEqsQ23_sO30lhejogCjaZ3rUmU9BFinee4qwuBkw==",
-      "password": "gAAAAABqtlfJi_2LveXt84pAQWQOSY0ulgrUhYvuPoqD4UKAe806iVvnAj7qRBg4splt6RmgFugyRCFMoJK6djwL4O9UsenXLw==",
+      "username": "gAAAAABq0OmYw5sP93MuPw-HKqPY638eL0Y6KF64S-DHsbjOAAAzVpbxaG5dl8CpPx2oaTX-USJbmh4viWNSYfGOnTKzSfZqng==",
+      "password": "gAAAAABq0OmYNj47_Ek_6RS2sT6c9DdqWPdnOlp5g3zhxe9jW8KZI-Ocb4A9IWuBO-QaWPPiwyA-6FbVozR5NmSfuJIsiR3iGA==",
       "path": "/h264/ch1/sub/av_stream"
     },
     {
@@ -420,8 +348,8 @@
       "name": "Rail Assy #01 Cam Yfg",
       "ip": "192.168.31.153",
       "port": 554,
-      "username": "gAAAAABqtlfJNpAUYwhZpjbTinKxvWk2C7Bpew4kgFOJc_glhNIb1WreyPIJRz3uRc_QH_jAVZVOuzQKG4zOrby3cb1Uq-odzg==",
-      "password": "gAAAAABqtlfJQb177_I0_RorzE1fQuenbqiISyR2vqsF9NPIzRi0WRg7ZH4n7t3ZH2gF5HLyZDWnLzfhOkFmr1gqlYLlXtTwhA==",
+      "username": "gAAAAABq0OmYLxPF0Utr7Yk9Cjz0pzWPWsLAPsPUGeSfQmXcQHl_6GPRZdKJm1OmxJfqKHnj3uMHe0cEjZsfLF-mOVTdrG2k1w==",
+      "password": "gAAAAABq0OmYbacIjuxc9ttl4X15RAZmgh9kFUNXgnhxj8I2d_pzNi7ZLYGs7SJUP7CZBYwPT8_n1W4cSA1xD-nKH2jWRxQf5Q==",
       "path": "/h264/ch1/sub/av_stream"
     },
     {
@@ -429,8 +357,8 @@
       "name": "Rail Assy #02 Cam Yfg",
       "ip": "192.168.31.154",
       "port": 554,
-      "username": "gAAAAABqtlfJCo9zzQO4YouaSitIUZebqQt_RgK06-m7bXYgqlXCi9p8-NXws-6SRjvVLz7GpZTmF7bHAiZoPtBMSCyUnBg9ow==",
-      "password": "gAAAAABqtlfJCFihev7YD111ZtMtbtU3jp8rIHWCNujCsFYeQHbZOzOe8Rdhv7fGMhSindETGnOfnkHqQmwZdmkCWpFUy2bp-Q==",
+      "username": "gAAAAABq0OmYViOH3z7sLkHva7tKdpC3hKaf41uOcVL5svv8tqi9NGECkyPgGkm_Vwo20IrfCtQ2Y3ATG2mO5rzMoABJ-6u84w==",
+      "password": "gAAAAABq0OmYuj5h69fn4rlqUIVF_5MIhsiOEHErP_VQte4odwnD1YCr7xsGnfdMCd-0NNdtONUJPqqTmd_9bbwt9RzIXgSHQw==",
       "path": "/h264/ch1/sub/av_stream"
     },
     {
@@ -438,8 +366,8 @@
       "name": "Semi Auto Cam",
       "ip": "192.168.31.155",
       "port": 554,
-      "username": "gAAAAABqtlfJK8DfoEySzxD0G0L32QWOGLuBeWs-eCPjXQgXEVquGaP4zATaZqCzPscY2_pDGxW8AN8qNQdo75l_u8gstdkBBg==",
-      "password": "gAAAAABqtlfJxhBTgKfTwUSVUkbxOIJvDOOGdF3FpF5LxP_BOrSmEYTD-c_vJv4owEgSBq-9hYCxgGPp6Quf4a40spc14byhQQ==",
+      "username": "gAAAAABq0OmYFx-oFeJURPDF9mgjhQ3aHgpnKbG8A76spffBIAx6ceBQn6ehlqLSRNAb1k_B2LZSvXC4xi6a7UQm6qsA8n2QRA==",
+      "password": "gAAAAABq0OmYB7Id9hHt-H_bsKKooIG-VqFfxZbrS0y2uwPGBHmCTvjQAVktvp4mjgB31YKFk69kvj3VWKdbnIqHTkxXv8w1sw==",
       "path": "/h264/ch1/sub/av_stream"
     },
     {
@@ -447,8 +375,8 @@
       "name": "Final Inspection Cam Yfg",
       "ip": "192.168.31.156",
       "port": 554,
-      "username": "gAAAAABqtlfJzXoEIIo10emVNcTBwOevmXL00ut5Yln2WlQarO9syFf0C8BYAFf_llshxlmBhfK8Iv_fLAaQqKsGaeG_kQgNSg==",
-      "password": "gAAAAABqtlfJzS780QfOqBc_bJNQFbXf2A9u7B3MtSr_1HCJC8aws0nWJq9frY-Cp6E_reBzrkKVxm-qBlEyBT8g9cWW6HdYDA==",
+      "username": "gAAAAABq0OmYTz5lHc7G2PlsRobmPmsgfpZTHHAb3amplg7DoikClNxL28hmsVmhQRBMX5tR1wykXHdBNmA3VZYSdoSbmORyIQ==",
+      "password": "gAAAAABq0OmY-VpBuEuzXhFLLvVZlWeZgv0S72W4gl7LRle4QBLxAnfiBmg-Rm2XBJBzpMXPBRaGv141zUI3_d05j4J5rWihqg==",
       "path": "/h264/ch1/sub/av_stream"
     },
     {
@@ -456,17 +384,8 @@
       "name": "Round Rec ST#1",
       "ip": "192.168.33.51",
       "port": 554,
-      "username": "gAAAAABqtlfJtdwKwI3K-BrXsP_vpuvxLneH8Z_1X8OHxN8i3zLc1SYTFtkZeHlLmR_MEhs1q5mddxKKWPA78H5zZNjbVVWAMQ==",
-      "password": "gAAAAABqtlfJGvNlEiNS0mSJiAh0JC1uHHofBl4dFKELRU6_FTDA6za476WARtTtpIk-2Ku643QqN2Nrg2H3V87hK34YxCYong==",
-      "path": "/h264/ch1/sub/av_stream"
-    },
-    {
-      "id": "cam_round_rec_st_2_1784263704",
-      "name": "Round Rec ST#2",
-      "ip": "192.168.31.62",
-      "port": 554,
-      "username": "gAAAAABqtlfJA2-X0xfUXqr6V97VBUCBbcMCvTZmMLa_xjVxf8-hZu0BbQKPx84W6Qmd8yV3_LbpBUlQDZBGSPCbkOQmXuI-6Q==",
-      "password": "gAAAAABqtlfJQQRgOCpx31ICIFtYehzeHm0khzU75cmRdU7VhfUyem8nf8ieVg-F7v9DqVnzosdbJzyGgj4QjAi5rxcyZ42hJg==",
+      "username": "gAAAAABq0OmYENqRkE3d4LYQLX4NBJZxHy9fVonfUxZMB3TMlnAjNsrotfR5Nv-VEhDtPY85tj-EXcSiKsbPF_DT8p8pLkyFFA==",
+      "password": "gAAAAABq0OmYR_RrYn93j2XE4yfM7do_vwT9RnJ8c10SBDZFVR3U1ZSrJEgsVK0wyDUOHHkBp5m87I2NkD7C9VzzmEYXvXRnew==",
       "path": "/h264/ch1/sub/av_stream"
     },
     {
@@ -474,8 +393,8 @@
       "name": "PWM-38 & Round Rec",
       "ip": "192.168.33.50",
       "port": 554,
-      "username": "gAAAAABqtlfJZCkGLNfy57aoezHH2tBmdSpAFDE75K-tuxSve5wqL4o03h_CAckSzqBroteU_AfVYccLj1m1juhNetSgqpIHfQ==",
-      "password": "gAAAAABqtlfJdu0mC6CTYNbyY8zH_2MXD0lK3XNeBm-F--2SHb1KEOSXObIGwVmEZB54E5G7kc2oneVwndys7q9UG7sCCbSXbg==",
+      "username": "gAAAAABq0OmYMaHP1ACzUoppBFUKw5BjiQbGdFXLHBxG-1vliJI85M_AGY8jCN97YH6ylJXDZW1VqzGE-miHg6M0NALbA3lRMQ==",
+      "password": "gAAAAABq0OmYN29M-nLMWFpwycyjzLm3GnhtxZtn6f_xss5v7j5l82rFCp4rvadsqIzLODF6TEhlPhRMQCwZwebaBsTcSp2u4w==",
       "path": "/h264/ch1/sub/av_stream"
     },
     {
@@ -483,8 +402,8 @@
       "name": "Hook Spring MAG Welding Inside",
       "ip": "192.168.33.53",
       "port": 554,
-      "username": "gAAAAABqtlfJ3I7eF8L2GVrm0I2OU-9IUNtFvwCVawKBM-NZu76dERm_Jjdtj8Df7NL3-Vz03jyGFEKM5hoHwOs0HS7yOS6oeQ==",
-      "password": "gAAAAABqtlfJGVsR6i5-jqaBQ0v1klnDWVa3uV9KK7Xs3Eu9ZAz4KsD5ZbgQ-UlH0SydEvP8Yd4ujPF4CrcCI4rpGsfzYQ9Lpw==",
+      "username": "gAAAAABq0OmY_geccsUmieWQApv5LQtDh3tpSCo12aEFDnsC8c-uqxOyQ5ZaeZJ3ky9dJ7n7HCUUfRjAKK4vt_Ra6Rt40rN0uw==",
+      "password": "gAAAAABq0OmYAlUbJOqb18h6K2A6EagJmHJw2Z7n8BPj7yTDv4pn6C9E9jYxWHCXn-uiXgA1YHl2njQN4uMiiSQ4YQFsaJ3EOQ==",
       "path": "/h264/ch1/sub/av_stream"
     },
     {
@@ -492,8 +411,8 @@
       "name": "Hook Spring MAGW & Hinge Pin Insert",
       "ip": "192.168.33.54",
       "port": 554,
-      "username": "gAAAAABqtlfJkWR9idya4hfj1qEDl1mSqfi3OkgKHeo2hH8uCVo6viFeQJimhttW01zcMARStSD6mYaC_2e3vagpcDbP-Ae_Ew==",
-      "password": "gAAAAABqtlfJHEwiS07_YNglm2OYATjw_XIw5-AuXAYxIvFTWpJWyao8CHeVQZq1a7FXBiKhQEyfQCLKFdqu4BYZwYOBbg8ukA==",
+      "username": "gAAAAABq0OmYlDg5OmLf6PCfEcwKj2AHaVJwfDLVz9pCEbLWNjZpU3ZtFZZlQQ50TUG9nxVakX7xeb1eYbasF_nMMw3sNCyKVg==",
+      "password": "gAAAAABq0OmYgeWa54FYZsx-PfS6XFskpEzGULs4_kgQgZ7HwmRTFZSXFU7ez-uhqgf4QJuMExKCIhKJfUPbHJxFFfW7Un3YKQ==",
       "path": "/h264/ch1/sub/av_stream"
     },
     {
@@ -501,8 +420,8 @@
       "name": "Release Arm MAG Welding Inside",
       "ip": "192.168.33.55",
       "port": 554,
-      "username": "gAAAAABqtlfJoAbAHt9oQSFwyfq5ZW4Ndt7AanevJTgy9GKhDB-Xw0IK_cybQzziy3BWekz8FPREk4X1tZUTZBpDNT-lWptXuQ==",
-      "password": "gAAAAABqtlfJP12qTKvEpHu1CuJnjodqu2bQBeoe--02OD2vzgortsNlsSXh2otodzCXClE4Y_WBOEVMttfJLlLuKU1LeZfOMw==",
+      "username": "gAAAAABq0OmYcgXWjD4PjYeEv3Ny3QnvzvcvryMsAzTTPH8_sG-UiV-mtZOOvEBhhVNr2M50mZqbMIr2JN9SvJ-1PSkc0ADZWw==",
+      "password": "gAAAAABq0OmYE1sNzFGoptemMsO_zVVBHj50xQEag_avv0u8TCifzclFlqMpNkmLLczYnRcYPVHT8VKmGexLGN9LPq98AHJv4w==",
       "path": "/h264/ch1/sub/av_stream"
     },
     {
@@ -510,8 +429,8 @@
       "name": "Release Arm MAGW & Torsion Spring Fitment",
       "ip": "192.168.33.56",
       "port": 554,
-      "username": "gAAAAABqtlfJd5878FEgS8zZS1J8_3uHpuaTDcmtJzShBHSIgRqQCeLZiGvq4ytplhpdEwKXVywkoSn6X1bR8XRdWNMGZQEi_g==",
-      "password": "gAAAAABqtlfJF1uX18Tq2czFksMCewFNcvu1rMAw5B4LPATEMACB-8qpuAVu8M-HdgfnPXtm_h9excNHW17d6Yrn5sWDe2G1cQ==",
+      "username": "gAAAAABq0OmYHueirbA5zfF-esy5-Ey9zFe4Rq8WF217k0HdBVKfag72UUOX-zu96Z_Dgrsl7V-ME9f5TYqkJVtc_gO3Y8DtEQ==",
+      "password": "gAAAAABq0OmY1J5mNF8rO-4KU88AokzgLmK3fimNu70rTitjfMn8K0J7YEKEvpWwq_2SKkmTOvDMJbAamn3bEZjnB9e1jPGW9Q==",
       "path": "/h264/ch1/sub/av_stream"
     },
     {
@@ -519,26 +438,17 @@
       "name": "Final Inspection Machine",
       "ip": "192.168.33.57",
       "port": 554,
-      "username": "gAAAAABqtlfJLjLP3cMoOaJ4qg5QhhhhSqcLXK2AXjT0euvyZ4d9lAFFxE7x2TCsnaCOBHFuH_BFAQWcj5TVWQbpoNh3vSRlwg==",
-      "password": "gAAAAABqtlfJpXd7s0Ct5DH3fwQmOLbF95BKSflEuX6eAkPfQ4346FTDpIPzxsjAe5U8Xh_2-DrGX4TYBzGSTlLWakPnB7QNzQ==",
+      "username": "gAAAAABq0OmYvnyBjD12dZJwnpRjR-Zzu8R2QN2f6AOYjAnDb_hEiar56SkTRYbcCw7m2Jo6xJliwnzL235mRHxNPzbw89mWzQ==",
+      "password": "gAAAAABq0OmYKpeKrsUpEqTbKeIIZUetW65jk5_Xk9CisWdu54-NNMaNgc-bqbnZUCEkDlUCjb1FkLoIsSRBzSpT6jM4VTpTwA==",
       "path": "/h264/ch1/sub/av_stream"
-    },
-    {
-      "id": "cam_lock_bar_1784269166",
-      "name": "lock bar",
-      "ip": "192.168.30.151",
-      "port": 554,
-      "username": "gAAAAABqtlfJzE1zUVHhsszP8XDD4DIxRtgqmIr0DVuzOPJmkuprATFGtLCmJIZurqGzPWo0BF-WVo1vNZ5eFk83-FwdBvdjOA==",
-      "password": "gAAAAABqtlfJ5QPSA1UkoUrsk9mVA8j4kivJtcIzXHvQkdHEZIdDsER_AHjykvkptUJ37-GO2NxKqfu2SD4re_H9MxEliHlnRw==",
-      "path": "/h264/ch1/main/av_stream"
     },
     {
       "id": "cam_ball_guide_machine_04_1784269309",
       "name": "ball guide machine-04",
       "ip": "192.168.31.133",
       "port": 554,
-      "username": "gAAAAABqtlfJ4XYdsrHt7NtuOIiultQbx0kahEHMxUAvuKtrkDjdh5ZC05R_Ntl--Nybr_7PkMRSMcTsQpVkVjZftYQJTbBZ2Q==",
-      "password": "gAAAAABqtlfJDleBY7PNY4p8fbHw6UvgDpSErlH_j-TsoTkcJ4lVW3kRnltgjvQeV4y3CS3Ird5l-7ehRXVZkrgKTDXx0-WMtQ==",
+      "username": "gAAAAABq0OmYKuUgmrMZD2tMA_RFyj_Zm1xEcoK-43YB4wCB2uW06B6vA7fBFXYlI2Kigxhu5CVoE4hH_fQzLQ2rLzExENEjeQ==",
+      "password": "gAAAAABq0OmYpJ25n5PBTuNjqvcVe4SE5q63v2fmdAy_8DUeFgOyIji8TwEjYWU839wN9ux9wU9bjwcMRtCWpfJrqz_lxrUoKQ==",
       "path": "/h264/ch1/sub/av_stream"
     },
     {
@@ -546,8 +456,8 @@
       "name": "ball guide machine -05",
       "ip": "192.168.31.134",
       "port": 554,
-      "username": "gAAAAABqtlfJuL_nAHXoYn9j9C6-M2zFoQQ73AMqufmlSd_dHjcywbyV4D64eDUnnZIXN0zUNXs2tzsFmA7KJNUkpb73JKBaOA==",
-      "password": "gAAAAABqtlfJ9j9Ew3LpceDdoCgU7Gc7cwQEAUhk_v0tOVJh4MmyqiRpBglFdFmBCmeoRLfd4d7qkLWUnJsqhelFgs1Wcoamew==",
+      "username": "gAAAAABq0OmYKv26QzEtuDxOsEE6nRKrSyfk2TZUlMIXIJ_SPiyVPqZ7YEYOLTgIu5jAM04zUy7KbJqHPdk6iD5SHGlMUSMPkQ==",
+      "password": "gAAAAABq0OmY3y51kKct5TBva9tP2gi_tC6SVbO313o_BWaW-SGSKujLHrK1uh3IGh-t_gLve5EURBA7Vtb1OrPBP9iqWvArEQ==",
       "path": "/h264/ch1/sub/av_stream"
     },
     {
@@ -555,8 +465,8 @@
       "name": "semi -auto",
       "ip": "192.168.31.135",
       "port": 554,
-      "username": "gAAAAABqtlfJgU-tzsXNplKgABU6KvzrjIUeGXq8AI-yV1n6RNwMOC9ZSEfryK2JHM4ofRqOsQ0cKlrUFkuZJw8qT_PibgTM1Q==",
-      "password": "gAAAAABqtlfJibnn_SdqhTOqIkt1zb1T6cef-iBWZQA7rkvDx64Yt72k_IwR-c8n073cgEoidVqpK3Xb38j02hfuD1UeCC_q1A==",
+      "username": "gAAAAABq0OmYjvJzllnT07i4UcRkN_BBQf8UAa5x9VYufc68z9yrWVcIcGE19QpVT6FTPkapx8xNZR5zWUSuK0DPQ7g4yZdmQw==",
+      "password": "gAAAAABq0OmYfD4glLkWRHp_YIdpbYdB8muPEuHOk1W9Max2VtHXZecNo6s6UWW5fPkl5MsmYJQ_UFojxqmXlPIN5Phsn5KF-Q==",
       "path": "/h264/ch1/sub/av_stream"
     },
     {
@@ -564,8 +474,8 @@
       "name": "upper rail greasing",
       "ip": "192.168.31.130",
       "port": 554,
-      "username": "gAAAAABqtlfJ1Hpv6YVYm8N5pz2eNK3UCxdB7iyK7lepLgdEk1dZepuyH30QVnGQ8okbawEXgiIRVuR_7OSUr4DIfBdN_6Lf7w==",
-      "password": "gAAAAABqtlfJ-46agcoJi-EtdiRVcmHSVs33EtnLchZlMJyspBYJKh1qWTQPec9lSIkUt7j8M5WKyIGJOfcRe7WrkkloJduDpw==",
+      "username": "gAAAAABq0OmYU4daXO3SLqz7lf-b_8TP70mgDibnNphcblR8eTMryLnLMpmlNwegZYdLYo8j4MG9m2C4SYyu6QziyaCZ3uTuIQ==",
+      "password": "gAAAAABq0OmYzCubCW5nN8_EOCVgdzZkfSNKqCOL4y1MtDG4XyQZi3OSGqRqygIM-hlj9BpOyAh8bCkvl4Tc-C5ofNhadkJUnA==",
       "path": "/h264/ch1/sub/av_stream"
     },
     {
@@ -573,8 +483,8 @@
       "name": "final inspection",
       "ip": "192.168.31.136",
       "port": 554,
-      "username": "gAAAAABqtlfJLfr72usjwWk1pC6Sg9V_cnNN00TTOlqHr4XivNfrezGntJh6G1FNJuYfH3S665bpUt2o0GGM2CwBMPiCG458Sg==",
-      "password": "gAAAAABqtlfJAx8ghj9I9VpEBk09eyk_kix55yAvvUUv3lns5CP07_LDPrvgq9Dg-9OpVxs5co0iaHTMWklq3JA2WObmjdg3fw==",
+      "username": "gAAAAABq0OmYdU4VikWK5SDrYGoLZ1vjYUSBUWcrCWmJxJvlH4TXKVO_BnCFz-tFWEmPmTmoDWAZwPyff-T1oHWegnAMU9_P-A==",
+      "password": "gAAAAABq0OmYER0H6gX_XkSdgi4rHjTl74NzXmZgXbHLu9puoFUgAZJy5hjLPivd3qf_JloaTgv2fZbzwxkyYH4bXVjbuWhkkw==",
       "path": "/h264/ch1/sub/av_stream"
     },
     {
@@ -582,8 +492,8 @@
       "name": "Lock Bar Y17",
       "ip": "192.168.31.172",
       "port": 554,
-      "username": "gAAAAABqtlfJ7wyZ03Z4MdpUdfSXNuL58wSK5Zq3nIJGi7SMlm-nCT-_ltaLz2BNG5FLN9ZVuZLEDAZjpjWtCkDc2qBZyD5Jag==",
-      "password": "gAAAAABqtlfJhpwKF7vlpcmGjzVLT-0GA2rNuSdb17G_KLfzaEQBYpLPCycMZswunUNh1gSVjpWMBhVIT8CFmug3J1NHjjIGSQ==",
+      "username": "gAAAAABq0OmYB1S7-9mz-4UcFKzDYB_4n4XCyCBoQ7oN8zw9nChsXQBbLDDbN2tZBfiGvXd_C0rNSFypCUvrAmxqfRrakrInbg==",
+      "password": "gAAAAABq0OmY1oJW6D-ISSrjsvTtqhGNkDzXZaORyp4eTRiKotA0wBkA1R4Kj0H50sE1TrpFAYcOqqAi3R1Sm2MMDyHW0jN07w==",
       "path": "/h264/ch1/sub/av_stream"
     },
     {
@@ -591,8 +501,8 @@
       "name": "YMC Upper Rail",
       "ip": "192.168.31.190",
       "port": 554,
-      "username": "gAAAAABqtlfJLltm6Q7a4AsEUvQx0qzcFcwpbL2ibCPbrDEnr8EEouoxfV4dIKTdFWUG93NO0UaDyGon1djqG2H2PEJDSBi67g==",
-      "password": "gAAAAABqtlfJy0pcT8vXtu3RxKbZ9q0IcfZLEs0_Q0cZV6_lIu7Ug0BTfCmE9fTNkvPxUZ2H20XP7N43z_1zm9JQoVAaXOg21Q==",
+      "username": "gAAAAABq0OmY7MzO7bZmftyuw_riHSXW_S3O2xUsvbxUGkhGVF7yQi58YhjCuFBV-vTexqNy0unJnrLSAx8GXP06PIce7Gobwg==",
+      "password": "gAAAAABq0OmYZzsiPLh0mytGUCr3_NIlfvEOvxAUy9zQFx7DvPhQIdZWrq_doZRdpZngZRMt0Md6BnYOygNOqZ6B7UWDoQWr1A==",
       "path": "/h264/ch1/sub/av_stream"
     },
     {
@@ -600,8 +510,8 @@
       "name": "YMC Rail Assy #01",
       "ip": "192.168.31.193",
       "port": 554,
-      "username": "gAAAAABqtlfJ3cSMHD8lDV85na3zJxgz6bCVD4H6zozN_KQ1DQPtfu7FZAwC4crhH0-dDMto6OnvD7ddK8BQLtKYXUfRjWANEA==",
-      "password": "gAAAAABqtlfJvz-zYMUlnBRYQk-ip6_iCuxTFa4mvCtuP_X2rd0_oi1XitVbcoEKh2hgBxc4uC3seMwfBPyfI_zTZ8HCmxSNwg==",
+      "username": "gAAAAABq0OmYQzzrChHoAFFAyXxOfD_Jq1hXKR2wIg548kw_h2iBUaPHvQBMRSqX8SJTkCGpEUaZHKNsRr6CusXRIarnK0Jw8Q==",
+      "password": "gAAAAABq0OmYiuIrG7TtVC3zwnjzcMS17XArgR-nRXJjzGh6OO6kHPrRWfidN89bwaE3pDK4iv315WOHup2rl_ZU8HH3IN_Fgw==",
       "path": "/h264/ch1/sub/av_stream"
     },
     {
@@ -609,8 +519,8 @@
       "name": "YMC Rail Assy #02",
       "ip": "192.168.31.194",
       "port": 554,
-      "username": "gAAAAABqtlfJsPtwCAW8zH2eovnpL6-N3udUPw9P1zV2m9oD_bnPMsFCzyLWPBI1ZtinWcQz5EtYrQ99rC7REaIahBULW0TBLQ==",
-      "password": "gAAAAABqtlfJHvzOoJJox5nGJ2T0Ed3OGQmM2V8PfyveGndiYi3nE9RFWWHcaPTHHb5e9Sb4LImfJXNuQ9-4KzBYelLzAalybA==",
+      "username": "gAAAAABq0OmYJRw-W2LrTX9AMUyiqeJcJoWwoxmwmKUBRnZ68ztIh3b38jurZTxZpNbmVfJ6loaLP2udoYvrhrk1KPne75UOTw==",
+      "password": "gAAAAABq0OmYEIp0A7DkTnQkUHbiiFgrL1mPFVVCjMpeYxrprVsWokRk7vceSlbjuAJSuxlv7uIJ1AC4sYPfNePLciWnMkn0Ag==",
       "path": "/h264/ch1/sub/av_stream"
     },
     {
@@ -618,8 +528,8 @@
       "name": "YMC Semi-Auto",
       "ip": "192.168.31.195",
       "port": 554,
-      "username": "gAAAAABqtlfJg_lu8CZn5s2xaRKeq3gXKnEExy7YcmQV8GJlX8xHYaDiqjEZuJ5F9PkvatApM1id_nfCTg4PVo8iGIRQt49EEg==",
-      "password": "gAAAAABqtlfJqd8b9bpuZIl3ClKyFv5yTEW9IIIaid4lP12QVNSkJWCEXvMtYvsoL13Ly1KwhPQy-3GmE8dPpspXKq25NpxzeQ==",
+      "username": "gAAAAABq0OmYfRgpU3hczqNATpDjabzJYWz985NZ3_T9X3zPzNFUHGxdW3ox_XdhlSB1keMq_KALhwfPFU8a1ECEuMgVjAYSeg==",
+      "password": "gAAAAABq0OmYPEdmMWviOzOURpFgO9CrEk46OG1QcIGunSw34mrRj4BHMaeeVX6bFVBPHd_PAzDufeu2oP7woho291m5IGJ3LA==",
       "path": "/h264/ch1/sub/av_stream"
     },
     {
@@ -627,8 +537,8 @@
       "name": "YMC Final Inspec",
       "ip": "192.168.31.196",
       "port": 554,
-      "username": "gAAAAABqtlfJsbtxY9IxR16TvfoRLa0eR68cmcZlfdo7XvR5-6QRyPf-WiER4gUtZE1PGZ7o0x3chu-5G3oF4BAdnY49DOVAUw==",
-      "password": "gAAAAABqtlfJHvUjoiIFrNPTd1o7tnBsC5KrcMusCHV_TcRCC_n1yOPhT0iDc-vcqrJupMUv5AqhW6Xe-ZcAvVN1dQg0k8N2qA==",
+      "username": "gAAAAABq0OmYgptTnv4hkngau_lgmUpSAfFKGBNs-p2ODpz1CSFSUkfoPAK1W8lXMcZW4Yp67Za4TfMkmtUTVAY1KqVoJeID4Q==",
+      "password": "gAAAAABq0OmYa5mWVBHwfiipBnItTnBdcEsxn_2klFZpMDyLB9hlo8Qu7Or80f9Q509cviYSNAxzSfUPTgJHRG7crAvqNAqfig==",
       "path": "/h264/ch1/sub/av_stream"
     },
     {
@@ -636,8 +546,8 @@
       "name": "Station 2",
       "ip": "192.168.33.52",
       "port": 554,
-      "username": "gAAAAABqtlfJfKgjqj3PXtM2yC0RW8IZMJRNjuN6bIcEPW8fQa54NmTagGZ3tB9xcLgTJ3im5O7yXZEJrwY74EclMVsI3CWP5Q==",
-      "password": "gAAAAABqtlfJEQDKMWkBHWashVk_1KhtfvrYME253K7QJxNP6KP7z30RXD4GfBQ9DVk3HFGoiKuRsEmGXEvNjI5TiFCCtqSXtw==",
+      "username": "gAAAAABq0OmY3V0E3EtXzMjoBmqL7WYcZqbon9T8tOyn0FaCxovXinJJWRmcQtByXFCh2QN5he3l_lHz6BVm7L3qyGc4Qzymbg==",
+      "password": "gAAAAABq0OmYd_M1thNW3QJmgwN9LT1LzKId3W0dNLw7fXuXorDLA0_43iiS15U24MxgISGH6PiO2mn_IGCTleskuupS3E2TxA==",
       "path": "/h264/ch1/main/av_stream"
     },
     {
@@ -645,8 +555,8 @@
       "name": "machine 1&2 YRA",
       "ip": "192.168.31.30",
       "port": 554,
-      "username": "gAAAAABqtlfJJmj4iaO-EfOqmMTv_WAhNB20fc9YUt0PzE6ugXu-VJEiVIYKVUQhFWYgv1gINS7OsDeK5N1FajV_Nvr00nnbhw==",
-      "password": "gAAAAABqtlfJwqM7OZAitJZAbr_EGp5kswMCQf-PEGDsl-NSFXUs_nu9uSgPesUJq6U48doH1HY0BrRhBuRPVKWav-jCsNg2Ug==",
+      "username": "gAAAAABq0OmY8OtggMR-5PhtPiT57rhq398fQqwnmABywTfzgAtMNzkpzy8zt3ZYQPf56IEwC0ysK878Lf_qRL139T3XApyH8w==",
+      "password": "gAAAAABq0OmYY2RNdgFB3f34AKXRPsDPYYxhPU_NCYinr7UE-G5nuTYmlshRxDc2l83JOO531x_QH-md5CbboQFjCoFQRRtFjQ==",
       "path": "/h264/ch1/sub/av_stream"
     },
     {
@@ -654,8 +564,8 @@
       "name": "Machine 3&4 (YRA)",
       "ip": "192.168.31.32",
       "port": 554,
-      "username": "gAAAAABqtlfJvC7VYZnOaXgRuQ2olsKCHajQZCryEuZNs-J8fis-I_duje-1Asw4aeMNH1CtKRu6H99ZDGzuY9EJ_e0-FsR0pA==",
-      "password": "gAAAAABqtlfJry7GHLOv6d4IHqqHQL8Djo5e9U5Tid_cFev1c33q5GQ28bZNzcECK26YqwfQt8MJTS2boKzzJu9ugTtPGAbO_w==",
+      "username": "gAAAAABq0OmYtuLQaKBnRU2uikqqM5cNHHrDwZ-3laMZGxaCCQpNmaF3xDOvGkYa0gg8Hpn6vYFoSeK6krnH0Q6ZVzeMRVNJSg==",
+      "password": "gAAAAABq0OmYb_9ymtu6nfI8JCMrW38xgNJ5ilup4w_R7j-6rQoYG_YC6hQBoYrf5g2wG5Wax0MKbV2x2S5FzPfiMRRWsLRzNw==",
       "path": "/h264/ch1/sub/av_stream"
     },
     {
@@ -663,8 +573,8 @@
       "name": "Machine 5,6&7 YRA",
       "ip": "192.168.31.34",
       "port": 554,
-      "username": "gAAAAABqtlfJ3WBkH77TtdpNyZHouo1PA0ihI7_lnP0SGkz8_XZkreuwmGDuYDtcUFrZO2KRwJfbn-uRniiUVcg8QIY4lDAwiA==",
-      "password": "gAAAAABqtlfJLc-0ir6WHSgVGNUqbau8DMKhR625YGMNe7GwrCBwqJ8oKIA6lDIJ4kWPbU4Z_Z4pJSVdmmpyZJgsTAGOzo02jg==",
+      "username": "gAAAAABq0OmYiPEeblmYNn9sNAb1gD4xDXVPw4VvRgskgr6rMPyKu9FV1hd9AnokaKxz3jbccxjV5lScRaox-opZgjlf3d9nog==",
+      "password": "gAAAAABq0OmYzuWTbmdY0dDmrSAQT5pjGU-L-sPCKuq87rOpxnXt117lrXNwQoplEeqkx2v5a6TYm6FPvsSi42IIFaJnDlxSoQ==",
       "path": "/h264/ch1/sub/av_stream"
     },
     {
@@ -672,8 +582,8 @@
       "name": "Machine 8&9",
       "ip": "192.168.31.39",
       "port": 554,
-      "username": "gAAAAABqtlfJ3LlvDeommiczXvpyaTk-y4PY5zUnc3fW_Qjy9wpfE19CR8PdiLP2ojp7knOpGbV2nqep4C9DSzwriYSS2b3UxA==",
-      "password": "gAAAAABqtlfJEZtVM9_fJ8zngkWq7GS8JjSCQ_br0nza5cDCgALNUBjVUrf9W9ZU0acLKcJl1J6Fjl_pM36bejTygiJlp1v11g==",
+      "username": "gAAAAABq0OmYg0XWodj4rUXKMhCMlYIo42DTupnTlNMTlrPyj_w_SIsUs0TI2tqw87-uhwW_A42wEYWQstNbbjGRWHvEl4mt8g==",
+      "password": "gAAAAABq0OmYlvVwCfO4FfjA8dD0F_yoPhpv-f01aiUo78Q2jwi1aaBOu-j6eKsmkgMm7u5bGmqvV51kCk2giAK368OxPWtkhg==",
       "path": "/h264/ch1/sub/av_stream"
     },
     {
@@ -681,8 +591,8 @@
       "name": "slit cut MACHINE",
       "ip": "192.168.37.31",
       "port": 554,
-      "username": "gAAAAABqtlfJO1KcVMdV84M4ZwBPiG23TSWKYMZjvSEh8XSrR0sRZy5emfA9p0OyDIjDGkBceD7vPY_EyTpqJ0isw6z1CWm0Tw==",
-      "password": "gAAAAABqtlfJc5rqoK1zxovT6MP7ePUbJUdOu6iWp9jsEjlk8ka6sn_fep7b8DU7mCF62yaqHbFnO9LixUdGSn0qOa1C10F9Ww==",
+      "username": "gAAAAABq0OmYpI9LsDXOj8KMuNkI-mS9z1v2GIcVuPMstd5uvd9LM7Bmy4MQhxFml_BjziqHb1XBVB_l7c4WG8O8-ED4i2a1oA==",
+      "password": "gAAAAABq0OmY1se9JUYzGQWJlM3phGCbXWLCmR8VRFKXcgNrduE7Fesv2U3Ir4q-CZB56JufiK_cDyBXz7TUxPmxqJW0MoXb6Q==",
       "path": "/h264/ch1/main/av_stream"
     },
     {
@@ -690,8 +600,8 @@
       "name": "ylm bending-01",
       "ip": "192.168.37.32",
       "port": 554,
-      "username": "gAAAAABqtlfJMVRy63BTu-9_K8HR6H8E_LJTZ2jvDDxLYw1Brsx6JOO1MLCYeqvxk2Olss3kVxnb_Mdp1p0ivPp1m0mTWCjVwA==",
-      "password": "gAAAAABqtlfJF_WaqdcdC29EM7hRT6qSx7hPrJ2bEusiJXg7bMoUia8LeXtX8V2DRkc6iPkdDb1XTPBVp09yxUeHyhERHajBDw==",
+      "username": "gAAAAABq0OmYBLoW0WUqc_kN9cX60uRAhxyBIyn4XjSKz7bClPFB11WldP-7zDQkpWZxJJm__wJy3P_Yv8UrHwDlCRhKXxKkwA==",
+      "password": "gAAAAABq0OmYr-Bs0wwNGYbKICZsIPMfKjVNGAmZCEIj4sO6PcqEb0cvJozubCEzE8CM_fkSPn-4OcgJVOgmuXKt1IUVuFv-_Q==",
       "path": "/h264/ch1/main/av_stream"
     },
     {
@@ -699,8 +609,8 @@
       "name": "ylm bending Karakuri",
       "ip": "192.168.37.33",
       "port": 554,
-      "username": "gAAAAABqtlfJKpwF6nlQWk2SJYrZ7NSoAna655M0HKY5GLR5JGRizzzfGQNDB-wuBLP1mGHbt2_0XJVm8e3XMz2IzAI_EMZ2Yg==",
-      "password": "gAAAAABqtlfJCFTE_Y_aFcjISSAvniJWUpsP0CyPwTwg7kZ2xgFs7cGYllnYW4RSP6DmtR8m3jeE1WvYieyUzEI8A_hHnRPtDQ==",
+      "username": "gAAAAABq0OmY5_qKGKefKsrDVg7EDCu8B_7LvNQmr9TXg19N2pkqM54UrRO9Thz0UiaVI9htMFYWEMfkBLf3vPyw_Wo-PS1eDA==",
+      "password": "gAAAAABq0OmYMEdxfrJmFDdDPfQ88HCKqCa6VVPyoKnzioHJF7UMqoF-vUf1m7bN5HZ6UlGEHm2ktrS651kI0tDwscJ0utc9mA==",
       "path": "/h264/ch1/main/av_stream"
     },
     {
@@ -708,17 +618,8 @@
       "name": "YLM Bending -02",
       "ip": "192.168.37.34",
       "port": 554,
-      "username": "gAAAAABqtlfJQT9uF7qSuGjVVumc4kLjzM2Ia1czAdUDOXzRjmm7Ax1idzwOueUQnpGder7t8gmlE4R_rSizhhCTQZC8pZ8aOA==",
-      "password": "gAAAAABqtlfJgXja8E0hF5ZvFURmZv2pV7wJSYbvniW0iP-UDh9NVEbYrd8JT8J5eTSs8Z3G9eIH1az0W0HSDyG_-8MeiHo2xg==",
-      "path": "/h264/ch1/main/av_stream"
-    },
-    {
-      "id": "cam_slit_cut_machine_1785943214",
-      "name": "slit cut machine",
-      "ip": "192.168.37.35",
-      "port": 554,
-      "username": "gAAAAABqtlfJdLddkxzjH5FBviMeyaSXW5Nx-brB8zQhDzdguZXMIH4mkxURZ1ZAcVk0B6k2TIFtxkHIcC8d1WQXo_U74pY8Cg==",
-      "password": "gAAAAABqtlfJPSccjDH91M8K_lhZdVyXxq9unJ-LJhyzOfLVe3zg85qfHbGjCEcsuBcoKDU6XaWSstpbREn2AjpCHrbKN3BAnw==",
+      "username": "gAAAAABq0OmYFWr_I_vmxv-TCfEOtC96hPKwEpBkDMFRg5FPhnMTAhku7FAmNZCgPxPfGuSY6QVP6H731oXvkMc2xaOVSkTRcA==",
+      "password": "gAAAAABq0OmYPAlYAd0BkDueyiwJgxmp6vAENpbGkSHbXRKtEPBZeEGbeCipLNcKsJkEFKAxTaLa44ulYlGMJUvK-cBGrOZvCw==",
       "path": "/h264/ch1/main/av_stream"
     },
     {
@@ -726,8 +627,8 @@
       "name": "Projection Welding of Washer with Lwr Arm UprBKT\uff58Nut PJW M/C",
       "ip": "192.168.33.70",
       "port": 554,
-      "username": "gAAAAABqtlfJ5LQ4FoZ_fmZdtXXs6l6o71n-wiYFRYTSxYyEVGmUaOu5OK6BDy-XX8g-3BoFnh3k9mb15fWELlh3TRJK1Y-soQ==",
-      "password": "gAAAAABqtlfJldbnjxJjPUsGxe4DRia_gi0goWpe4wOJyanPnVs_MBEigvCwMwgKqqe3Jdroc0cU1-U5zp-68mhCpUXTVqrO5Q==",
+      "username": "gAAAAABq0OmYtC6j23Z7xDmk93G_CORMv4cjXgyGJpK8I70Oqg6DdGDphU_vLJlopi4mts_HZ51_r81VzajScTGe-qJA1sd6uA==",
+      "password": "gAAAAABq0OmYxKjCmeal7gkNYCfFwHsG4R20k_Q7dY_9hV5kpC5j9o_iYARrPddKFfLZ4H1-wtQrE-2aKki7mvhBeF1HPbFPcA==",
       "path": "/h264/ch1/main/av_stream"
     },
     {
@@ -735,8 +636,8 @@
       "name": "MAG Welding of Arm x Recliner ST #1",
       "ip": "192.168.33.71",
       "port": 554,
-      "username": "gAAAAABqtlfJgAnmkykmIz-NTYI2axVG_ZVCBVQgy20rdR_4nfLNkmnE7SwKD9TPTc5Yj2Lxooqu1F_cKK0BsmnbJvDs76k9HA==",
-      "password": "gAAAAABqtlfJA8PU6cU6k_X6ch5aXzAPnmO3RkOMWSssdg1h5BsDtqxtKRCkj96FtVDZIhFZVMPT4FZxdNbJgcDNTU_rIfe9eA==",
+      "username": "gAAAAABq0OmYFgJeQFVEZsJTvsM162aP3PnQav3QmzLoM4C5uOhITUBxP4VenKG2zT6rVIZyPTikddvlU_71dsFKPg3uESlD0Q==",
+      "password": "gAAAAABq0OmYnbKaQ_-huRsWE17WimRJqbfCviP0czEab0Hg1FIUpqUhw46ZDbnoQPmVblqMIpIJurcHx-x7cpDpmktUZs6lJw==",
       "path": "/h264/ch1/main/av_stream"
     },
     {
@@ -744,8 +645,8 @@
       "name": "MAG Welding of Arm x Recliner ST #2",
       "ip": "192.168.33.72",
       "port": 554,
-      "username": "gAAAAABqtlfJquie-X3IajpAbZ0HRsgipHwKw4NJks9F9_ySYCup0RlmHCMChb-kAH_ljF3JjZjFlEGAiKZ1ApseuAPfbya4wg==",
-      "password": "gAAAAABqtlfJrWLGDvDzhv7dPSCPyFfFEwF_NhNyCkzHWhHKrb6umRxZ1TiXxUbLZBsGLtIri8EzdBECKi1bqpaQ1sXSs1yAQg==",
+      "username": "gAAAAABq0OmY8TxO1inFdbvDtUoeI6gkGziTmekaIMaWRkOF71yQP6G02zQm_0DurIkLwulovfW300LyuXGGZjpjF7XBo31kzA==",
+      "password": "gAAAAABq0OmYSE6CwDTxY3VyyKhq8J-AKA3vLQFXzGJkVDupHq62OG_sXCi7-UShAGAn0vFIzCaxk9m80dtv9GT4hzPlKKURTw==",
       "path": "/h264/ch1/main/av_stream"
     },
     {
@@ -753,8 +654,8 @@
       "name": "MAG Welding of  Lwr Hook with Lwr Arrm",
       "ip": "192.168.33.73",
       "port": 554,
-      "username": "gAAAAABqtlfJzRjqdJzPpmEjtNsGU7u0UygVXvnWcgP-HZGlcEm3ijCeGaPjzcpGmrB1iXGV-E6gh7JALXJIbt-Qb-CRw6Jr6g==",
-      "password": "gAAAAABqtlfJf75zb7cUhfnSX3SECyJg6TGTt53a2KW1RjxZxhBt-I5uCegR4JgqK8ZxMEEfnX8iRF3fEnIpBeF3TIkl6z2mcg==",
+      "username": "gAAAAABq0OmYXS4ajen6bWldrR8myHAxO9SzR0pRlERBvTNepa28fYh85gfewZktqV0NcAFzjAS1siYhGgEYhp5hhEFSYCC7lw==",
+      "password": "gAAAAABq0OmY0y33CbOdbn3IH6mOOdFP4uHp_AXZe-feVJ6ErX717B2n441I6YLpqp3EHDqAf0-COL9fdXsjx5UBu5vtzito5w==",
       "path": "/h264/ch1/main/av_stream"
     },
     {
@@ -762,8 +663,8 @@
       "name": "Press in REC with PIN Hinge & Date Code Stamping",
       "ip": "192.168.33.74",
       "port": 554,
-      "username": "gAAAAABqtlfJz27MYgns51wyjmJvJZTmLIicXbq1uhHPINCfACx0OLT0cAGyck-ttrsD-8h49eXUkdusaK94PyC-o7RYzuL3Bw==",
-      "password": "gAAAAABqtlfJ27oRN2DLir6LpOvkqt51XF2ve740vd7h9Gd-g_g1bWPLQWopXwu0ieB2aL514NlsbX_bk55Cv48ryo6FGpa_DA==",
+      "username": "gAAAAABq0OmYQGWLLHHDAG0VR3puOIklGIV6zmmy6iQrYKJXjBkQknWcnOxBl4E9DEDfiBw7jvfx0BN0_9ilX1X84zedwFN-uw==",
+      "password": "gAAAAABq0OmYKQLgYNTO9lxukumRY4GSlVpjBJLd2ZSk7ficFVq_WytlvEiXejI_4SfGBeJru-X1FlSO5OF5da9gWY3Wm_Z3pw==",
       "path": "/h264/ch1/main/av_stream"
     },
     {
@@ -771,8 +672,8 @@
       "name": "Mag Welding Relese x Hinge Pin",
       "ip": "192.168.33.75",
       "port": 554,
-      "username": "gAAAAABqtlfJ5rMBJhWrlkDymEqiGbOzLyZh_jft47JYf2EQ4Yo017ycVqgBjzxV73Ik9LM-MiSbtZFHWc2kEx1OFpULWtOeZw==",
-      "password": "gAAAAABqtlfJfKwv-lyUKo3kto8fpqyNE6vnkrcQ0rhVJOVO_nYaBMamiv7nl80liVGHtJ7BpYPBIAFrCkP-CAU8CTgQMgBdkg==",
+      "username": "gAAAAABq0OmY-1aIdlv_ytX6M-TOJkKaIF1vTdu3VF6znB6GYAQqPvqar1zQeVv10SPitW2q2oM2HJWqjPrdHrHaF6XVMPBeTg==",
+      "password": "gAAAAABq0OmYdaAMbtKlMjKJwr0cnNo0VFrf4f8aeabw5Yz3-qiEdFSNO7kSA0vwu9D0te1tnc1VPbJAp-_czSWpeigOVKaEuQ==",
       "path": "/h264/ch1/main/av_stream"
     },
     {
@@ -780,8 +681,8 @@
       "name": "SP Insert Fixture with Machine",
       "ip": "192.168.33.76",
       "port": 554,
-      "username": "gAAAAABqtlfJWeCkyqVN59_eeqw9cHmThyNw9_uzESAkwCmrvTBvY7kA4daDmyHA47l_Tpf-IG-yOjWwAF8hlvQ2t-eDuuM2lg==",
-      "password": "gAAAAABqtlfJCB2y6w83p_aSj3u2iaWLdBe0GBuE59u8NgLON1Lz3zZo8SrUpHD27BZ8d6QWhaW0yJTLCYD8nfUbVDVGuzZSCA==",
+      "username": "gAAAAABq0OmYHp5cfdpxqhX4ewNmgfGdlBTYmKRLAtWtS0UGeczNtmwBZW01jYTj4xzXmsG4PF9SCsuKUbqb1m_NB0XdipNh7w==",
+      "password": "gAAAAABq0OmYWRNs1vSOitGVbg3dUW__PGV9yjx4Kxc_wV6vM0KKw4HtP63M-P9LvovWp21Xa1V7oNlOYqGJdMw9zGFELK75Uw==",
       "path": "/h264/ch1/main/av_stream"
     },
     {
@@ -789,8 +690,8 @@
       "name": "Final Inspection Machine",
       "ip": "192.168.33.77",
       "port": 554,
-      "username": "gAAAAABqtlfJeu4gPS3QkN9yoV-WUu0UDhY4Wr3UUt8IuLs3Qcj_KvnC59ToH-hTVv4wN_uY9cjGAdpslvMDYgd5yUioIjrUHw==",
-      "password": "gAAAAABqtlfJ__1CdIU0SIuADPloGhyMIUpQWDk0OETdln2_p28hHBUvgTuhg_wCTmK3id-UpUUjrnZnnheiY-YTbPQxLBSblQ==",
+      "username": "gAAAAABq0OmYJG3TthW45yyj4pO3UaHj_AXnGo37nlUIZ82YDigP98Gmkr-R-txqfpVFhfkWTNFEaWFk4wvQyt2I7o8yJ6ql1w==",
+      "password": "gAAAAABq0OmYtpc0kocryElZnz9GPMdtaGGmwrRJr2_WlFDX2_i8f3se1sq92wMW87FC8x5XoU0I0cQl6ckmovhGZiYm-CEmCQ==",
       "path": "/h264/ch1/main/av_stream"
     },
     {
@@ -798,8 +699,8 @@
       "name": "Projection Welding of Washer with Lwr Arm UprBKT\uff58Nut PJW M/C",
       "ip": "192.168.33.30",
       "port": 554,
-      "username": "gAAAAABqtlfJNFEphQc-kh81CYLN2dDnDSpxg2ty_8tumPhda4cAmO0wBNwoai4d5pM4fVQXceXFG0t0w76ke6nv6s16bTsqSg==",
-      "password": "gAAAAABqtlfJaElT996GFAxYqaTaGo08aEdcL08HRdiqqvbZ0f9vWKSQKuRG4_7YD5cANMExL2Jzg8ypn8sMtWezfC1wxYbEqQ==",
+      "username": "gAAAAABq0OmYpy6hqmNAzTCalgYwMz6aLeC99fDY9rXEv56gG7WSIbJUhwamwGU3X6TUQ20RsVk6f0BeviN2vFKNXM_3RIiyqA==",
+      "password": "gAAAAABq0OmYg8cK58Xut_34k_TswRlBkKgE051LhneBvckTf2yeDyyJzc_kyrH6NG1ZhgBuuJ-DSaA_aGqk5pvHvL2DbK5ShA==",
       "path": "/h264/ch1/main/av_stream"
     },
     {
@@ -807,8 +708,8 @@
       "name": "MAG Welding of Arm x Recliner ST #1",
       "ip": "192.168.33.31",
       "port": 554,
-      "username": "gAAAAABqtlfJE7m5GIMsYTiBodrx8smxxv0pV46-5XtYfTUF10kzadPz5mmBGOn5ymAgN2d-RHAVYm4K32FrRXgf9NXiUSAqJw==",
-      "password": "gAAAAABqtlfJkTqD_jMv8fde1IFuQfYAMFsGWrAaxZsDCGy4ncVxNcVh_dfh9HgTJKYyPTOz0l0tqICJYr9gEeigqWuTlbE1hQ==",
+      "username": "gAAAAABq0OmYJ8ac8s4eDa0IW-Ue7VRnhJFZqInoQcPXtSS0S7BFMzNtR5DB_a1nMBZ-tJ_nxyZUbX5QiRsW3TdgTy8KHjGrRQ==",
+      "password": "gAAAAABq0OmYZ8BX8K_4ZjsB5GwvfmOsIS7Xfd3g9dfmgmYcyrJ_gY7vo38DUZSxhMCvIhzHno3izT8GCYonP-CGyi0JYYLz8A==",
       "path": "/h264/ch1/main/av_stream"
     },
     {
@@ -816,8 +717,8 @@
       "name": "MAG Welding of Arm x Recliner ST #2",
       "ip": "192.168.33.32",
       "port": 554,
-      "username": "gAAAAABqtlfJATTq-aVXhXKeA9ntYTWWX2GfKFdhP576zc9K3ZZKJLeaw0SU_Yoet-1voV0cPCAE03EOaGZEebGbRNL2l8vS-g==",
-      "password": "gAAAAABqtlfJmzUyn7LumTMwg1ukjIryH2h84AUqHU3pph3zoyWaeb8Ni39LEShdbUjes9yVV4mG2LolBSITsAu-RTpRGBqFDw==",
+      "username": "gAAAAABq0OmYsCnvU_lSedKR8gVofBwngICVprJFId0NSY_7zD7cK3DLWJaYaAnemAZ1KEQEbvnj9ntih12MivUW1ybTjgFlow==",
+      "password": "gAAAAABq0OmY79yAuXnuSEtQ1XbqGyj24p3I9NqCpu8wocrcgz0aR8M5XCnPhoL_cH1yXMZKj1TtCTlonPz_UnLBPCk9a1K-sA==",
       "path": "/h264/ch1/main/av_stream"
     },
     {
@@ -825,8 +726,8 @@
       "name": "MAG Welding of  Lwr Hook with Lwr Arrm",
       "ip": "192.168.33.33",
       "port": 554,
-      "username": "gAAAAABqtlfJWwyyg5J1bftvUJW7dFV83rZoS1_TQCyK_el44bYoUSTBjb9vPUXVstJOTIM-lSzd_5iBltsRC5eCCczrhv3FUw==",
-      "password": "gAAAAABqtlfJo-9OvMGSZFulVmWPeF4QNM7E0ld9HNJpIf0DqaNXwYckFRyQLC7VX7cGCUrl3SRVtnN3gRX8gUi60P8GjQINEg==",
+      "username": "gAAAAABq0OmYb6cOjmBZx62dSuiTRajJU7dqzZEEODMoTtxpl6Fzuu-nJXc8xkRjUIbF7CA2Ht_At1Z_l7vb2Z1Ar2yNaJTjWg==",
+      "password": "gAAAAABq0OmYmSEUUNKZOsXAsLbkNpumSPB-AuZToe9I9jJce-4JXVj_xwtXDE3YTW-8GeAvIqNvwbwuQF5KCmQIY1A19X_yYA==",
       "path": "/h264/ch1/main/av_stream"
     },
     {
@@ -834,8 +735,8 @@
       "name": "Press in REC with PIN Hinge & Date Code Stamping",
       "ip": "192.168.33.34",
       "port": 554,
-      "username": "gAAAAABqtlfJNhXWismEz_USvRMIUQprJktcw60bAsZmmV5dbxbDwe4Z5WcL172KHpRDh3L85Us6Jc9QtK49iOuyj8c-urSm-w==",
-      "password": "gAAAAABqtlfJM-6YWupgG2plqICD3QD0E0ui-h1lV-0xWXyr48xGSXMmfQJINoYLR1wjLdZfmAp6jlt0Jep7vlLrKjtzRbItgA==",
+      "username": "gAAAAABq0OmYK-wHCSgI2qjKJrjCsjg9rNGAPz5ICxH_RBF2fFBbK4XXcuQgjoZ-OXGwQSxox6UblncOxJuwmzSoClDu4WyHSQ==",
+      "password": "gAAAAABq0OmYeCrnPrDjzzY7mbVBtocSRVUU16mUy4iivOS4XSsZP0qm1X3oGwwP0xh1tlF7R12_Qq2Ls3DJ6rwJaZBCXC6zrQ==",
       "path": "/h264/ch1/main/av_stream"
     },
     {
@@ -843,8 +744,8 @@
       "name": "Mag Welding Relese x Hinge Pin",
       "ip": "192.168.33.35",
       "port": 554,
-      "username": "gAAAAABqtlfJcdGCrCejhdg_-veT1EXZe7fs--Y-mLSaf7T05nIJ4TacUnX8Ea8EaXPWF473XpPorf2choPw1FlZQ9pyknl7Jw==",
-      "password": "gAAAAABqtlfJRNmHPCNKj0Rq37fa1edLP1ovLbW8IcDVpa-PRk_sc1clZaBEHk0qMsJTtecYQYStc7J2jPug4deZLkaEFeLjOA==",
+      "username": "gAAAAABq0OmY4sMCOovcNpIoN8tgSImQW156tH2cOL9z5HwDzQFtcVgPWd4-WQLKVFYosonAdvwLQA4Zyhcz0AtLkK5N_dZb5A==",
+      "password": "gAAAAABq0OmYDgvbHHK_YKvRn0A1Uy0aJcKEjdKSpNLS2fRNe7P9uojGoiuPLiaGi4KZP0NfLhUwbjgrS0kH7jJX1BG-MjtXug==",
       "path": "/h264/ch1/main/av_stream"
     },
     {
@@ -852,8 +753,8 @@
       "name": "SP Insert Fixture with Machine",
       "ip": "192.168.33.36",
       "port": 554,
-      "username": "gAAAAABqtlfJ0BKH1TklpxTBKFH33CjuoluNiEE6pZMYHf9wYFuZm77iDfM4DxDz8fjbYHFdb7a8CucCk_gdIQRuyPwe06xuuA==",
-      "password": "gAAAAABqtlfJbadKAkHyF3OuoOsIA8FSE9yy11ktGox3zBOUtlvL4gZVhPuCRaobdkfJPTDzLXHpCbcMDukL29mBX1UK3YGB7Q==",
+      "username": "gAAAAABq0OmYOEz3WA9HVtzR7uhNXfAwQVAJCsYvK73DPDLXZ7kd603neWAdp71WG2p12WH1fuJxaQf0vH71HQ7uAiOFHR9N4Q==",
+      "password": "gAAAAABq0OmYUH8Em3vV1rQDwkAirOZXqm3LzvpwzIG0zQDpv4E2_p2GLCxa4tZU_aM9I2U_EDnvuxiqoXak_Yb7kQSNlNExdg==",
       "path": "/h264/ch1/main/av_stream"
     },
     {
@@ -861,8 +762,8 @@
       "name": "Final Inspection Machine",
       "ip": "192.168.33.37",
       "port": 554,
-      "username": "gAAAAABqtlfJLVcv-H41WDQo1AbuTN4dGrTPhymIIpoC75BxaHMNEFHFNvlo35OrLNgFlXObPBfX2Q3_1Tz0Hu7I7p9JnKeXIA==",
-      "password": "gAAAAABqtlfJpuDimvrGlaSKleJq8kKaZMKoVpdY_cJE2fqtx4FNsPUoixslt-Ksvx7anJwBuAHVtp7dbnqrIV46A7oU0fXXEg==",
+      "username": "gAAAAABq0OmYwULJNs6IlEiFZnJnLBk6LEJzXjIiduowxqwvIsJw5zwNaGfDtahwH-UqZTuTvvqrdH2tDIik20ktDMG7VvQylg==",
+      "password": "gAAAAABq0OmYzwe5xRSoiWH8iBpVvxDwzLK7mw-Uiw7rTdcM3IEnbdjeiop9hj4JR9RgGsv27O6IPVet7wCod6aI1Jb-e5Otrg==",
       "path": "/h264/ch1/main/av_stream"
     },
     {
@@ -870,8 +771,8 @@
       "name": "Projection Welding of Washer with Lwr Arm UprBKT\uff58Nut PJW",
       "ip": "192.168.33.110",
       "port": 554,
-      "username": "gAAAAABqtlfJjfzYYkXwDgIig3QumY7HuqR2x_dzmssozq0Nc2w8SAYtvqkam8WNr3lVxFn7hsw9NKbElFSg4XQM_FZLqA100w==",
-      "password": "gAAAAABqtlfJ7XRFQSw3FvBo9oWBxaw0kDZ_nH-2GmIXMu9um0Ri5Zjx0sW4ZzjX-efMGCeMHzNzYd9jXRM5xxXKNXl_GdHzew==",
+      "username": "gAAAAABq0OmYIZdJ9H7K9HB7Tboy41PuVLbG9b0_Aier2-BlK7qQZ5e7fHnSlmd5jtCVZ6xy9ew_ZpCx2l1NoZ3aeZN0gihzfA==",
+      "password": "gAAAAABq0OmYfAzf4JGFNnzoPz0f5elfq98h3tcHxw-xyLPpo7VNCLMwGx9Gynh-v5__JzxMH41gv0suGzEbOrWJBFOzve6TyA==",
       "path": "/h264/ch1/main/av_stream"
     },
     {
@@ -879,8 +780,8 @@
       "name": "MAG Welding of  Lwr Hook with Lwr Arrm",
       "ip": "192.168.33.113",
       "port": 554,
-      "username": "gAAAAABqtlfJv3c1kMDtPHqg3Cj9wdSrOmBu0uUKTPKSVbHN_HRlEMPSe1Q4s53_yL-6uGXUH8JVHqE2RUFCTYnTt1m47nVrPw==",
-      "password": "gAAAAABqtlfJNQhRqK2UOuDsCedvaDqxDmvRc3gO5ebVGlnry0NaQX1h-dOxCPbU4IM0VxDqHiahPmvBh0h8SAmeOqzDzXxQmg==",
+      "username": "gAAAAABq0OmY2HjawUSJLWzNepZnHuSIJoPCAOtvkBUXmX285VIoAeVcRj4CjwQQp8mmQAlvKn-BmzCjiMMEPhwOoy1wFrcO2Q==",
+      "password": "gAAAAABq0OmYLyIvWp1v8XCCIlTOoJYbX8DCJ1GgVK0l-4tst5NKxTVXQgycBjry0ohoJd5tpUKwvPdJMAPm2w8RTfI2FwGlIA==",
       "path": "/h264/ch1/main/av_stream"
     },
     {
@@ -888,8 +789,8 @@
       "name": "MAG Welding of Arm x Recliner ST #1",
       "ip": "192.168.33.111",
       "port": 554,
-      "username": "gAAAAABqtlfJfzcZsNi8G5v_2bvX7VFFqY8au3WF-MfmIKMPI0M4FWQu-_wOqRc6q36cSazpOAZtXB4rjqNwPRcL5_xR3nnYIQ==",
-      "password": "gAAAAABqtlfJGemabogPxcj5AFf0U8KtS5lshTZ6ovsBMJEIBC9TYQkM9Kx10sZ0q607QCOapv8A1q0RkeB1DpFqp5j-maR01w==",
+      "username": "gAAAAABq0OmYbkHTUdc9lSXtzMOB56ru-2i8QAb511Dd_J1I57U7ebRREfDaWStVdP8_qyHEfqck2sgDu3md_gd2WWx_5GXd-g==",
+      "password": "gAAAAABq0OmYh8CAnUcW6GX7iB9X9k3XUZrbWkrWwJNrpBUx9o7kLWeWoHjZjYGGthVEoqwFDCB40y0tvv5Rs8jigraJDBA1-g==",
       "path": "/h264/ch1/main/av_stream"
     },
     {
@@ -897,8 +798,8 @@
       "name": "MAG Welding of Arm x Recliner ST #2",
       "ip": "192.168.33.112",
       "port": 554,
-      "username": "gAAAAABqtlfJImeu2D2HxpZaMdlBbSmlYAOrndvT9z6hX0neNYGJMwq05mT7Oa4M-gitbGtD1-lD9fb5OAQWCnKBaDgPz6COTA==",
-      "password": "gAAAAABqtlfJ4fbrfNwxUBARhD8txxoq0l7RXDUf8Qllft6wXIRguUY1lbdZ5Ags4RZNFvSJDOW7BR5gWgoq9iPQTNSj4XcWSg==",
+      "username": "gAAAAABq0OmYY41teROa9fYg_2mp5xRj2erJBJx2QIBvU8wvz312Dbd0eJsFGI6Vr26Gk4YXzXow34WKj9LvodwUHeqSv-f7uA==",
+      "password": "gAAAAABq0OmYn9K1cTsJupjWPHln7pDO7vzxrerJOQfO7cO9SvRadsENh81whKFCQCRTu_pzVfY9yEpGZtHuOYwPIfdObr10tA==",
       "path": "/h264/ch1/main/av_stream"
     },
     {
@@ -906,8 +807,8 @@
       "name": "Press in REC with PIN Hinge & Date Code Stamping",
       "ip": "192.168.33.114",
       "port": 554,
-      "username": "gAAAAABqtlfJi6uG3x1eU6dNw7_9zfrXdIUO3VNX6QwJiZtjvW6FwMGjpaR9zVh9ys4HmJ8a-mhK6yfA0LEf-BBadfTVKNuC_Q==",
-      "password": "gAAAAABqtlfJkgKXsJQ6PU1G9EGAmdVwhco8j7gHd2VJPn_8PxSJ121xYTMpClZocOOfj4QQiCFYxVnERgL1Sf_vwfg6F-9MlA==",
+      "username": "gAAAAABq0OmY8giGFSZOJXGWHADLm38URbnIRUD4pIL_S5HlETL2ZZBkz9ANzb85sszTMOwOV6fZOD5L2StfDrBdUjgEXszMhw==",
+      "password": "gAAAAABq0OmYVch1slsxkyks6sJvXAgUtabdWtlbUd9cCY6vPWQM2SeB8PE9UR1fzATIOm7ilFdL6Rrzpytztog-mHMD3kYqPg==",
       "path": "/h264/ch1/main/av_stream"
     },
     {
@@ -915,8 +816,8 @@
       "name": "Mag Welding Relese x Hinge Pin",
       "ip": "192.168.33.115",
       "port": 554,
-      "username": "gAAAAABqtlfJia5DgTVSD0NoZh4zjaRPlXLM-MSeLP34qQ2-DZkqju-gASWmLmd9fT8fcymJ5_9z7bcwqtTR3-aFvj6TGK3Y_A==",
-      "password": "gAAAAABqtlfJIwZQMaKvAhdZoShUT8HrbMeIRNOyKxKh0nCs0mNXyzOtVEGwea03vbRjoOignfsZ_v7A2wp3lEHOFKtj_FCrAQ==",
+      "username": "gAAAAABq0OmYOnO1r6B0umSNVL7u2W54usM-zn2_9Lm-uu33tgNRJcOFM13oz9sr4E_Vz3tRyxgrOIvAQrwn6dgRnnz5B0dV2Q==",
+      "password": "gAAAAABq0OmYhGS-dNLErg7BAJ-fAmpAwEKuPF3agZCB17LtydlVu-o0t-fSra186qftRa--VpNn-vc6RBABGrL-Im61r3ruiQ==",
       "path": "/h264/ch1/main/av_stream"
     },
     {
@@ -924,8 +825,8 @@
       "name": "SP Insert Fixture with Machine",
       "ip": "192.168.33.116",
       "port": 554,
-      "username": "gAAAAABqtlfJU4H9XXIsBJvuerpTe7CfD-kQ00yfQ7cs-iLSOxwzJ4maxkCNtY-AloM0ltxFGEMqwBnyvAM0gZcwr16dAJDbgg==",
-      "password": "gAAAAABqtlfJ_xl5qvdajpL_p2tX_oefpdbUiGzHzDOIm3PN5VkV2KBQ1Igx5Lvhc9girYQZTygB5O2xTPChW3U9lndxArtIWg==",
+      "username": "gAAAAABq0OmY2Aj4I3BAs78YEpZyVrnAF-O2kuxzWg6Lpql_gmVQ8XppSM9OyoZUqIRRibGncqyjEVX_Qd87vPvPtwezVf9O6Q==",
+      "password": "gAAAAABq0OmYSExMhsiyPUmSm2fPsk12Z_u1aTHYMAIFZwEM_FuWdGF7D5e_cPhOKNbAqvpVSTtGCooHzDbzUqTJFeEZrW1arg==",
       "path": "/h264/ch1/main/av_stream"
     },
     {
@@ -933,8 +834,8 @@
       "name": "Final Inspection Machine",
       "ip": "192.168.33.117",
       "port": 554,
-      "username": "gAAAAABqtlfJVhWPgjqEOZEdHT4tLRmr-hN2ikxINbtEaeImJKlLA4rttoNoZIuIwSl1AB6-x1aDSGfn3nzKBXu9S-uSys1buA==",
-      "password": "gAAAAABqtlfJpR_HIeIbXO3sSbdu69QterT1ZP2zn4GW101rkYfnBoQsQ2rX8UnHWyKcijCyOScdjwdMhjwSaj8QeiNDCNwvAA==",
+      "username": "gAAAAABq0OmYW_QEFjey8jMsdTkEPXUcVkT2j8JkQwrz070TcwhEP9BVYkRMoUfMy4hc53flkPTHsKDjYa4o7MpRhnGdqM3l9Q==",
+      "password": "gAAAAABq0OmY0FYMsH381Tk7gmmXIRMImfzHFqG3hdB3hSBJBytvzJeAnvvHbBlwxWE2Gzi0euyNoxAWeLTxezqHadjfuty8og==",
       "path": "/h264/ch1/main/av_stream"
     },
     {
@@ -942,8 +843,8 @@
       "name": "Projection Welding of Washer with Lwr Arm UprBKT\uff58Nut PJW M/C",
       "ip": "192.168.33.90",
       "port": 554,
-      "username": "gAAAAABqtlfJjXswhp7B06sNT4jrvlYlyecF_zQ9lXBYA86ty9mjcwO0YKuIMFZ7H922_4ofHRwvluAuVHPivzt4BVfOv7rI7g==",
-      "password": "gAAAAABqtlfJ0PCgfnTaSzT4epXaKts0efzCgl1Vnaq0oiGiuWP3uBNZQBKxqS5NBP1l3VWu4JJ0JjXpZmbXFRGjZyQAwst1Ng==",
+      "username": "gAAAAABq0OmYS3T-303j53kjKipqBJI3qZJDooavu44WaNN82lVQUD5xUqYczJrRMA0YJJTbpu5pAHJzfamJj12OzJGhWXjLfw==",
+      "password": "gAAAAABq0OmYTItXLjkF6T0ebv85N1jperQ_d5LFTOFHMzEOg8I1YENTi3_qoY70Yf78K1CRkloJH9tNadJVYAr1TxPpdqoZTQ==",
       "path": "/h264/ch1/main/av_stream"
     },
     {
@@ -951,8 +852,8 @@
       "name": "MAG Welding of Arm x Recliner ST#1",
       "ip": "192.168.33.91",
       "port": 554,
-      "username": "gAAAAABqtlfJQmBKG1FWXaz-ZiSN4lk30mHMaofqyao4lALwVk7-QvoYIrW8PN-i_9JdmwtcmM9dDcv4fbcYPr78KPu-B3xlsw==",
-      "password": "gAAAAABqtlfJSqvCYUsxiiszphm-rRXNFn0Somh2U6Me87v7O42appTOumOnWPcmAMVf5QW6MAej8bG-t24ZQi5wX9hcwvuaMQ==",
+      "username": "gAAAAABq0OmY4UjztLIN7k01tzZsGYWjSDDZJ9Ft9Uh9sE0brKq2C8JTL4RvkLwO3WL4WeD3F8myKKcgCYTGc8T7enu-Tv2gzQ==",
+      "password": "gAAAAABq0OmYZJeY2mYUPa3gCUuxwz1TQycNqGRl1PpPTDW8bHQunYvMtHeJgxxFTQ8uUgoE58UZPXnMfhKqrr9Q3-GJuskCqw==",
       "path": "/h264/ch1/main/av_stream"
     },
     {
@@ -960,8 +861,8 @@
       "name": "MAG Welding of Arm x Recliner ST #2",
       "ip": "192.168.33.92",
       "port": 554,
-      "username": "gAAAAABqtlfJgUO2e8k8jxvEZynjmk-OfuZXnasdHu907z8YhZjI99_V4_05qJTlKrZFmyVAw0BVNIPYymHdD5gUTX8lIubF0Q==",
-      "password": "gAAAAABqtlfJC8DBg5gdMVFA7Qkwr1N_7JxZwhKu0VChq0RS_efB19-fYEwWPicnGbRfSzq6cM1ZVg-ELRIKLGJBSrV-8j07EA==",
+      "username": "gAAAAABq0OmYvswzoIRqJ3V-bLuvxTISiTODI6hAj-ayGDzx0N2kEGYCq8cbapyBY25QoFaHDc1dIhuyC-NnPJRbk4VrAcSHnA==",
+      "password": "gAAAAABq0OmYObNuqaiAQMSKhT7eBTjELyOrLICiuclsR2PJKIXl0tKKRsflkH4AL8g9l4W0rsBiliYe378rlowjcEafzSI6wQ==",
       "path": "/h264/ch1/main/av_stream"
     },
     {
@@ -969,8 +870,8 @@
       "name": "MAG Welding of  Lwr Hook with Lwr Arrm",
       "ip": "192.168.33.93",
       "port": 554,
-      "username": "gAAAAABqtlfJgDLbuA9CrdbdIdN0DcIHPjFLwc8_vhlNqDrKJlN84KrBuED9jrfGdomV5IFoY-leOOK10tLZRlXCyi_YLp-lbQ==",
-      "password": "gAAAAABqtlfJfL-BOrllcDcRzuu1WiP9OJ6NHfjnd74fxSK89v5hikmtWIhjFZX9y6iAevwaYgvvaPxUOTGvL8wmONzpdxddHQ==",
+      "username": "gAAAAABq0OmYhD5HRHzMItYAL0FedH7N3Yf9De3aQzVP0JKwPjWwLj4oes6zfg-O-sX02Vyd1n5JWV7zw8OyXtWXz_mu-h6Png==",
+      "password": "gAAAAABq0OmYJEks-9fpVXeby5Tu5iH67e0L-hq5h80wYL_w9DUggZnASpz-clXZt2XlC987jNcz2GEEcDUWE-wyFBlMNDPZYw==",
       "path": "/h264/ch1/main/av_stream"
     },
     {
@@ -978,8 +879,8 @@
       "name": "Press in REC with PIN Hinge & Date Code Stamping",
       "ip": "192.168.33.94",
       "port": 554,
-      "username": "gAAAAABqtlfJEERAdp6_lxmOGrDYMJv_90h432IxRXDbCj2tF0SkxKrM2vySP4dmQAGua62H3uF1SjBCNOY1EP9Joq2kpcncWg==",
-      "password": "gAAAAABqtlfJ9LqLwmo8Yzs1OacsTF69DKl7omrGyip5aJhDodQYTtnS8N4Jm0B3jm0ojoH0wvHL3tnFLCngPTGxGxH7rhh7hA==",
+      "username": "gAAAAABq0OmYoxNnu8nahVKX3tTSBYIhxDNCx_MUI9oixMRb2YUH0o1MdIFB4GoYweTsQV8mp1HTuHXsFpi-DFopKgd6aUMlqQ==",
+      "password": "gAAAAABq0OmYOQwBBxttqZuNVOtUBPa8_pbhq7SmkkZrimES2TTmqEqoWKEiY5A9HYs1HG-zI5ScXcnECyZe0hc6uUdzzkc4DA==",
       "path": "/h264/ch1/main/av_stream"
     },
     {
@@ -987,8 +888,8 @@
       "name": "Mag Welding Relese x Hinge Pin",
       "ip": "192.168.33.95",
       "port": 554,
-      "username": "gAAAAABqtlfJMzakXoUgfGax1brPh9CnqFYvef9onsziIvcjaeeSzfAgjQnvr7qkSLkdwz5CHypOPtkSIGouznkmCeEzTpM7Dw==",
-      "password": "gAAAAABqtlfJkkizt1E6T08i1vsea2RtX9PwBgqrM_GPKxJXBrROOaAXVNVnYjAMve35FwSSJMNr3JSFOGv1lDAWOL0tOITG-Q==",
+      "username": "gAAAAABq0OmYmqHzbmBF_r4pKi9XkdsGs3xY1Yo-2uqRtxoOuzGzTWPkiF3Jdh_FHKrkgdsTKS_YYBlJ8ijd3nV5DJqvJ4J1ng==",
+      "password": "gAAAAABq0OmYHxKwg7cKkGjB1cxm5JxrT8tBnX10Zz-3YNbu6buEuKPOSFZgf5-ZktZ8aUoHa1-RHk9A8Hp0b9vEz51NwZ-jxQ==",
       "path": "/h264/ch1/main/av_stream"
     },
     {
@@ -996,8 +897,8 @@
       "name": "slit cut MACHINE",
       "ip": "192.168.37.54",
       "port": 554,
-      "username": "gAAAAABqtlfJKgHTL0DPEzhu_cvxToLdT-CYapKoXOcvhwhuQim5xUFlYFbnnQKp3QNdEA5ipMo4FSxaT4CoGbs7XOTxclO6ZA==",
-      "password": "gAAAAABqtlfJ_za36VtFFKRi9Qu8iFP9yH-mbs-YK6y2xntWVG4dQQqJOgOWhny80gHRp_AENYp_gyYDKnJ_1_zsinnxQWDZ1A==",
+      "username": "gAAAAABq0OmYqVbj6cK6iArhgPERRp3Ga9z7ob0rT9gYfLg1yKlP0S1MSYlOBD0DFpcEEirsGUmXYdRXZmM89rBhHaTwKSEd_Q==",
+      "password": "gAAAAABq0OmYbrKkg6YyR4M6qFJKaZbEGBo6C3f2xtIw6zVnHvy54tvUUg4P0aaWejtin6UF8CoH7_FriUU849ZMbQDcHdK5kQ==",
       "path": "/h264/ch1/main/av_stream"
     },
     {
@@ -1005,8 +906,8 @@
       "name": "SP Insert Fixture with Machine",
       "ip": "192.168.33.96",
       "port": 554,
-      "username": "gAAAAABqtlfJIdp1xoR97fSTG58xpXlPYfFKMJqNZfej4aOOnsKp3VO96BeLjcHtVR5MrBm3vssDU849b9FrypEizzufoTaouw==",
-      "password": "gAAAAABqtlfJFxJ1RD534NDH86QAR0VgEJHuOKHvRoLx7remDHvgetrcSFLthgdV3coPF5T_wK576BkDHptlLuZMIwJmdlRRHg==",
+      "username": "gAAAAABq0OmYXFMC1Eg0wZ2ElO4zBhvuUmRcNOrM_2EZNL1tAb7OFh8_icOFsuMmzyov8ajlJC4JiphzCZ2zhet2uvSMzIDEmA==",
+      "password": "gAAAAABq0OmY6JQ-zlwIB_oeXK-w3zJ-MNVZeEvzMu5W2QjBRh75qGZ0pydaL1zK8m23q0sOTrEPWeVigxx3_H9Y51jrmrrpsg==",
       "path": "/h264/ch1/main/av_stream"
     },
     {
@@ -1014,8 +915,8 @@
       "name": "Final Inspection Machine",
       "ip": "192.168.33.97",
       "port": 554,
-      "username": "gAAAAABqtlfJl9XKd303T-UYlmXsOn69zHK0Y_E0IEwX2k3ofsz35tWYaO-amjIMzAh5jd5EL9Jd_DK8EnuDss9yi--6Bbo-Ug==",
-      "password": "gAAAAABqtlfJRVRJMIkBx5re1QasH0YoThY33nCWV4GAScPcv_Gs085pW_upM_6hrf2-pg6F3KTtfrecU-6zcOOXcKLCOhPHkg==",
+      "username": "gAAAAABq0OmYKPQmNfvWMcukL3i283jsIfZEeVmYXJNhLV-frvaO0kJZKeqvzv3AmtaeYOqj6frr7qD6p93Me_mFgmkhieNGAg==",
+      "password": "gAAAAABq0OmYZEesDsAyL-MRxClsCQglnv90whPcThRhe1-XS_YEVySRqDqTg6zpqK7ntlD948ygMWsCOLJtu9z5MIO3I7ILXg==",
       "path": "/h264/ch1/main/av_stream"
     },
     {
@@ -1023,8 +924,8 @@
       "name": "Both Karakuri Middle Shelf",
       "ip": "192.168.37.53",
       "port": 554,
-      "username": "gAAAAABqtlfJW6sgZx9m3tr128qrpgtShCGsEaX5KQgLYSsGlz3O1NXmVKuER4dQrmGDmxZDXhJ256s_vhCDvfpjvzJ5VSDaGw==",
-      "password": "gAAAAABqtlfJdD26mC7SeYqZ6yN70qtrdBQlYZhrarE1oNCAjkj9_lQ-ZEOWirz0x4Qv1SGEQ9IUF55zgORrXlMtc02eG6kVfQ==",
+      "username": "gAAAAABq0OmYLlop1Q7NfC7-VtfPE2Fe9BrXIVbWV-emw1_6Cq_5NzVov7Bri-3MyGCfbjPn50WFVsw5-YxSAEtdaXnWOh5TDA==",
+      "password": "gAAAAABq0OmYZqB6spi505UOujGJCcI2hVSWouEupXD8PLUQU5AVFzywTCOBcTs6g0X_EsRGtSWOoIb8eqX5YpBa_AratJFnUQ==",
       "path": "/h264/ch1/main/av_stream"
     },
     {
@@ -1032,8 +933,8 @@
       "name": "YLM Bending Machine-02",
       "ip": "192.168.37.52",
       "port": 554,
-      "username": "gAAAAABqtlfJVZHj0C7shfHNXsSR8VeYk0DScDEe9T0BHrU0huDi_JZhViJAJxbXcjD0so5PreA8JZPboqhz1nJyGI--Qm-Tbg==",
-      "password": "gAAAAABqtlfJ4jdk-1WWPZ2vM_tlxsB31coNbIr-2FOifjjEJDZj3nGAfQUqhw_sDbHl_uQz6FMI1Jb5_jANo3EDdCBsC1xx5w==",
+      "username": "gAAAAABq0OmYEhIlKVMj36fxRofM0v-M_zXW1cqWnCMqGNoeaiXB7qwqeBq6rl1QQf9ciJqnIfTpJ0D2ttYWmo9TV-RaMqdQzw==",
+      "password": "gAAAAABq0OmYy1JOHR8GtH1yvGzY48edWkVQj_xoGg9LIIM1dBcS9j2s-M39ahGNxnBvovzw_zWOooI5D5KqBWaqICI9VJMjiw==",
       "path": "/h264/ch1/main/av_stream"
     },
     {
@@ -1041,8 +942,8 @@
       "name": "YLM Bending Machine-01",
       "ip": "192.168.37.51",
       "port": 554,
-      "username": "gAAAAABqtlfJ37VIOeLMOqKltZG32ewLhN7dyW4stBYO7tsPLrAfQRf7cK7p0iy0yfvonkTebHkyijyktjXulDLR29ilxQelgw==",
-      "password": "gAAAAABqtlfJaet_LjYvDQo0Qaged3ZbcTYzrfdJF7wDjEOkCU-p6Vi4d1py08CIJXXjyVSJ_GIAwrjcqdCGh33bwRKpsoTxxw==",
+      "username": "gAAAAABq0OmYBXdJqgfr83TOOh0SIbPNh20-HmT_OPMpCFjZhgOOJ5v8BHw2yK5aakVtEyMOAas4t6IVzKJAcVbjjvB5of4yog==",
+      "password": "gAAAAABq0OmYqY-dDja13xgQ0Yv8RsDrphjDqlaMX2S_fm_X1-V5bMNaysvvoydDkZ-apTYWPi2GUQQBidYt_HoWjyyFt3qMVQ==",
       "path": "/h264/ch1/main/av_stream"
     },
     {
@@ -1050,17 +951,8 @@
       "name": "Slit Cut Machine",
       "ip": "192.168.37.74",
       "port": 554,
-      "username": "gAAAAABqtlfJdq3gQlFM3oThUucfprXlGpt_Dzn2djOLfPd-D9KXIQsb4HmP9eQ81VZ5DX-eXcYCprhwoUK5zf-EGRFynwAh1A==",
-      "password": "gAAAAABqtlfJ7pWHSdkrMFk-rK4i7c5wZRo-o8FN0N4vGO9OjpcqRK4OHZSmajrfEb3s4RrCeTZfQIBnDvQaZQkmo4w5HO7-5Q==",
-      "path": "/h264/ch1/main/av_stream"
-    },
-    {
-      "id": "cam_slit_cut_machine_1787550043",
-      "name": "Slit Cut Machine",
-      "ip": "192.168.37.75",
-      "port": 554,
-      "username": "gAAAAABqtlfJKclZkYkrAN6h1KPyVG5mpVSmE5I10fAHWo6CSFAcG-HcT6cEgep1g-KxLjLSxVxR2H-iDm6JbPhQp_ys_lUJbQ==",
-      "password": "gAAAAABqtlfJQE8jVTboFJgF_vI-l3eQhzhDcCEkJtfa-JF4m7PMjBVwV_16zh50R0VjA84XD20ScAJQ8FjNfCS9Q9SNv40Ymw==",
+      "username": "gAAAAABq0OmYaei5KBSbAhJVA-G01WCsTSK_dxDaDgfvkdQarNOjoJCex7jBOs-JuF9wCStBK8dI-L0VtgmvUr74reBbtljj1g==",
+      "password": "gAAAAABq0OmYjjNnVbfOyJWaaSyfBAmCcixYX0-3shKCPe__7MztKyv0eKgWw6MrrYvT5pSELMUtgBrGKKdvfecGgui-KC-upw==",
       "path": "/h264/ch1/main/av_stream"
     },
     {
@@ -1068,8 +960,8 @@
       "name": "YLM Bending Machine-01",
       "ip": "192.168.37.72",
       "port": 554,
-      "username": "gAAAAABqtlfJiL3K4t36eSSNXcDHvYMI4L4_IGfsaa1g78Xa3enFge0Lh-1io7f_xpB-BY0UZuTGKZ46MzFmJLdPcOi_GRoRCg==",
-      "password": "gAAAAABqtlfJdg7siptDCLwKcEB7iRgfoVLdIDBVWunQAVC6NwnD3tPilRxcHEiNDnWskeWIyIQ-iYK3zAMNsRoW1prGUS6OQw==",
+      "username": "gAAAAABq0OmYdYmuR5rl_B_BUqLYX7_UPnP9AoYvLKHM6cxHr9pDCwZmF5DJR4QzZ8eZnev0RHxsRbaaAof_rgU6SiG6MpGhWA==",
+      "password": "gAAAAABq0OmYTv0F2RPusiuyanQQG9Z33T1GvPPsx5Jw7jFQcakAD5YfClbSb0iLlu59WjfrNDjg_te4MhdTWE4aT5YmWp6xAA==",
       "path": "/h264/ch1/main/av_stream"
     },
     {
@@ -1077,8 +969,8 @@
       "name": "YLM Bending Machine-02",
       "ip": "192.168.37.73",
       "port": 554,
-      "username": "gAAAAABqtlfJXiWzeArQN2dsmfMELjoUVmne4185VrYdgUUl2m1TXGUkUse48SifTa7qx7Y_PoGfGtcX9JLftpCmYlVVo6ATrw==",
-      "password": "gAAAAABqtlfJmWMgIDjtetO-YGJ7solY7t5Im6A3ZPeu5JL_EoHr-ToedMKbC4x65oaYJR_moEiV_SYdsE7cos24G9Eu93tmcg==",
+      "username": "gAAAAABq0OmYSWPPIR0cmdCFlSxm-C8Ku0IJ5VrmdbsWSzTZjkSQVD4cYVgGhwEgVHl7utr9lkwp_mBtfYnmxdC9lrnStukSyg==",
+      "password": "gAAAAABq0OmYepMFej2OVJT0WFUrnu6rT5HdmTPR-Ec-hmxLOPLWuZlg-HJm0FQrkLMeJuRbYLvXv_mpfwh908h0an15XNU2Ug==",
       "path": "/h264/ch1/main/av_stream"
     },
     {
@@ -1086,8 +978,8 @@
       "name": "Both Karakuri Middle Shelf",
       "ip": "192.168.37.71",
       "port": 554,
-      "username": "gAAAAABqtlfJLdtzyor3zrMNKjSgdW3EX2nhHOLt71iej0oKjHDRZGGp-WIYt9zZGKpogDa1xx4uw6ZDocDbheDZ9OeqNbGKSQ==",
-      "password": "gAAAAABqtlfJBWp0AoGPqpq8fnR_xogEktsIcfEzaq_aFvCiIHPsrXfGzEZ6fLMYOaFzipWxPQfS1FrbK9LzQ53YyXckW5tGEA==",
+      "username": "gAAAAABq0OmYWcSiuExpD5nCw-nlSqqqx72WJCTN5EUo6WL1bVsJmkAjWFzApdg5muw3URl0O6fRJk6cquV35pzircuuqlQZkg==",
+      "password": "gAAAAABq0OmYIIZt8HpuxmzLeVmXuQBQqVqRKBNlMjGidb42nqDSzjvpl9grl9uEgeWkVcIcAnj0wOSwgwTVHvEZJWinr1eZFQ==",
       "path": "/h264/ch1/main/av_stream"
     },
     {
@@ -1095,8 +987,8 @@
       "name": "Rainforce Bolt PJW M/C",
       "ip": "192.168.35.80",
       "port": 554,
-      "username": "gAAAAABqtlfJ3BGHUou1SB3AnQ2Brjx1JVsl3-YEQ3Hd7rFfhLpTmsmZLnFE71-ZSzMkqUwx_qXbqyGKRwU2vlrxeJ6HzkzXuw==",
-      "password": "gAAAAABqtlfJtUwCg0crg8BlTwqZB9x5f4LZZ0H8B3qjoqgLpUI5hUbePCzEMmALkPpscWEh-v5ARgUBhqwaH_qalfxioxfrCA==",
+      "username": "gAAAAABq0OmYb93ZsSGUaGse_kZgdB7z0GzlSLEJTuHWLMdWTkRYFvesV2awT4ApmkGbVeSN4ypvvkLRWExTzuKa9D8W5gU1Vw==",
+      "password": "gAAAAABq0OmYYs4h8HgHRTuuYx4jJvAo1ycwO8M0BEQ1NwHVqDJV26__Z8Xg6r8eWvBNl1ooEq9R5QCx1KI3p7K2zJBfm-FhEg==",
       "path": "/h264/ch1/main/av_stream"
     },
     {
@@ -1104,8 +996,8 @@
       "name": "\"Rinforce\u00d7Bolt PJW M/C Upr BKT Rail \u00d7Bolt PJW M/C Upr Rail Rr\uff09 \"",
       "ip": "192.168.34.80",
       "port": 554,
-      "username": "gAAAAABqtlfJVizUv3KJA1g1lkuT253VvjEUj_OBxVvd7etuffN5lwK0Nwi4WSw6fDLjMymAgbZnCVlSvu4FD4u-wydAMoohaQ==",
-      "password": "gAAAAABqtlfJJKVILSPbT8N11DcWTY8Pbt2J2ngeDLIANHBA5_GYJzeUXNz9EeiMo6F9e6C-0cP1_avOGFOyWcet6aCzIU5cYg==",
+      "username": "gAAAAABq0OmYoN7--mJr45l_wnSaYDGWwZDNy-wJO2rbQg3e5X2Bb41c9ytxHMcRvDvgd9Osq4umXE8SWcEVlR1KWwcJt1RW5A==",
+      "password": "gAAAAABq0OmYEu9dOuw802CucypROYu0mkNLHSFo-O1WI82klqVIv9jTxlxWfKkITxLvyg4pyQGm5RTaAM4NvgH2aQ1jyxz7pg==",
       "path": "/h264/ch1/main/av_stream"
     },
     {
@@ -1113,26 +1005,8 @@
       "name": "Upr Rail \u00d7Bolt Fr PJW M/C  ( 4 Way )",
       "ip": "192.168.35.82",
       "port": 554,
-      "username": "gAAAAABqtlfJ_ps8LkxU5Mjb0Vim_5eR8-iXz6frOsnTF4EePdVx0BdMZQ_ufAB2DeS6ZlE0ChVxFcvF02hn0ksK5IGuM--SVA==",
-      "password": "gAAAAABqtlfJaaJQEnAX5JW0fK65dZV00ztmSth7SQHFFTfZgGNi9TjBrX6ORMHFK5EtMtXzSjha6Z1rputr4f0ZDDvpdMsbCQ==",
-      "path": "/h264/ch1/main/av_stream"
-    },
-    {
-      "id": "cam_upr_rinforce_s_a_uprinrbkt_pjw_m_c_1788930876",
-      "name": "Upr \u00d7Rinforce S/A\u00d7UprINRBKT PJW M/C",
-      "ip": "192.168.34.82",
-      "port": 554,
-      "username": "gAAAAABqtlfJIsm0UkjwaZ3TE-_q0hGw3mIrNJ2GlAVlW1L7KCVuOgBGMdg4lk1CijXChr2xeTOVnCCAxzVl5PUB-fZwbrUZcA==",
-      "password": "gAAAAABqtlfJVCIHSZ2L0aJ-BsckFCjEH_7C2_zcfgK7ggmNhVpq3sOclHBnFmLVAosORZbXB55r-xwKm-dMQe8N-cVUhwN57A==",
-      "path": "/h264/ch1/main/av_stream"
-    },
-    {
-      "id": "cam_bolt_strength_checking_4way_1788930924",
-      "name": "BOLT STRENGTH CHECKING (4WAY)",
-      "ip": "192.168.34.84",
-      "port": 554,
-      "username": "gAAAAABqtlfJOm5ZtHhCMBjJHmLoqtc4TCBWoDQLZBwXETiVqfJMTJEfT3t-RGZ-u4mRrlQy4s9y1lDuq2kh5Z1Y3uyzlkeNFQ==",
-      "password": "gAAAAABqtlfJWRqU-V-Qz-F3M8m0tZaD83c5VjNadyis7zE_Gvz2tkPrd5Ak-aCCm6sk2dX-_yy8R6WsaEH3BGZY7hs4juWV2g==",
+      "username": "gAAAAABq0OmYZUCxYCCiBtU4NHmNLjyu348XlM3a4GW0TIdqFJH5hyXJcBxxT5bJdRu0P1hyVKirxIffoWqVgsiBLJLgvdzM5Q==",
+      "password": "gAAAAABq0OmYoWrvw1Bz-TaLDPodhTggKPb8j-4iMUuhXivKivjgnPbkqAsrYq6kax7JTaho7wOstl0XsS7ly95iA1aAXoZIsA==",
       "path": "/h264/ch1/main/av_stream"
     },
     {
@@ -1140,8 +1014,8 @@
       "name": "Rainforce Bolt PJW M/C",
       "ip": "192.168.35.70",
       "port": 554,
-      "username": "gAAAAABqtlfJTN89sRyeO9b5oGmY-q2x1pMJe2zVaStLzGcV_h4wpfFkn2ubaiqjFvLEwpBhtvBlvkq8pDlUuPSlUOqHgWFELQ==",
-      "password": "gAAAAABqtlfJ1lRqhatn8z79qeBmV_g_BeHpYHquP0OUVDDsSpKaA2vcb7k-ebWAYmQGyfN5f7nNZZPQ6vEU8D8ZTAXEd5zfpA==",
+      "username": "gAAAAABq0OmY5H4LUgF_igZf2Xadr_K6MAehnY58JVAqr6T9H2gh61pZy7j-Rd1lLEoZYGhYEl8mFBPAU2Xx3dPmCgU_XWuRqA==",
+      "password": "gAAAAABq0OmY_8lvnkHxnLPxen-cIwzmClQSPgNORtd3nTm_e1FpjIbLoaUYyBXHxee-OFGMQRSjTE5uLNWTpnkiM7ZTUJM91g==",
       "path": "/h264/ch1/main/av_stream"
     },
     {
@@ -1149,8 +1023,8 @@
       "name": "BOLT STRENGTH CHECKING (4WAY)",
       "ip": "192.168.35.84",
       "port": 554,
-      "username": "gAAAAABqtlfJ4rVDs3_xRHurW9xnAuA7IRMMDg1zknrwHtccLOFRlW9v3rQtm1EH0S5qCRQzqELJ75JFnIz_mgWl__vKgKOpEw==",
-      "password": "gAAAAABqtlfJC2aivG5ZB3BEzOg4y_YzC9EzJIORnyJku0Dq7G6xVZL3AwPLWmySqJCwR5BtCiTWAcCT4BCstVeq3eHQh5JKZQ==",
+      "username": "gAAAAABq0OmYtI-EJjfJ0PsYOKI6UpTaW_tiCERAcIZ_ojfjzLhg6QANZGQP0XVSEI13okAJuxYdIbtKY1L22CtBj4hBVO1_Xw==",
+      "password": "gAAAAABq0OmYZzjkIO_MuPV2qYyEDX4eou5k070AaLBqDucZ0fEe_eCGLvFTnvLXmCA-HvWY11D9cYenRbHkPeRW4jM8EHO5Rw==",
       "path": "/h264/ch1/main/av_stream"
     },
     {
@@ -1158,8 +1032,8 @@
       "name": "Upr Rail \u00d7Bolt Fr PJW M/C  ( 4 Way )",
       "ip": "192.168.35.72",
       "port": 554,
-      "username": "gAAAAABqtlfJ7SWNIAfxawxZzwDu_UAPWm17P9R_waLsTrBFeDpjPTzlK0ETEyt4kLMGsf89T802CfrbsjucVhISoxW7hWO9Dw==",
-      "password": "gAAAAABqtlfJFrlFMCYuo5ZBGMY8YTwRShMHg1HZID8B5uk7EN7bTQ9IHHCOUUJr-2BttUJMjput2wQkv9YCu6UPRon37Ijh3Q==",
+      "username": "gAAAAABq0OmYfFHguqnK1KOH_FlEHQNefrz6goK2bgx_Iv8Alc8IG3EOYF-ydThgEfsMwzsuo1tJe76eHcNP3hq73Wu0V6yTVg==",
+      "password": "gAAAAABq0OmYGJlknbo_weAJZYmnAAZA2MXlB4CsXc6fIiLGvoQKN4ocyJySiOMm-0x8k4MK7dXUNFttCBr1YRR3s_HfCDPtZw==",
       "path": "/h264/ch1/main/av_stream"
     },
     {
@@ -1167,8 +1041,8 @@
       "name": "BOLT STRENGTH CHECKING (4WAY)",
       "ip": "192.168.35.74",
       "port": 554,
-      "username": "gAAAAABqtlfJJaDsEmx3TA3Hw0KKELRMqPZ8m9_ci8Qi5XN3Ek97JHuRH6bPmYBuj45sibM3ZUDwHhNaKACxCuJ0rilbCg66PA==",
-      "password": "gAAAAABqtlfJq4lAN3_wEYCGVufD7ZweRRkSXxe3EkWCQs3GGJliCNf5vlLK4tiwwPDRO9StOWj4BQzFLq_SvKdj70l9iqyEPg==",
+      "username": "gAAAAABq0OmYwL7Eko_wtoAd5FlwjU5TvWoI3Z8yPuDjHte3q74oFwewHYywZkkNJJyo-cPwNfh4R1XRF8c0R_gK53AGoNPufg==",
+      "password": "gAAAAABq0OmYD953A9RlNn_Cfi6heZuItLlArFHen3XqjiWRvSBqHqj3aj2dJXJ5FPRW-h-z_DRc2zOqqgWcPQSKoQdZS3r1jQ==",
       "path": "/h264/ch1/main/av_stream"
     },
     {
@@ -1176,8 +1050,8 @@
       "name": "Rainforce Bolt PJW M/C",
       "ip": "192.168.35.60",
       "port": 554,
-      "username": "gAAAAABqtlfJTraKQJGqej7SsDUmINTnb98rmUhVGzH5fo7ojkAISV9mi23Y3QkFdKSrhKsujpLDEyv8096YrezG2FG8CT72HQ==",
-      "password": "gAAAAABqtlfJi--PorPIlSTA0rXRvXYFnGCl-xEEQs9dFjGv5sYm23AiCLx82MvLWs25T3oK0f31ldHf9TIlyb1jakWgM2JDhQ==",
+      "username": "gAAAAABq0OmYZkR-2dug1RLn2qc9f0gbDTZqlAYobLecQ4fKcxqerRyok-FMdtR160xxCAiz62mJpVzvAXtzXArd35XAIA2LRA==",
+      "password": "gAAAAABq0OmYCzcjEw0GUV0SILu4wvU77KJTDEIzBZu1NFiFJzhhJKGpTtAyRfsRmVa-Q_v-zr4yFeAKA8--x2Yq7HFXEzRWBw==",
       "path": "/h264/ch1/main/av_stream"
     },
     {
@@ -1185,8 +1059,8 @@
       "name": "Upr Rail \u00d7Bolt Fr PJW M/C  ( 4 Way )",
       "ip": "192.168.35.62",
       "port": 554,
-      "username": "gAAAAABqtlfJTdvjoLWJ-BGAkPmA4Hr_BEVkzRywkEfMErDFV_66Sh53nZwbf6XB5_WOl1DhGRrIlWw3nYRewnqeydPrD_Fnuw==",
-      "password": "gAAAAABqtlfJZqlXBB2pKaP8vrCSLuD3AVKyS6DCAx13xAE4zXtNXZrMmCkQ9lLENfnb9C_0IKe6xYJUCMcC50B22U-oKvSQhQ==",
+      "username": "gAAAAABq0OmYJw4s-ONOKdncpbs-NX6XGw6TMpBi8Z_3pgL9pDMn7sNgd4NX75FxlV7QeNx5m2_Fs2r62vUfGqUc7txySN9PLA==",
+      "password": "gAAAAABq0OmYJV_e-gZgK9NamhKLc6YR7-0bol76FYnCnExSp7Seu0bfzaGuOlklk3PWjZGBGSYSyURIn9fhB1YIHKINJxMwrg==",
       "path": "/h264/ch1/main/av_stream"
     },
     {
@@ -1194,8 +1068,8 @@
       "name": "BOLT STRENGTH CHECKING (4WAY)",
       "ip": "192.168.35.64",
       "port": 554,
-      "username": "gAAAAABqtlfJJkjf_fqhQrWWuRi7qZgm6-10VUKk2-Yo6SSvmV-1H5F7FFLbbuCN8HtFCL9cPsRiTVKLTor5dLwJ_ZZmiaZraw==",
-      "password": "gAAAAABqtlfJG-P7Nq0asLaHfOQ1CpHlIqLmAGliFP0bTcgknJ4wmC00dMjEswlzQ4cBnHQjgBw_XxnOmkF8hRXGEU2P5gj2rg==",
+      "username": "gAAAAABq0OmYQiIQM_7gfp-qn2mTQNSoVODHgOKAiGQ0567nwMHcmks4woYoetpT7-9TCJLLEJSy7w7mUkIHzZVdJCsNuQMMJQ==",
+      "password": "gAAAAABq0OmYNGExjxlcMsWzTvTYgbx833fbIxxl3ONx90PkpXYNxvk7pXBLRk5bh9i5FSirL1uoxBwVlRkaXp-KWuKDTAZMsQ==",
       "path": "/h264/ch1/main/av_stream"
     },
     {
@@ -1203,8 +1077,8 @@
       "name": "Rainforce Bolt PJW M/C (4 Way)",
       "ip": "192.168.35.90",
       "port": 554,
-      "username": "gAAAAABqtlfJuj2r3pxptqTbC1e4q_MOrjwfoKPpsUWwH7joTXOAp44itloUR2KM9PWmrjppWBRRTfpkSrh5fCzGDnrzM5ih_w==",
-      "password": "gAAAAABqtlfJ1BH4eYj_YYa7tFIoXiBNZV_oDMdjNMCfdw6l_Q5CyiEuSvO_3bpSF44pHlfNIVNoN2dAO2mgcYPttKv3CywEYg==",
+      "username": "gAAAAABq0OmYgiHgxLqk8ITIvWyYj42ClHsVyjDz_BN9BusBB7HbmQ4j0EWC8Qex_wijYZkQrXTIMJh3zpR2Gx_obL9UfyNwQQ==",
+      "password": "gAAAAABq0OmYMj2kQepp5Uo6DNsmc41xwluaZh0Yv3Sn2-lZyJSlPJLynOW0Vk67cQXHW8iw-wrQGG8jsBqiPjkylXX6268LpQ==",
       "path": "/h264/ch1/main/av_stream"
     },
     {
@@ -1212,8 +1086,8 @@
       "name": "BOLT STRENGTH CHECKING (4WAY)",
       "ip": "192.168.35.92",
       "port": 554,
-      "username": "gAAAAABqtlfJxpVj72QOw3Q3u1dn5h875nrxA5O9InFajAPdKzaEWYl2jDzxvo4tjYyP3sB-6j3FGbNlBxG3DtJiSPVcyvOWCQ==",
-      "password": "gAAAAABqtlfJUar_8HclMbbaTK1jF5jHLz0NcnVk427s-lldFm6ZnVZE3pfHA8mxqIBrXYgKROYRU7q5jo5pvXu9tLXcrX9aEw==",
+      "username": "gAAAAABq0OmYu_83-Y5Auv09-vjG-zF7-XACzl2d4iCwaB74MH4rO9kq_DfjBuR6sb9o1z1aWgFMJ0Z4_RruWEnLox-PQrs63Q==",
+      "password": "gAAAAABq0OmY7C92-E6OWHuMzK8HQyDYr5NmjXdFf4qSFpu-JIlmSsdKMfeEwr2-QmghP2gyGY9TJgIdIlq2599q36sy_gC5UA==",
       "path": "/h264/ch1/main/av_stream"
     },
     {
@@ -1221,8 +1095,8 @@
       "name": "Rainforce Bolt PJW M/C (4 Way)",
       "ip": "192.168.35.50",
       "port": 554,
-      "username": "gAAAAABqtlfJWDhD_qjWFpZom_d1_8RfRt9TPJy3VE6vtI1NpLH7ZshQSQk-EsVTNCMvYrp4dKSLCW7rV3kt76zImZsdI4LB0Q==",
-      "password": "gAAAAABqtlfJbC-7nciDpODLiUfKnBhLotVINoxxIIrm8GIG-yLDnS0JARsnSlFv1gjyqV_ORA3cyqRr_ObY3iVgUBtaH3nFBQ==",
+      "username": "gAAAAABq0OmYEukHB5Y-mHFxc4Y1wi1l5ggvwqua9BT0_auxyAqDqIvCc1WO4sDFcBB0I8NakxyM128m3foXZ7sk4ydWDZBl8w==",
+      "password": "gAAAAABq0OmYIbp229n9h_DQRzsjKAP23nlb2Y5_g52hi4mGpcwei50pfo2NS353bM6nL6WdPeeNP7ggKx-GW9w0g7NwdK_yWA==",
       "path": "/h264/ch1/main/av_stream"
     },
     {
@@ -1230,8 +1104,8 @@
       "name": "Upr Rail \u00d7Bolt Fr PJW M/C  ( 4 Way )",
       "ip": "192.168.35.52",
       "port": 554,
-      "username": "gAAAAABqtlfJhItsNt7ezNZyJKNTJh4LMY8fyYBc7YHszG1lza-4NniovohUEluIlHKeiwgsiwkY7W3UAs3X1y7r1RKF34qS4A==",
-      "password": "gAAAAABqtlfJmjuIHujiNMPAcfcdl0tu0TxNY1Fx1n9ieDlwb3O5WAXTAXfMel34bxK994Cjj7v3pr5bZtZWb6lmxbKfx7iETQ==",
+      "username": "gAAAAABq0OmYTvwkrwTxKwqfWxTiE-lzV_7lOmfDaIGcgtuySq-Bbjj7yaEC-IylGKQBOGD2v-oRZeBcD9lfJkNdHI9wWsqugw==",
+      "password": "gAAAAABq0OmYILMs4aY5N3IgOSKKuKjVVufdRMfB9ezkQpaUWLMsgWyrEhHVcSp1007ivy5hzmCkka0J_1u8Xum9gvcIo8hq7Q==",
       "path": "/h264/ch1/main/av_stream"
     },
     {
@@ -1239,8 +1113,8 @@
       "name": "BOLT STRENGTH CHECKING (4WAY)",
       "ip": "192.168.35.54",
       "port": 554,
-      "username": "gAAAAABqtlfJa32Bplh4LEvQ1x5-v7RD5JCZm9xIWsgG9TOKkygn6OG6DO5CSQmbbWqlGoJSWV--nR16NkKvlJn5WUuXfHduag==",
-      "password": "gAAAAABqtlfJ9USG69jDjBuyLHc-wBCCm3uFfQnD3Rk784UC7huMBeTU9TPmhhlA7B-L66Vo2IokEGPZMg1XzXJv12Q2EFnFKQ==",
+      "username": "gAAAAABq0OmYn3aD9VPhyftuj7llXbvyDYHVDyqqyMuK6Hwq03436bxTlAyvncVckAqhWVVV51IB3eBvaCTl2FkcpdJCkZeW7A==",
+      "password": "gAAAAABq0OmYakt8G2ga74Wh0cHJkPbtZj4tzm3p8bbfGrsosfLbJXe0BL6EU2-9A6t46rJWbYz8l3cJInu84HLcjNKXVv9JRQ==",
       "path": "/h264/ch1/main/av_stream"
     },
     {
@@ -1248,26 +1122,26 @@
       "name": "Upr \u00d7Rinforce S/A\u00d7UprINRBKT PJW\u3000M/C (6 Way)",
       "ip": "192.168.35.100",
       "port": 554,
-      "username": "gAAAAABqtlfJK5bmUJxOFZMejqikYPgSke0pIosbjc9ErQ8nIpb9z-22xFQ1hTq21cHBUA5vNmfA3f-SXAInpaG5lRuaVGMg4A==",
-      "password": "gAAAAABqtlfJbAR628oKauQ0zJy0M93s6A2iC_b7Xr2ThnTN40DTi5oV2usePmJbUh6W57pjKFvEYYTE_B5nbZdudO53hOdSdw==",
+      "username": "gAAAAABq0OmYVeAs0ekkxZ-BY5uRl-G8FD6jtVArkNPRBIdDFjovqpj-1CHEtGmpYW1GnlQK3rPWz8YiRx9JQKrCuUrR6DqD3Q==",
+      "password": "gAAAAABq0OmY11txalUAXQFL05c88VV9zkhAfPiDKR1QXBmPa-tNazPvNuB8OdUHVQGgiP8LJZX6rs6IXneqTQqqZL7l2TDhUQ==",
       "path": "/h264/ch1/main/av_stream"
     },
     {
       "id": "cam_upr_rinforce_s_a_uprinrbkt_pjw_m_c_6_way_1790063911",
       "name": "Upr \u00d7Rinforce S/A\u00d7UprINRBKT PJW\u3000M/C (6 Way)",
-      "ip": "192.168.35.40",
+      "ip": "192.168.35.33",
       "port": 554,
-      "username": "gAAAAABqtlfJm6C_eP9Oe3IjrUMg8kBqLtBzgqkkzh4DbwAAA9vJzw-RwG5G15o8Af1n-ZrDoS10KPEXyL3VCJtoE-2bBp2Z0g==",
-      "password": "gAAAAABqtlfJLDDF2xUp3qBpRTMqRcBnprrn2E41SckcVx5Ms37rgFg6FshqrWP8kuCRZzw8NfMQiUYy-B_pDElyi--t6OyLoA==",
+      "username": "gAAAAABq0OmY6QB7j0Uoxt_KjlDK80O8H9GCKQ1R6koeJNudszPaTLxVmybUOy8ZmBytwYhfIGWQPSWthVdxXh9w97XZwQYeTw==",
+      "password": "gAAAAABq0OmYTZvFmqtK2Wi237gQjmlkFbAxX0M2b4VEBY2LzvJ3xZHCtLRVrze_xEpuLoi7k1c6hk4u-4-zg6jkp9XlJLMdXw==",
       "path": "/h264/ch1/main/av_stream"
     },
     {
       "id": "cam_mag_weld_upr_brkt_with_t_nut_bolt_m_c_1790063983",
       "name": "Mag WELD Upr Brkt With T-Nut \uff06Bolt M/C",
-      "ip": "192.168.35.42",
+      "ip": "192.168.35.34",
       "port": 554,
-      "username": "gAAAAABqtlfJji7NhUPes3ALSYhaT4oEb-7Y4lHbIUGETimR9_V1h_5kxvCrmES8zSLdpdF-dnJZtVr_fpU2gCL5cQkVpvCMkQ==",
-      "password": "gAAAAABqtlfJTmtEipoureM655thjgzfqTqGlqjum93Pg4NZXfDXaokTcTIdhv6xm284TymRbDxsyQ7syEhRMzdwzEydkfj_9Q==",
+      "username": "gAAAAABq0OmY2-jDrfm9QbRI2fn7ZjnyG5FVtFl7vHuABUnh1uHr5pxdA084cRhNK4pZz_9JZOvdcuNbXa7B6L1HIUaS44BQ3Q==",
+      "password": "gAAAAABq0OmYHxGDNB23GmttQpQT-lB5pd0snIc8K4qUtOVTxjPXY3OYgMXsK5MVgiseHLGg6XjxqMTwLLE67K7XV4LCYVqRPA==",
       "path": "/h264/ch1/main/av_stream"
     },
     {
@@ -1275,8 +1149,8 @@
       "name": "YSD-SS Ball Guide-01 Camera 1",
       "ip": "192.168.31.57",
       "port": 554,
-      "username": "gAAAAABqtlfJF-M_gf39Hx30MFJxTAfKfliwnaYXFYpYQWydoXtH7Ke5LNk9Y8uRjo8-hE_N3xQNmGxjHO1mYWMuxpbujUuS0g==",
-      "password": "gAAAAABqtlfJuOoyHxEV78d5EHFPGkAGeDyLT8SUe9hou1KMdk2dT3Eb_znXSYCcGpHeyx13UZOmPKYUfxaUMsRFbc3jQvLmig==",
+      "username": "gAAAAABq0OmYIlnMZd9o358QT-uV4dbNjneRy4ZEvhwgodjKn0PrGhu8Kk7aSlvLCNhoHXjxzNb2Cz0e7xcrD3YdVakzDLVN5g==",
+      "password": "gAAAAABq0OmYcWiZVkPI0muKZpAyqkKdLnP4Z_Se36SF1hyp-La-M6ur-1ZIM1Qi6aa5LOR-tDdnaIW7PzE6kzqvfQLfZbn-Hg==",
       "path": "/h264/ch1/sub/av_stream"
     },
     {
@@ -1284,8 +1158,8 @@
       "name": "YSD-SS Ball Guide-01 Camera 2",
       "ip": "192.168.31.58",
       "port": 554,
-      "username": "gAAAAABqtlfJ_ddaQTvyxDIbP66fyEqZ9FYtE_ibxa0dB5ythx0uM_yQZx70YHOEb8Aj_sqct6Z-43EGEUlja3NjLoZ9kNaQVQ==",
-      "password": "gAAAAABqtlfJZluHzf7NWRkPVoEWOiavwtgHyuGYqC9OmGEDIAmUqkcVpE5BL2wTH3l-M08ZeQ6bU9ZNUHIuy5NXFL_2nlXnHA==",
+      "username": "gAAAAABq0OmYSpMK8Kla4mqSGZlqvEW39SkiWXvJ_WWVwPKu-cz5wRAhtEcfo2tjGrQPrfsk1iwKXoAZjgT8-rcRq_uLm4HgyA==",
+      "password": "gAAAAABq0OmYJCVDUUCmb8gX2s-tq_Vs6fqMNnj5ChsxvG2cvwhZg-7DU5HYlWLbRJFIe8I9HJieZqxQb_VgzRz-pynnst4Mtg==",
       "path": "/h264/ch1/sub/av_stream"
     },
     {
@@ -1293,8 +1167,53 @@
       "name": "LOCATION PIN STACKING - LPS-3",
       "ip": "192.168.35.104",
       "port": 554,
-      "username": "gAAAAABqtlfJnfz2trVifsQtH3srlcHpv3SbKNIyAOklp9SCwHVYojFQoebd68JZHUI8dZIFmoIHoenYttYwaKwtqRI0BxenRQ==",
-      "password": "gAAAAABqtlfJW1H8G4axP67Ko8dgymK-_NqWH5HJYNo7FLYBrILZ4jUOQ4wtvVy3muEPhuEtuBzjn_hWrirdk2ViDH3h2w0FZg==",
+      "username": "gAAAAABq0OmYaDbo4oJ8Jw4v7SjGEJo-IqhJbTnLbTfJKUxJVsjhSXIgKRnIqmvWdPP8J3TM-eCZLd3IvdZcvWhWSC9i1FHP0g==",
+      "password": "gAAAAABq0OmYVDJFUUtlPH6KOKcHZTbIF0Mqbl3wn64WsW8SkBr_j62Yjp7pzKp6GHalCvKrZ3DomjbSV88mK2kaRCTX6XDfpQ==",
+      "path": "/h264/ch1/main/av_stream"
+    },
+    {
+      "id": "cam_upr_rinforce_s_a_uprinrbkt_pjw_m_c_6_way_1791801830",
+      "name": "Upr \u00d7Rinforce S/A\u00d7UprINRBKT PJW\u3000M/C (6 Way)",
+      "ip": "192.168.35.30",
+      "port": 554,
+      "username": "gAAAAABq0OmYWrW6liCd245rPxCU0tWDhdaYCwUFqjfWK1T9o9B4S2LLjsEnSwehhrAkj5T5mmMydNL_MkEJ0K-W1WFzzQe2Bg==",
+      "password": "gAAAAABq0OmYfb0TZtudAnG3QvtTHF6bjtK3uoDSc_LxF8PD4GlE2t53Zk-GgyoPFSi3FdKJAYBcjcv6Y4EifTxWMbBHeYDP5A==",
+      "path": "/h264/ch1/main/av_stream"
+    },
+    {
+      "id": "cam_riser_bkt_staking_inner_m_c_1791802317",
+      "name": "Riser Bkt. Staking Inner M/C",
+      "ip": "192.168.35.31",
+      "port": 554,
+      "username": "gAAAAABq0OmYUrYVejYyFS1F38mDiq7FtZOAwmMpjjNK7FVxrLPFeT_yh9hbtPURVtXuN378QSYHo4bjaTHA7PR5eV5cryNs4g==",
+      "password": "gAAAAABq0OmYtRleyWRb2PSb-bODl8xhm9cgWO2jP7loNz1mEQRAXBKe08TNmVndCvZbpPf_9H_ntqyt265nA7rWXj6nc9wfxQ==",
+      "path": "/h264/ch1/main/av_stream"
+    },
+    {
+      "id": "cam_upr_rinforce_s_a_uprinrbkt_pjw_m_c_6_way_1791875079",
+      "name": "Upr \u00d7Rinforce S/A\u00d7UprINRBKT PJW\u3000M/C (6 Way)",
+      "ip": "192.168.35.40",
+      "port": 554,
+      "username": "gAAAAABq0OmY2FjE85pdBs5Zj7Kmi99XUD7BvP-2foNjXHm8LOCURHjlzJEri4S2jHaB5HIgW3EpyR04V0K8N6kNxxvZr6kAFw==",
+      "password": "gAAAAABq0OmYne0HqDQn990U232O8ApLInLqb3ydRrYBcdFiFkIF3IgHvIRx1ew2AvHLzQLeIYj7l1iLOvAxr02GF3JOjcInZA==",
+      "path": "/h264/ch1/main/av_stream"
+    },
+    {
+      "id": "cam_mag_weld_upr_brkt_with_t_nut_bolt_m_c_1791877588",
+      "name": "Mag WELD Upr Brkt With T-Nut \uff06Bolt M/C",
+      "ip": "192.168.35.44",
+      "port": 554,
+      "username": "gAAAAABq0OmY9OKJLYkFdHS-L48XIW02O_4I9Tb186_Woi3E44tM_Al49syRSuwrNpDx8UOz75E8NyEItMOjHlswvp7PWXc8dA==",
+      "password": "gAAAAABq0OmYy8wMTXFNXJTEUthAHROJcxspknzDPjurpg4gtzy7ehSkZ9xDzsmjtpJvlLsVLqq5-BuiiQhhC0xpKbKNFXl3ng==",
+      "path": "/h264/ch1/main/av_stream"
+    },
+    {
+      "id": "cam_upr_rail_inspection_m_c_1791877693",
+      "name": "Upr Rail Inspection M/C",
+      "ip": "192.168.35.42",
+      "port": 554,
+      "username": "gAAAAABq0OmYLp7kLXSsZJaKsEuG7Rfr1n2slHL03u3ND3lY5_zbKZkmoFBxHrkqNK_AfO0vsZgawClkdy0Q33Hdn24D-K-arQ==",
+      "password": "gAAAAABq0OmYKNji241mNmxBNlFbJsSHwuwABqK3QdQIbIGZwESDQZPDmJ59tWejSapUgi078-IquaXPxRHvt83yQ_zGSzxjRw==",
       "path": "/h264/ch1/main/av_stream"
     }
   ]

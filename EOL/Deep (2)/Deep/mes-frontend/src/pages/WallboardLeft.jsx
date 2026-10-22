@@ -392,7 +392,8 @@ function OtTable({ cycles, ideal, onVideo, onBack, D, lineId, isMain, machineId,
   };
   // Comment status uses the SAME live cmtMap the COMMENT column renders.
   const _hasCmt   = (c) => !!String(_cmtFor(c) || "").trim();
-  const _overRows = (cycles || []).filter(c => c.ct != null && Number(c.ct) > ideal);
+  // 2026-10-12 — c.ideal = CT of the model that made the cycle (model-timeline lines).
+  const _overRows = (cycles || []).filter(c => c.ct != null && Number(c.ct) > (Number(c.ideal) > 0 ? Number(c.ideal) : ideal));
   const _totalOver = _overRows.length;
   const _filledN   = _overRows.filter(_hasCmt).length;
   const _unfilledN = _totalOver - _filledN;
@@ -659,8 +660,12 @@ function MachineRow({ machine, idealCt, onPick, onCycleVideo, isMain = false, lo
   // warm-up scan-fail rows, duplicate cycle_seq).  Unlike the 0s-NG above
   // these are NOT counted as OK — just excluded from the chart + cycle counts
   // + over-target.  Applies to main + subs (each vs its own ideal).
+  // 2026-10-12 — on a line with a model timeline every cycle carries `ideal`,
+  // the CT of the model that made it (INNER 23 s / OUTER 14.4 s on YWD-SS), so
+  // a switch to a faster model no longer turns the earlier cycles "over target".
+  const idealOf = (c) => (c && Number(c.ideal) > 0 ? Number(c.ideal) : idealCt);
   const _isBurstPhantom = (c) =>
-    c.ct != null && idealCt > 0 && Number(c.ct) < idealCt * 0.5;
+    c.ct != null && idealOf(c) > 0 && Number(c.ct) < idealOf(c) * 0.5;
   const allCycles  = _rawCycles.filter(c => !_isPhantom(c) && !_isBurstPhantom(c));
   // 2026-10-07 — the NUMBER shown for a cycle.  cycle_seq is the machine's
   // own count register: on most machines it resets every shift (= the part
@@ -721,7 +726,7 @@ function MachineRow({ machine, idealCt, onPick, onCycleVideo, isMain = false, lo
   const lossSec = (machine.loss_seconds != null)
     ? Number(machine.loss_seconds)
     : allCycles.reduce(
-        (acc, c) => acc + (c.ct == null ? 0 : (Number(c.ct) - idealCt)), 0);
+        (acc, c) => acc + (c.ct == null ? 0 : (Number(c.ct) - idealOf(c))), 0);
 
   // ── Chart.js instance (create / update / destroy) ────────────────
   useEffect(() => {
@@ -732,7 +737,9 @@ function MachineRow({ machine, idealCt, onPick, onCycleVideo, isMain = false, lo
       return;
     }
 
-    const idealCT = idealCt;
+    const _winIdeals = cycles.map(idealOf).filter(v => v > 0);
+    const idealCT    = _winIdeals.length ? Math.max(..._winIdeals) : idealCt;
+    const idealLo    = _winIdeals.length ? Math.min(..._winIdeals) : idealCt;
     // 2026-05-18-r7 — Y-AXIS dynamic cap, scaled per-machine idealCT.
     // Operator complaint: "ISME DEKHEGA TO SARI DOT DOT HI DIKH RHI H
     // BECAUSE KUCH BICH BICH ME CYCLE TIME BHOT BDH JATA H".  A single
@@ -763,7 +770,7 @@ function MachineRow({ machine, idealCt, onPick, onCycleVideo, isMain = false, lo
     const Y_MIN = Math.max(
       0,
       Math.min(
-        (idealCT || 15) - 10,       // proportional default
+        (idealLo || 15) - 10,       // proportional default
         Math.floor(_observedMin) - 2 // never crop real data below view
       )
     );
@@ -807,10 +814,12 @@ function MachineRow({ machine, idealCt, onPick, onCycleVideo, isMain = false, lo
               const a = cycles[seg.p0DataIndex]?.ct;
               const b = cycles[seg.p1DataIndex]?.ct;
               if (a == null || b == null) return "transparent";
-              const aUp = a > idealCT + CT_TOL;
-              const bUp = b > idealCT + CT_TOL;
-              const aDn = a < idealCT - CT_TOL;
-              const bDn = b < idealCT - CT_TOL;
+              const iA = idealOf(cycles[seg.p0DataIndex]);
+              const iB = idealOf(cycles[seg.p1DataIndex]);
+              const aUp = a > iA + CT_TOL;
+              const bUp = b > iB + CT_TOL;
+              const aDn = a < iA - CT_TOL;
+              const bDn = b < iB - CT_TOL;
               if (aUp && bUp) return `${FS_BAD}cc`;
               if (aDn && bDn) return `${FS_OK}cc`;
               if (!aUp && !aDn && !bUp && !bDn) return "rgba(245,158,11,0.85)";
@@ -819,7 +828,7 @@ function MachineRow({ machine, idealCt, onPick, onCycleVideo, isMain = false, lo
                 return aUp ? `${FS_BAD}cc` : `${FS_OK}cc`;
               }
               const ratio = Math.max(0.01, Math.min(0.99,
-                Math.abs(a - idealCT) / Math.abs(a - b)));
+                Math.abs(a - (iA + iB) / 2) / Math.abs(a - b)));
               const grad = c2.createLinearGradient(seg.p0.x, 0, seg.p1.x, 0);
               if (aUp) {
                 grad.addColorStop(0,                              `${FS_BAD}cc`);
@@ -841,8 +850,9 @@ function MachineRow({ machine, idealCt, onPick, onCycleVideo, isMain = false, lo
         // Ideal-CT reference line (dashed amber)
         {
           type: "line",
-          label: `Ideal ${idealCT}s`,
-          data: Array(cycles.length).fill(idealCT),
+          label: `Ideal ${idealCt}s`,
+          data: cycles.map(idealOf),
+          stepped: "middle",
           borderColor: "rgba(251,191,36,0.7)",
           borderWidth: 1.5,
           borderDash: [5, 4],
@@ -1103,7 +1113,7 @@ function MachineRow({ machine, idealCt, onPick, onCycleVideo, isMain = false, lo
   // can drill in via Historical when needed.
   // Latest CT (big number on right) — color follows 3-tier rule
   const last      = cycles[cycles.length - 1];
-  const lastColor = ctColor(last.ct, idealCt);
+  const lastColor = ctColor(last.ct, idealOf(last));
 
   return (
     <div
@@ -1215,7 +1225,7 @@ function MachineRow({ machine, idealCt, onPick, onCycleVideo, isMain = false, lo
             is already loaded for the graph — no API / collector / DB touch.
             pointerEvents:none so dot-tap (video) + panel-open pass through. */}
         {(() => {
-          const over  = allCycles.filter(c => c.ct != null && c.ct > idealCt).length;
+          const over  = allCycles.filter(c => c.ct != null && c.ct > idealOf(c)).length;
           // 2026-06-06 — denominator = the SAME register-pinned per-shift cycle
           // count as the OK/NG tags (MAX cycle_seq), for main + subs alike, so
           // "of N" always matches the OK/NG / slider count.
@@ -2266,7 +2276,9 @@ export default function WallboardLeft() {
                 <span style={{ color: textMut, margin: "0 8px" }}>·</span>
                 <span style={{
                   fontFamily:"monospace",
-                  color: ctColor(videoCycle.cy.ct, videoCycle.machine.ideal_ct || idealCt),
+                  color: ctColor(videoCycle.cy.ct, Number(videoCycle.cy.ideal) > 0
+                                                     ? Number(videoCycle.cy.ideal)
+                                                     : (videoCycle.machine.ideal_ct || idealCt)),
                 }}>
                   {Number(videoCycle.cy.ct).toFixed(2)}s
                 </span>
@@ -2772,21 +2784,104 @@ function _rankSuggestions(rows, partCode, machineId) {
     out.push({ text: disp, key, score, count: e.count });
   }
   out.sort((a, b) => b.score - a.score || b.count - a.count);
+  // 2026-10-14 — comments repeated (2+ times) on this cycle's own date come
+  // first: they are what the supervisor keeps typing right now, and the
+  // 120-day totals used to bury them (Loop Pipe: "talk to operator" ×49 today
+  // never showed behind "no video play" ×421 from earlier weeks).
+  const day = cur ? cur.date : _localToday();
+  const todayCnt = new Map();               // key -> { n, forms }
+  for (const r of rows) {
+    if (String(r.record_date || "").slice(0, 10) !== day) continue;
+    const key = _normComment(r.text);
+    if (!key) continue;
+    let t = todayCnt.get(key);
+    if (!t) { t = { n: 0, forms: new Map() }; todayCnt.set(key, t); }
+    t.n++;
+    const orig = r.text.trim();
+    t.forms.set(orig, (t.forms.get(orig) || 0) + 1);
+  }
+  const recent = [...todayCnt.entries()]
+    .filter(([, t]) => t.n >= 2)
+    .sort((a, b) => b[1].n - a[1].n);
   const seen = new Set(), top = [];
-  for (const o of out) { if (seen.has(o.key)) continue; seen.add(o.key); top.push(o.text); if (top.length >= 6) break; }
+  for (const [key, t] of recent) {
+    if (top.length >= 8) break;
+    let disp = key, dn = -1;
+    for (const [orig, n] of t.forms) if (n > dn) { dn = n; disp = orig; }
+    seen.add(key); top.push(disp);
+  }
+  for (const o of out) { if (seen.has(o.key)) continue; seen.add(o.key); top.push(o.text); if (top.length >= SUGGEST_MAX) break; }
   return top;
 }
 
+const SUGGEST_MAX = 16;
+const SUGGEST_TYPE_MIN = 3;   // letters typed before the chips switch to matches
+
+// Every distinct past comment once: most-used spelling, total uses, and uses
+// on `day` (the cycle's date) — the corpus the as-you-type matcher searches.
+function _aggComments(rows, day) {
+  const agg = new Map();                   // key -> { disp, total, today, forms }
+  for (const r of rows || []) {
+    const key = _normComment(r.text);
+    if (!key) continue;
+    let a = agg.get(key);
+    if (!a) { a = { key, disp: "", total: 0, today: 0, forms: new Map() }; agg.set(key, a); }
+    a.total++;
+    if (String(r.record_date || "").slice(0, 10) === day) a.today++;
+    const orig = r.text.trim();
+    a.forms.set(orig, (a.forms.get(orig) || 0) + 1);
+  }
+  for (const a of agg.values()) {
+    let dn = -1;
+    for (const [orig, n] of a.forms) if (n > dn) { dn = n; a.disp = orig; }
+  }
+  return [...agg.values()];
+}
+
+// 2026-10-14 — as-you-type help: once SUGGEST_TYPE_MIN letters are typed,
+// the chips become the past comments containing every typed word ("tal" →
+// TALK TO OPERATOR, "part set" → PART SET IN FIX).  Comments that START with
+// the text come first, then today's most used, then the all-time most used.
+function _matchSuggestions(agg, typed) {
+  const q = _normComment(typed);
+  if (q.length < SUGGEST_TYPE_MIN) return null;
+  const words = q.split(" ").filter(Boolean);
+  return agg
+    .filter(a => a.key !== q && words.every(w => a.key.includes(w)))
+    .sort((a, b) => (b.key.startsWith(q) - a.key.startsWith(q))
+                    || (b.today - a.today) || (b.total - a.total))
+    .slice(0, SUGGEST_MAX)
+    .map(a => a.disp);
+}
+
+function _localToday() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+// A comment just posted counts at once — append it to the cached history so
+// the next cycle's chips already include it (the cache refreshes every 5 min).
+function _noteCommentPosted(lineId, source, row) {
+  const hit = _suggHistCache[`${lineId}|${source}`];
+  if (hit && Array.isArray(hit.rows)) hit.rows = [...hit.rows, row];
+}
+
 // Hook: ranked suggestion strings for the given cycle (re-ranks per cycle).
-function useCycleSuggest({ lineId, source, machineId, partCode }) {
+function useCycleSuggest({ lineId, source, machineId, partCode, tick = 0, typed = "" }) {
   const [rows, setRows] = useState([]);
   useEffect(() => {
     let dead = false;
     _fetchCommentHistory(lineId, source).then(r => { if (!dead) setRows(r); });
     return () => { dead = true; };
-  }, [lineId, source]);
-  return useMemo(() => _rankSuggestions(rows, partCode, machineId),
-                 [rows, partCode, machineId]);
+  }, [lineId, source, tick]);
+  const ranked = useMemo(() => _rankSuggestions(rows, partCode, machineId),
+                         [rows, partCode, machineId]);
+  const day = (_parseCyclePc(partCode) || {}).date || _localToday();
+  const agg = useMemo(() => _aggComments(rows, day), [rows, day]);
+  return useMemo(() => {
+    const m = _matchSuggestions(agg, typed);
+    return m && m.length ? m : ranked;
+  }, [agg, typed, ranked]);
 }
 
 // GhostTextarea — a <textarea> with inline ghost-text autocomplete.
@@ -2852,10 +2947,11 @@ function GhostTextarea({
   );
 }
 
-// SuggestChips — clickable top-3 suggestion pills shown under a compose
-// box (mouse alternative to TAB; also makes "suggestion aaye" visible).
+// SuggestChips — clickable suggestion pills shown under a compose box (mouse
+// alternative to TAB; also makes "suggestion aaye" visible).  2026-10-14:
+// up to SUGGEST_MAX (was 3) so the repeated comments all show.
 function SuggestChips({ suggestions = [], current = "", onPick, border, color }) {
-  const list = (suggestions || []).filter(s => s && s.trim() !== (current || "").trim()).slice(0, 3);
+  const list = (suggestions || []).filter(s => s && s.trim() !== (current || "").trim()).slice(0, SUGGEST_MAX);
   if (!list.length) return null;
   return (
     <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 6, alignItems: "center" }}>
@@ -3011,7 +3107,7 @@ function WbCycleRemarkPanel({
 
   // 2026-06-17 — autofill suggestions for THIS sub-machine's remarks
   // (mined from mes_ng_process_remarks history; frequency-ranked).
-  const suggestions = useCycleSuggest({ lineId, source: "ng_remark", machineId, partCode });
+  const suggestions = useCycleSuggest({ lineId, source: "ng_remark", machineId, partCode, typed: draft });
 
   // 2026-06-17 — auto-focus the remark box the instant the video opens
   // (same supervisor-speed fix as the main comment box).
@@ -3177,7 +3273,8 @@ function CycleCommentsPanel({ lineId, partCode, machineName, border, text, textS
 
   // 2026-06-17 — autofill suggestions for this main-cycle comment box
   // (mined from mes_cycle_comments history; frequency + periodicity).
-  const suggestions = useCycleSuggest({ lineId, source: "cycle", partCode });
+  const [suggTick, setSuggTick] = useState(0);   // bumped after a post → re-rank chips
+  const suggestions = useCycleSuggest({ lineId, source: "cycle", partCode, tick: suggTick, typed: draft });
 
   // 2026-06-17 — auto-focus the compose box the instant the video modal
   // opens (or a different cycle dot is clicked) so the supervisor can type
@@ -3244,6 +3341,12 @@ function CycleCommentsPanel({ lineId, partCode, machineName, border, text, textS
         leader_name: row.leader_name,
         created_at:  row.created_at,
       }]);
+      _noteCommentPosted(lineId, "cycle", {
+        type: "Comment", text: row.comment || txt, part_code: partCode,
+        record_date: (String(partCode || "").match(/_(\d{4}-\d{2}-\d{2})$/) || [])[1] || _localToday(),
+        ts: row.created_at,
+      });
+      setSuggTick(t => t + 1);
       setDraft("");
     } catch (e) {
       setError(e.message || String(e));

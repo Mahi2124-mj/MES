@@ -76,10 +76,19 @@ NG_OK_SUSPECT_HOLD_S = 10.0
 # <table>_ct_log_trial, and taken out of the hourly bucket.  At most
 # TRIAL_MOVE_CAP rows from the last TRIAL_MOVE_WINDOW_MIN minutes of this
 # shift; a bigger run is left alone for manual review.
-_TRIAL_RESET_LINES = {int(x) for x in
-                      _os.getenv("TRIAL_RESET_LINES", "12").split(",")
-                      if x.strip()}
-TRIAL_MOVE_CAP = int(_os.getenv("TRIAL_MOVE_CAP", "60") or 60)
+# 2026-10-19 — every line (operator: dashboard 712 vs hourly sheet 732 on
+# YSD-SS).  At 08:31-08:38 a frame-desynced read gave D101 = 16 (YMC-SS: the
+# previous shift's 3682) on 11 lines; REG-MULTI logged 16 / 500 rows, then
+# REG-RESET-RESNAP proved the register was 0 and snapped the count down, but
+# the rows and the hourly bucket kept the jump.  Only the rows above the live
+# value and written before the re-snap are moved; the bucket loses the whole
+# wiped count (a 500-row capped expansion still added the full jump to it).
+# TRIAL_RESET_LINES=ALL (default) or a comma list of line ids.
+_TRIAL_RESET_ENV = _os.getenv("TRIAL_RESET_LINES", "ALL").strip()
+_TRIAL_RESET_ALL = _TRIAL_RESET_ENV.upper() == "ALL"
+_TRIAL_RESET_LINES = (set() if _TRIAL_RESET_ALL else
+                      {int(x) for x in _TRIAL_RESET_ENV.split(",") if x.strip()})
+TRIAL_MOVE_CAP = int(_os.getenv("TRIAL_MOVE_CAP", "600") or 600)
 TRIAL_MOVE_WINDOW_MIN = int(_os.getenv("TRIAL_MOVE_WINDOW_MIN", "30") or 30)
 
 # 2026-10-09 — MODEL-AWARE TARGET (YWD-SS first, operator-scoped).  Every model
@@ -116,6 +125,64 @@ _MODEL_CT_LINES = {int(x) for x in
 #                    for two parts 327 times on 6-Oct, so the hourly table —
 #                    built from ct_log rows — ran 342 parts short).
 SA_ZONE_ID            = int(_os.getenv("SA_ZONE_ID", "7") or 7)
+LP_ZONE_ID            = int(_os.getenv("LP_ZONE_ID", "6") or 6)   # Loop Pipe (2026-10-10, model-wise CT)
+
+# 2026-10-10 — FX5 (iQ-F) PLCs number X/Y inputs in OCTAL, but pymcprotocol
+# (plctype Q) sends X/Y numbers as HEX.  Seen when the Sub-Assembly PY sensors
+# went live: label X10 read physical X20, X13 read X23, X20 read X40 (all
+# 4-way lines), X16 read X26 on Y17-SA.  Every FX5 here talks SLMP on port
+# 502, so for PY reads on those PLCs an all-octal X/Y label is converted to
+# the number pymcprotocol must send (X40 -> X20).  Labels stay as on the PLC.
+_FX5_OCTAL_XY_PORTS = {int(x) for x in
+                       _os.getenv("FX5_OCTAL_XY_PORTS", "502").split(",")
+                       if x.strip()}
+# Lines whose single-sensor PY registers use 0=PASS, 1=ON, 2=OFF (see
+# check_py_bypass).  Empty by default: a live read on 10-Oct showed the SA
+# bolt checkers (YHB/YNC-SA-4WAY) publish 1=OFF, 2=ON like every other line —
+# all 36 registers matched the Excel unswapped.
+#  2026-10-13 -- 38 (YNC-SA-6WAY): its PLC does publish 1=ON, 2=OFF.  With the
+#  PYs on D110-D121, two different running models (13 on 12-Oct, 11 on
+#  13-Oct) matched 12/12 only on that scale (8-9 mismatches on 1=OFF, 2=ON).
+_PY_ON1_OFF2_LINES = {int(x) for x in
+                      _os.getenv("PY_ON1_OFF2_LINES", "38").split(",")
+                      if x.strip()}
+
+
+def _fx5_dev(addr: str, port) -> str:
+    a = (addr or "").strip().upper()
+    try:
+        if a[:1] in ("X", "Y") and int(port or 0) in _FX5_OCTAL_XY_PORTS:
+            digits = a[1:]
+            if digits and all(ch in "01234567" for ch in digits):
+                return a[0] + format(int(digits, 8), "X")
+    except (TypeError, ValueError):
+        pass
+    return a
+
+
+def _model_onehot_spec(addr):
+    """2026-10-10 — one-hot model select, e.g. YNC-SA-6WAY: model_address
+    "D600=1:11,D601=1:12,D602=1:13,D603=1:14" = register D600 holds 1 while
+    model 11 runs, and so on.  The short range form "D600-603=1:11" means the
+    same thing (D600 -> 11, D601 -> 12, ...) and fits the varchar(20) column.
+    "D600-603==D1015:11" compares against a register instead: the model is the
+    one whose D60x equals D1015 (YNC-SA-6WAY: D600-603 hold the four program
+    codes, D1015 the running one).  value is then that register's name.
+    [(device, number, value, model)] or None."""
+    import re as _re_oh
+    s = str(addr or "")
+    if "=" not in s:
+        return None
+    out = []
+    for m in _re_oh.finditer(r"([A-Za-z]+)(\d+)(?:\s*-\s*(\d+))?\s*(==\s*[A-Za-z]+\d+|=\s*\d+)\s*:\s*(\d+)", s):
+        dev, lo, mdl = m.group(1).upper(), int(m.group(2)), int(m.group(5))
+        rhs = m.group(4).lstrip("=").strip().upper()
+        val = rhs if rhs[:1].isalpha() else int(rhs)
+        hi = int(m.group(3)) if m.group(3) else lo
+        if hi < lo or hi - lo > 31:
+            continue
+        out.extend((dev, n, val, mdl + (n - lo)) for n in range(lo, hi + 1))
+    return out or None
 SA_HEAL_S             = float(_os.getenv("SA_HEAL_S", "60") or 60)
 SA_SEED_CONFIRM_S     = float(_os.getenv("SA_SEED_CONFIRM_S", "120") or 120)
 SA_HEAL_BACKFILL_CAP  = int(_os.getenv("SA_HEAL_BACKFILL_CAP", "3000") or 3000)
@@ -136,6 +203,14 @@ SA_ROW_GAP_MAX        = 5
 # the next D101/D102 read (12336 = "00", 21061 = "ER") often enough to stick
 # YSD-SS / Y17-SS at OK 0 - never poll D5004 continuously.
 SS_ZONE_ID            = int(_os.getenv("SS_ZONE_ID", "1") or 1)
+# 2026-10-14 — the SEED GUARD + CLIMB HEAL (see SA_ZONE_ID notes) now also
+# protect the Seat Slider finals: YHB-SS sat at OK 0 and YFG-SS at 12 for
+# hours that morning while REG-NOISE rejected the real, climbing D101 (same
+# class as Y17-SS 21-Sep, YSD/Y17-SS 10-Oct).  Only those two guards follow
+# this list; ROW-PER-PART and the ct_log-based hourly stay Sub-Assembly only.
+REG_SELFHEAL_ZONES    = {int(x) for x in _os.getenv(
+                             "REG_SELFHEAL_ZONES", f"{SA_ZONE_ID},{SS_ZONE_ID}").split(",")
+                         if x.strip().isdigit()}
 SS_PC_READ_AT         = (2.0, 4.0, 7.0, 12.0, 20.0)   # s after a pulse
 SS_PC_TAIL_S          = 5.0     # then every 5 s until the next pulse
 SS_PC_MAX_S           = 600.0
@@ -1194,6 +1269,7 @@ def _load_submachines_from_db(main_plc_id: int) -> list:
                NULLIF(TRIM(ng_bit_address), '') AS ng_bit,
                ideal_cycle_time                 AS ideal_ct,
                machine_name,
+               NULLIF(TRIM(model_address), '')  AS model_addr,
                -- 2026-05-30 register-mirror counting for sub-machines.
                -- Sub keeps bit-mode UNLESS count_mode='register' AND an
                -- ok_data_register is set → then count mirrors the reg.
@@ -1630,7 +1706,7 @@ class PokaYokeMonitor:
     def _decode_code(code: int, reg_cnt: int) -> str:
         if code == 0: return "PASS"
         if reg_cnt == 1:
-            return {1: "OFF", 2: "ON"}.get(code, f"code{code}")
+            return {1: "OFF", 2: "ON", 3: "ON (2nd sensor)"}.get(code, f"code{code}")
         return {1: "OFF,OFF", 2: "OFF,ON", 3: "ON,OFF", 4: "ON,ON"}.get(code, f"code{code}")
 
     @staticmethod
@@ -1735,7 +1811,8 @@ class PokaYokeMonitor:
                 _pyb_total_reads += 1
                 try:
                     if is_bit:
-                        vals = plc.batchread_bitunits(headdevice=reg, readsize=1)
+                        vals = plc.batchread_bitunits(
+                            headdevice=_fx5_dev(reg, getattr(self, "plc_port", None)), readsize=1)
                     else:
                         vals = plc.batchread_wordunits(headdevice=reg, readsize=1)
                     code = int(vals[0] or 0)
@@ -1767,6 +1844,14 @@ class PokaYokeMonitor:
                     # between bad value and 0.  Now strict match only —
                     # alarm clears only when PLC actually publishes the
                     # expected value.  No more flicker.
+                    # 2026-10-10 — the SA PLCs publish 0=PASS, 1=ON, 2=OFF
+                    # (operator), the reverse of the desired codes (1=OFF,
+                    # 2=ON); bring the PLC value onto that scale.  A PY with
+                    # two sensing bits (6-way NUT / RR RIVET) already uses
+                    # 0=PASS, 1=OFF, 2=first ON, 3=second ON — left as is.
+                    if (reg_cnt == 1 and self.line_id in _PY_ON1_OFF2_LINES
+                            and "," not in (py.get("sensing_bits") or "")):
+                        code = {1: 2, 2: 1}.get(code, code)
                     match = (code in expected)
                     human_actual   = self._decode_code(code, reg_cnt)
                     human_expected = " | ".join(
@@ -2001,7 +2086,8 @@ class PokaYokeMonitor:
             prefix = bit[0].upper()
             try:
                 if prefix in BIT_PREFIXES:
-                    vals = plc.batchread_bitunits(headdevice=bit, readsize=1)
+                    vals = plc.batchread_bitunits(
+                        headdevice=_fx5_dev(bit, getattr(self, "plc_port", None)), readsize=1)
                 else:
                     vals = plc.batchread_wordunits(headdevice=bit, readsize=1)
                 val = 1 if int(vals[0] or 0) else 0
@@ -2368,6 +2454,19 @@ class CollectorEngine:
     def __init__(self, init_cfg: dict):
         line_id = init_cfg["line_id"]
 
+        # 2026-10-09 — per-line stop (Admin → Lines → Stop).  The never-die
+        # loop in start_everything.sh respawned a stopped collector within
+        # 5 s and it marked itself 'running' again, so Stop never stuck.
+        # Stop now writes collectors/STOP_line_<id>.flag; Start / Restart
+        # remove it.  Checked before the lock, the DB or the PLC are touched.
+        _stop_flag = _os.path.join(_os.path.dirname(_os.path.abspath(__file__)),
+                                   "collectors", f"STOP_line_{line_id}.flag")
+        if _os.path.exists(_stop_flag):
+            print(f"[STOP] line {line_id} stopped from Admin ({_stop_flag}) — not starting; "
+                  f"Start or Restart in Admin → Lines removes the flag.", flush=True)
+            time.sleep(25)
+            raise SystemExit(0)
+
         # 2026-06-16 — durable JSON write-buffer (zero data-loss on DB-down).
         # One per-line JSONL queue; failed event writes land here and replay
         # exactly-once on reconnect.  Safe to init before the lock/config.
@@ -2399,9 +2498,16 @@ class CollectorEngine:
             self._sa_selfheal = int(self.cfg.get("zone_id") or 0) == SA_ZONE_ID
         except Exception:
             self._sa_selfheal = False
+        try:
+            self._reg_selfheal = int(self.cfg.get("zone_id") or 0) in REG_SELFHEAL_ZONES
+        except Exception:
+            self._reg_selfheal = False
         if self._sa_selfheal:
             print(f"[SA-GUARD] Sub-Assembly line: seed guard + climb self-heal "
                   f"({SA_HEAL_S:.0f}s) + one row per part are ON", flush=True)
+        elif self._reg_selfheal:
+            print(f"[REG-GUARD] seed guard + climb self-heal ({SA_HEAL_S:.0f}s) "
+                  f"are ON for this line", flush=True)
         # Seat Slider part-code capture (see SS_ZONE_ID notes at the top).
         try:
             self._ss_pc_fix = int(self.cfg.get("zone_id") or 0) == SS_ZONE_ID
@@ -2446,6 +2552,7 @@ class CollectorEngine:
             max_ct=self.cfg["max_ct"],
         )
         self.poka = PokaYokeMonitor(self.cfg["poka_rules"], line_id)
+        self.poka.plc_port = self.cfg.get("plc_port")   # FX5 octal X/Y addressing (_fx5_dev)
 
         self._plc: pymcprotocol.Type4E = None
         self._db   = None
@@ -2665,9 +2772,13 @@ class CollectorEngine:
         # show IDLE during boot before the first PLC read landed —
         # operator interpreted this as a "ghost IDLE" event.  -2 is
         # treated as no-op by _update_status.
+        # 2026-10-09 — model 0 = "not read yet".  It was 1, so on every start
+        # the model check took that default as a real read and latched the
+        # line's model 1 (SA 4-way: "4 Way Inner") before the PLC was even
+        # connected; a PLC that reports 0 then kept the wrong model for ever.
         self._last_plc_data   = {
             "ok_bit": 0, "ng_bit": 0,
-            "status": -2, "model":  1,
+            "status": -2, "model":  0,
             "sensor_ok": None,
         }
 
@@ -2681,6 +2792,12 @@ class CollectorEngine:
         # attribute reads (GIL-safe). Writes to mes_submachine_ct_log.
         self.submachines      = load_submachines(self.cfg.get("main_plc_id"))
         self._sub_threads     = []           # legacy list of all spawned threads (alive + dead)
+        # 2026-10-09 — "Read live values" requests for sub-machines are handed
+        # to that sub's own poller thread (it owns the connection) and the
+        # answers come back here for the main thread to store.
+        self._sub_read_lock   = threading.Lock()
+        self._sub_read_inbox  = {}           # sub_id -> [(request_id, addresses, queued_at)]
+        self._sub_read_outbox = []           # [(request_id, result, error)]
         self._sub_stop        = threading.Event()   # legacy "stop everything" event (still works)
         # 2026-05-15 — `_stop` was missing on CollectorEngine, so every
         # PY-check thread crashed at `self._stop.wait(2.0)` the moment
@@ -2750,6 +2867,14 @@ class CollectorEngine:
         self._plc_died_at = time.time()
 
     def _connect_plc(self) -> bool:
+        # 2026-10-10 — a line with no PLC of its own (YRA-SA-6WAY FINAL, whose
+        # count comes from the robots via _read_combined_final) has a blank IP:
+        # nothing to connect to, so don't try every 2 s and flood the log.
+        if not str(self.cfg.get("plc_ip") or "").strip():
+            if not getattr(self, "_no_plc_noted", False):
+                self._no_plc_noted = True
+                print("[PLC] no PLC address configured for this line — not connecting", flush=True)
+            return False
         try:
             if self._plc:
                 try: self._plc.close()
@@ -3133,6 +3258,19 @@ class CollectorEngine:
         except Exception:
             return True
 
+    def _resnap_in_shift_start(self, window_min=30) -> bool:
+        """True within `window_min` minutes AFTER the current real shift's own
+        configured start (never in a GAP, never near a shift's end)."""
+        try:
+            sh = self._cur_shift
+            ss = getattr(self, "_shift_start_ts", None)
+            if not sh or str(sh).upper().startswith(("GAP", "UNKNOWN")) or not ss:
+                return False
+            el = time.time() - float(ss)
+            return 0 <= el <= window_min * 60
+        except Exception:
+            return False
+
     def _allow_zero_after_seed(self, reg, last=None):
         """A validated reset right after a start-of-shift seed in the SAME
         shift: the row's count came only from the carried-over seed, so the
@@ -3141,7 +3279,8 @@ class CollectorEngine:
         or closing row, an OT reopen, a mid-shift restart)."""
         seed = getattr(self, "_shift_start_seed", None)
         self._shift_start_seed = None
-        if seed and seed[0] == self._shift_id and self._near_shift_boundary(30):
+        _pre_reset_seed = bool(seed and len(seed) > 2 and seed[2])
+        if seed and seed[0] == self._shift_id and (_pre_reset_seed or self._near_shift_boundary(30)):
             self._reg_allow_zero_write = True
             print(f"[REG-SEED-RESET] {reg} reset after start-of-shift seed "
                   f"{seed[1]} -- carried-over count, row follows the live "
@@ -3284,7 +3423,7 @@ class CollectorEngine:
         against 802/521/783.  A low value is accepted as a genuine reset only
         after it has held for SA_SEED_CONFIRM_S AND climbed (production after a
         real reset counts up; a stream of junk zeros does not)."""
-        if not getattr(self, "_sa_selfheal", False):
+        if not getattr(self, "_reg_selfheal", False):
             return False
         have = int(self.ok_shift or 0)
         h = getattr(self, "_sa_seed_hold", None)
@@ -3329,7 +3468,7 @@ class CollectorEngine:
           * believable — no more than the shift could have made so far,
         AND the current read sits on that band (so the re-seed is never a
         spike).  That band is the real count the filter has been holding back."""
-        if not getattr(self, "_sa_selfheal", False):
+        if not getattr(self, "_reg_selfheal", False):
             return False
         now = time.monotonic()
         p = getattr(self, "_sa_probe", None)
@@ -3393,6 +3532,166 @@ class CollectorEngine:
     # ----------------------------------------------------------
     # PLC READ
     # ----------------------------------------------------------
+
+    # ── FINAL FROM ROBOTS (a combined machine drives the line) ────────
+    # 2026-10-10 — operator: YRA-SA-6WAY's final = Mag Weld robot 1 + robot 2
+    # (mes_combined_machines.drives_line).  The line count is then the number
+    # of the members' rows in mes_submachine_ct_log for the running shift, used
+    # as a virtual count register: every rise is a virtual OK edge, so ct_log,
+    # hourly, OEE, loss and the timeline all run through the normal path.  The
+    # main PLC is not needed for the count; status comes from the OK-edge
+    # override, the model from the main PLC whenever it answers.
+    def _final_members(self):
+        now = time.time()
+        if now - getattr(self, "_fm_checked", 0.0) < 60:
+            return getattr(self, "_fm_ids", None)
+        self._fm_checked = now
+        ids = getattr(self, "_fm_ids", None)
+        if self._db_ok and self._db:
+            try:
+                cur = self._db.cursor()
+                cur.execute("SELECT to_regclass('mes_combined_machines')")
+                ids = None
+                if (cur.fetchone() or [None])[0]:
+                    cur.execute("""SELECT c.member_ids, c.member_model_maps
+                                     FROM mes_combined_machines c
+                                     JOIN mes_plc_configs p ON p.id = c.plc_config_id
+                                    WHERE p.line_id = %s AND c.drives_line
+                                    LIMIT 1""", (self.cfg["line_id"],))
+                    r = cur.fetchone()
+                    ids = [int(x) for x in r[0]] if r and r[0] else None
+                    # {robot id: {robot model code: line model number}}
+                    self._fm_model_maps = {
+                        int(k): {int(a): int(b) for a, b in (v or {}).items()}
+                        for k, v in ((r[1] if r else None) or {}).items()}
+                    if not hasattr(self, "_fm_sub_model"):
+                        self._fm_sub_model = {}
+                cur.close()
+                self._db.commit()
+            except Exception:
+                self._safe_rollback()
+                ids = getattr(self, "_fm_ids", None)
+        if ids != getattr(self, "_fm_ids", None):
+            print(f"[FINAL-FROM-SUBS] line count = machines {ids}" if ids
+                  else "[FINAL-FROM-SUBS] off — counting the main PLC again", flush=True)
+            self._fm_last_ok = None          # re-seed on the next read
+            if not ids:
+                # leaving the mode: drop the robots' count so the main PLC
+                # re-seeds the register mirror on its next read
+                self.ok_shift = self.ng_shift = 0
+                self._last_ok_reg_value = None
+        self._fm_ids = ids
+        return ids
+
+    def _read_combined_final(self, members) -> dict:
+        data = dict(self._last_plc_data)
+        data.update(ok_bit=0, ng_bit=0, ok_delta=0, ng_delta=0, status=0)
+        _maps = getattr(self, "_fm_model_maps", None) or {}
+        if _maps:
+            # model = the robot's own model register through its code map
+            # (robot 1 first; a reading older than 60 s is ignored)
+            _sm = getattr(self, "_fm_sub_model", {})
+            for _sid in members:
+                _rv = _sm.get(_sid)
+                _mm = _maps.get(_sid, {}).get(_rv[0]) if _rv and time.time() - _rv[1] < 60 else None
+                if _mm:
+                    data["model"] = _mm
+                    break
+        elif (self._plc is not None and self._plc_ok and self.cfg.get("model_addr")
+                and not _model_onehot_spec(self.cfg.get("model_addr"))):
+            try:
+                _v = self._plc.batchread_wordunits(headdevice=self.cfg["model_addr"], readsize=1)
+                if _v:
+                    data["model"] = self._u16(_v[0])
+            except Exception:
+                pass
+        now = time.time()
+        if now - getattr(self, "_fm_read_at", 0.0) < 1.0 or not (self._db_ok and self._db):
+            self._last_plc_data = data
+            return data
+        self._fm_read_at = now
+        shift = self._shift_label()
+        shift = "GAP" if shift.startswith("GAP") else shift
+        rec = getattr(self, "_cur_shift_record_date", None) or date.today()
+        try:
+            cur = self._db.cursor()
+            cur.execute("""SELECT COUNT(*) FILTER (WHERE NOT COALESCE(is_ng, FALSE)),
+                                  COUNT(*) FILTER (WHERE COALESCE(is_ng, FALSE))
+                             FROM mes_submachine_ct_log
+                            WHERE sub_plc_id = ANY(%s) AND record_date = %s
+                              AND shift_name = %s""", (members, rec, shift))
+            ok_now, ng_now = cur.fetchone()
+            cur.close()
+            self._db.commit()
+        except Exception as e:
+            self._safe_rollback()
+            print(f"[FINAL-FROM-SUBS] count read failed: {str(e)[:90]}", flush=True)
+            self._last_plc_data = data
+            return data
+        ok_now, ng_now = int(ok_now or 0), int(ng_now or 0)
+        last_ok = getattr(self, "_fm_last_ok", None)
+        last_ng = getattr(self, "_fm_last_ng", None)
+        if last_ok is None:
+            print(f"[FINAL-FROM-SUBS] seed OK={ok_now} NG={ng_now} for {shift} "
+                  f"(was {self.ok_shift})", flush=True)
+            self._combined_backfill(members, rec, shift)
+            self._raw_cycle_seq = max(int(self._raw_cycle_seq or 0), ok_now)
+        else:
+            if ok_now > last_ok:
+                data["ok_bit"], data["ok_delta"] = 1, ok_now - last_ok
+            if ng_now > (last_ng or 0):
+                data["ng_bit"], data["ng_delta"] = 1, ng_now - (last_ng or 0)
+        if last_ok is None or ok_now < last_ok:          # seed / new shift
+            self._ok_shift_peak, self._ng_shift_peak = ok_now, ng_now
+        else:
+            self._ok_shift_peak = max(int(getattr(self, "_ok_shift_peak", 0) or 0), ok_now)
+            self._ng_shift_peak = max(int(getattr(self, "_ng_shift_peak", 0) or 0), ng_now)
+        self.ok_shift, self.ng_shift = ok_now, ng_now
+        self._fm_last_ok, self._fm_last_ng = ok_now, ng_now
+        self._last_ok_reg_value = ok_now
+        data["ok_reg_value"], data["ng_reg_value"] = ok_now, ng_now
+        self._last_plc_data = {**data, "ok_bit": 0, "ng_bit": 0, "ok_delta": 0, "ng_delta": 0}
+        return data
+
+    def _combined_backfill(self, members, rec, shift) -> None:
+        """First read: copy this shift's member parts the line ct_log does not
+        have yet, so the hourly table and the chart start complete."""
+        if not self._ensure_ct_log_table():
+            return
+        tbl = self.cfg["table_name"] + "_ct_log"
+
+        def _naive(t):
+            return t.astimezone().replace(tzinfo=None) if (t is not None and t.tzinfo) else t
+        try:
+            cur = self._db.cursor()
+            cur.execute(f"SELECT MAX(ts), COALESCE(MAX(cycle_seq), 0) FROM {tbl} "
+                        f"WHERE record_date = %s AND shift_name = %s", (rec, shift))
+            last_ts, last_seq = cur.fetchone()
+            cur.execute("""SELECT ts_end, COALESCE(is_ng, FALSE), part_code
+                             FROM mes_submachine_ct_log
+                            WHERE sub_plc_id = ANY(%s) AND record_date = %s
+                              AND shift_name = %s
+                              AND (%s::timestamp IS NULL OR ts_end > %s::timestamp)
+                            ORDER BY ts_end""",
+                        (members, rec, shift, last_ts, last_ts))
+            out, prev, seq = [], _naive(last_ts), int(last_seq or 0)
+            for ts, ng, pc in cur.fetchall():
+                ts = _naive(ts)
+                ct = 0.0 if ng else (max(0.0, min((ts - prev).total_seconds(), 600.0)) if prev else 0.0)
+                if not ng:
+                    seq += 1
+                    prev = ts
+                out.append((ts, rec, shift, round(ct, 2), seq, pc if ng else None, bool(ng)))
+            if out:
+                cur.executemany(
+                    f"INSERT INTO {tbl}(ts, record_date, shift_name, ct_value, cycle_seq, part_code, is_ng) "
+                    f"VALUES (%s, %s, %s, %s, %s, %s, %s)", out)
+            self._db.commit()
+            cur.close()
+            print(f"[FINAL-FROM-SUBS] backfilled {len(out)} line ct_log rows from the robots", flush=True)
+        except Exception as e:
+            self._safe_rollback()
+            print(f"[FINAL-FROM-SUBS] backfill skipped: {str(e)[:120]}", flush=True)
 
     def _read_plc(self) -> dict:
         """Resilient PLC read.
@@ -3589,9 +3888,17 @@ class CollectorEngine:
                         # after it (below), the row holds only the carried-over
                         # count and may be written down to the live value, even
                         # 0 (22-Sep: YSD/YHB/YNC/Y17-SA A rows stuck at 673-808).
+                        # 2026-10-15 — also when the shift-start reset pulse is
+                        # still PENDING (it could not reach the PLC yet): that
+                        # first read is pre-reset carry-over however late the
+                        # PLC comes back.  15-Oct the SA PLCs returned at 08:52
+                        # (22 min, outside the 20-min window) and the A rows
+                        # kept 920 / 754 / 480 / 2297 / 727 against live 60-170.
+                        _pre_reset = (int(getattr(self, "_shift_reset_epoch", 0) or 0)
+                                      > int(getattr(self, "_fi_reset_epoch_done", 0) or 0))
                         self._shift_start_seed = (
-                            (self._shift_id, _now_val)
-                            if _now_val > 0 and self._near_shift_boundary(20)
+                            (self._shift_id, _now_val, _pre_reset)
+                            if _now_val > 0 and (_pre_reset or self._near_shift_boundary(20))
                             else None)
                         data["ok_bit"] = 0
                         self._ok_pending_high = None
@@ -3718,11 +4025,33 @@ class CollectorEngine:
                                       f"-- ok_shift snapped DOWN to live, no "
                                       f"backfill", flush=True)
                                 self._ok_shift_peak = _now_val   # new baseline
-                                if int(self.cfg.get("line_id") or 0) in _TRIAL_RESET_LINES:
+                                # 2026-10-21 — both the trial move and the zero
+                                # write only in the first 30 min of a real shift:
+                                # _near_shift_boundary also matches the NEXT
+                                # shift's start (GAP_AB 17:15, GAP_BA 03:15), and
+                                # on 20/21-Oct a re-snap at 17:03 / 03:01 moved
+                                # the end of a shift's rows (a holiday's stray
+                                # parts there, but real production could follow).
+                                _in_start = self._resnap_in_shift_start()
+                                if _in_start and (_TRIAL_RESET_ALL or
+                                        int(self.cfg.get("line_id") or 0) in _TRIAL_RESET_LINES):
                                     # every part of the wiped run was a trial;
                                     # moved by _move_trial_rows in the main loop
                                     self._trial_move_peak = int(_last)
+                                    self._trial_move_live = int(_now_val)
+                                    self._trial_move_at   = datetime.now()
                                 self._allow_zero_after_seed(_ok_reg, _last)
+                                # 2026-10-19 — re-snap in the first 30 min of a
+                                # real shift: the row holds only the wiped run
+                                # (YMC-SS 19-Oct A kept 3682 because the live
+                                # value was 0 and GREATEST held the junk), so
+                                # let this one write go down to 0 too.
+                                if _in_start:
+                                    self._reg_allow_zero_write = True
+                                    print(f"[REG-RESNAP-ZERO] {_ok_reg} re-snap "
+                                          f"{_last}->{_now_val} within 30 min of "
+                                          f"the shift start -- row follows the "
+                                          f"live register", flush=True)
                                 self._reg_resnap_armed = False
                                 self._reg_resnap_low1  = None
                                 self._ok_drop_garbage_streak = 0
@@ -3986,7 +4315,40 @@ class CollectorEngine:
             data["ok_reg_value"] = 0
             data["ng_reg_value"] = 0
         # Model: keep last on miss so a one-off blip doesn't change model.
-        _safe_word(self.cfg["model_addr"], "model", keep_last=True)
+        _onehot = _model_onehot_spec(self.cfg.get("model_addr"))
+        if _onehot and len({d for d, _n, _v, _m in _onehot}) == 1:
+            # one-hot select registers (see _model_onehot_spec): one batch
+            # read over the span; exactly one match = that model, else 0
+            # ("not read"), which the model logic below ignores.
+            try:
+                _dev = _onehot[0][0]
+                _lo = min(n for _d, n, _v, _m in _onehot)
+                _hi = max(n for _d, n, _v, _m in _onehot)
+                _vals = self._plc.batchread_wordunits(headdevice=f"{_dev}{_lo}",
+                                                      readsize=_hi - _lo + 1)
+                _ref = next((v for _d, _n, v, _m in _onehot if isinstance(v, str)), None)
+                _refv = None
+                if _ref:
+                    # "==D1015" form: match against the running program code
+                    _refv = self._u16(self._plc.batchread_wordunits(headdevice=_ref, readsize=1)[0])
+                _hits = [m for _d, n, v, m in _onehot
+                         if n - _lo < len(_vals)
+                         and self._u16(_vals[n - _lo]) == (_refv if _ref else v)]
+                if _ref and not _refv:
+                    _hits = []          # program code 0 = nothing selected
+                data["model"] = _hits[0] if len(_hits) == 1 else 0
+                _sig = (tuple(self._u16(x) for x in _vals), _refv, data["model"])
+                if _sig != getattr(self, "_onehot_last", None):
+                    self._onehot_last = _sig
+                    _rs = f" {_ref}={_refv}" if _ref else ""
+                    print(f"[MODEL-ONEHOT] {_dev}{_lo}-{_hi} = {list(_sig[0])}{_rs} -> model {data['model']}")
+            except Exception as e:
+                print(f"[MODEL-ONEHOT] read {self.cfg.get('model_addr')} failed: {e}")
+                failures += 1
+                if first_err is None:
+                    first_err = ("model", e)
+        else:
+            _safe_word(self.cfg["model_addr"], "model", keep_last=True)
         if self.cfg.get("sensor_ok_addr"):
             _safe_bit(self.cfg["sensor_ok_addr"], "sensor_ok", keep_last=False)
 
@@ -4101,8 +4463,11 @@ class CollectorEngine:
             print(f"[CFG-RELOAD] failed: {e}", flush=True)
             return
         changed = []
+        # 2026-10-09 — model_addr too: a model register changed in Admin
+        # (SA lines D6048 -> D140) was ignored until a restart, so the new
+        # mappings never matched what the old register returned.
         for k in ("shifts", "hourly_plan", "slot_boundaries", "slot_to_db",
-                  "models", "status_map", "ideal_ct", "max_ct"):
+                  "models", "status_map", "ideal_ct", "max_ct", "model_addr"):
             if k in fresh and fresh[k] != self.cfg.get(k):
                 self.cfg[k] = fresh[k]
                 changed.append(k)
@@ -4428,10 +4793,10 @@ class CollectorEngine:
     def _model_ct_on(self) -> bool:
         if int(self.cfg.get("line_id") or 0) in _MODEL_CT_LINES:
             return True
-        # 2026-10-10 — Sub-Assembly too (operator: "same fix as YWD-SS").  On
-        # once the line's models have their own CT in Admin → Models; until
-        # then the line keeps its single fixed CT exactly as before.
-        if int(self.cfg.get("zone_id") or 0) == SA_ZONE_ID:
+        # 2026-10-10 — Sub-Assembly and Loop Pipe too (operator: "same fix as
+        # YWD-SS").  On once the line's models have their own CT in Admin →
+        # Models; until then the line keeps its single fixed CT as before.
+        if int(self.cfg.get("zone_id") or 0) in (SA_ZONE_ID, LP_ZONE_ID):
             return bool(self._model_ct_map())
         return False
 
@@ -4457,17 +4822,44 @@ class CollectorEngine:
         return m
 
     def _eff_ideal_ct(self) -> float:
-        """Ideal CT of the model running now (line CT when unknown)."""
+        """Ideal CT of the model running now.  While the model is unknown (PLC
+        offline, or a restart before the first model read) the last known
+        model's CT is kept: falling back to the line CT ran YWD-SS's plan at
+        14.42 s through three PLC drops on 10-Oct (slots 164/189/181 instead
+        of 130/157/157 at 23 s).  Line CT only if no model was ever seen."""
         base = float(self.cfg["ideal_ct"])
-        if not self._model_ct_on() or not self._cur_model:
+        if not self._model_ct_on():
             return base
-        ct = self._model_ct_map().get(int(self._cur_model))
-        return float(ct) if ct and ct > 0 else base
+        ct = self._model_ct_map().get(int(self._cur_model or 0))
+        if ct and ct > 0:
+            self._mct_last_ct = float(ct)
+            return float(ct)
+        last = getattr(self, "_mct_last_ct", None)
+        if last is None:
+            last = 0.0
+            try:                                 # survives a restart
+                with open(self._mct_path(), "r", encoding="utf-8") as fh:
+                    last = float(_json_wbuf.load(fh).get("last_ct") or 0)
+            except Exception:
+                pass
+            self._mct_last_ct = last
+        return float(last) if last and last > 0 else base
 
     def _mct_path(self) -> str:
         return _os.path.join(_cache_dir(), f"model_plan_line{self.cfg['line_id']}.json")
 
     def _mct_seed(self, sid, w_now: int) -> dict:
+        st = self._mct_seed_base(sid, w_now)
+        # 2026-10-12 — a line with a model hourly-plan table re-plans the hours
+        # of this shift from the model timeline (see _mct_rebuild).
+        try:
+            st = self._mct_rebuild(st)
+        except Exception as e:
+            self._safe_rollback()
+            print(f"[MODEL-PLAN] rebuild skipped: {e}", flush=True)
+        return st
+
+    def _mct_seed_base(self, sid, w_now: int) -> dict:
         """State for a new shift row, or after a restart: the saved file when it
         is for this row, else continue from what the dashboard already shows."""
         try:
@@ -4527,12 +4919,21 @@ class CollectorEngine:
             if d_w < 0:                      # working clock re-anchored
                 st["w"] = w_now
             elif d_w > 0:
-                add = d_w / eff
-                st["plan"] += add
                 slot = self._get_current_slot()
+                # 2026-10-12 — the model's own hourly plan (mes_model_slot_plan)
+                # when the line has one, else working seconds ÷ model CT.
+                rate = self._plan_rate(slot) if slot else None
+                add = d_w * rate if rate is not None else d_w / eff
+                st["plan"] += add
                 if slot:
                     st["slots"][slot] = st["slots"].get(slot, 0.0) + add
+                    sw = st.setdefault("slot_w", {})
+                    sw[slot] = sw.get(slot, 0) + d_w
                 st["w"] = w_now
+            if getattr(self, "_mct_last_ct", None):
+                st["last_ct"] = self._mct_last_ct
+            if getattr(self, "_mct_last_model", None) is not None:
+                st["last_model"] = self._mct_last_model
             self._mct = st
             # CT target shown by every dashboard (realtime → cycle_time_plan)
             if sid and (getattr(self, "_mct_ct_row", None) != (sid, eff)) and self._db_ok and self._db:
@@ -4565,10 +4966,273 @@ class CollectorEngine:
         self._model_ct_tick()
         st = getattr(self, "_mct", None) or {}
         planned = int(round(st.get("plan", 0.0)))
+        # 2026-10-12 — with a model hourly-plan table: the rest of this hour
+        # and every later hour of the shift at the running model's plan.
+        try:
+            tbl = self._model_slot_table()
+            slot = self._get_current_slot()
+            m = self._plan_model()
+            rate = self._plan_rate(slot) if slot else None
+            if tbl["plans"] and rate is not None:
+                wm = tbl["wm"].get(slot, 0)
+                done_w = float((st.get("slot_w") or {}).get(slot, 0))
+                rest = max(0.0, wm * 60.0 - done_w) * rate
+                sh, o = tbl["order"].get(slot, (None, 0))
+                for lbl, (sh2, o2) in tbl["order"].items():
+                    if sh2 == sh and o2 > o and not str(lbl).endswith(" OT"):
+                        rest += self._slot_plan_for(m, lbl) or 0.0
+                total = planned + int(round(rest))
+                return planned, max(planned, total)
+        except Exception:
+            pass
         base = float(self.cfg["ideal_ct"])
         rest_s = max(0.0, line_total_plan * base - self._working_seconds())
         total = planned + int(round(rest_s / self._eff_ideal_ct()))
         return planned, max(planned, total)
+
+    # ── model-wise hourly plan (2026-10-12) ───────────────────────────
+    # Operator, YWD-SS: each model has its own plan per hour — OUTER 250 in a
+    # 60-min hour, 210 in a 50-min hour, 290 in the last (70-min) hour; INNER
+    # 145 / 115 / 170 — and the hour's plan must follow whichever model ran,
+    # time-weighted when both ran.  mes_model_slot_plan holds
+    # (line, model, working_minutes) → plan; a length with no row scales the
+    # model's 60-min plan (55 min → 250 × 55/60).  The plan accrues per working
+    # second at plan ÷ the slot's working seconds for the model running, so an
+    # hour that ran one model ends on its table value exactly.  A line with no
+    # rows keeps the CT-based accrual.
+    def _model_slot_table(self) -> dict:
+        now = time.time()
+        if now - getattr(self, "_mst_at", 0.0) < 60 and hasattr(self, "_mst"):
+            return self._mst
+        self._mst_at = now
+        t = getattr(self, "_mst", None) or {"plans": {}, "wm": {}, "order": {}}
+        if self._db_ok and self._db:
+            try:
+                lid = self.cfg["line_id"]
+                cur = self._db.cursor()
+                cur.execute("SELECT to_regclass('mes_model_slot_plan')")
+                plans = {}
+                if cur.fetchone()[0]:
+                    cur.execute("SELECT model_number, working_minutes, plan "
+                                "FROM mes_model_slot_plan WHERE line_id = %s", (lid,))
+                    plans = {(int(r[0]), int(r[1])): int(r[2]) for r in cur.fetchall()}
+                wm, order = {}, {}
+                if plans:
+                    cur.execute("SELECT slot_label, shift_name, working_minutes, slot_order "
+                                "FROM mes_hourly_slots WHERE line_id = %s", (lid,))
+                    for lbl, sh, w, o in cur.fetchall():
+                        wm[lbl] = int(w or 0)
+                        order[lbl] = (sh, int(o or 0))
+                cur.close()
+                self._db.commit()
+                t = {"plans": plans, "wm": wm, "order": order}
+            except Exception:
+                self._safe_rollback()
+        self._mst = t
+        return t
+
+    def _slot_plan_for(self, model, slot):
+        """Full-hour plan of `slot` for `model`, or None (no table / model)."""
+        t = self._model_slot_table()
+        if not t["plans"] or model is None or not slot:
+            return None
+        wm = t["wm"].get(slot) or 0
+        if wm <= 0:
+            return None
+        p = t["plans"].get((int(model), wm))
+        if p is None:
+            p60 = t["plans"].get((int(model), 60))
+            if p60 is None:
+                return None
+            p = p60 * wm / 60.0
+        return float(p)
+
+    def _plan_model(self):
+        """The model the plan follows: the one running, else the last known
+        (a PLC drop must not change the plan), saved across restarts."""
+        m = self._cur_model
+        if m is not None and m in (self.cfg.get("models") or {}):
+            self._mct_last_model = int(m)
+            return int(m)
+        last = getattr(self, "_mct_last_model", None)
+        if last is None:
+            last = (getattr(self, "_mct", None) or {}).get("last_model")
+            if last is None:
+                try:
+                    with open(self._mct_path(), "r", encoding="utf-8") as fh:
+                        last = _json_wbuf.load(fh).get("last_model")
+                except Exception:
+                    last = None
+            self._mct_last_model = last
+        return int(last) if last is not None else None
+
+    def _plan_rate(self, slot):
+        """Plan pieces per working second in `slot` for the plan's model."""
+        if not slot:
+            return None
+        p = self._slot_plan_for(self._plan_model(), slot)
+        wm = self._model_slot_table()["wm"].get(slot) or 0
+        if p is None or wm <= 0:
+            return None
+        return p / (wm * 60.0)
+
+    def _mct_rebuild(self, st: dict) -> dict:
+        """Rebuild this shift's hour plans from the model timeline
+        (mes_line_model_log) and the plan table.  Runs at every seed (restart,
+        new shift), so a past hour's plan never depends on what this process
+        happened to see — and the first start on this rule re-plans the hours
+        already run today."""
+        tbl = self._model_slot_table()
+        if not (tbl["plans"] and self._shift_start_ts and self._cur_shift
+                and not str(self._cur_shift).startswith("GAP")):
+            return st
+        lid = self.cfg["line_id"]
+        sh_start = datetime.fromtimestamp(self._shift_start_ts)
+        now = datetime.now()
+        cur = self._db.cursor()
+        cur.execute("SELECT to_regclass('mes_line_model_log')")
+        if not cur.fetchone()[0]:
+            cur.close()
+            self._db.commit()
+            return st
+        cur.execute("""(SELECT started_at, model_number FROM mes_line_model_log
+                         WHERE line_id = %s AND started_at <= %s
+                         ORDER BY started_at DESC LIMIT 1)
+                       UNION ALL
+                       (SELECT started_at, model_number FROM mes_line_model_log
+                         WHERE line_id = %s AND started_at > %s AND started_at <= %s
+                         ORDER BY started_at)""", (lid, sh_start, lid, sh_start, now))
+        segs = sorted((r[0], int(r[1]) if r[1] is not None else None) for r in cur.fetchall())
+        cur.close()
+        self._db.commit()
+        if not segs:
+            return st
+        ct_map = self._model_ct_map()
+        # working time = clock − 5-min startup − breaks (same as _working_seconds)
+        startup_end = sh_start + timedelta(minutes=self.STARTUP_DELAY_MIN)
+        brk = []
+        for d0 in (sh_start.date(), sh_start.date() + timedelta(days=1)):
+            for b in self.cfg.get("breaks") or []:
+                bs, be = b["start_time"], b["end_time"]
+                if isinstance(bs, str):
+                    bs = dt_time(*map(int, bs.split(":")))
+                if isinstance(be, str):
+                    be = dt_time(*map(int, be.split(":")))
+                a = datetime.combine(d0, bs)
+                z = datetime.combine(d0 + timedelta(days=1) if b.get("crosses_midnight") else d0, be)
+                brk.append((a, z))
+
+        def _work(a, z):
+            parts = [(max(a, startup_end), z)]
+            for ba, bz in brk:
+                nxt = []
+                for pa, pz in parts:
+                    if pz <= ba or pa >= bz:
+                        nxt.append((pa, pz))
+                        continue
+                    if pa < ba:
+                        nxt.append((pa, ba))
+                    if pz > bz:
+                        nxt.append((bz, pz))
+                parts = nxt
+            return [(pa, pz) for pa, pz in parts if pz > pa]
+
+        def _by_model(a, z):
+            out = {}
+            for pa, pz in _work(a, z):
+                for i, (t0, m) in enumerate(segs):
+                    t1 = segs[i + 1][0] if i + 1 < len(segs) else datetime.max
+                    oa, oz = max(pa, t0), min(pz, t1)
+                    if oz > oa:
+                        out[m] = out.get(m, 0.0) + (oz - oa).total_seconds()
+            return out
+
+        sh_t = sh_start.time()
+        slots, slot_w = {}, {}
+        for lbl, (sh, _o) in sorted(tbl["order"].items(), key=lambda kv: kv[1][1]):
+            if sh != self._cur_shift or str(lbl).endswith(" OT"):
+                continue
+            bnd = (self.cfg.get("slot_boundaries") or {}).get(lbl)
+            if not bnd:
+                continue
+            s, e, crosses = bnd
+            if isinstance(s, str):
+                s = dt_time(*map(int, s.split(":")))
+            if isinstance(e, str):
+                e = dt_time(*map(int, e.split(":")))
+            d0 = sh_start.date() + (timedelta(days=1) if s < sh_t else timedelta(0))
+            a = datetime.combine(d0, s)
+            z = datetime.combine(d0 + timedelta(days=1) if crosses else d0, e)
+            if a >= now:
+                continue
+            secs = _by_model(a, min(z, now))
+            tot = sum(secs.values())
+            wm = tbl["wm"].get(lbl) or 0
+            plan = 0.0
+            for m, sec in secs.items():
+                p = self._slot_plan_for(m, lbl)
+                if p is None:                     # no plan row: model CT
+                    ct = ct_map.get(int(m or 0)) or float(self.cfg["ideal_ct"])
+                    p = (wm * 60.0) / ct if wm > 0 and ct > 0 else 0.0
+                if z <= now and tot > 0:          # finished hour: exact table mix
+                    plan += p * sec / tot
+                elif wm > 0:
+                    plan += p * sec / (wm * 60.0)
+            slots[lbl] = plan
+            slot_w[lbl] = tot
+        if not slots:
+            return st
+        st["slots"], st["slot_w"] = slots, slot_w
+        st["plan"] = float(sum(slots.values()))
+        st["rule"] = "slot-table-v1"
+        for lbl, p in slots.items():
+            if lbl in self._hourly_data:
+                self._hourly_data[lbl]["plan"] = int(round(p))
+        # The dashboard write keeps GREATEST(shift_plan_completed, plan) so a
+        # reset can never zero it — which also kept the pre-rebuild (higher,
+        # CT-based) plan.  Write the rebuilt plan exactly, once.
+        if st.get("sid") and st.get("sid") == self._shift_id and self._db_ok and self._db:
+            try:
+                cur = self._db.cursor()
+                cur.execute(f"UPDATE {self.cfg['table_name']} SET shift_plan_completed = %s "
+                            f"WHERE id = %s", (int(round(st["plan"])), st["sid"]))
+                cur.close()
+                self._db.commit()
+            except Exception:
+                self._safe_rollback()
+        print(f"[MODEL-PLAN] rebuilt {len(slots)} hour(s) from the model timeline: "
+              + ", ".join(f"{k}={int(round(v))}" for k, v in slots.items()), flush=True)
+        return st
+
+    def _log_model_change(self) -> None:
+        """Record a model change in mes_line_model_log, so every cycle can be
+        judged against the CT of the model that made it (2026-10-12)."""
+        if not self._model_ct_on():
+            return
+        m = self._cur_model
+        if m is None or m not in (self.cfg.get("models") or {}):
+            return
+        if getattr(self, "_mlog_last", None) == m or not (self._db_ok and self._db):
+            return
+        try:
+            cur = self._db.cursor()
+            cur.execute("SELECT to_regclass('mes_line_model_log')")
+            if cur.fetchone()[0]:
+                cur.execute("SELECT model_number FROM mes_line_model_log WHERE line_id = %s "
+                            "ORDER BY started_at DESC LIMIT 1", (self.cfg["line_id"],))
+                r = cur.fetchone()
+                if not r or r[0] != m:
+                    cur.execute("INSERT INTO mes_line_model_log "
+                                "(line_id, model_number, model_name, ideal_ct, started_at, source) "
+                                "VALUES (%s, %s, %s, %s, now(), 'plc')",
+                                (self.cfg["line_id"], int(m), self._cur_model_name,
+                                 self._model_ct_map().get(int(m))))
+            cur.close()
+            self._db.commit()
+            self._mlog_last = m
+        except Exception as e:
+            self._safe_rollback()
+            print(f"[MODEL-LOG] skipped: {e}", flush=True)
 
     def _get_current_shift(self):
         now   = datetime.now()
@@ -5130,8 +5794,11 @@ class CollectorEngine:
         # from the ct_log / chart in register mode too.  The COUNT is register-
         # mirrored (ok_shift = D101, SET in the read path), so this drops only
         # the phantom ROW — never the count.  Dashboard count stays == PLC == HMI.
+        # Final-from-robots: two robots finish parts seconds apart, so a <5 s
+        # gap is real production there, not a double pulse.
         if (self._last_ok_state == 0 and ok_bit == 1
-                and _gap_s < MIN_OK_GAP_FOR_CHATTER_SEC):
+                and _gap_s < MIN_OK_GAP_FOR_CHATTER_SEC
+                and not getattr(self, "_fm_ids", None)):
             _is_ok_pc_chatter = True
             _cur_pc_dbg = (self._cur_part_code or "").strip()[:20] or "<empty>"
             print(f"[OK-CHATTER-DEDUP] {self._count_src_label('ok')} rise gap={_gap_s:.2f}s < "
@@ -5152,7 +5819,8 @@ class CollectorEngine:
         # Filtering <5s edges aligns the chart/ct_log with the D102 count.
         # ng_shift mirrors D102 in the read path, so the count is untouched.
         _is_ng_chatter = (self._last_ng_state == 0 and ng_bit == 1
-                          and _ng_gap_for_chatter < MIN_OK_GAP_FOR_CHATTER_SEC)
+                          and _ng_gap_for_chatter < MIN_OK_GAP_FOR_CHATTER_SEC
+                          and not getattr(self, "_fm_ids", None))
         self._ng_gap_ok_this_press = not _is_ng_chatter
         if _is_ng_chatter:
             print(f"[NG-CHATTER-DEDUP] {self._count_src_label('ng')} rise "
@@ -6689,9 +7357,31 @@ class CollectorEngine:
         # Sentinel: -2 = "PLC never successfully read".  Skip silently
         # so the dashboard doesn't briefly flash IDLE on cold boot
         # before the first successful read lands.
+        #
+        # 2026-10-17 — EXCEPT the shift's first STARTUP_DELAY_MIN.  Since
+        # 15-Oct the machines are powered off overnight and come back ~08:36,
+        # so a collector started in the early morning had never read its PLC
+        # at 08:30: every -2 returned here and A shift got NO 5-min setup
+        # (Loss Distribution showed Setup 0 on every line; B shift, PLC on,
+        # kept its ~300 s).  The startup window is setup by the clock
+        # (operator spec), PLC or not, so run it as IDLE and let the startup
+        # override paint MODEL_SETUP and count its seconds.  When the window
+        # ends with the PLC still unread, close that setup as IDLE once
+        # (no IDLE dwell — the schedule ended it, not the PLC); after that
+        # -2 is skipped as before.  Mid-shift restarts are unaffected:
+        # _shift_start_ts is the configured shift start, not the start-up.
+        _end_offline_setup = False
         if status_code == -2:
-            self._last_status_check = now
-            return
+            if self._is_in_startup_delay():
+                status_code = 0
+                self._offline_setup = True
+            elif getattr(self, "_offline_setup", False):
+                status_code = 0
+                self._offline_setup = False
+                _end_offline_setup = True
+            else:
+                self._last_status_check = now
+                return
 
         elapsed = now - self._last_status_check
         old     = self._cur_status
@@ -6758,11 +7448,23 @@ class CollectorEngine:
                 if raw_code not in seen:
                     seen.add(raw_code)
                     print(f"[STATUS] WARN: PLC published unmapped code {raw_code} "
-                          f"(masked {masked} also unmapped) — sticking to last known "
-                          f"{self._cur_status_name!r}.  Add it under "
-                          f"Admin → Production → Status Colour to map it.")
-                self._last_status_check = now
-                return
+                          f"(masked {masked} also unmapped) — holding a PLC loss "
+                          f"state, otherwise deciding RUNNING/IDLE from OK pulses.  "
+                          f"Add it under Admin → Production → Status Colour to map it.")
+                # 2026-10-10 — hold only a real PLC loss state (BREAKDOWN,
+                # SETUP, BREAK ...).  From IDLE / RUNNING fall through as IDLE
+                # and let the OK-edge truth override below decide: 2UA's D6005
+                # reads 21322 (ASCII "SJ") all shift, so the line sat on IDLE
+                # with no CT, no speed loss and a blank Loss Distribution.
+                # 2026-10-12 — …and only a state the PLC itself published.
+                # BREAK / MODEL_SETUP painted by the schedule (lunch, the 5-min
+                # startup) were held too, so 2UA sat on BREAK from lunch to the
+                # end of the shift: no RUNNING, no CT, no losses.
+                if ((self._cur_status_name or "IDLE").upper() not in ("IDLE", "RUNNING")
+                        and not getattr(self, "_cur_status_by_override", False)):
+                    self._last_status_check = now
+                    return
+                status_code = 0
 
         # ── L108 TRUTH OVERRIDE (2026-05-16) ─────────────────────────
         # Operator reported A-shift window 09:12-09:16 painted IDLE
@@ -6870,7 +7572,8 @@ class CollectorEngine:
         dwell_commit_ts = None       # if set, write_status_log uses this
         if (status_code == 0
                 and self._cur_status not in (0, -1)
-                and not self._is_in_gap_period()):
+                and not self._is_in_gap_period()
+                and not _end_offline_setup):
             if self._pending_idle_since is None:
                 self._pending_idle_since = now
             if now - self._pending_idle_since < self.IDLE_DWELL_SEC:
@@ -7004,6 +7707,8 @@ class CollectorEngine:
         if status_code != self._cur_status:
             self._cur_status      = status_code
             self._cur_status_name = status_name
+            # who set it: the schedule (break / startup / gap) or the PLC
+            self._cur_status_by_override = bool(override_reason)
             self.ct.set_running(status_code == 1)
             old_name = self.cfg["status_map"].get(old, {}).get("name", str(old))
             # Include raw PLC value so we can diagnose phantom transitions —
@@ -8103,6 +8808,132 @@ class CollectorEngine:
             except Exception as _ue:
                 print(f"[BIT-CMD] status update failed for {cid}: {str(_ue)[:90]}", flush=True)
 
+    # ── 2026-10-09 — "Read live values" (Admin → Lines → Machines) ──────────
+    # These PLCs take ONE MC session and the collector holds it, so a read from
+    # anywhere else times out (and grabbing the session drops the collector for
+    # minutes).  The API queues the request in mes_plc_read_requests; this
+    # collector reads the registers on its OWN connection and writes the answer.
+    _READ_REQ_EVERY_S = 2.0
+
+    @staticmethod
+    def _read_addrs(conn, addrs):
+        """[{addr, label, len}] -> same list with kind / value / error.  Bit
+        devices (X Y M L B F V, SM SB) read as bits, everything else as words."""
+        out = []
+        for a in addrs or []:
+            ad = str(a.get("addr") or "").strip().upper()
+            n = max(1, min(int(a.get("len") or 1), 32))
+            kind = "bit" if (ad[:2] in ("SM", "SB") or ad[:1] in "XYMLBFV") else "word"
+            try:
+                if kind == "bit":
+                    v = conn.batchread_bitunits(headdevice=ad, readsize=n)
+                else:
+                    v = conn.batchread_wordunits(headdevice=ad, readsize=n)
+                out.append({**a, "addr": ad, "kind": kind, "value": (list(v) if n > 1 else v[0]), "error": None})
+            except Exception as e:
+                out.append({**a, "addr": ad, "kind": kind, "value": None, "error": str(e)[:120]})
+        return out
+
+    def _finish_read(self, rid, result, err):
+        import json as _j
+        try:
+            cur = self._db.cursor()
+            cur.execute("""UPDATE mes_plc_read_requests
+                              SET status = %s, result = %s, error = %s, done_at = now()
+                            WHERE id = %s""",
+                        ("done" if err is None else "error",
+                         _j.dumps(result) if result is not None else None, err, rid))
+            self._db.commit()
+            cur.close()
+        except Exception as exc:
+            try: self._db.rollback()
+            except Exception: pass
+            print(f"[LIVE-READ] result write failed for {rid}: {str(exc)[:90]}", flush=True)
+
+    def _serve_read_requests(self) -> None:
+        _now = time.monotonic()
+        if _now - getattr(self, "_read_req_last", 0.0) < self._READ_REQ_EVERY_S:
+            return
+        self._read_req_last = _now
+        _line_id = self.cfg.get("line_id") if getattr(self, "cfg", None) else None
+        if _line_id is None or not hasattr(self, "_sub_read_lock"):
+            return
+        import json as _j
+        # answers from sub-machine threads, and requests a sub never picked up
+        with self._sub_read_lock:
+            done, self._sub_read_outbox = self._sub_read_outbox, []
+            stale = []
+            for sid in list(self._sub_read_inbox):
+                keep = []
+                for item in self._sub_read_inbox[sid]:
+                    (stale if time.time() - item[2] > 15 else keep).append(item)
+                if keep:
+                    self._sub_read_inbox[sid] = keep
+                else:
+                    del self._sub_read_inbox[sid]
+        try:
+            self._ensure_db_connection()
+        except Exception:
+            return
+        for rid, res, err in done:
+            self._finish_read(rid, res, err)
+        for rid, _a, _t in stale:
+            self._finish_read(rid, None, "sub-machine PLC is not connected right now")
+        try:
+            cur = self._db.cursor()
+            if not getattr(self, "_read_req_table_ok", False):
+                cur.execute("SELECT to_regclass('mes_plc_read_requests')")
+                if not (cur.fetchone() or [None])[0]:
+                    cur.close()
+                    self._READ_REQ_EVERY_S = 60.0     # feature not deployed yet
+                    return
+                self._read_req_table_ok = True
+                self._READ_REQ_EVERY_S = 2.0
+            cur.execute("""UPDATE mes_plc_read_requests SET status = 'taken', taken_at = now()
+                            WHERE id IN (SELECT id FROM mes_plc_read_requests
+                                          WHERE line_id = %s AND status = 'pending'
+                                            AND requested_at > now() - interval '60 seconds'
+                                          ORDER BY id LIMIT 5 FOR UPDATE SKIP LOCKED)
+                        RETURNING id, plc_config_id, addresses""", (_line_id,))
+            rows = cur.fetchall()
+            self._db.commit()
+            cur.close()
+        except Exception as exc:
+            try: self._db.rollback()
+            except Exception: pass
+            print(f"[LIVE-READ] queue read failed: {str(exc)[:90]}", flush=True)
+            return
+        for rid, pcid, addrs in rows:
+            if isinstance(addrs, str):
+                addrs = _j.loads(addrs or "[]")
+            if pcid == self.cfg.get("main_plc_id"):
+                if not getattr(self, "_plc_ok", False) or self._plc is None:
+                    self._finish_read(rid, None, "main PLC is not connected right now")
+                    continue
+                self._finish_read(rid, self._read_addrs(self._plc, addrs), None)
+                print(f"[LIVE-READ] request {rid}: {len(addrs or [])} registers read on the main PLC", flush=True)
+            elif pcid in getattr(self, "_sub_workers", {}):
+                with self._sub_read_lock:
+                    self._sub_read_inbox.setdefault(pcid, []).append((rid, addrs, time.time()))
+            else:
+                self._finish_read(rid, None, "this machine is not polled by the running collector")
+
+    def _serve_sub_reads(self, sub_id, plc) -> None:
+        """Called from the sub-machine's own poller thread, on its own connection."""
+        lock = getattr(self, "_sub_read_lock", None)
+        if lock is None:
+            return
+        with lock:
+            items = self._sub_read_inbox.pop(sub_id, None)
+        for rid, addrs, _t in items or []:
+            try:
+                res, err = self._read_addrs(plc, addrs), None
+            except Exception as e:
+                res, err = None, str(e)[:120]
+            with lock:
+                self._sub_read_outbox.append((rid, res, err))
+            print(f"[LIVE-READ] request {rid}: {len(addrs or [])} registers read on sub {sub_id}", flush=True)
+
     def _maybe_pulse_fi_shift_reset(self) -> None:
         """Non-blocking L110 shift-reset pulse for the MAIN (Final Inspection)
         register machine, written on its OWN self._plc connection so there is
@@ -8386,31 +9217,50 @@ class CollectorEngine:
         connection, so a failure moves nothing.  The moved parts are then
         taken out of the hourly bucket they were added to.  One-shot."""
         peak = getattr(self, "_trial_move_peak", None)
+        live = getattr(self, "_trial_move_live", None)
+        at = getattr(self, "_trial_move_at", None) or datetime.now()
         self._trial_move_peak = None
+        self._trial_move_live = None
+        self._trial_move_at = None
         try:
             peak = int(peak or 0)
+            live = max(0, int(live or 0))
+            wiped = peak - live
             shift = self._shift_label()
             rec_dt = getattr(self, "_cur_shift_record_date", None)
-            if peak <= 0 or not shift or shift.startswith("GAP") or rec_dt is None:
-                return
-            if peak > TRIAL_MOVE_CAP:
-                print(f"[TRIAL-MOVE] wiped run of {peak} > cap {TRIAL_MOVE_CAP} "
-                      f"-- rows left in place for review", flush=True)
+            if wiped <= 0 or not shift or shift.startswith("GAP") or rec_dt is None:
                 return
             self._flush_ct_log()          # the run's last rows may be buffered
             tbl = self.cfg["table_name"] + "_ct_log"
+            run_where = """record_date = %s AND shift_name = %s
+                           AND NOT COALESCE(is_ng, false)
+                           AND cycle_seq > %s AND cycle_seq <= %s
+                           AND ts >= NOW() - make_interval(mins => %s)
+                           AND ts <= %s"""
+            run_args = (rec_dt, shift, live, peak, TRIAL_MOVE_WINDOW_MIN, at)
             conn = psycopg2.connect(**DB_CONFIG)
             try:
                 cur = conn.cursor()
                 cur.execute("SET lock_timeout = '3s'")
                 cur.execute("SET statement_timeout = '10s'")
+                # the cap is on the rows this would move (a stale peak such as
+                # YMC-SS 3682 wipes a big count but left only REG-MULTI's 500)
+                cur.execute(f"SELECT count(*) FROM {tbl} WHERE {run_where}", run_args)
+                n_rows = cur.fetchone()[0]
+                if n_rows > TRIAL_MOVE_CAP:
+                    conn.rollback()
+                    print(f"[TRIAL-MOVE] wiped run has {n_rows} rows > cap "
+                          f"{TRIAL_MOVE_CAP} -- rows left in place for review", flush=True)
+                    return
+                cur.execute(f"""CREATE TABLE IF NOT EXISTS {tbl}_trial (
+                                  id integer PRIMARY KEY, ts timestamp, record_date date,
+                                  shift_name varchar, ct_value numeric, cycle_seq integer,
+                                  part_code varchar, is_ng boolean DEFAULT false,
+                                  reason text, moved_at timestamp DEFAULT now())""")
                 cur.execute(f"""
                     WITH run AS (
                         SELECT id FROM {tbl}
-                         WHERE record_date = %s AND shift_name = %s
-                           AND NOT COALESCE(is_ng, false)
-                           AND cycle_seq BETWEEN 1 AND %s
-                           AND ts >= NOW() - make_interval(mins => %s)
+                         WHERE {run_where}
                          ORDER BY ts DESC, id DESC
                          LIMIT %s),
                     moved AS (
@@ -8423,24 +9273,28 @@ class CollectorEngine:
                            cycle_seq, part_code, is_ng, %s
                       FROM moved
                     RETURNING ts""",
-                    (rec_dt, shift, peak, TRIAL_MOVE_WINDOW_MIN, peak,
-                     f"PLC reset wiped run of {peak}"))
+                    run_args + (wiped, f"PLC reset wiped run of {wiped} ({peak}->{live})"))
                 moved_ts = [r[0] for r in cur.fetchall()]
                 conn.commit()
                 cur.close()
             finally:
                 conn.close()
             per_slot = {}
-            for ts in moved_ts:
+            last_slot = None
+            for ts in sorted(moved_ts):
                 slot = self._get_current_slot(at=ts.time())
                 if slot:
                     per_slot[slot] = per_slot.get(slot, 0) + 1
+                    last_slot = slot
+            # the bucket took the whole jump even when REG-MULTI capped the rows
+            if moved_ts and last_slot and wiped > len(moved_ts):
+                per_slot[last_slot] += wiped - len(moved_ts)
             for slot, n in per_slot.items():
                 hd = self._hourly_data.get(slot)
                 if hd:
                     hd["ok"] = max(0, int(hd.get("ok", 0)) - n)
                     self._write_hourly_to_db(slot)
-            print(f"[TRIAL-MOVE] PLC reset wiped {peak} part(s): moved "
+            print(f"[TRIAL-MOVE] PLC reset wiped {wiped} part(s): moved "
                   f"{len(moved_ts)} cycle row(s) to {tbl}_trial, hourly "
                   f"{per_slot or '-'}", flush=True)
         except Exception as e:
@@ -9273,6 +10127,7 @@ class CollectorEngine:
         sub_reg_mode = (sub.get("count_mode") or "bit").lower() == "register"
         sub_ok_reg   = (sub.get("ok_data_register") or "").strip()
         sub_ng_reg   = (sub.get("ng_data_register") or "").strip()
+        _fm_model_at = 0.0
         # A register sub may legitimately have NO count_bit (register IS the
         # count source).  Only bail when there's neither a usable bit nor a
         # register to mirror.
@@ -9936,6 +10791,10 @@ class CollectorEngine:
                     self._poll_fault_bits(sub_id, plc)
                 except Exception as _fe:
                     print(f"[FAULT] sub {sub_id}: {str(_fe)[:70]}", flush=True)
+                try:
+                    self._serve_sub_reads(sub_id, plc)   # Admin "Read live values"
+                except Exception as _re:
+                    print(f"[LIVE-READ] sub {sub_id}: {str(_re)[:70]}", flush=True)
 
             if plc is None:
                 if now < next_reconnect:
@@ -10067,6 +10926,18 @@ class CollectorEngine:
                 # got logged as NG@0.0s (live: 417 phantom NG/day on Upper Rail,
                 # D101 stuck low while D102 carried the real count).  Registers
                 # that are NOT contiguous keep the original two separate reads.
+                # Final-from-robots: this robot's model register (e.g. D1016),
+                # read every 3 s only for members of a combined line final.
+                if sub_id in (getattr(self, "_fm_model_maps", None) or {}) and sub.get("model_addr"):
+                    _tm = time.time()
+                    if _tm - _fm_model_at >= 3:
+                        _fm_model_at = _tm
+                        try:
+                            _mv = plc.batchread_wordunits(headdevice=sub["model_addr"], readsize=1)
+                            if _mv:
+                                self._fm_sub_model[sub_id] = (int(_mv[0]) & 0xFFFF, _tm)
+                        except Exception:
+                            pass
                 _ng_now = None
                 _contig = False
                 if sub_ng_reg:
@@ -11064,7 +11935,8 @@ class CollectorEngine:
                     continue
 
                 # Read PLC
-                plc = self._read_plc()
+                _fm = self._final_members()
+                plc = self._read_combined_final(_fm) if _fm else self._read_plc()
 
                 # Final compare-fetch: when configured, fire the Semi-Auto-NG
                 # reject on this bit's rising edge (correct cycle).  No-op when
@@ -11123,6 +11995,7 @@ class CollectorEngine:
                             self._model_cand_votes = 0
                             print(f"[MODEL] -> {self._cur_model_name} "
                                   f"({self.cfg.get('model_addr','model')}={m}, instant switch)")
+                            self._log_model_change()
                         else:
                             if m == getattr(self, "_model_candidate", None):
                                 self._model_cand_votes = getattr(
@@ -11143,6 +12016,7 @@ class CollectorEngine:
                                 print(f"[MODEL] -> {self._cur_model_name} "
                                       f"({self.cfg.get('model_addr','model')}={m}, confirmed: {_MIN_VOTES}+ "
                                       f"reads over {_MIN_SECS:.0f}s)")
+                                self._log_model_change()
                     else:
                         # Throttle the rejection log so socket bleeds
                         # don't spam the console.
@@ -11223,6 +12097,7 @@ class CollectorEngine:
                 self._check_l110_test_flag()
                 self._maybe_pulse_fi_shift_reset()
                 self._apply_bit_commands()      # MES-queued bits (PY bypass)
+                self._serve_read_requests()     # Admin "Read live values" (own session)
                 self._poll_fault_bits()         # Fault Config bits -> history
                 self._maybe_archive_and_reset_shift()
 

@@ -11,6 +11,7 @@ Manage all configuration for a line:
 All writes require admin JWT.
 """
 
+import re
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from typing import Optional, List
@@ -337,10 +338,57 @@ def get_slots(line_id: int, user=Depends(get_current_user)):
         return cur.fetchall()
 
 
+_SLOT_COL_SUFFIXES = ("plan", "actual", "variance", "ok", "ng")
+
+
+def _slot_prefix(start_time: str, end_time: str, ot: bool) -> str:
+    """hour_HHMM_HHMM[_ot] from the slot's own 24-h times."""
+    def hhmm(t):
+        h, m = str(t).strip().split(":")[:2]
+        return f"{int(h):02d}{int(m):02d}"
+    return f"hour_{hhmm(start_time)}_{hhmm(end_time)}" + ("_ot" if ot else "")
+
+
 @router.put("/slots/{line_id}")
 def save_slots(line_id: int, entries: List[SlotEntry], admin=Depends(require_admin)):
-    """Replace all hourly slots for a line."""
+    """Replace all hourly slots for a line.
+
+    2026-10-21 — the line table's hour_<prefix>_* columns are created here.
+    Loop Pipe 1/2/3 got 11:30-12:30 / 12:30-14:05 slots whose columns did not
+    exist: every collector write failed from 12:30 to 14:45 (dashboard, chart
+    and cycle comments frozen).  The prefix is also rebuilt from the slot's
+    24-h times — YNC/YSD Recliner had hour_0105_1405 for 13:05-14:05.  If the
+    columns cannot be added the whole save is rolled back."""
+    fixed = []
+    for s in entries:
+        ot = s.db_column_prefix.strip().lower().endswith("_ot") or s.slot_order >= 900
+        try:
+            want = _slot_prefix(s.start_time, s.end_time, ot)
+        except Exception:
+            raise HTTPException(400, f"Slot {s.slot_label}: invalid start/end time")
+        if s.db_column_prefix.strip() != want:
+            fixed.append(f"{s.slot_label}: {s.db_column_prefix or '(blank)'} -> {want}")
+            s.db_column_prefix = want
     with get_conn() as conn:
+        cur0 = conn.cursor()
+        cur0.execute("SELECT db_table_name FROM mes_lines WHERE id = %s", (line_id,))
+        tbl = ((cur0.fetchone() or [None])[0] or "").strip()
+        if tbl and re.match(r"^[a-z0-9_]+$", tbl):
+            cur0.execute("SELECT to_regclass(%s)", (tbl,))
+            if cur0.fetchone()[0]:
+                cols = sorted({f"{s.db_column_prefix}_{x}" for s in entries for x in _SLOT_COL_SUFFIXES})
+                cur0.execute("SELECT column_name FROM information_schema.columns WHERE table_name = %s", (tbl,))
+                have = {r[0] for r in cur0.fetchall()}
+                need = [c for c in cols if c not in have]
+                if need:
+                    try:
+                        cur0.execute("SET LOCAL lock_timeout = '5s'")
+                        cur0.execute(f"ALTER TABLE {tbl} " + ", ".join(
+                            f"ADD COLUMN IF NOT EXISTS {c} integer DEFAULT 0" for c in need))
+                    except Exception as exc:
+                        conn.rollback()
+                        raise HTTPException(409, f"Slots not saved: could not add columns to {tbl} "
+                                                 f"({str(exc).strip()[:120]}). Try again.")
         conn.cursor().execute(
             "DELETE FROM mes_hourly_slots WHERE line_id = %s", (line_id,)
         )
@@ -356,7 +404,10 @@ def save_slots(line_id: int, entries: List[SlotEntry], admin=Depends(require_adm
                 s.crosses_midnight, s.working_minutes, s.plan_pieces,
                 s.db_column_prefix, s.slot_order
             ))
-    return {"ok": True, "message": f"{len(entries)} slots saved"}
+    msg = f"{len(entries)} slots saved"
+    if fixed:
+        msg += "; column prefix corrected: " + "; ".join(fixed)
+    return {"ok": True, "message": msg}
 
 
 # ══════════════════════════════════════════════════════════════

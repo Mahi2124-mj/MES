@@ -346,9 +346,16 @@ def _mail_cases(cur, kind):
         cond = ("escalated_at IS NULL AND mail_sent_at IS NOT NULL AND "
                 f"mail_sent_at < now() - interval '{ESCALATE_MIN} minutes'")
         stamp = "escalated_at"
+    # 2026-10-12 — lines with PY mail switched off are never picked, so they
+    # are not mailed now and do not pile up to go out later.
+    try:
+        from routers.poka_yoke import PY_NO_MAIL_LINES as _no_mail
+    except Exception:
+        _no_mail = frozenset()
     cur.execute(f"""SELECT * FROM mes_py_bypass_cases
                      WHERE status = 'WAITING' AND closed_at IS NULL AND {cond}
-                     ORDER BY detected_at LIMIT 20""")
+                       AND NOT (line_id = ANY(%s))
+                     ORDER BY detected_at LIMIT 20""", (list(_no_mail),))
     cases = cur.fetchall()
     if not cases:
         return 0

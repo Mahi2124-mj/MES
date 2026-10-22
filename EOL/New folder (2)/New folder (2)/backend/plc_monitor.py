@@ -51,7 +51,12 @@ def _resolve_videos_root(base_dir: str) -> str:
                 # (USB removed, ACL change) AFTER an admin saved the path.
                 # Better to fall back to local default than spam permission
                 # errors on every cycle.
-                probe = os.path.join(sp, ".write_test_eol")
+                # 2026-10-19 — one probe file PER thread: with a shared name two
+                # threads deleted each other's file, the loser got ENOENT, logged
+                # "NOT writable" (1 827× by 19-Oct) and fell back to the backup
+                # drive's backend/videos — whose parent holds the 264 MB
+                # cycles.csv the clip repair then parsed.
+                probe = os.path.join(sp, f".write_test_eol_{os.getpid()}_{threading.get_ident()}")
                 try:
                     with open(probe, "w") as _f:
                         _f.write("ok")
@@ -234,6 +239,93 @@ def ts_delete_allowed(now: Optional[datetime] = None) -> bool:
 _SEG_NAME_RE = re.compile(r"_(\d{13})\.ts$")
 _SEG_JOIN_GAP_S = 5.0     # consecutive segments of one recorder follow on within this
 
+# 2026-10-12 — ONE shared listing of the footage folder for every recorder.
+# Each recorder's segment tracker used to glob the whole folder (~14k files in
+# the 48 h hold, 21 ms per glob) every 2 s: 115 recorders needed ~120 % of one
+# core of GIL time, more than the GIL can give.  The trackers fell behind, did
+# not see the 30-min segment roll for 45 s, and the stall watchdog killed
+# healthy recorders (87 at once at 10:40 on 12-Oct, ~45 s after the roll; the
+# single-session cameras then hung).  Now the folder is listed at most once per
+# _SEG_INDEX_TTL and every caller reads its camera's names from the index.
+_SEG_FULLNAME_RE = re.compile(r"^cam_(.+)_(\d{13})\.ts$")
+# 2026-10-15 — one index PER folder, and the folder is listed OUTSIDE the lock
+# by a single refresher while everyone else keeps reading the previous index
+# (at most _SEG_INDEX_TTL old).  The first version held the lock during the
+# 11k-name listing and kept one folder at a time: the clip endpoints and the
+# recorders pass different spellings of the footage folder, so every call
+# evicted the other's index and re-listed under the lock -- 70 clip requests
+# and 13 recorder trackers queued on it and the CMS stopped answering (10:5x).
+_SEG_INDEX = {}            # normpath(folder) -> {"t": monotonic, "by_cam": {...}}
+_SEG_REFRESHING = set()    # folders being listed right now
+_SEG_INDEX_LOCK = threading.Lock()
+_SEG_INDEX_TTL = 2.0
+
+
+def _list_segments(folder: str) -> dict:
+    by_cam = {}
+    try:
+        names = os.listdir(folder)
+    except OSError:
+        names = []
+    for n in names:
+        m = _SEG_FULLNAME_RE.match(n)
+        if m:
+            by_cam.setdefault(m.group(1), []).append((int(m.group(2)) // 1000, n))
+    return by_cam
+
+
+def _segments_of(folder: str, camera_id: str, fresh: bool = False) -> list:
+    """[(start_second, path), ...] of every cam_<camera_id>_<ms>.ts in folder.
+    fresh=True lists the folder now (the stall check needs the newest file)."""
+    key = os.path.normpath(folder)
+    if fresh:
+        by_cam = _list_segments(folder)
+        with _SEG_INDEX_LOCK:
+            _SEG_INDEX[key] = {"t": time.monotonic(), "by_cam": by_cam}
+        return [(s, os.path.join(folder, n)) for s, n in by_cam.get(camera_id, ())]
+    with _SEG_INDEX_LOCK:
+        ent = _SEG_INDEX.get(key)
+        stale = ent is None or time.monotonic() - ent["t"] > _SEG_INDEX_TTL
+        refresh = stale and key not in _SEG_REFRESHING
+        if refresh:
+            _SEG_REFRESHING.add(key)
+    if refresh:
+        try:
+            by_cam = _list_segments(folder)
+            with _SEG_INDEX_LOCK:
+                _SEG_INDEX[key] = {"t": time.monotonic(), "by_cam": by_cam}
+        finally:
+            with _SEG_INDEX_LOCK:
+                _SEG_REFRESHING.discard(key)
+    elif ent is not None:
+        by_cam = ent["by_cam"]          # another thread is refreshing; use the last one
+    else:
+        by_cam = _list_segments(folder)  # very first listing still running elsewhere
+    found = by_cam.get(camera_id, ())
+    return [(s, os.path.join(folder, n)) for s, n in found]
+
+
+def _newer_live_segment(cur_path: str, max_age_s: float) -> Optional[str]:
+    """The segment this recorder rolled on to after cur_path, if it is being
+    written (last write within max_age_s); else None.  Fresh listing."""
+    m = _SEG_FULLNAME_RE.match(os.path.basename(cur_path or ""))
+    if not m:
+        return None
+    cur_s = int(m.group(2)) // 1000
+    best, best_mt = None, 0.0
+    for s, p in _segments_of(os.path.dirname(cur_path), m.group(1), fresh=True):
+        if s <= cur_s:
+            continue
+        try:
+            mt = os.path.getmtime(p)
+        except OSError:
+            continue
+        if mt > best_mt:
+            best, best_mt = p, mt
+    if best and time.time() - best_mt < max_age_s:
+        return best
+    return None
+
 
 def _segment_span(ts_file: str, start_dt: datetime, end_dt: datetime) -> list:
     """Segment mode: the segments of ts_file's camera that hold [start_dt, end_dt].
@@ -247,17 +339,14 @@ def _segment_span(ts_file: str, start_dt: datetime, end_dt: datetime) -> list:
     would shift every later frame.
     Returns [(segment_start, path), ...] in time order, the first one holding
     start_dt, or [] when nothing usable is found (caller keeps old behaviour)."""
-    import glob as _g
-    base = os.path.basename(ts_file or "")
-    m = _SEG_NAME_RE.search(base)
+    m = _SEG_FULLNAME_RE.match(os.path.basename(ts_file or ""))
     if not m:
         return []
-    prefix = base[:m.start()]
     folder = os.path.dirname(ts_file)
     segs = []
-    for p in _g.glob(os.path.join(folder, _g.escape(prefix) + "_*.ts")):
+    for _sec, p in _segments_of(folder, m.group(1)):
         mm = _SEG_NAME_RE.search(os.path.basename(p))
-        if not mm or os.path.basename(p)[:mm.start()] != prefix:
+        if not mm:
             continue
         try:
             s = datetime.fromtimestamp(int(mm.group(1)) / 1000.0)
@@ -1571,6 +1660,7 @@ class PlcMonitor:
         # so we don't lose an in-flight cycle.
         try:
             self._check_shift_boundary(bindings)
+            self._maybe_mp4_retention()
         except Exception as exc:
             print(f"[PLC] shift-boundary check error: {exc}")
         # ─────────────────────────────────────────────────────────────────────
@@ -1791,17 +1881,32 @@ class PlcMonitor:
             # piled on the semaphore, and final-inspection video stopped after a
             # few minutes.  8 concurrent h264 704x576 extracts (~1-2 cores each)
             # is well within budget and drains the backlog.
-            with self._extract_sem:
-                file_rel = self._extract_cycle(
-                    ts_file=worker["ts_file"],
-                    record_start=worker["record_start"],
-                    start_dt=start_dt,
-                    end_dt=end_dt,
-                    cycle_number=cycle_number,
-                    machine_id=machine_id,
-                    ts_cycle_start=worker.get("ts_cycle_start"),
-                    part_code=part_code,
-                )
+            # 2026-10-12 — BOUNDED BACKLOG.  ~4 cycles/s plant-wide against 8
+            # slots: with NVENC saturated the threads waiting here grew without
+            # limit (1459 in ~15 min, all in futex_do_wait) until the GIL convoy
+            # froze the whole CMS (/api/health timed out; two restarts that
+            # morning).  Wait at most EXTRACT_WAIT_S for a slot, else skip this
+            # cycle's MP4 — the continuous TS keeps the footage and MES cuts the
+            # clip from it on click (/api/submachine/clip), the by-part MP4 is
+            # only its last-resort fallback.  The CSV row below is still written.
+            _wait_s = float(os.environ.get("EXTRACT_WAIT_S", "20") or 20)
+            if self._extract_sem.acquire(timeout=_wait_s):
+                try:
+                    file_rel = self._extract_cycle(
+                        ts_file=worker["ts_file"],
+                        record_start=worker["record_start"],
+                        start_dt=start_dt,
+                        end_dt=end_dt,
+                        cycle_number=cycle_number,
+                        machine_id=machine_id,
+                        ts_cycle_start=worker.get("ts_cycle_start"),
+                        part_code=part_code,
+                    )
+                finally:
+                    self._extract_sem.release()
+            else:
+                print(f"[PLC] Cycle #{cycle_number} ({machine_id}) MP4 skipped — "
+                      f"all extract slots busy for {_wait_s:g}s (TS keeps the footage)")
 
         try:
             append_cycle_metadata(
@@ -2242,8 +2347,6 @@ class PlcMonitor:
         the RTSP session stays up.  Everything else in the CMS asks the worker
         for `ts_file`, so this keeps that pointing at the newest segment.
         """
-        import glob as _glob
-        pat = os.path.join(videos_abs, f"cam_{camera_id}_*.ts")
         # 2026-10-07 — only THIS recorder's segments.  With the 48 h hold the
         # folder also holds this camera's older files; before the first new
         # segment exists the newest of those would be picked, and the stall
@@ -2258,15 +2361,19 @@ class PlcMonitor:
             if proc is None or proc.poll() is not None:
                 return
             try:
-                files = []
-                for f in _glob.glob(pat):
-                    _m = _SEG_NAME_RE.search(f)
-                    if _m and int(_m.group(1)) // 1000 >= _born:
-                        files.append(f)
-                if files:
-                    newest = max(files, key=lambda f: os.path.getmtime(f))
-                    if newest != cam.get("ts_file"):
-                        cam["ts_file"] = newest
+                # Shared folder index (2026-10-12), not a glob per recorder.
+                newest, newest_mt = None, 0.0
+                for sec, f in _segments_of(videos_abs, camera_id):
+                    if sec < _born:
+                        continue
+                    try:
+                        mt = os.path.getmtime(f)
+                    except OSError:
+                        continue
+                    if mt > newest_mt:
+                        newest, newest_mt = f, mt
+                if newest and newest != cam.get("ts_file"):
+                    cam["ts_file"] = newest
             except Exception:
                 pass
             time.sleep(2.0)
@@ -2363,6 +2470,18 @@ class PlcMonitor:
                 last_size    = cur_size
                 last_grow_ts = now
             elif now - last_grow_ts >= STALL_TIMEOUT:
+                # 2026-10-12 — segment mode: a file that stopped growing may just
+                # have rolled.  If this recorder is writing a newer segment, follow
+                # it instead of killing a healthy recorder.
+                if not ts_file:
+                    newer = _newer_live_segment(cur_path, STALL_TIMEOUT)
+                    if newer and newer != cur_path:
+                        cam["ts_file"] = newer
+                        print(f"[PLC] Segment roll caught by stall check: "
+                              f"{os.path.basename(cur_path)} -> "
+                              f"{os.path.basename(newer)} (recorder kept)")
+                        time.sleep(1.0)
+                        continue
                 print(f"[PLC] Stall detected on {os.path.basename(cur_path)} "
                       f"(no growth for {STALL_TIMEOUT:.0f}s, size frozen at "
                       f"{cur_size//1024}KB) — killing ffmpeg to force RTSP reconnect")
@@ -2456,13 +2575,14 @@ class PlcMonitor:
             self._save_shift_state(state)
             return
 
-        print(f"[PLC] Shift boundary reached ({label}) — rotating "
-              f"{len(all_cam_ids)} camera TS file(s) + wiping past-shift mp4s")
+        print(f"[PLC] Shift boundary reached ({label}) — "
+              f"{len(all_cam_ids)} camera(s); mp4 retention runs in {TS_DELETE_WINDOW}")
         # _wipe_sub_camera_state name is now misleading — it really just
         # stops the recorder + deletes its TS for any camera ID passed in.
         # Works identically for MAIN and SUB; the watchdog tick respawns.
         self._wipe_sub_camera_state(all_cam_ids)
-        self._wipe_past_shift_mp4s()
+        # 2026-10-12 — the mp4 retention sweep moved out of the shift boundary
+        # (operator: "non working hour pe kar"): see _maybe_mp4_retention().
 
         state["last_fired_shift_label"] = label
         state["last_fired_at"] = now.isoformat(timespec="seconds")
@@ -2706,6 +2826,30 @@ class PlcMonitor:
               f"{ROTATE_STAGGER_S:g}s, respawn held {ROTATE_QUIET_S:g}s, "
               f"TS kept {TS_KEEP_HOURS:g} h", flush=True)
         threading.Thread(target=_rotate, name="shift-rotate", daemon=True).start()
+
+    def _maybe_mp4_retention(self) -> None:
+        """2026-10-12 — the cycle-mp4 retention sweep runs once a day inside
+        TS_DELETE_WINDOW (no shift running), on its own thread.  It used to run
+        at every shift boundary inside this poll loop: an os.walk over every
+        clip held up edges, the recorder watchdog and clip cuts exactly at
+        shift change ("har shift change pe issue")."""
+        now = datetime.now()
+        if not ts_delete_allowed(now):
+            return
+        day = now.date().isoformat()
+        if getattr(self, "_mp4_retention_day", None) == day or getattr(self, "_mp4_retention_running", False):
+            return
+        self._mp4_retention_day = day
+        self._mp4_retention_running = True
+
+        def _run() -> None:
+            try:
+                self._wipe_past_shift_mp4s()
+            except Exception as exc:
+                print(f"[PLC] mp4 retention failed: {exc}", flush=True)
+            finally:
+                self._mp4_retention_running = False
+        threading.Thread(target=_run, name="mp4-retention", daemon=True).start()
 
     def _wipe_past_shift_mp4s(self) -> None:
         """Apply video RETENTION at the shift boundary: delete cycle .mp4 clips

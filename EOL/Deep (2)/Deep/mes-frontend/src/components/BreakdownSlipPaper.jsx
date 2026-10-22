@@ -10,8 +10,12 @@
 import { useEffect, useState } from "react";
 import { api } from "../api/client";
 import { useAuth } from "../context/AuthContext";
+import { MAINT_SRC, downloadSlipPdf } from "./breakdownSlipPdf";
+import SlipVideo from "./SlipVideo";
 
-const MAINT_SRC = ["AUTO-MAINT", "AUTO-TOOLROOM", "MANUAL"];
+// auto slips have a camera clip (breakdown clipper) — ▶ Video, as on the 9965 slip
+const AUTO_SRC = { "AUTO-MAINT": "maintenance", "AUTO-TOOLROOM": "toolroom" };
+
 const SRC_LABEL = {
   "AUTO-MAINT": "Auto slip · Maintenance", "AUTO-TOOLROOM": "Auto slip · Tool Room",
   "MANUAL": "Manual slip", "MES-LOG": "MES entry", "MES-SLIP": "MES slip",
@@ -56,6 +60,16 @@ export default function BreakdownSlipPaper({ row, onClose }) {
   const isMaint = MAINT_SRC.includes(row.src);
   const [s, setS] = useState(null);
   const [err, setErr] = useState("");
+  const [pdfBusy, setPdfBusy] = useState(false);
+  const [pdfErr, setPdfErr] = useState("");
+  const [videoOpen, setVideoOpen] = useState(false);
+  const autoSrc = AUTO_SRC[row.src];
+  const getPdf = async () => {
+    setPdfBusy(true); setPdfErr("");
+    const e = await downloadSlipPdf(row.src, row.id);
+    if (e) setPdfErr(e);
+    setPdfBusy(false);
+  };
 
   useEffect(() => {
     if (!isMaint) return;
@@ -97,8 +111,18 @@ export default function BreakdownSlipPaper({ row, onClose }) {
             <span style={{ background: sc[0], color: sc[1] }}>{row.stage_label}</span>
             <small>{SRC_LABEL[row.src] || row.src}</small>
           </div>
+          {autoSrc && row.id && (
+            <div className="bds-video-btn" onClick={() => setVideoOpen(true)}
+                 title="Watch the camera clip of this breakdown">▶ Video</div>
+          )}
+          {autoSrc && row.id && <div className="bds-slip-id" title="Slip ID">{row.id}</div>}
           <div className="bds-close-x" onClick={onClose} title="Close">×</div>
         </div>
+        {videoOpen && autoSrc && (
+          <SlipVideo src={autoSrc} slipId={row.id} token={token}
+                     title={`${autoSrc === "toolroom" ? "Tool Room" : "Maintenance"} slip #${row.id} · ${d.machine_no || d.line || ""}`}
+                     onClose={() => setVideoOpen(false)} />
+        )}
 
         <div className="bds-body">
           {err && <div style={{ padding: 14, color: "#b91c1c", fontWeight: 700 }}>{err}</div>}
@@ -207,8 +231,19 @@ export default function BreakdownSlipPaper({ row, onClose }) {
             {d.submitted_at ? `Submitted ${String(d.submitted_at).slice(0, 16)}` : ""}
             {d.production_at ? ` · Production filled ${String(d.production_at).slice(0, 16)}` : ""}
           </div>
-          <button onClick={onClose} style={{ background: "#fff", color: "#2563eb", border: "1px solid #bfdbfe",
-                  borderRadius: 8, padding: "8px 16px", fontSize: 13, cursor: "pointer", fontWeight: 700 }}>Close</button>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+            {pdfErr && <span style={{ fontSize: 12, color: "#b91c1c", fontWeight: 700 }}>{pdfErr}</span>}
+            {isMaint && (
+              <button onClick={getPdf} disabled={pdfBusy || loading || !!err} title="Download this slip as a PDF"
+                style={{ background: "#2563eb", color: "#fff", border: "none", borderRadius: 8, padding: "8px 16px",
+                         fontSize: 13, cursor: pdfBusy ? "wait" : "pointer", fontWeight: 700,
+                         opacity: pdfBusy || loading || err ? 0.6 : 1 }}>
+                {pdfBusy ? "Preparing…" : "⬇ Download PDF"}
+              </button>
+            )}
+            <button onClick={onClose} style={{ background: "#fff", color: "#2563eb", border: "1px solid #bfdbfe",
+                    borderRadius: 8, padding: "8px 16px", fontSize: 13, cursor: "pointer", fontWeight: 700 }}>Close</button>
+          </div>
         </div>
       </div>
     </div>
@@ -230,6 +265,10 @@ const BDS_CSS = `
   .bds-status small { font-size:10px; color:#64748b; font-weight:700; white-space:nowrap; }
   .bds-close-x { width:46px; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:30px; color:#64748b; border-left:1.5px solid #0f172a; font-family:Arial; line-height:1; }
   .bds-close-x:hover { background:#fee2e2; color:#dc2626; }
+  .bds-video-btn { padding:0 16px; cursor:pointer; display:flex; align-items:center; gap:8px; font-size:12px; font-weight:700; color:#b91c1c; border-left:1.5px solid #0f172a; background:#fef2f2; letter-spacing:.04em; user-select:none; white-space:nowrap; font-family:'Barlow',sans-serif; }
+  .bds-video-btn:hover { background:#fee2e2; color:#991b1b; }
+  .bds-slip-id { padding:0 14px; display:flex; align-items:center; font-size:15px; font-weight:800; color:#0f172a; border-left:1.5px solid #0f172a; background:#f8fafc; font-family:'Barlow',sans-serif; white-space:nowrap; user-select:all; }
+  @media print { .bds-video-btn, .bds-slip-id { display:none !important; } }
   .bds-body { padding:0; max-height:74vh; overflow-y:auto; background:#fff; font-family:'Barlow',sans-serif; color:#0f172a; font-size:11px; }
   .bds-grid { display:grid; border-top:1.5px solid #0f172a; border-left:1.5px solid #0f172a; }
   .bds-grid-3 { grid-template-columns: 1fr 1fr 1fr; }

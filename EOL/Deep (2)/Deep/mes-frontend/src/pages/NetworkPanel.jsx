@@ -371,7 +371,11 @@ function FloorPlan({ devices, cables, token, reload, editable = true, live = tru
   // Fit the rendered canvas to the container width in BOTH modes so it fills
   // the screen instead of leaving empty space on the right. Edit mode fits the
   // configured canvas (CANVAS_W); view mode fits the real content edge.
-  const fitW = editable ? CANVAS_W : contentW;
+  // 2026-10-13 — the builder too: the saved plan reaches 1805 x 1152 while the
+  // edit canvas was the configured 1340 x 800, so nodes past it hung off the
+  // grid, the right-hand switches were cut and the legend landed on top of the
+  // lower areas.  The configured size is now a MINIMUM (contentW/H start from it).
+  const fitW = contentW;
   useEffect(() => {
     const el = wrapRef.current; if (!el) return;
     const upd = () => setViewScale(Math.min(1.7, Math.max(0.35, (el.clientWidth - 30) / fitW)));
@@ -381,8 +385,8 @@ function FloorPlan({ devices, cables, token, reload, editable = true, live = tru
     return () => { ro.disconnect(); window.removeEventListener("resize", upd); };
   }, [fitW]);   // re-fit when the canvas OR its content grows
   const FLOOR_SCALE = viewScale;
-  const RENDER_W = editable ? CANVAS_W : contentW;
-  const RENDER_H = editable ? CANVAS_H : contentH;
+  const RENDER_W = contentW;
+  const RENDER_H = contentH;
 
   // livePos is a map { id: {x,y} } holding the live position of EVERY node
   // being dragged this gesture (1 for a single drag, N for a group drag).

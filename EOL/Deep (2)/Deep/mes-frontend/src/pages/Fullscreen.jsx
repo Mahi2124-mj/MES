@@ -1,10 +1,13 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } from "react";
 import { createPortal }                                       from "react-dom";
 import { useParams, useNavigate } from "react-router-dom";
 import { startTimer } from "../api/timing";
 import axios from "axios";
 import VideoProgressBar from "../components/VideoProgressBar";
+import { CombinedRobotCharts } from "../components/CombinedMachineView";
 import SlideNav from "../components/SlideNav";
+// 2026-10-16 — full breakdown slip from the Loss Remark card (loaded on first use)
+const BreakdownSlipPaper = lazy(() => import("../components/BreakdownSlipPaper"));
 
 // 2026-06-01 — a timeout (server answers /realtime in ~13ms, so this NEVER
 // trips a healthy call) so a request queued behind a stuck socket releases and
@@ -731,6 +734,18 @@ export default function Fullscreen() {
     return () => { stop = true; };
   }, [urlLineRef]);
   const lineId = resolvedId;
+  // 2026-10-10 — a line whose final is a combined machine (YRA-SA-6WAY FINAL =
+  // Mag Weld robot 1 + 2) shows one CT chart per robot.  Every other line gets
+  // [] here and keeps its normal chart.
+  const [comboMembers, setComboMembers] = useState([]);
+  useEffect(() => {
+    if (!lineId) return undefined;
+    let stop = false;
+    api.get(`/api/lines/${lineId}/combined-members`)
+      .then(r => { if (!stop) setComboMembers(Array.isArray(r.data) ? r.data : []); })
+      .catch(() => { if (!stop) setComboMembers([]); });
+    return () => { stop = true; };
+  }, [lineId]);
   const [dark, setDark]      = useState(() => localStorage.getItem("fs_theme") !== "light");
   // Orientation — "portrait" (9:16 grid) vs "landscape" (16:9 grid).
   //
@@ -897,6 +912,8 @@ export default function Fullscreen() {
   // listing every active line in that zone so the operator can hop between
   // lines.  Empty for every other zone → header keeps the sub-machine menu.
   const [zoneLines,      setZoneLines]      = useState([]);
+  // 2026-10-21 — this line's zone name (the Recliner zone hides Takt in the video header)
+  const [zoneName,       setZoneName]       = useState("");
   // 2026-09-13 — Loop Pipe line-switcher: when THIS line is a Loop Pipe line
   // the header line-NAME text turns into a dropdown listing every Loop Pipe
   // line so the wall can switch between them. Empty for every other line →
@@ -927,6 +944,9 @@ export default function Fullscreen() {
 
   // ── CMS Camera cycle data ─────────────────────────────────────
   const [cmsData,      setCmsData]      = useState([]);
+  // 2026-10-14 — row count BEFORE the <7.5 s phantom filter; the OK stuck-guard
+  // compares against this (see _okStuck), not the filtered chart data.
+  const [cmsRawCount,  setCmsRawCount]  = useState(0);
   const [cmsLoading,   setCmsLoading]   = useState(false);
   // 2026-06-08 — real per-slot NG from /ng-list (ct_log is_ng, incl. scan-fail
   // ERROR cycles that /ct-history omits) so hourly table matches ct_log + D102.
@@ -1332,6 +1352,7 @@ export default function Fullscreen() {
       if (!alive) return;
       const all = Array.isArray(r.data) ? r.data : [];
       const cur = all.find(l => String(l.id) === String(lineId));
+      setZoneName((cur && cur.zone_name) || "");
       if (cur && cur.zone_name === "YWD/2UA") {
         setZoneLines(
           all.filter(l => l.zone_name === "YWD/2UA" && l.is_active)
@@ -1723,6 +1744,7 @@ export default function Fullscreen() {
     const shift   = rt.shift_name  || "";
     // Clear old shift's data immediately so the graph doesn't show stale cycles
     setCmsData([]);
+    setCmsRawCount(0);
     setCmsViewStart(null);
     // Destroy any chart instance left over from the previous shift so the
     // graph area is visually empty until the new shift's first cycle.
@@ -1737,6 +1759,7 @@ export default function Fullscreen() {
           // 2026-06-10 — drop phantom cycles (CT < half ideal) from the CYCLE
           // TIME graph + counts: 08:30 warm-up scan-fail rows the PLC register
           // never counts (implausibly fast).  Final Inspection ideal = 15s.
+          setCmsRawCount(Array.isArray(res.data) ? res.data.length : 0);
           setCmsData(
             (Array.isArray(res.data) ? res.data : []).filter(c => {
               const ct = Number(c.ct_value);
@@ -2321,6 +2344,10 @@ export default function Fullscreen() {
     const D2      = dark;
     const idealCT = line?.plc_config?.ideal_cycle_time || 15;
     const CT_TOL  = 0.009; // anything > ideal+0.009 = spike
+    // 2026-10-12 — /ct-history gives `ideal` per cycle on a line with a model
+    // timeline (YWD-SS: INNER 23 s / OUTER 14.4 s): each cycle is coloured
+    // against the model that made it, not the model running now.
+    const idealOf = (cy) => (cy && Number(cy.ideal) > 0 ? Number(cy.ideal) : idealCT);
 
     // 2026-09-28 — Loop Pipe shows the Ideal line only.  Those lines run
     // several processes off one register, so the DERIVED takt (working
@@ -2495,8 +2522,10 @@ export default function Fullscreen() {
                 const a = aCy?.ct_value;
                 const b = bCy?.ct_value;
                 if (a == null || b == null) return "transparent";
-                const aUp = a > idealCT;
-                const bUp = b > idealCT;
+                const iA  = idealOf(aCy);
+                const iB  = idealOf(bCy);
+                const aUp = a > iA;
+                const bUp = b > iB;
                 // Both above ideal → solid red line
                 if (aUp && bUp) return `${STATUS_CLR["BREAKDOWN"]}cc`;
                 // Both below ideal → solid green line
@@ -2507,7 +2536,7 @@ export default function Fullscreen() {
                   return aUp ? `${STATUS_CLR["BREAKDOWN"]}cc` : `${STATUS_CLR["RUNNING"]}cc`;
                 }
                 const ratio = Math.max(0.01, Math.min(0.99,
-                  Math.abs(a - idealCT) / Math.abs(a - b)
+                  Math.abs(a - (iA + iB) / 2) / Math.abs(a - b)
                 ));
                 const grad = c2.createLinearGradient(seg.p0.x, 0, seg.p1.x, 0);
                 if (aUp) {
@@ -2530,7 +2559,8 @@ export default function Fullscreen() {
           {
             type: "line",
             label: `Ideal ${idealCT}s`,
-            data: Array(visSlice.length).fill(idealCT),
+            data: visSlice.map(idealOf),
+            stepped: "middle",
             borderColor: "rgba(251,191,36,0.7)",
             borderWidth: 1.5,
             borderDash: [5, 4],
@@ -2877,9 +2907,14 @@ export default function Fullscreen() {
   // shift) use the real OK count for OK + Actual + the OK/actual hourly slots.
   // NG (= D102 register) and the PLAN (shift_plan_completed / hour_*_plan) are
   // NOT touched — so NG stays exact and the realtime plan is intact.  No restart.
+  // 2026-10-14 — count the cycles BEFORE the <7.5 s chart filter.  YWD-SS makes
+  // ~half its parts 6.5-8 s apart (real, = D101), so the filtered cmsData held
+  // 508 of 960 rows, this guard fired, OK dropped to 508 and the current hour
+  // reconciled to max(0, 508 - Σpast) = 0 while the line was running.
   const _cyc          = Array.isArray(cmsData) ? cmsData : [];
-  const _realOk       = _cyc.length ? Math.max(0, _cyc.length - ((_rawRt && _rawRt.ng_count) || 0)) : 0;
-  const _okStuck      = !!(_rawRt && _cyc.length > 0 && (_rawRt.ok_count || 0) - _realOk > 200);
+  const _cycN         = Math.max(cmsRawCount || 0, _cyc.length);
+  const _realOk       = _cycN ? Math.max(0, _cycN - ((_rawRt && _rawRt.ng_count) || 0)) : 0;
+  const _okStuck      = !!(_rawRt && _cycN > 0 && (_rawRt.ok_count || 0) - _realOk > 200);
   const displayRt     = !_okStuck ? _rawRt : (() => {
     const o = { ...(_rawRt || {}) };
     o.ok_count = _realOk;
@@ -4861,6 +4896,14 @@ export default function Fullscreen() {
                                       D={D}
                                       chartReady={chartReady && chartLib} />
               )}
+              {chartMode === "ct" && comboMembers.length >= 2 && (
+                <div style={{position:"absolute",top:8,left:12,right:12,bottom:4,zIndex:2,background:bgCard}}>
+                  <CombinedRobotCharts members={comboMembers} shift={shift}
+                    token={sessionStorage.getItem("mes_token") || ""}
+                    th={{ D, bgDeep, border, text, textSub, textMut,
+                          card: { background: bgCard, border: `1px solid ${border}`, borderRadius: 8 } }} />
+                </div>
+              )}
               {chartMode === "ct" && (
                 <div ref={cmsScrollRef} style={{
                   position:"absolute",top:8,left:12,right:12,bottom:4,
@@ -5644,7 +5687,8 @@ export default function Fullscreen() {
                   return dbCt ? `${dbCt.toFixed(2)}s` : "—";
                 })()}
                 {"  |  "}Ideal: {ideal}s
-                {rt?.takt_seconds && Math.abs(rt.takt_seconds - ideal) > 0.1 && (
+                {/* 2026-10-21 — no Takt in the Recliner zone's video header (operator) */}
+                {!/^\s*recliner\s*$/i.test(zoneName) && rt?.takt_seconds && Math.abs(rt.takt_seconds - ideal) > 0.1 && (
                   <> {"  |  "}Takt: <span style={{ color: "#60a5fa" }}>{Number(rt.takt_seconds).toFixed(2)}s</span></>
                 )}
                 {"  |  "}{videoModal.ts ? new Date(videoModal.ts).toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit",second:"2-digit"}) : ""}
@@ -6127,9 +6171,17 @@ export default function Fullscreen() {
           Loss Breakup modal when production clicks a loss-time cell. */}
       {lossRemarkModal && (
         <LossRemarkModal
+          key={`${lossRemarkModal.slot_label}|${lossRemarkModal.loss_type}`}
           lineId={lineId}
           payload={lossRemarkModal}
           onClose={() => setLossRemarkModal(null)}
+          onSwitchSlot={(slotLabel) => {
+            // 2026-10-21 — a carried-over call is filled in the hour it started:
+            // jump the card to that hour instead of making the user find it.
+            const sl = ((lossBreakup && lossBreakup.slots) || []).find(x => x.slot_label === slotLabel);
+            setLossRemarkModal(m => m ? { ...m, slot_label: slotLabel,
+              loss_secs: sl ? (sl[`loss_${m.loss_type}`] || 0) : m.loss_secs } : m);
+          }}
           border={border}
           bgDeep={bgDeep}
           text={text}
@@ -8098,7 +8150,7 @@ function NgListModal({ lineId, idealCt, date, slotLabel, onClose, onPlayVideo, b
 // (line, date, shift, slot, loss_type); previous remarks preserved
 // in audit_trail JSONB.
 // ─────────────────────────────────────────────────────────────────
-function LossRemarkModal({ lineId, payload, onClose, border, bgDeep, text, textSub, textMut, overlayPosStyle }) {
+function LossRemarkModal({ lineId, payload, onClose, onSwitchSlot, border, bgDeep, text, textSub, textMut, overlayPosStyle }) {
   const { date, shift_name, slot_label, loss_type, loss_label,
           loss_color, loss_secs } = payload || {};
   const [data,   setData]    = useState(null);
@@ -8126,27 +8178,95 @@ function LossRemarkModal({ lineId, payload, onClose, border, bgDeep, text, textS
       .then(d => {
         if (stop) return;
         setAndon(d);
-        const dr = {};
-        ((d && d.calls) || []).forEach(c => { dr[`${c.type}|${c.machine}|${c.start}`] = c.remark || ""; });
-        setCallDraft(dr);
+        const dr = {}, fb = {}, at = {}, mc = {}, sb = {};
+        ((d && d.calls) || []).forEach(c => {
+          const k = `${c.type}|${c.machine}|${c.start}`;
+          // 2026-10-21 — Department is fixed (operator): a breakdown call is its
+          // own button's department (Maintenance / Tool Room); an Others call is
+          // Production, with an optional Sub Department.
+          dr[k] = c.remark || "";
+          fb[k] = loss_type === "others" ? "Production" : bdDeptOf(c.type);
+          at[k] = c.attended_by || "";
+          mc[k] = c.bd_machine || ""; sb[k] = c.sub_dept || "";
+        });
+        setCallDraft(dr); setCallFb(fb); setCallAt(at); setCallMc(mc); setCallSub(sb);
       })
       .catch(() => { if (!stop) setAndon(null); });
     return () => { stop = true; };
   }, [lineId, date, shift_name, slot_label, loss_type, token]);
   const [callDraft,   setCallDraft]   = useState({});
+  const [callFb,      setCallFb]      = useState({});     // Department (breakdown minor rows; API field filled_by)
+  const [callAt,      setCallAt]      = useState({});     // "Attended by"
+  const [callMc,      setCallMc]      = useState({});     // Machine No. picked by production (bd_machine)
+  const [callSub,     setCallSub]     = useState({});     // Sub Department (Others rows; optional)
   const [callSaving,  setCallSaving]  = useState(false);
   const [callSavedAt, setCallSavedAt] = useState(null);
+  const [slipView,    setSlipView]    = useState(null);   // slip opened with "View slip"
   const callKey  = (c) => `${c.type}|${c.machine}|${c.start}`;
   const callMode = !!(andon && andon.covered && andon.andon_bucket !== false
                       && (andon.calls || []).length > 0);
-  const callChanged = callMode && (andon.calls || []).some(
-    c => (callDraft[callKey(c)] || "").trim() && (callDraft[callKey(c)] || "").trim() !== (c.remark || ""));
+  // 2026-10-16 — BREAKDOWN: a call that has a breakdown slip shows the slip; the
+  // minor ones (no slip) are a table — Time, Duration, Machine No., Department,
+  // Attended by, Remarks — and SAVE stays off until every field of every row is
+  // filled.
+  const isBd = loss_type === "breakdown";
+  // 2026-10-21 — Others calls use the same table (Department = Production,
+  // plus an optional Sub Department).
+  const isOth = loss_type === "others";
+  const isTbl = isBd || isOth;
+  // A call carried over from an earlier hour is remarked in the hour it
+  // started (operator, 16-Oct): shown read-only here, not gated, not saved.
+  const minorRows = (isTbl && callMode)
+    ? (andon.calls || []).filter(c => !c.slip && !c.ongoing && c.starts_here !== false) : [];
+  const t4 = (c) => [callDraft[callKey(c)], callFb[callKey(c)], callAt[callKey(c)], callMc[callKey(c)]]
+    .map(v => (v || "").trim());
+  const rowChanged = (c) => { const [r, f, a, m] = t4(c);
+    return r !== (c.remark || "") || f !== (c.filled_by || "") || a !== (c.attended_by || "")
+        || m !== (c.bd_machine || "") || (callSub[callKey(c)] || "") !== (c.sub_dept || ""); };
+  const minorMissing = minorRows.filter(c => t4(c).some(v => !v)).length;
+  const callChanged = callMode && (isTbl
+    ? minorRows.some(rowChanged)
+    : (andon.calls || []).some(
+        c => (callDraft[callKey(c)] || "").trim() && (callDraft[callKey(c)] || "").trim() !== (c.remark || "")));
+  const canSaveCalls = callChanged && !(isTbl && minorMissing > 0);
+  // Pick lists: on-duty maintenance staff (Attended by for Maintenance), the
+  // Tool Room's own on-duty staff (for Tool Room, 2026-10-17), the line's
+  // machines and the zone's line leaders (Attended by for Production).
+  const [attendees, setAttendees] = useState([]);
+  const [toolAttendees, setToolAttendees] = useState([]);
+  const [pickers,   setPickers]   = useState(null);
+  const needPickers = isTbl && minorRows.length > 0 && !!token;
+  useEffect(() => {
+    if (!needPickers) return;
+    let stop = false;
+    const h = { headers: { Authorization: `Bearer ${token}` } };
+    const names = d => (d && Array.isArray(d.people)) ? d.people.map(p => p.name).filter(Boolean) : null;
+    fetch("/api/prod-breakdown-slips/attendees", h)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { const n = names(d); if (!stop && n) setAttendees(n); })
+      .catch(() => {});
+    fetch("/api/prod-breakdown-slips/attendees?dept=toolroom", h)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { const n = names(d); if (!stop && n) setToolAttendees(n); })
+      .catch(() => {});
+    fetch(`/api/andon/slot-pickers?line_id=${encodeURIComponent(lineId)}`, h)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (!stop && d) setPickers(d); })
+      .catch(() => {});
+    return () => { stop = true; };
+  }, [needPickers, lineId, token]);
   const saveCalls = async () => {
-    if (!callMode || callSaving || !callChanged) return;
+    if (!callMode || callSaving || !canSaveCalls) return;
     if (!token) { setError("Login required to save remark"); return; }
     setCallSaving(true); setError("");
     try {
-      const items = (andon.calls || [])
+      const items = isTbl
+        ? minorRows.filter(rowChanged)
+            .map(c => { const [r, f, a, m] = t4(c);
+              return { type: c.type, machine: c.machine, start: c.start, remark: r,
+                       filled_by: f, attended_by: a, bd_machine: m,
+                       sub_dept: isOth ? (callSub[callKey(c)] || "") : "" }; })
+        : (andon.calls || [])
         .filter(c => (callDraft[callKey(c)] || "").trim()
                      && (callDraft[callKey(c)] || "").trim() !== (c.remark || ""))
         .map(c => ({ type: c.type, machine: c.machine, start: c.start,
@@ -8265,7 +8385,7 @@ function LossRemarkModal({ lineId, payload, onClose, border, bgDeep, text, textS
            style={{
              background: bgDeep, color: text,
              border: `1px solid ${border}`, borderRadius: 10,
-             padding: 16, width: "min(560px, 92vw)",
+             padding: 16, width: (isBd && callMode) ? "min(1180px, 97vw)" : "min(560px, 92vw)",
              maxHeight: "85vh", display: "flex", flexDirection: "column",
              fontFamily: "'Barlow',sans-serif",
              boxShadow: "0 20px 60px rgba(0,0,0,.6)",
@@ -8319,7 +8439,19 @@ function LossRemarkModal({ lineId, payload, onClose, border, bgDeep, text, textS
                     </div>
                   );
                 })}
-                {(andon.calls || []).map((cl, i) => {
+                {isTbl ? (
+                  <BdSlipAndMinor
+                    mode={isOth ? "others" : "breakdown"} callSub={callSub} setCallSub={setCallSub}
+                    calls={andon.calls || []} callKey={callKey} dur={dur} clk={clk}
+                    callDraft={callDraft} setCallDraft={setCallDraft}
+                    callAt={callAt} setCallAt={setCallAt}
+                    callMc={callMc} setCallMc={setCallMc}
+                    machines={(pickers && pickers.machines) || []}
+                    leaders={(pickers && pickers.leaders) || []}
+                    attendees={attendees} toolAttendees={toolAttendees}
+                    onViewSlip={setSlipView} onSave={saveCalls} onOpenSlot={onSwitchSlot}
+                    border={border} text={text} textSub={textSub} textMut={textMut} />
+                ) : (andon.calls || []).map((cl, i) => {
                   const c = STATUS_CLR[cl.status] || "#94a3b8";
                   const full = Math.round(((cl.end ? Date.parse(cl.end) : Date.now())
                                            - Date.parse(cl.start)) / 1000);
@@ -8337,6 +8469,13 @@ function LossRemarkModal({ lineId, payload, onClose, border, bgDeep, text, textS
                         <span>{dur(cl.open_s)}{full - cl.open_s > 1 ? ` of ${dur(full)}` : ""}</span>
                         {cl.fault && <span style={{ color: textMut }}>· {cl.fault}</span>}
                       </div>
+                      {cl.starts_here === false ? (
+                        // carried over from an earlier hour: remarked in the hour it started
+                        <div style={{ fontSize: 12, color: textMut, fontStyle: "italic" }}>
+                          Started in the {cl.start_slot || "previous"} hour — add the remark there.
+                          {cl.remark && <div style={{ fontStyle: "normal", color: textSub, marginTop: 2 }}>{cl.remark}</div>}
+                        </div>
+                      ) : (
                       <textarea
                         value={callDraft[k] || ""}
                         onChange={e => { const v = e.target.value; setCallDraft(d => ({ ...d, [k]: v })); }}
@@ -8353,6 +8492,7 @@ function LossRemarkModal({ lineId, payload, onClose, border, bgDeep, text, textS
                           if ((e.ctrlKey || e.metaKey) && e.key === "Enter") { e.preventDefault(); saveCalls(); }
                         }}
                       />
+                      )}
                       {cl.remark_by && (
                         <div style={{ fontSize: 10, color: textMut, marginTop: 2 }}>
                           by <span style={{ color: "#60a5fa", fontWeight: 700 }}>{cl.remark_by}</span>
@@ -8367,17 +8507,25 @@ function LossRemarkModal({ lineId, payload, onClose, border, bgDeep, text, textS
                               alignItems: "center", gap: 10 }}>
                   <div style={{ fontSize: 10, color: textMut, lineHeight: 1.4 }}>
                     Loss = time the line made no parts while the call was open (breaks excluded).
+                    {isTbl && minorMissing > 0 && (
+                      <span style={{ display: "block", color: "#f59e0b", fontWeight: 700 }}>
+                        Fill every field to save ({minorMissing} {minorMissing === 1 ? "row" : "rows"} incomplete).
+                      </span>
+                    )}
                     {callSavedAt && <span style={{ marginLeft: 6, color: "#22c55e" }}>✓ saved at {callSavedAt}</span>}
                   </div>
-                  <button onClick={saveCalls} disabled={callSaving || !callChanged}
+                  {(!isTbl || minorRows.length > 0) && (
+                  <button onClick={saveCalls} disabled={callSaving || !canSaveCalls}
+                    title={isTbl && minorMissing > 0 ? "Fill Machine No., Attended by and Remarks in every row" : undefined}
                     style={{
                       padding: "6px 16px", fontSize: 12, fontWeight: 800, flexShrink: 0,
-                      background: (callSaving || !callChanged) ? "rgba(34,197,94,.3)" : "#16a34a",
+                      background: (callSaving || !canSaveCalls) ? "rgba(34,197,94,.3)" : "#16a34a",
                       color: "#fff", border: "none", borderRadius: 6, letterSpacing: ".04em",
-                      cursor: (callSaving || !callChanged) ? "not-allowed" : "pointer",
+                      cursor: (callSaving || !canSaveCalls) ? "not-allowed" : "pointer",
                     }}>
                     {callSaving ? "…" : "SAVE"}
                   </button>
+                  )}
                 </div>
               </>
             )}
@@ -8493,6 +8641,303 @@ function LossRemarkModal({ lineId, payload, onClose, border, bgDeep, text, textS
           Ctrl/Cmd + Enter to save · click outside to close
         </div>
       </div>
+      {slipView && (
+        // own click scope: closing the slip must not close the remark card too
+        <div onClick={e => e.stopPropagation()}>
+          <Suspense fallback={null}>
+            <BreakdownSlipPaper row={slipView} onClose={() => setSlipView(null)} />
+          </Suspense>
+        </div>
+      )}
     </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────
+// BdSlipAndMinor (2026-10-16) — the BREAKDOWN calls of one slot, in the
+// Loss Remark card.  A call that has a breakdown slip (Maintenance_DX makes
+// one for a call open >= 5 min) shows the slip's key fields and "View slip"
+// (the full TBDI/MAINT/F/001 paper).  The minor calls (no slip) are one
+// table: # · Start Time · End Time · Total Time · Machine No. · Machine
+// Name · Department · Attended by · Remarks (the andon panel's own machine is
+// not shown — production picks the real one); the card keeps SAVE off until
+// every field of every row is filled.
+// Attended by suggests the zone's line leaders when the Department is
+// Production, else the maintenance staff on duty.
+// ─────────────────────────────────────────────────────────────────
+// Department per call type (operator, 16-Oct 15:00): a Maintenance call offers
+// Maintenance / Production, a Toolroom call Tool Room / Production; the call's
+// own department is the default.
+function bdDeptOf(type) { return /tool/i.test(type || "") ? "Tool Room" : "Maintenance"; }
+
+// NameCombo (2026-10-21) — a name picker that opens as a vertical list on every
+// screen.  The Attended-by field was an <input list> + <datalist>, which the
+// Android panels show as a one-line keyboard suggestion strip at the bottom of
+// the screen (operator).  Typing filters the list; any typed name is kept.  The
+// list is position:fixed so the table's scroll box can't clip it, and opens
+// upward when there is no room below.
+function NameCombo({ value, onChange, options, placeholder, style, onKeyDown, maxLength }) {
+  const inRef = useRef(null);
+  const listRef = useRef(null);
+  const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState(null);
+  const q = String(value || "").trim().toLowerCase();
+  const list = (options || []).filter(n => n && (!q || String(n).toLowerCase().includes(q)));
+  const place = (n) => {
+    const el = inRef.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    const h = Math.min(260, 38 * Math.max(1, n) + 8);
+    const below = window.innerHeight - r.bottom;
+    const up = below < h + 8 && r.top > below;
+    setPos({ left: r.left, width: Math.max(r.width, 190), maxH: h,
+             top: up ? Math.max(8, r.top - h - 4) : r.bottom + 4 });
+  };
+  useEffect(() => {
+    if (!open) return;
+    const close = (e) => { if (!listRef.current || !listRef.current.contains(e.target)) setOpen(false); };
+    const closeNow = () => setOpen(false);
+    window.addEventListener("scroll", close, true);
+    window.addEventListener("resize", closeNow);
+    return () => { window.removeEventListener("scroll", close, true); window.removeEventListener("resize", closeNow); };
+  }, [open]);
+  return (
+    <>
+      <input ref={inRef} value={value || ""} maxLength={maxLength} placeholder={placeholder}
+        style={style} autoComplete="off"
+        onFocus={() => { place(list.length); setOpen(true); }}
+        onClick={() => { place(list.length); setOpen(true); }}
+        onBlur={() => setTimeout(() => setOpen(false), 150)}
+        onKeyDown={e => { if (e.key === "Escape") setOpen(false); if (onKeyDown) onKeyDown(e); }}
+        onChange={e => { onChange(e.target.value); place(list.length); setOpen(true); }} />
+      {open && pos && list.length > 0 && createPortal(
+        <div ref={listRef}
+          style={{ position: "fixed", left: pos.left, top: pos.top, width: pos.width, maxHeight: pos.maxH,
+                   boxSizing: "border-box",
+                   overflowY: "auto", zIndex: 100000, background: "#ffffff", color: "#111827",
+                   borderRadius: 10, boxShadow: "0 10px 28px rgba(0,0,0,.45)", padding: "4px 0",
+                   fontFamily: "'Barlow',sans-serif" }}>
+          {list.map(n => (
+            <div key={n}
+              onPointerDown={e => { e.preventDefault(); onChange(n); setOpen(false); }}
+              style={{ padding: "9px 16px", fontSize: 14, cursor: "pointer", whiteSpace: "nowrap",
+                       background: String(n).toLowerCase() === q ? "#e0ecff" : "transparent" }}>
+              {n}
+            </div>
+          ))}
+        </div>, document.body)}
+    </>
+  );
+}
+
+function BdSlipAndMinor({ calls, callKey, dur, clk, callDraft, setCallDraft,
+                          callAt, setCallAt, callMc, setCallMc, machines, leaders, toolAttendees,
+                          attendees, onViewSlip, onSave, onOpenSlot, mode = "breakdown",
+                          callSub = {}, setCallSub = () => {},
+                          border, text, textSub, textMut }) {
+  const oth = mode === "others";
+  const num = new Map(calls.map((c, i) => [callKey(c), i + 1]));
+  const slipCalls = calls.filter(c => c.slip);
+  const minor = calls.filter(c => !c.slip);
+  const full = (cl) => cl.end ? Math.round((Date.parse(cl.end) - Date.parse(cl.start)) / 1000) : cl.open_s;
+  const durTxt = (cl) => `${dur(cl.open_s)}${full(cl) - cl.open_s > 1 ? ` of ${dur(full(cl))}` : ""}`;
+  const STAGE = { COMPLETED: "#22c55e", PENDING_MAINTENANCE: "#f59e0b", PENDING_PRODUCTION: "#ef4444" };
+  const inp = {
+    width: "100%", padding: "5px 7px", fontSize: 12, boxSizing: "border-box",
+    background: "rgba(255,255,255,0.04)", color: text,
+    border: `1px solid ${border}`, borderRadius: 5, fontFamily: "'Barlow',sans-serif",
+  };
+  const miss = (v) => !(v || "").trim();
+  const onKey = (e) => { if ((e.ctrlKey || e.metaKey) && e.key === "Enter") { e.preventDefault(); onSave(); } };
+  const th = { textAlign: "left", padding: "5px 6px", fontSize: 10, fontWeight: 800, color: textSub,
+               letterSpacing: ".05em", textTransform: "uppercase", borderBottom: `1px solid ${border}`,
+               whiteSpace: "nowrap" };
+  const td = { padding: "5px 6px", verticalAlign: "top", borderBottom: `1px solid ${border}` };
+
+  return (
+    <>
+      {slipCalls.map(cl => {
+        const s = cl.slip;
+        const sc = STAGE[s.stage] || "#94a3b8";
+        const line = (label, v) => v ? (
+          <div style={{ display: "flex", gap: 6 }}>
+            <span style={{ color: textMut, minWidth: 92, flexShrink: 0 }}>{label}</span>
+            <span style={{ color: text, whiteSpace: "pre-wrap" }}>{v}</span>
+          </div>) : null;
+        return (
+          <div key={callKey(cl)} style={{ marginTop: 8, borderTop: `1px solid ${border}`, paddingTop: 7 }}>
+            <div style={{ display: "flex", gap: 8, fontSize: 12, color: textSub,
+                          flexWrap: "wrap", alignItems: "baseline", marginBottom: 5 }}>
+              <span style={{ color: text, fontWeight: 800 }}>#{num.get(callKey(cl))}</span>
+              <span style={{ fontFamily: "monospace", color: text }}>
+                {clk(cl.start)}–{cl.ongoing ? "open" : clk(cl.end)}
+              </span>
+              <span style={{ color: STATUS_CLR[cl.status] || "#94a3b8", fontWeight: 800 }}>{cl.type}</span>
+              <span>{durTxt(cl)}</span>
+              {cl.starts_here === false && (
+                <span style={{ color: textMut, fontStyle: "italic" }}>· started in the {cl.start_slot || "previous"} hour</span>
+              )}
+              <span style={{ marginLeft: "auto", display: "flex", gap: 6, alignItems: "center" }}>
+                <span style={{ fontSize: 11, fontWeight: 800, color: sc, border: `1px solid ${sc}`,
+                               borderRadius: 10, padding: "1px 8px" }}>
+                  Slip #{s.id} · {s.stage_label}
+                </span>
+                <button onClick={() => onViewSlip({ src: s.src, id: s.id, stage: s.stage,
+                                                    stage_label: s.stage_label, dept: s.dept })}
+                  style={{ padding: "3px 10px", fontSize: 11, fontWeight: 800, cursor: "pointer",
+                           background: "#2563eb", color: "#fff", border: "none", borderRadius: 5 }}>
+                  View slip
+                </button>
+              </span>
+            </div>
+            <div style={{ fontSize: 12, lineHeight: 1.5, padding: "6px 9px", borderRadius: 6,
+                          background: "rgba(255,255,255,0.03)", border: `1px solid ${border}` }}>
+              {line("Machine", [s.machine_no, s.machine_name].filter(Boolean).join(" · "))}
+              {line("Down time", s.down_min != null ? `${s.down_min} min${s.ok_time ? ` (OK ${s.ok_time})` : ""}` : "")}
+              {line("Problem", s.problem)}
+              {line("Observed", s.observed)}
+              {line("Action taken", s.action)}
+              {line("Attended by", s.attended_by)}
+              {!s.problem && !s.observed && !s.action && (
+                <div style={{ color: textMut }}>Production has not filled this slip yet.</div>
+              )}
+            </div>
+          </div>
+        );
+      })}
+
+      {minor.length > 0 && (
+        <div style={{ marginTop: 10, borderTop: slipCalls.length ? `1px solid ${border}` : "none",
+                      paddingTop: slipCalls.length ? 8 : 0 }}>
+          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: ".06em", color: textSub,
+                        marginBottom: 4, textTransform: "uppercase" }}>
+            {oth ? "Other loss calls" : "Minor stoppages (no slip)"}
+          </div>
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, minWidth: 980 }}>
+              <thead>
+                <tr>
+                  <th style={th}>#</th>
+                  <th style={th}>Start Time</th>
+                  <th style={th}>End Time</th>
+                  <th style={th}>Total Time</th>
+                  <th style={{ ...th, width: 135 }}>Machine No.</th>
+                  <th style={{ ...th, width: 170 }}>Machine Name</th>
+                  <th style={{ ...th, width: 110 }}>Department</th>
+                  {oth && <th style={{ ...th, width: 130 }}>Sub Department</th>}
+                  <th style={{ ...th, width: 160 }}>Attended by</th>
+                  <th style={th}>Remarks</th>
+                </tr>
+              </thead>
+              <tbody>
+                {minor.map(cl => {
+                  const k = callKey(cl);
+                  const by = cl.remark_by ? `Saved by ${cl.remark_by}${cl.remark_at ? " · " + new Date(cl.remark_at)
+                    .toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) : ""}` : undefined;
+                  const red = (v) => (cl.ongoing || !miss(v)) ? {} : { borderColor: "rgba(245,158,11,.7)" };
+                  // Machine Name follows the picked number (machine master; the MES
+                  // fallback list has the name as its number).
+                  const mPick = machines.find(m => m.machine_no === (callMc[k] || ""));
+                  const mName = mPick ? (mPick.machine_name || mPick.machine_no) : "";
+                  // 2026-10-21 — fixed: the button's own department; Others = Production
+                  const dept = oth ? "Production" : bdDeptOf(cl.type);
+                  return (
+                    <tr key={k} title={by}>
+                      <td style={{ ...td, whiteSpace: "nowrap", color: text, fontWeight: 800 }}>{num.get(k)}</td>
+                      <td style={{ ...td, whiteSpace: "nowrap", fontFamily: "monospace", color: text }}>{clk(cl.start)}</td>
+                      <td style={{ ...td, whiteSpace: "nowrap", fontFamily: "monospace", color: cl.ongoing ? "#f59e0b" : text }}>
+                        {cl.ongoing ? "open" : clk(cl.end)}
+                      </td>
+                      <td style={{ ...td, whiteSpace: "nowrap", color: text }}>
+                        {dur(full(cl))}
+                        {full(cl) - cl.open_s > 1 && (
+                          <div style={{ fontSize: 10, color: textMut }}>{dur(cl.open_s)} in this slot</div>
+                        )}
+                      </td>
+                      {cl.starts_here === false ? (
+                        // carried over from an earlier hour: remarked in the hour it started
+                        <td colSpan={oth ? 6 : 5} style={{ ...td, color: textMut }}>
+                          <span style={{ fontStyle: "italic" }}>
+                            Started in the {cl.start_slot || "previous"} hour — fill it there.
+                          </span>
+                          {cl.start_slot && onOpenSlot && (
+                            <button type="button" onClick={() => onOpenSlot(cl.start_slot)}
+                              style={{ marginLeft: 8, padding: "3px 10px", fontSize: 11, fontWeight: 700,
+                                       border: "1px solid #3b82f6", borderRadius: 5, background: "transparent",
+                                       color: "#60a5fa", cursor: "pointer" }}>
+                              Open {cl.start_slot} →
+                            </button>
+                          )}
+                          {(cl.bd_machine || cl.remark) && (
+                            <div style={{ color: textSub, marginTop: 2 }}>
+                              {[cl.bd_machine, cl.filled_by, cl.attended_by, cl.remark].filter(Boolean).join(" · ")}
+                            </div>
+                          )}
+                        </td>
+                      ) : cl.ongoing ? (
+                        <td colSpan={oth ? 6 : 5} style={{ ...td, color: textMut, fontStyle: "italic" }}>
+                          Call still open — fill once it is closed.
+                        </td>
+                      ) : (
+                        <>
+                          <td style={td}>
+                            {machines.length ? (
+                              <select value={callMc[k] || ""} style={{ ...inp, ...red(callMc[k]) }}
+                                onChange={e => { const v = e.target.value; setCallMc(d => ({ ...d, [k]: v })); }}>
+                                <option value="">Select…</option>
+                                {machines.map(m => (
+                                  <option key={m.machine_no} value={m.machine_no}>{m.machine_no}</option>
+                                ))}
+                                {callMc[k] && !machines.some(m => m.machine_no === callMc[k])
+                                  && <option value={callMc[k]}>{callMc[k]}</option>}
+                              </select>
+                            ) : (
+                              <input value={callMc[k] || ""} maxLength={80} placeholder="Machine No."
+                                style={{ ...inp, ...red(callMc[k]) }} onKeyDown={onKey}
+                                onChange={e => { const v = e.target.value; setCallMc(d => ({ ...d, [k]: v })); }} />
+                            )}
+                          </td>
+                          <td style={{ ...td, color: mName ? text : textMut, fontSize: 12, lineHeight: 1.3 }}>
+                            <div style={{ padding: "5px 0" }}>{mName || "—"}</div>
+                          </td>
+                          <td style={{ ...td, color: text, fontWeight: 700 }}>
+                            <div style={{ padding: "5px 0" }}>{dept}</div>
+                          </td>
+                          {oth && (
+                            <td style={td}>
+                              <select value={callSub[k] || ""} style={inp}
+                                onChange={e => { const v = e.target.value; setCallSub(d => ({ ...d, [k]: v })); }}>
+                                <option value="">— (optional)</option>
+                                <option value="Maintenance">Maintenance</option>
+                                <option value="Tool Room">Tool Room</option>
+                              </select>
+                            </td>
+                          )}
+                          <td style={td}>
+                            <NameCombo
+                              options={dept === "Production" ? leaders
+                                       : dept === "Tool Room" ? (toolAttendees || []) : attendees}
+                              value={callAt[k] || ""} maxLength={160}
+                              placeholder={dept === "Production" ? "Line leader" : "Name"}
+                              style={{ ...inp, ...red(callAt[k]) }} onKeyDown={onKey}
+                              onChange={v => setCallAt(d => ({ ...d, [k]: v }))} />
+                          </td>
+                          <td style={td}>
+                            <input value={callDraft[k] || ""} maxLength={2000}
+                              placeholder="What happened / what was done" style={{ ...inp, ...red(callDraft[k]) }}
+                              onKeyDown={onKey}
+                              onChange={e => { const v = e.target.value; setCallDraft(d => ({ ...d, [k]: v })); }} />
+                          </td>
+                        </>
+                      )}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

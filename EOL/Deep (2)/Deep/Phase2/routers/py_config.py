@@ -21,6 +21,8 @@ master stay as-is.  The OLD /api/poka-yoke + /api/py-stations run in parallel
 until this is verified end-to-end (sensing → fullscreen) and cut over.
 """
 
+import re
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from typing import Optional, List
@@ -142,7 +144,65 @@ def meta_stations(line_id: int = Query(...), user=Depends(get_current_user)):
             GROUP BY station_code
             ORDER BY min(sort_order)
         """, (line_id,))
-        return cur.fetchall()
+        rows = cur.fetchall()
+        if rows:
+            return rows
+        # 2026-10-14 — lines whose machine-master codes carry no SS_nn / RC_nn
+        # (YWD zone: "YWD-SS-MS-0109", "YWD-RC-MS-0110") got an empty Station
+        # list, so no PY could be configured.  Fall back, in order, to:
+        #   1. the station labels the line's PY config already uses;
+        #   2. the station codes of the zone's PY master — the master form has
+        #      no station field, so new PYs land on the column default SS_08
+        #      (= final inspection) and the PY list must find them there;
+        #   3. one station per machine of the line (main first): SS_01.. on a
+        #      seat-slider line, RC_01.. on a recliner line, ST_01.. otherwise.
+        cur.execute("""
+            SELECT station_label AS "stationCode", min(station_seq) AS "seq",
+                   NULL AS "machineName", NULL AS "fullCode"
+            FROM mes_py_config
+            WHERE line_id = %s AND COALESCE(station_label, '') <> ''
+            GROUP BY station_label
+            ORDER BY min(station_seq) NULLS LAST, station_label
+        """, (line_id,))
+        rows = cur.fetchall()
+        if rows:
+            return rows
+        cur.execute("""
+            SELECT m.station_code AS "stationCode", NULL::int AS "seq",
+                   CASE WHEN (SELECT count(*) FROM mes_plc_configs pc
+                               WHERE pc.line_id = %s
+                                 AND COALESCE(pc.protocol, '') <> 'VIRTUAL') = 1
+                        THEN (SELECT pc.machine_name FROM mes_plc_configs pc
+                               WHERE pc.line_id = %s
+                                 AND COALESCE(pc.protocol, '') <> 'VIRTUAL')
+                   END AS "machineName",
+                   NULL AS "fullCode"
+            FROM mes_py_master m
+            WHERE COALESCE(m.is_active, true)
+              AND COALESCE(m.station_code, '') <> ''
+              AND m.zone_id = (SELECT zone_id FROM mes_lines WHERE id = %s)
+            GROUP BY m.station_code
+            ORDER BY m.station_code
+        """, (line_id, line_id, line_id))
+        rows = cur.fetchall()
+        if rows:
+            return rows
+        cur.execute("""
+            SELECT l.line_code, l.line_name, pc.machine_name
+            FROM mes_lines l JOIN mes_plc_configs pc ON pc.line_id = l.id
+            WHERE l.id = %s AND COALESCE(pc.protocol, '') <> 'VIRTUAL'
+            ORDER BY (pc.parent_plc_id IS NOT NULL), pc.machine_seq NULLS LAST, pc.id
+        """, (line_id,))
+        machines = cur.fetchall()
+        if not machines:
+            return []
+        words = re.split(r"[^A-Z0-9]+", f"{machines[0]['line_code'] or ''} "
+                                        f"{machines[0]['line_name'] or ''}".upper())
+        kind = ("SS" if "SS" in words else
+                "RC" if "RC" in words or any(w.startswith("REC") for w in words) else "ST")
+        return [{"stationCode": f"{kind}_{i:02d}", "seq": i,
+                 "machineName": m["machine_name"], "fullCode": None}
+                for i, m in enumerate(machines, 1)]
 
 
 @router.get("/meta/py-master")

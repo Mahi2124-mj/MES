@@ -5547,7 +5547,10 @@
                   size rules (#wcBtn is listed with LINE/SHIFT above); here it
                   only has to stop looking like a browser button. */
                #wcBtn {
-                  font: inherit;
+                  /* 2026-10-19 — the same face as the LINE / SHIFT fields (inputs
+                     take the browser's 13.33 px Arial); inherit gave the page's
+                     16 px Times. */
+                  font: 400 13.3333px Arial, Helvetica, sans-serif;
                   border: none;
                   padding: 0;
                   cursor: pointer;
@@ -5569,19 +5572,24 @@
                   color: #222;
                }
 
+               /* 2026-10-17 — each zone its own light colour (operator: "sab white
+                  hi hai, pahchanne me dikkat"): --z-bg header tint, --z-bd strip on
+                  the header and on that zone's rows.  Set per zone by wcBuildPanel. */
                #wcPanel .wcz-h {
                   display: flex;
                   justify-content: space-between;
                   gap: 10px;
                   padding: 7px 10px;
                   font-weight: bold;
-                  background: #f3f7fb;
+                  background: var(--z-bg, #f3f7fb);
+                  border-left: 5px solid var(--z-bd, #cbd5e1);
                   border-bottom: 1px solid #e4eaf0;
                   cursor: pointer;
                   user-select: none;
                }
 
-               #wcPanel .wcz-h:hover { background: #e9f1fa; }
+               #wcPanel .wcz-h:hover { filter: brightness(0.96); }
+               #wcPanel .wcz-l .wc-i { border-left: 5px solid var(--z-bd, transparent); }
                #wcPanel .wcz-h .wcz-car { color: #5b6b7b; font-weight: normal; }
                #wcPanel .wcz-l { display: none; }
                #wcPanel .wcz-l.open { display: block; }
@@ -6287,6 +6295,47 @@
                      // NON CORE JOB / NPP TOTAL: typed values, "-"/blank = 0, 2 decimals.
                      lists.forEach(l => { if (l.length > 1) put(l[l.length - 1], f2(l.slice(0, -1).reduce((a, el) => a + (numOf(el) || 0), 0))); });
                   }
+                  // 2026-10-16 — every man-hour that multiplies by manpower uses the header's
+                  // Manpower Actual (Op + Sup), on every line (operator ask):
+                  //   Normal (a) / Overtime (b): Present Manpower = Actual, Man Hour = Hour × it
+                  //   SEMI CORE 32 / 39 = 5 min × Actual, 82 = 0.33 × Actual,
+                  //   33 = speed-loss min × Actual ÷ 60
+                  //   CORE 23 / 24 = material / breakdown min × Actual ÷ 60, per hour
+                  // fillWorkHours / fillLosses put provisional values (operator count);
+                  // fillHeader → hdrRecalc → mpApply replaces them.  force = Actual (or what
+                  // it is built from) was just edited: Present Manpower and its Man Hour give
+                  // way even if typed; every other typed value is kept.
+                  let lossMpSrc = null;          // { n, bd[], ma[], sp } loss minutes of the loaded shift (fillLosses)
+                  function mpApply(act, force) {
+                     const a = numOf(act), ops = a != null && a > 0 ? a : 0;
+                     const { detail, semi } = whCells();
+                     const put = (el, v, f) => {
+                        if (!el || (!f && el.dataset.peffManual === whCtx)) return;
+                        delete el.dataset.peffManual; el.value = v;
+                     };
+                     [detail[0], detail[1]].forEach((r, ri) => {
+                        if (!r || r.length < 3) return;
+                        // Overtime shows a manpower only when it has hours (no OT → "-").
+                        put(r[1], a == null || (ri === 1 && numOf(r[0]) == null) ? DASH : String(a), force);
+                        const h = numOf(r[0]), pm = numOf(r[1]);
+                        put(r[2], h == null || pm == null ? DASH : f2(h * pm), force);
+                     });
+                     semi.slice(0, SC_TOTAL).forEach((el, i) => {
+                        if (i === SC_R32 || i === SC_R39) put(el, a == null ? DASH : f2(FIVE_S_MIN / 60 * a));
+                        if (i === SC_R82) put(el, a == null ? DASH : f2(PAID_BREAK_HRS * ops));
+                     });
+                     const src = lossMpSrc;
+                     if (src) {
+                        const { core, r33 } = lossCells();
+                        for (let c = 0; c < src.n && c < CJ_HOURS; c++) {
+                           if (src.bd[c] != null && core[CJ_R24]) setLoss(core[CJ_R24][c], fmh(src.bd[c] * ops / 60));
+                           if (src.ma[c] != null && core[CJ_R23]) setLoss(core[CJ_R23][c], fmh(src.ma[c] * ops / 60));
+                        }
+                        if (src.sp != null) setLoss(r33, f2(src.sp * ops / 60));
+                     }
+                     whRecalc(force);
+                     if (src) lossRecalc(null);
+                  }
                   function whWire() {
                      if (whWire.done) return;
                      whWire.done = true;
@@ -6302,7 +6351,7 @@
                         });
                      });
                   }
-                  async function fillWorkHours(lineId, date, shift, tok, isCurrent) {
+                  async function fillWorkHours(lineId, date, shift, tok, isCurrent, hoursData) {
                      const get = async url => {
                         try { const r = await fetch(url, { headers: { Authorization: "Bearer " + tok } }); return r.ok ? await r.json() : null; }
                         catch (e) { return null; }
@@ -6318,7 +6367,7 @@
                         delete el.dataset.peffManual; el.value = v;
                      };
 
-                     // Normal (a) hours = (span − meal breaks + 5 min 5S) / 60; Overtime from the OT window.
+                     // Normal (a) hours = (span − meal breaks + 5 min 5S) / 60.
                      const row = Array.isArray(shifts) ? shifts.find(r => String(r.shift_name).toUpperCase() === shift) : null;
                      const s = row ? toMin(row.start_time) : null, e = row ? toMin(row.end_time) : null;
                      let hA = null, hB = null;
@@ -6326,15 +6375,22 @@
                         let span = e - s;
                         if (row.crosses_midnight || span <= 0) span += 1440;
                         hA = (span - mealMinutes(breaks, shift, s, span) + FIVE_S_MIN) / 60;
-                        const os = toMin(row.ot_start_time), oe = toMin(row.ot_end_time);
-                        if (row.ot_enabled && os != null && oe != null) hB = mins(os, oe) / 60;
                      }
                      const M = mp.m;                                            // null = not readable
                      whManpower = M;                                            // loss man-hours use the same count
                      whBreaks = Array.isArray(breaks) ? breaks : null;          // row 11 OT supervisor time
+                     // Overtime (b) = the OT that actually RAN: the OT hour column(s) of
+                     // /api/peff/data (only there when the shift's own parts fell in the
+                     // OT window, or an OT plan was set), minus breaks.  2026-10-19 — it
+                     // used to print the whole configured OT window whenever ot_enabled
+                     // was on (YCA-SS A: 17:15→06:20 = 13.08 h while A was still running).
+                     const otRan = otSupervisorHours(hoursData, shift);
+                     if (otRan.anyOt) hB = otRan.hrs;
                      const { detail, semi, lists } = whCells();
                      const n = detail[0] || [], o = detail[1] || [];
                      setAuto(n[0], hA == null ? DASH : f2(hA));
+                     // Present Manpower / Man Hour and rows 32 / 39 / 82: provisional —
+                     // fillHeader → hdrRecalc → mpApply sets them from Manpower Actual (Op + Sup).
                      setAuto(n[1], M == null ? DASH : String(M));
                      setAuto(n[2], hA == null || M == null ? DASH : f2(hA * M));
                      setAuto(o[0], hB == null ? DASH : f2(hB));
@@ -6365,20 +6421,37 @@
                   //   • 21 22 11 12 13 14 23 24 25 26 27: 0 in every hour, except
                   //       24 Waiting due to machine breakdown = breakdown min × operators ÷ 60
                   //       23 Waiting due to material shortage = material min × operators ÷ 60
+                  //       14 Small Maint. first hour = R14_FIRST_HOUR (by zone / line)
                   //   • SEMI CORE JOB 33 "OJT Time" (one Man Hour cell for the shift)
                   //       = speed-loss min × operators ÷ 60
                   //   • TOTAL row and SUB TOTAL column: sums, 2 decimals.
                   //   • Time duration / Losses in Minutes / Reason 4M / Losses Detail per hour.
                   //   • Summary Line Stop, in MINUTES: Man = speed, Equip.(E) = breakdown,
                   //     Material (M) = material, Process (P) = 0, Others (O) = others.
-                  // "Operators" = the count fillWorkHours uses (Shift Allocation).  Every
+                  // "Operators" = Manpower Actual (Op + Sup) since 2026-10-16 (mpApply; the
+                  // Shift Allocation count is only the provisional first pass).  Every
                   // cell stays editable: a typed value is kept for that line/date/shift
                   // (whCtx) through reloads and refits, and the totals follow the edit.
                   const CJ_HOURS = 12, CJ_SUB = 12;                  // 12 hour columns, then SUB TOTAL
-                  const CJ_CYCLIC = 0, CJ_R11 = 3, CJ_R23 = 7, CJ_R24 = 8, CJ_TOTAL = 12;
+                  const CJ_CYCLIC = 0, CJ_R11 = 3, CJ_R14 = 6, CJ_R23 = 7, CJ_R24 = 8, CJ_TOTAL = 12;
+                  // Row 14 Small Maint. (Tip / Wire) — 2026-10-16: a default in the FIRST
+                  // hour only (other hours 0), by zone / line (operator ask); editable.
+                  const R14_FIRST_HOUR = name => {
+                     const k = normLine(name);
+                     const exact = { YWDSS: "0.40", YWDRECLINER: "0.06", "2UARECLINER": "0.06", GEARLIFTER: "0.08" };
+                     if (exact[k]) return exact[k];                       // YWD / 2UA zone
+                     if (k.indexOf("LOOPPIPE") === 0) return "0.17";      // Loop Pipe 1 / 2 / 3
+                     if (/SS$/.test(k)) return "0.50";                    // Seat Slider zone
+                     if (/RECLINER$/.test(k)) return "0.416";             // Recliner zone
+                     return null;                                         // other zones: 0
+                  };
                   // Row 11 Supervisory (2026-09-22): "-" in every hour, SUB TOTAL a fixed
-                  // 3.88 man-hours (YMC-SS 7.75) — or the sum, once hours are typed in.
-                  const SUP_HRS = name => normLine(name) === "YMCSS" ? "7.75" : "3.88";
+                  // 3.88 man-hours (YMC-SS 7.75, Loop Pipe 1/2/3 2.58 since 2026-10-16)
+                  // — or the sum, once hours are typed in.
+                  const SUP_HRS = name => {
+                     const k = normLine(name);
+                     return k === "YMCSS" ? "7.75" : k.indexOf("LOOPPIPE") === 0 ? "2.58" : "3.88";
+                  };
                   let lossSupDefault = "", lossOtNote = "";
                   // "3.88 + 2.83" (row 11 SUB TOTAL with OT) counts as the sum.
                   const numSum = el => {
@@ -6568,6 +6641,7 @@
                   }
                   function fillLosses(data, M) {
                      lossWire();
+                     lossMpSrc = null;                            // set below once this shift's minutes are read
                      const { core, head, detail, stop, r33 } = lossCells();
                      const L = Array.isArray(data.losses) ? data.losses : null;
                      const hours = data.hours || [];
@@ -6589,6 +6663,7 @@
                      const at = i => (L ? (byLabel[(hours[i] || {}).label] || L[i] || null) : null);
 
                      // ── CORE JOB MAN HOUR hour grid ──
+                     const r14 = R14_FIRST_HOUR(data.line_name);
                      for (let r = 0; r < CJ_TOTAL && r < core.length; r++) {
                         for (let c = 0; c < CJ_HOURS; c++) {
                            let v = "";
@@ -6598,6 +6673,7 @@
                               v = r === CJ_CYCLIC ? DASH : "0";
                               if (l && r === CJ_R24) v = fmh(num(l.breakdown_min) * ops / 60);
                               if (l && r === CJ_R23) v = fmh(num(l.material_min) * ops / 60);
+                              if (r === CJ_R14 && c === 0 && r14) v = r14;
                            }
                            setLoss(core[r][c], v);
                         }
@@ -6606,6 +6682,12 @@
                      let sp = 0, bd = 0, ma = 0, ot = 0;
                      (L || []).forEach(l => { sp += num(l.speed_min); bd += num(l.breakdown_min); ma += num(l.material_min); ot += num(l.others_min); });
                      if (L) setLoss(r33, f2(sp * ops / 60));
+                     // Loss minutes kept for mpApply (rows 23 / 24 / 33 × Manpower Actual).
+                     {
+                        const bdc = [], mac = [];
+                        for (let c = 0; c < n; c++) { const l = at(c); bdc.push(l ? num(l.breakdown_min) : null); mac.push(l ? num(l.material_min) : null); }
+                        lossMpSrc = { n, bd: bdc, ma: mac, sp: L ? sp : null };
+                     }
                      setLoss(stop[LS.MAN], L ? fmin(sp) : "");
                      setLoss(stop[LS.E], L ? fmin(bd) : "");
                      setLoss(stop[LS.M], L ? fmin(ma) : "");
@@ -6661,9 +6743,11 @@
                      const mdl = G.rows.map((r, i) => i).filter(i => G.rows[i].isModel);
                      const last = mdl.length ? mdl[mdl.length - 1] : -1;
                      const planKnown = G.ordered;
-                     // OK Prod first: the plan of every model but the last is its OK Prod.
+                     // 2026-10-19 — OK Prod is the MES OK count (filled); Total Prod =
+                     // OK Prod + the NG Prod the leader types.  The plan of every model
+                     // but the last is its OK Prod.
                      G.rows.forEach(r => {
-                        node(r.ok, [r.total, r.ng], () => numOf(r.total) == null ? "" : n2(numOf(r.total) - (numOf(r.ng) || 0)));
+                        node(r.total, [r.ok, r.ng], () => numOf(r.ok) == null ? "" : n2(numOf(r.ok) + (numOf(r.ng) || 0)));
                      });
                      mdl.forEach(i => {
                         if (i === last) return;
@@ -6681,9 +6765,9 @@
                         node(r.bal, [r.ok, r.plan], () => (numOf(r.ok) == null || numOf(r.plan) == null) ? "" : n2(numOf(r.ok) - numOf(r.plan)));
                      });
                      const t = G.tot, sumOf = els => { const v = els.map(numOf).filter(x => x != null); return v.length ? n2(v.reduce((a, b) => a + b, 0)) : ""; };
-                     node(t.total, G.rows.map(r => r.total), () => sumOf(G.rows.map(r => r.total)));
+                     node(t.ok, G.rows.map(r => r.ok), () => sumOf(G.rows.map(r => r.ok)));
                      node(t.ng, G.rows.map(r => r.ng), () => sumOf(G.rows.map(r => r.ng)));
-                     node(t.ok, [t.total, t.ng], () => numOf(t.total) == null ? "" : n2(numOf(t.total) - (numOf(t.ng) || 0)));
+                     node(t.total, [t.ok, t.ng], () => numOf(t.ok) == null ? "" : n2(numOf(t.ok) + (numOf(t.ng) || 0)));
                      node(t.plan, [], () => G.shiftPlan == null ? "" : n2(G.shiftPlan));
                      node(t.bal, [t.ok, t.plan], () => (numOf(t.ok) == null || numOf(t.plan) == null) ? "" : n2(numOf(t.ok) - numOf(t.plan)));
                      prodGraph = nodes;
@@ -6759,7 +6843,13 @@
                                             "YRA Recliner", "YHB Recliner"].map(normLine);
                   // Also drives row 82 (Paid Break) — one list for both.
                   function countsLeader(lineName) { return MP_COUNTS_LEADER.includes(normLine(lineName)); }
-                  let hdrLeaderAdd = 0;
+                  // 2026-10-16 — fixed Manpower Plan / Actual (Op + Sup) on these lines
+                  // (operator ask): [line, plan, actual]; actual null = from the count.
+                  // Loop Pipe-Line 1 runs 3 people but Shift Allocation lists only 2.
+                  const MP_FIXED = {};
+                  [["Loop Pipe-Line 1", 3, 3], ["Loop Pipe-Line 2", 2, null], ["Loop Pipe-Line 3", 2, null]]
+                     .forEach(([l, p, a]) => { MP_FIXED[normLine(l)] = { plan: p, act: a }; });
+                  let hdrLeaderAdd = 0, hdrPlanFixed = null, hdrActFixed = null;
                   function hdrCells() {
                      const oi = [...document.querySelectorAll("#onrole input")];
                      const pi = [...document.querySelectorAll("#plan_actual input")];
@@ -6772,6 +6862,8 @@
                      const force = new Set();
                      if (edited && (edited === op || edited === sup)) { force.add(tot); force.add(plan); force.add(act); }
                      if (edited && edited === tot) { force.add(plan); force.add(act); }
+                     if (hdrPlanFixed != null) force.delete(plan);       // a fixed value does not follow the count
+                     if (hdrActFixed != null) force.delete(act);
                      const put = (el, v) => {
                         if (!el || el === edited) return;
                         if (el.dataset.peffManual === whCtx && !force.has(el)) return;
@@ -6784,8 +6876,9 @@
                      const t = numOf(tot);
                      // A line with nobody allocated stays 0 (no lone "+1" for the leader).
                      const pv = t == null ? "" : n2(t > 0 ? t + hdrLeaderAdd : t);
-                     put(plan, pv);
-                     put(act, pv);
+                     put(plan, hdrPlanFixed != null ? String(hdrPlanFixed) : pv);
+                     put(act, hdrActFixed != null ? String(hdrActFixed) : pv);
+                     mpApply(act, edited === act || force.has(act));
                   }
                   function hdrWire() {
                      if (hdrWire.done) return;
@@ -6811,15 +6904,31 @@
                      hdrWire();
                      const M = whManpower;
                      hdrLeaderAdd = countsLeader(data.line_name) ? 1 : 0;
+                     const fx = MP_FIXED[normLine(data.line_name)] || {};
+                     hdrPlanFixed = fx.plan == null ? null : fx.plan;
+                     hdrActFixed = fx.act == null ? null : fx.act;
                      const c = hdrCells();
                      setLoss(c.op, M == null ? DASH : String(M));
                      setLoss(c.sup, "0");
                      hdrRecalc(null);
-                     // Working time: Sunday = holiday, any other day = regular.
+                     // Working time from the Annual Calendar (Admin → Production → Annual
+                     // Calendar: D-QMP's FY calendar + days changed in MES) — 2026-10-08.
+                     // A Sunday working day reads Regular, a holiday or shutdown reads Holiday.
+                     // If the calendar can't be read, the old rule stays: Sunday = holiday.
                      if (c.holiday && c.regular && c.holiday.dataset.peffManual !== whCtx && c.regular.dataset.peffManual !== whCtx) {
-                        const sunday = new Date(date + "T00:00:00Z").getUTCDay() === 0;
-                        c.holiday.checked = sunday;
-                        c.regular.checked = !sunday;
+                        let off = new Date(date + "T00:00:00Z").getUTCDay() === 0;
+                        try {
+                           const rc = await fetch("/api/working-calendar/day?date=" + encodeURIComponent(date),
+                              { headers: { Authorization: "Bearer " + tok } });
+                           if (rc.ok) {
+                              const cd = await rc.json();
+                              if (typeof cd.working === "boolean") off = !cd.working;
+                           }
+                        } catch (e) { /* calendar unreachable: keep the Sunday rule */ }
+                        if (c.holiday.dataset.peffManual !== whCtx && c.regular.dataset.peffManual !== whCtx) {
+                           c.holiday.checked = off;
+                           c.regular.checked = !off;
+                        }
                      }
                      // Line leader from Shift Allocation (same endpoint as the cycle-comment Leader field).
                      let j = null;
@@ -6997,8 +7106,10 @@
                      //    Prod; the last = shift plan − the others (never
                      //    below 0).  NG Prod no longer comes from the MES NG alarm (it will
                      //    come from the line-rejection sheet): 0, typed by the leader.
-                     //    OK Prod = Total Prod − NG Prod.  Balance = OK Prod − Plan (the
-                     //    sheet's existing sign: + over plan, − short).
+                     //    2026-10-19 — OK Prod = the MES OK count (= the Dashboard), NG Prod
+                     //    typed by the leader, Total Prod = OK Prod + NG Prod (was OK =
+                     //    Total − NG).  Balance = OK Prod − Plan (the sheet's existing
+                     //    sign: + over plan, − short).
                      //    2026-09-23 — the "Not scanned (no part code)" row counts as a
                      //    model too (operator asked: the leader writes the real name on
                      //    it): it takes the last row's plan (shift plan − the others) and
@@ -7040,7 +7151,7 @@
                         setCell(top, 21, i + 1);
                         setCell(top, 48, r.name);
                         { const c48 = cellAt(top, 48); if (c48 && c48.el.dataset.peffManual !== whCtx) fitCell(c48.el, 13, 7); }
-                        setCell(top, 419, r.total);
+                        setCell(top, 501, r.total);           // OK Prod (MES OK parts)
                         setCell(top, 583, 0);
                         G.rows.push({ isModel: r.isModel, plan: cellEl(top, 337), total: cellEl(top, 419), ok: cellEl(top, 501),
                                       ng: cellEl(top, 583), bal: cellEl(top, 666) });
@@ -7073,15 +7184,16 @@
                      (data.hours || []).forEach((h, i) => {
                         if (colCx[i] == null) return;
                         if (h.plan != null) putC(colCx[i], planCy, String(h.plan), { fs: 10 });
-                        // 2026-09-22 — ACTUAL = parts made (OK + MES NG): the MES NG alarm
-                        // is no longer taken as NG (NG comes from the line-rejection sheet).
-                        if (h.ok != null) putC(colCx[i], actCy, String(h.ok + (h.ng || 0)), { fs: 10, bold: true, color: "#0a7d2c" });
+                        // 2026-10-19 — ACTUAL = OK parts only (operator: "only ok count
+                        // aane chahiye"); was OK + MES NG since 22-Sep.  CUMM and the
+                        // product TOTAL follow (OK only from /api/peff/data).
+                        if (h.ok != null) putC(colCx[i], actCy, String(h.ok), { fs: 10, bold: true, color: "#0a7d2c" });
                         if (h.cum != null) putC(colCx[i] + 20, cumCy, String(h.cum), { fs: 9, color: "#555" });
                      });
                      // ── Model S. N. row (S.No of the model(s) run in each hour) ──
                      try { fillModelSn(data); } catch (e) { console.warn("peff model s.n.:", e); }
                      // ── Detail Working Hrs + Semi Core Job (own fetches, same token) ──
-                     const whNote = await fillWorkHours(lineId, date, shift, tok, () => mySeq === fillSeq);
+                     const whNote = await fillWorkHours(lineId, date, shift, tok, () => mySeq === fillSeq, data.hours);
                      if (mySeq !== fillSeq) return;
                      // ── Core-job man hours + hourly loss summary + Summary Line Stop ──
                      let lossNote = "";
@@ -7235,15 +7347,40 @@
                         byZone[e.zone].push(e);
                      });
                      zones.sort((a, b) => (a.id - b.id) || a.name.localeCompare(b.name));
+                     // 2026-10-17 — serial order inside a zone (operator): WC code
+                     // base (Q31S01, Q31S02 …), then line, then shift A/B; lines
+                     // without a WC code last.  Loop Pipe 1/2/3 share Q31L01, so
+                     // they go Line 1 A/B, Line 2 A/B, Line 3 A/B.
+                     const natural = (a, b) => String(a || "").localeCompare(String(b || ""), undefined, { numeric: true, sensitivity: "base" });
+                     const baseOf = e => (e.code ? e.code.slice(0, -1) : "￿");
+                     Object.keys(byZone).forEach(k => byZone[k].sort((a, b) =>
+                        natural(baseOf(a), baseOf(b)) || natural(a.lineName, b.lineName) || natural(a.shift, b.shift)));
+                     // light colour per zone (fixed by name, so a zone keeps its colour)
+                     const ZONE_TINT = [
+                        [/seat\s*slider/i, "#e0f2fe", "#38bdf8"], [/^recliner|^\s*recliner/i, "#dcfce7", "#4ade80"],
+                        [/loop\s*pipe/i, "#fef3c7", "#f59e0b"], [/sub[\s-]*assem/i, "#ede9fe", "#a78bfa"],
+                        [/ywd|2ua/i, "#fce7f3", "#f472b6"], [/press/i, "#ffedd5", "#fb923c"],
+                        [/thin/i, "#ccfbf1", "#2dd4bf"],
+                     ];
+                     const SPARE_TINT = [["#e0e7ff", "#818cf8"], ["#fae8ff", "#e879f9"], ["#ecfccb", "#a3e635"], ["#f1f5f9", "#94a3b8"]];
+                     let spare = 0;
+                     const tintOf = name => {
+                        const hit = ZONE_TINT.find(t => t[0].test(name || ""));
+                        return hit ? [hit[1], hit[2]] : SPARE_TINT[(spare++) % SPARE_TINT.length];
+                     };
                      p.innerHTML = "";
                      zones.forEach(z => {
                         const zone = z.name;
+                        const [zbg, zbd] = tintOf(zone);
                         const h = document.createElement("div");
                         h.className = "wcz-h";
+                        h.style.setProperty("--z-bg", zbg);
+                        h.style.setProperty("--z-bd", zbd);
                         h.innerHTML = '<span></span><span class="wcz-car">▸</span>';
                         h.firstChild.textContent = zone + " (" + byZone[zone].length + ")";
                         const list = document.createElement("div");
                         list.className = "wcz-l";
+                        list.style.setProperty("--z-bd", zbd);
                         byZone[zone].forEach(e => {
                            const it = document.createElement("div");
                            it.className = "wc-i" + (isCur(e) ? " sel" : "");

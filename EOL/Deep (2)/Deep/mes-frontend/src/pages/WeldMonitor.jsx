@@ -290,6 +290,118 @@ function Field({ label, children }) {
   );
 }
 
+/* 2026-10-13 — per-CYCLE weld current (YMC Recliner RC-01 etc.), by date +
+ * shift, like the Y17 air-flow Cycles tab.  Reads /api/weld/current-cycles. */
+const CARD = { background: "#fff", border: "1px solid #e2e8f0", borderRadius: 14, boxShadow: "0 1px 3px rgba(0,0,0,.05)" };
+function CStat({ label, value, color }) {
+  return (
+    <div style={{ ...CARD, padding: "10px 16px", minWidth: 110 }}>
+      <div style={{ fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase" }}>{label}</div>
+      <div style={{ fontSize: 22, fontWeight: 800, color: color || "#0f172a", fontFamily: "monospace" }}>{value}</div>
+    </div>
+  );
+}
+function CurrentCyclesTab({ token }) {
+  const [stations, setStations] = useState([]);
+  const [station, setStation] = useState("");
+  const [date, setDate] = useState("");
+  const [shift, setShift] = useState("");
+  const [d, setD] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    api.get("/api/weld/master", token)
+      .then(r => {
+        const s = (r.rows || []).filter(x => String(x.signal || "current").toLowerCase() === "current");
+        setStations(s);
+        if (!station && s[0]) setStation(s[0].station);
+      }).catch(() => {});
+  }, [token]);
+
+  const load = useCallback(() => {
+    if (!station) return;
+    setLoading(true);
+    const q = new URLSearchParams({ station });
+    if (date) q.set("date", date);
+    if (shift) q.set("shift", shift);
+    api.get(`/api/weld/current-cycles?${q.toString()}`, token)
+      .then(r => { setD(r); if (!date && r.date) setDate(r.date); })
+      .catch(() => setD({ rows: [], dates: [] }))
+      .finally(() => setLoading(false));
+  }, [station, date, shift, token]);
+  useEffect(() => { load(); }, [load]);
+
+  const rows = (d && d.rows) || [];
+  const dates = (d && d.dates) || [];
+  const okCnt = rows.filter(r => !r.is_ng).length;
+  const ngCnt = rows.length - okCnt;
+  const mean = (key) => { const v = rows.map(r => r[key]).filter(x => x != null); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null; };
+  const avgCur = mean("cur_avg"), avgCT = mean("ct"), avgGas = mean("gas_avg");
+
+  const TH = { textAlign: "left", padding: "8px 10px", fontSize: 11, fontWeight: 800, color: "#64748b",
+               borderBottom: "2px solid #e2e8f0", textTransform: "uppercase", whiteSpace: "nowrap" };
+  const TD = { padding: "7px 10px", fontSize: 12.5, borderBottom: "1px solid #f1f5f9", color: "#0f172a" };
+  const SEL = { padding: "8px 12px", borderRadius: 8, border: "1.5px solid #e2e8f0", fontSize: 13, background: "#f8fafc" };
+  const L = { display: "flex", flexDirection: "column", gap: 6, fontSize: 11, fontWeight: 700, color: "#64748b" };
+
+  if (!stations.length) {
+    return <div style={{ ...CARD, padding: 50, textAlign: "center", color: "#94a3b8" }}>
+      No weld-current station configured yet (add one in Quality Panel → Weld Master).</div>;
+  }
+  return (
+    <div>
+      <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "flex-end", marginBottom: 16 }}>
+        <label style={L}>Station<select style={SEL} value={station} onChange={e => { setStation(e.target.value); setDate(""); setD(null); }}>
+          {stations.map(s => <option key={s.id} value={s.station}>{s.station}{s.line_name ? ` — ${s.line_name}` : ""}</option>)}</select></label>
+        <label style={L}>Date<select style={SEL} value={date} onChange={e => setDate(e.target.value)}>
+          {dates.length === 0 && <option value="">—</option>}
+          {dates.map(dt => <option key={dt} value={dt}>{dt}</option>)}</select></label>
+        <label style={L}>Shift<select style={SEL} value={shift} onChange={e => setShift(e.target.value)}>
+          <option value="">All</option><option value="A">A</option><option value="B">B</option></select></label>
+        <button onClick={load} style={{ padding: "9px 16px", borderRadius: 8, border: "none", background: "#2563eb",
+          color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>Refresh</button>
+      </div>
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 14 }}>
+        <CStat label="Cycles" value={rows.length} />
+        <CStat label="OK" value={okCnt} color="#16a34a" />
+        <CStat label="NG" value={ngCnt} color={ngCnt ? "#dc2626" : "#64748b"} />
+        <CStat label="Avg current (A)" value={avgCur == null ? "—" : avgCur.toFixed(0)} color="#2563eb" />
+        <CStat label="Avg CT (s)" value={avgCT == null ? "—" : avgCT.toFixed(1)} color="#0f172a" />
+        <CStat label="Avg gas" value={avgGas == null ? "—" : avgGas.toFixed(1)} color="#0f766e" />
+      </div>
+      <div style={{ ...CARD, overflowX: "auto" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 760 }}>
+          <thead><tr>
+            <th style={TH}>Time</th><th style={TH}>Part #</th><th style={TH}>Shift</th><th style={TH}>CT (s)</th>
+            <th style={TH}>Welds</th><th style={TH}>Cur avg (A)</th><th style={TH}>Peak (A)</th>
+            <th style={TH}>Gas avg</th><th style={TH}>Gas max</th><th style={TH}>OK/NG</th>
+          </tr></thead>
+          <tbody>
+            {loading && <tr><td style={{ ...TD, color: "#94a3b8" }} colSpan={10}>Loading…</td></tr>}
+            {!loading && rows.length === 0 && <tr><td style={{ ...TD, color: "#94a3b8" }} colSpan={10}>No cycles for this date / shift.</td></tr>}
+            {!loading && rows.map((r, i) => (
+              <tr key={i} style={{ background: r.is_ng ? "rgba(220,38,38,.05)" : "transparent" }}>
+                <td style={{ ...TD, fontFamily: "monospace", whiteSpace: "nowrap" }}>{r.ts ? r.ts.slice(11, 19) : "—"}</td>
+                <td style={{ ...TD, fontFamily: "monospace" }}>{r.part == null ? "—" : r.part}</td>
+                <td style={TD}>{r.shift || "—"}</td>
+                <td style={TD}>{r.ct == null ? "—" : r.ct}</td>
+                <td style={TD}>{r.welds}</td>
+                <td style={{ ...TD, fontWeight: 700, color: "#2563eb" }}>{r.cur_avg == null ? "—" : r.cur_avg}</td>
+                <td style={TD}>{r.peak == null ? "—" : r.peak}</td>
+                <td style={{ ...TD, fontWeight: 700, color: "#0f766e" }}>{r.gas_avg == null ? "—" : r.gas_avg}</td>
+                <td style={TD}>{r.gas_max == null ? "—" : r.gas_max}</td>
+                <td style={TD}>{r.is_ng ? <span style={{ color: "#dc2626", fontWeight: 800 }}>NG</span> : <span style={{ color: "#16a34a", fontWeight: 700 }}>OK</span>}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {rows.length > 0 && <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 8 }}>
+        Current = welds in each cycle's window (cycle start → end). Newest first, up to 300 cycles.</div>}
+    </div>
+  );
+}
+
 export default function WeldMonitor() {
   const { token, theme, user } = useAuth();
   const [tab, setTab] = useState("robot");
@@ -333,7 +445,7 @@ export default function WeldMonitor() {
   const anyFilter = Object.values(f).some(Boolean);
 
   const accent = (theme && theme.accent) || "#7c3aed";
-  const TABS = [{ k: "robot", label: "Robot Welding" }, { k: "projection", label: "Projection Welding" }];
+  const TABS = [{ k: "robot", label: "Robot Welding" }, { k: "projection", label: "Projection Welding" }, { k: "cycles", label: "Cycles" }];
 
   return (
     <div style={{ minHeight: "100vh", background: "#f8fafc", fontFamily: "'Barlow',sans-serif", paddingBottom: 60 }}>
@@ -453,6 +565,8 @@ export default function WeldMonitor() {
             </div>
           </div>
         )}
+
+        {tab === "cycles" && <CurrentCyclesTab token={token} />}
       </div>
     </div>
   );

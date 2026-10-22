@@ -378,7 +378,7 @@ export function AuthProvider({ children }) {
       // Owns the production flow end to end, so everything the Production
       // role sees plus the material pages and the production config panel.
       return ["dashboard", "historical", "import", "process-graphs",
-              "shift-allocation", "shift-compile", "shift-calculator", "waiting-time",
+              "shift-allocation", "shift-compile", "plant-overview", "shift-calculator", "waiting-time",
               "store", "dispatch",
               "anything-wrong", "five-s", "pdca",
               "admin-production", "department-panel", "settings"].includes(page);
@@ -414,7 +414,7 @@ export function AuthProvider({ children }) {
         return ["dashboard", "department-panel", "admin-maintenance",
                 "maintenance-historical", "maintenance-capa",
                 "maintenance-deviations", "maintenance-poka-yoke",
-                "maintenance-logbook", "maintenance-pm",
+                "maintenance-logbook", "maintenance-pm", "maintenance-air-flow",
                 "process-graphs", "settings"].includes(page);
       }
       if (slug === "quality") {

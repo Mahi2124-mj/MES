@@ -56,6 +56,23 @@ from zone_config import (
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 CSV_PATH = os.path.join(BASE_DIR, DEFAULT_METADATA_CSV)
 
+# 2026-10-12 — THREAD DUMP ON DEMAND.  The CMS has frozen with ~800 threads
+# (accept queue full, /api/health silent) and ptrace is off on this box, so the
+# stacks could not be read.  `kill -USR1 <pid>` now appends every thread's
+# Python stack to logs/CMS-threads.dump without stopping anything.
+try:
+    import faulthandler as _faulthandler
+    import signal as _signal
+    _dump_dir = os.environ.get("CMS_DUMP_DIR") or os.path.join(
+        os.path.dirname(os.path.dirname(os.path.dirname(BASE_DIR))),
+        "Deep (2)", "Deep", "logs")
+    if not os.path.isdir(_dump_dir):
+        _dump_dir = BASE_DIR
+    _THREAD_DUMP_FH = open(os.path.join(_dump_dir, "CMS-threads.dump"), "a", buffering=1)
+    _faulthandler.register(_signal.SIGUSR1, file=_THREAD_DUMP_FH, all_threads=True)
+except Exception as _exc:          # never block startup for a debug aid
+    print(f"[CMS] thread-dump hook not installed: {_exc}", flush=True)
+
 app = Flask(__name__)
 import os as _os_cors
 _DEFAULT_ORIGINS = (
@@ -111,8 +128,60 @@ _CYCLES_CACHE: Dict[str, Any] = {"mtime": -1.0, "rows": None}
 # Key = sanitized part code; value = {"path": resolved_mp4_or_None, "exp": ts}
 _SEARCH_CACHE: Dict[str, Dict[str, Any]] = {}
 
+# 2026-10-15 — per-request folder scans wedged the CMS: 51 threads globbing
+# the 11k-file videos dir in submachine_clip and 21 stat-ing every entry for
+# a part clip filled the accept queue (/api/health dead from 07:08).  Camera
+# segments now come from plc_monitor's shared 2 s index; the per-line clip
+# sub-folders are cached for 60 s.
+def _cam_segments(folder: str, camera_id: str) -> list:
+    """Paths of every cam_<camera_id>_<ms>.ts in folder (shared index)."""
+    try:
+        from plc_monitor import _segments_of  # type: ignore
+        return [p for _s, p in _segments_of(folder, camera_id)]
+    except Exception:
+        import glob as _g
+        return _g.glob(os.path.join(folder, f"cam_{camera_id}_*.ts"))
+
+
+_SUBDIR_CACHE: Dict[str, Any] = {"t": 0.0, "root": None, "dirs": []}
+_SUBDIR_LOCK = threading.Lock()
+
+
+def _clip_subdirs(root: str, ttl: float = 60.0) -> list:
+    """Immediate sub-folders of root (videos/<Line_Name>/), cached for ttl s."""
+    with _SUBDIR_LOCK:
+        c = _SUBDIR_CACHE
+        if c["root"] != root or time.monotonic() - c["t"] > ttl:
+            try:
+                dirs = [e.path for e in os.scandir(root) if e.is_dir(follow_symlinks=False)]
+            except OSError:
+                dirs = []
+            c.update(t=time.monotonic(), root=root, dirs=dirs)
+        return list(c["dirs"])
+
+
+# 2026-10-19 — "saare camere hung": cycles.csv had grown to 264 MB (1.6 M rows)
+# and every clip request whose MP4 was missing parsed ALL of it below (csv in pure
+# Python, GIL-bound).  14 of them at once starved the recorder-tracking threads in
+# plc_monitor, so the recorders stalled, the cameras looked hung and the HTTP
+# queue filled (health timed out).  Now: at most CMS_REPAIR_PARALLEL repairs at a
+# time (the rest answer 404 at once; the caller retries later) and only the TAIL
+# of the CSV is read — a repair needs the live TS, i.e. the 48 h hold, and the
+# last CMS_REPAIR_CSV_TAIL_MB (default 16 MB ≈ 100 k rows) covers several days.
+_REPAIR_SEM = threading.BoundedSemaphore(int(os.environ.get("CMS_REPAIR_PARALLEL", "2") or 2))
+_REPAIR_CSV_TAIL = int(float(os.environ.get("CMS_REPAIR_CSV_TAIL_MB", "16") or 16) * 1048576)
+
 
 def _attempt_repair(safe_part: str, videos_root: str) -> str:
+    if not _REPAIR_SEM.acquire(blocking=False):
+        return ""
+    try:
+        return _attempt_repair_inner(safe_part, videos_root)
+    finally:
+        _REPAIR_SEM.release()
+
+
+def _attempt_repair_inner(safe_part: str, videos_root: str) -> str:
     """Auto-repair: when /api/video/by-part has no MP4 on disk, try to
     re-extract one on the spot from the most-recent matching live TS file.
 
@@ -142,7 +211,16 @@ def _attempt_repair(safe_part: str, videos_root: str) -> str:
         if not os.path.exists(csv_path):
             return ""
         matches = []
-        with open(csv_path, "r", newline="", encoding="utf-8") as f:
+        with open(csv_path, "rb") as _fb:          # only the tail (see _attempt_repair)
+            _head = _fb.readline()
+            _size = os.fstat(_fb.fileno()).st_size
+            _start = max(_fb.tell(), _size - _REPAIR_CSV_TAIL)
+            _fb.seek(_start)
+            if _start > len(_head):
+                _fb.readline()                     # drop the partial first line
+            _body = _fb.read()
+        import io as _io
+        with _io.StringIO((_head + _body).decode("utf-8", "replace"), newline="") as f:
             for row in _csv.DictReader(f):
                 pc = _re.sub(r"[^A-Za-z0-9._-]", "_",
                              (row.get("part_code") or "")).strip("_")
@@ -1992,6 +2070,38 @@ def _mp4_has_video(_p):
             return False
 
 
+# 2026-10-09 — ONE shared file list for the by-part fallback instead of a
+# recursive glob per request.  The video tree holds ~344k files; a lookup that
+# misses (760 of 796 did) walked all of it in Python, with only a 5 s negative
+# cache, and 176 of those walks were running at once in one py-spy dump —
+# together with the edge worker they starved every other CMS thread.  One
+# thread rebuilds the list at most every _PART_INDEX_TTL seconds; everyone
+# else answers from the current list (a stale one while it rebuilds).  New
+# clips land in videos/<Line>/, which the direct check above still finds at once.
+_PART_INDEX = {"root": None, "built": 0.0, "names": {}}
+_PART_INDEX_LOCK = threading.Lock()
+_PART_INDEX_TTL = 30.0
+
+
+def _part_index_lookup(root: str, name: str):
+    idx = _PART_INDEX
+    if idx["root"] != root or time.time() - idx["built"] > _PART_INDEX_TTL:
+        # wait only when there is no list for this root yet
+        if _PART_INDEX_LOCK.acquire(blocking=idx["root"] != root):
+            try:
+                if idx["root"] != root or time.time() - idx["built"] > _PART_INDEX_TTL:
+                    names = {}
+                    for dp, _dirs, files in os.walk(root):
+                        for fn in files:
+                            if fn.endswith(".mp4") and not fn.startswith((".", "cycle_")):
+                                names.setdefault(fn, os.path.join(dp, fn))
+                    _PART_INDEX.update(root=root, built=time.time(), names=names)
+            finally:
+                _PART_INDEX_LOCK.release()
+    found = _PART_INDEX["names"].get(name)
+    return found if found and os.path.exists(found) else None
+
+
 @app.get("/api/video/by-part")
 def serve_video_by_part():
     """Serve the latest cycle video for a given part code.
@@ -2022,8 +2132,8 @@ def serve_video_by_part():
             # 2026-08-01 15:13 timestamp burned into a video opened for an
             # 2026-08-02 18:52 cycle.  Sorting by mtime makes today's clip win.
             _cands = []
-            for entry in os.listdir(videos_root):
-                cand = os.path.join(videos_root, entry, f"{safe}.mp4")
+            for _sub in _clip_subdirs(videos_root):
+                cand = os.path.join(_sub, f"{safe}.mp4")
                 if os.path.isfile(cand):
                     _cands.append(cand)
             if _cands:
@@ -2048,12 +2158,7 @@ def serve_video_by_part():
                 custom_root = _load_video_cfg().get("save_path", "")
                 found = None
                 if custom_root and os.path.isdir(custom_root):
-                    import glob as _glob
-                    hits = _glob.glob(
-                        os.path.join(custom_root, "**", f"{safe}.mp4"),
-                        recursive=True,
-                    )
-                    found = hits[0] if hits else None
+                    found = _part_index_lookup(custom_root, f"{safe}.mp4")
                 # Positive hit → long TTL; negative hit → short TTL
                 ttl = 300 if found else 5
                 _SEARCH_CACHE[safe] = {"path": found, "exp": now + ttl}
@@ -2978,8 +3083,7 @@ def submachine_clip():
         chosen     = None
         chosen_start = None
         chosen_score = -1
-        cand_glob  = os.path.join(videos_dir, f"cam_{camera_id}_*.ts")
-        for cand in _glob.glob(cand_glob):
+        for cand in _cam_segments(videos_dir, camera_id):
             base = os.path.basename(cand)
             m = _re.search(r"_(\d{13})\.ts$", base)
             if not m:
@@ -3343,7 +3447,7 @@ def submachine_clip():
             import glob as _glob3, re as _re3
             _vdir = os.path.dirname(ts_file)
             _cyc  = []
-            for _cf in _glob3.glob(os.path.join(_vdir, f"cam_{camera_id}_*.ts")):
+            for _cf in _cam_segments(_vdir, camera_id):
                 _mm = _re3.search(r"_(\d{13})\.ts$", os.path.basename(_cf))
                 if not _mm:
                     continue

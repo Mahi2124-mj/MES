@@ -7,6 +7,7 @@ import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { api } from "../api/client";
 import { useAuth } from "../context/AuthContext";
 import PageTopbar from "../components/PageTopbar";
+import SlipVideo from "../components/SlipVideo";
 
 const ageTxt = (d, t) => {
   if (!d) return "";
@@ -36,6 +37,7 @@ export default function ProdBreakdownSlip() {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [slip, setSlip] = useState(null);        // open slip (form data)
+  const [videoOpen, setVideoOpen] = useState(false);   // ▶ Video of the open slip (2026-10-17)
   const [machines, setMachines] = useState([]);  // machine master for the slip's zone/line
   // 2026-09-17 — the leader + operator names and the leader's signature.
   // They used to be typed by hand on every slip even though the system already
@@ -43,6 +45,9 @@ export default function ProdBreakdownSlip() {
   // manpower allocation.  /api/leaders/slip-defaults returns both.
   const [leaderOpts, setLeaderOpts] = useState([]);   // [{id,name,signature_image}]
   const [signature,  setSignature]  = useState(null); // data URL of the picked leader
+  // 2026-10-14 — the line leader Shift Allocation names for the slip's shift
+  // (name + Employee Master signature); filled again on MACHINE NO. pick.
+  const allocLeader = useRef(null);
   // 2026-10-08 — B/D ATTENDED BY options: the maintenance people on duty now
   // (attendance board, current shift).  MACHINE OPERATOR NAME comes from Shift
   // Allocation for the picked machine; autoOp remembers what WE filled so a
@@ -122,9 +127,10 @@ export default function ProdBreakdownSlip() {
     try { t = await api.get(`/api/prod-breakdown-slips/${r.id}?src=${r.src}`, token); } catch {}
     autoOp.current = "";
     setSlip({ ...t, src: r.src });
-    // on-duty maintenance people → B/D ATTENDED BY dropdown
+    // on-duty people → B/D ATTENDED BY dropdown: the Tool Room's own attendance
+    // for a Tool Room slip, the maintenance board otherwise
     setAttendees({ shift: "", people: [] });
-    api.get("/api/prod-breakdown-slips/attendees", token)
+    api.get(`/api/prod-breakdown-slips/attendees${r.src === "toolroom" ? "?dept=toolroom" : ""}`, token)
       .then(a => setAttendees({ shift: a?.shift || "", people: Array.isArray(a?.people) ? a.people : [] }))
       .catch(() => {});
     // ANDON usually sends the machine already → fill its operator straight away
@@ -143,38 +149,53 @@ export default function ProdBreakdownSlip() {
     // Fill the two names from the allocations, and load the signatures.
     // Anything already on the slip WINS — a slip that was filled in earlier is
     // never overwritten by today's allocation.
-    setLeaderOpts([]); setSignature(null);
+    setLeaderOpts([]); setSignature(null); allocLeader.current = null;
+    if (!t.line_id) return;   // line not known to the MES — names stay manual
     try {
-      const q = new URLSearchParams({ line_id: t.line_id || t.lineId || "" });
-      if (t.slip_date) q.set("date", t.slip_date);
-      if (t.shift)     q.set("shift", t.shift);
+      // 2026-10-14 — t.line_id / alloc_date / alloc_shift now come from the
+      // API (they were missing, so this lookup 422'd and never filled).
+      const q = new URLSearchParams({ line_id: t.line_id });
+      const day = t.alloc_date || t.slip_date;
+      const sh  = t.alloc_shift || t.shift;
+      if (day) q.set("date", String(day).slice(0, 10));
+      if (sh)  q.set("shift", sh);
       const d = await api.get(`/api/leaders/slip-defaults?${q}`, token);
-      setLeaderOpts(d.leader_options || []);
-      // (operator name now comes per machine from lookupOperator above,
-      //  not as every operator allocated to the line)
-      setSlip(s2 => {
-        if (!s2) return s2;
-        const next = { ...s2 };
-        if (!String(next.line_leader_name || "").trim() && d.leader?.name)
-          next.line_leader_name = d.leader.name;
-        return next;
-      });
-      if (d.leader?.signature_image) setSignature(d.leader.signature_image);
+      const opts = d.leader_options || [];
+      setLeaderOpts(opts);
+      if (d.leader?.name)
+        allocLeader.current = { name: String(d.leader.name).toUpperCase(),
+                                sign: leaderSign(opts, d.leader.name) || d.leader.signature_image || null };
+      // Leader from Shift Allocation unless the slip already names one; the
+      // signature comes from Employee Master for whichever leader it is.
+      const name = String(t.line_leader_name || "").trim() || d.leader?.name || "";
+      if (name && !String(t.line_leader_name || "").trim())
+        setSlip(s2 => (s2 && !String(s2.line_leader_name || "").trim()
+                         ? { ...s2, line_leader_name: name.toUpperCase() } : s2));
+      setSignature(leaderSign(opts, name) || d.leader?.signature_image || null);
     } catch { /* allocation missing is normal — leave the fields editable */ }
   };
 
-  // Picking a leader stamps that leader's signature straight away.
+  // Picking (or typing) a leader stamps that leader's signature from Employee
+  // Master straight away; a typed name that is no leader gets no signature.
+  const leaderSign = (opts, name) => {
+    const k = String(name || "").trim().toUpperCase();
+    return k ? (opts.find(l => String(l.name || "").trim().toUpperCase() === k)?.signature_image || null) : null;
+  };
   const onPickLeader = (name) => {
-    const hit = leaderOpts.find(l => l.name === name);
-    setSignature(hit?.signature_image || null);
+    setSignature(leaderSign(leaderOpts, name));
     setSlip(s2 => ({ ...s2, line_leader_name: name }));
   };
   const set = (k) => (v) => setSlip(s => ({ ...s, [k]: v }));
-  // picking a MACHINE NO. auto-fills MACHINE NAME (like the 9965 form), and
-  // MACHINE OPERATOR NAME from Shift Allocation for that machine
+  // picking a MACHINE NO. auto-fills MACHINE NAME (like the 9965 form),
+  // MACHINE OPERATOR NAME from Shift Allocation for that machine, and — if
+  // still empty — the shift's LINE LEADER with their signature.  Both stay
+  // editable: a typed name is never overwritten.
   const onPickMachine = (mno) => {
     const hit = machines.find(m => String(m.machine_no) === String(mno));
-    setSlip(s => ({ ...s, machine_no: mno, machine_name: hit ? hit.machine_name : s.machine_name }));
+    const L = allocLeader.current;
+    setSlip(s => ({ ...s, machine_no: mno, machine_name: hit ? hit.machine_name : s.machine_name,
+                    ...(L && !String(s.line_leader_name || "").trim() ? { line_leader_name: L.name } : {}) }));
+    if (L && !String(slip?.line_leader_name || "").trim()) setSignature(L.sign);
     if (hit?.machine_name && slip) lookupOperator(slip, hit.machine_name).then(applyOperator);
   };
 
@@ -311,8 +332,21 @@ export default function ProdBreakdownSlip() {
                 <div className="bds-company">TOYOTA BOSHOKU DEVICE INDIA PVT. LTD.</div>
                 <div className="bds-doc-title">BREAK DOWN SLIP</div>
               </div>
-              <div className="bds-close-x" onClick={() => setSlip(null)} title="Close">×</div>
+              {/* 2026-10-17 — as on the 9965 slip: the camera clip of this
+                  breakdown (loads only on click) and the slip ID (the clip's file
+                  name starts with it). */}
+              {slip.id && (
+                <div className="bds-video-btn" onClick={() => setVideoOpen(true)}
+                     title="Watch the camera clip of this breakdown">▶ Video</div>
+              )}
+              {slip.id && <div className="bds-slip-id" title="Slip ID">{slip.id}</div>}
+              <div className="bds-close-x" onClick={() => { setVideoOpen(false); setSlip(null); }} title="Close">×</div>
             </div>
+            {videoOpen && slip.id && (
+              <SlipVideo src={slip.src} slipId={slip.id} token={token}
+                         title={`${slip.src === "toolroom" ? "Tool Room" : "Maintenance"} slip #${slip.id} · ${slip.machine_no || slip.line || ""}`}
+                         onClose={() => setVideoOpen(false)} />
+            )}
 
             <div className="bds-body">
               {/* header grid 3×3 */}
@@ -324,12 +358,12 @@ export default function ProdBreakdownSlip() {
                 <Cell label="DATE" type="date" value={slip.slip_date} readOnly />
                 <Cell label="LINE" value={slip.line} readOnly />
                 <Cell label="SHIFT" value={slip.shift} readOnly />
+                {/* 2026-10-14 — auto-filled from Shift Allocation as soon as a
+                    MACHINE NO. is picked; plain text, so any name can be typed */}
                 <Cell label="LINE LEADER NAME" value={slip.line_leader_name}
-                  readOnly={!ed("line_leader_name")}
-                  options={ed("line_leader_name") && leaderOpts.length
-                             ? leaderOpts.map(l => l.name) : undefined}
-                  onChange={onPickLeader} />
-                <Cell label="MACHINE OPERATOR NAME" value={slip.machine_operator_name} readOnly={!ed("machine_operator_name")} onChange={set("machine_operator_name")} />
+                  readOnly={!ed("line_leader_name")} onChange={onPickLeader} />
+                <Cell label="MACHINE OPERATOR NAME" value={slip.machine_operator_name}
+                  readOnly={!ed("machine_operator_name")} onChange={set("machine_operator_name")} />
                 <Cell label="MACHINE NAME" wrap value={slip.machine_name} readOnly />
                 <Cell label="MODEL NO." value={slip.model_no} readOnly={!ed("model_no")} onChange={set("model_no")} />
               </div>
@@ -347,9 +381,12 @@ export default function ProdBreakdownSlip() {
                        style={{ height: 46, maxWidth: 240, objectFit: "contain" }} />
                 ) : (
                   <span style={{ fontSize: 12, color: "#94a3b8" }}>
-                    {slip.line_leader_name
-                      ? "is leader ka signature upload nahi hai (Operator Master → Leaders)"
-                      : "leader select karte hi sign aa jayega"}
+                    {!slip.line_leader_name
+                      ? "Select a leader to show the signature"
+                      : leaderOpts.some(l => String(l.name || "").trim().toUpperCase()
+                                             === String(slip.line_leader_name).trim().toUpperCase())
+                        ? "No signature uploaded for this leader (Employee Master → Leaders)"
+                        : "Not a leader in Employee Master — no signature"}
                   </span>
                 )}
               </div>
@@ -567,6 +604,10 @@ const BDS_CSS = `
   .bds-doc-title { font-size:14px; font-weight:700; color:#0f172a; letter-spacing:.06em; margin-top:2px; }
   .bds-close-x { width:46px; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:30px; color:#64748b; border-left:1.5px solid #0f172a; font-family:Arial; line-height:1; }
   .bds-close-x:hover { background:#fee2e2; color:#dc2626; }
+  .bds-video-btn { padding:0 16px; cursor:pointer; display:flex; align-items:center; gap:8px; font-size:12px; font-weight:700; color:#b91c1c; border-left:1.5px solid #0f172a; background:#fef2f2; letter-spacing:.04em; user-select:none; white-space:nowrap; font-family:'Barlow',sans-serif; }
+  .bds-video-btn:hover { background:#fee2e2; color:#991b1b; }
+  .bds-slip-id { padding:0 14px; display:flex; align-items:center; font-size:15px; font-weight:800; color:#0f172a; border-left:1.5px solid #0f172a; background:#f8fafc; font-family:'Barlow',sans-serif; white-space:nowrap; user-select:all; }
+  @media print { .bds-video-btn, .bds-slip-id { display:none !important; } }
   .bds-body { padding:0; max-height:74vh; overflow-y:auto; background:#fff; font-family:'Barlow',sans-serif; color:#0f172a; font-size:11px; }
   .bds-grid { display:grid; border-top:1.5px solid #0f172a; border-left:1.5px solid #0f172a; }
   .bds-grid-3 { grid-template-columns: 1fr 1fr 1fr; }

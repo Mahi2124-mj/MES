@@ -336,6 +336,28 @@ ANDON_LINE_ALIAS = {
     "LOOPPIPE2": "LOOPPIPELINE2",
     "LOOPPIPE3": "LOOPPIPELINE3",
     "YWDRC":     "YWDRECLINER",
+    # 2026-10-12 — 2UA Recliner's andon box reports line TWO_UA_REC; the MES
+    # line is "2UA RECLINER".  Without this its calls never reached the line.
+    "TWOUAREC":  "2UARECLINER",
+    # 2026-10-21 — Recliner zone boxes report <LINE>_RC (YMC_RC, YSD_RC …), the
+    # MES lines are "<LINE> Recliner": without these their calls never reached
+    # the line (no breakdown in Loss Distribution, slips scoped to nobody).
+    "YMCRC":     "YMCRECLINER",
+    "YSDRC":     "YSDRECLINER",
+    "YRARC":     "YRARECLINER",
+    "YHBRC":     "YHBRECLINER",
+    "YNCRC":     "YNCRECLINER",
+    # 2026-10-21 — Sub-Assembly boxes report SA_<4W|6W>_<LINE> / SA_LPS and the
+    # 2UA gear lifter TWO_UA_GEAR_LIFT; the MES names differ the same way.
+    "SA4WYRA":   "YRASA4WAY",
+    "SA4WYSD":   "YSDSA4WAY",
+    "SA4WYHB":   "YHBSA4WAY",
+    "SA4WYNC":   "YNCSA4WAY",
+    "SA4WY17":   "Y17SA4WAY",
+    "SA6WYRA":   "YRASA6WAY",
+    "SA6WYNC":   "YNCSA6WAY",
+    "SALPS":     "LOCATIONPINSTACKINGLPS3",
+    "TWOUAGEARLIFT": "GEARLIFTER",
 }
 _NORM_SQL = "UPPER(REGEXP_REPLACE(COALESCE(line,''),'[^A-Za-z0-9]','','g'))"
 _PRIO_RANK = {"Critical": 0, "High": 1, "Normal": 2}
@@ -921,38 +943,74 @@ def andon_calls_for(line_name, start_dt, end_dt):
 #   v1: every call in the slot with a per-type breakup.
 #   v2 (operator: "breakdown pe click kiya to sirf breakdown ke 2-3 call, aur
 #   har call pe remark daalne ka option"): filtered to the clicked loss type,
-#   and every call carries its OWN remark (mes_andon_call_remarks).  Saving
-#   per-call remarks also writes them, combined, into the slot's
-#   mes_loss_remarks row, so the Hourly Report / Shift Compile remark column
-#   keeps showing them.
+#   and every call carries its OWN remark.  Saving per-call remarks also writes
+#   them, combined, into the slot's mes_loss_remarks row (energydb), so the
+#   Hourly Report / Shift Compile remark column keeps showing them.
+#
+# 2026-10-16 — the per-call remarks live in maintenance_db.andon_remarks_history
+# (operator: "is table ko maintenance db me move kr de, name
+# andon_remarks_history").  Until then they were energydb.mes_andon_call_remarks;
+# its rows were copied over and that table is left untouched as a backup.
+#   line_id     MES line id (energydb mes_lines.id) — line_name beside it
+#   call_type   andon display_name (Maintenance / Toolroom / Material / ...)
+#   machine_no  the andon panel's machine;  bd_machine  the one production picked
+#   filled_by   Department (Maintenance / Tool Room / Production)
 # ══════════════════════════════════════════════════════════════════════
+REMARKS_TABLE = "andon_remarks_history"
 _call_remarks_ready = False
 
 
-def _ensure_call_remarks_table(conn):
-    """Create mes_andon_call_remarks once per process.  Catalog check first, so
-    a warm DB never takes a DDL lock here (see comments-500-alter-lock)."""
+def _ensure_call_remarks_table(mconn):
+    """Create maintenance_db.andon_remarks_history once per process (on a
+    maintenance_db connection).  Catalog check first, so a warm DB never takes
+    a DDL lock here."""
     global _call_remarks_ready
     if _call_remarks_ready:
         return
-    cur = conn.cursor()
-    cur.execute("SELECT to_regclass('mes_andon_call_remarks')")
+    cur = mconn.cursor()
+    cur.execute("SELECT to_regclass(%s)", (REMARKS_TABLE,))
     if cur.fetchone()[0] is None:
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS mes_andon_call_remarks (
+        cur.execute(f"""
+            CREATE TABLE IF NOT EXISTS {REMARKS_TABLE} (
                 id          SERIAL PRIMARY KEY,
                 line_id     INTEGER   NOT NULL,
+                line_name   TEXT,
                 call_type   TEXT      NOT NULL,
                 machine_no  TEXT      NOT NULL DEFAULT '',
                 started_at  TIMESTAMP NOT NULL,
+                ended_at    TIMESTAMP,
+                total_seconds INTEGER,
                 remark      TEXT,
+                filled_by   TEXT,
+                attended_by TEXT,
+                bd_machine  TEXT,
                 entered_by  TEXT,
                 audit_trail JSONB     NOT NULL DEFAULT '[]'::jsonb,
                 created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
                 updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
                 UNIQUE (line_id, call_type, machine_no, started_at)
             )""")
-        conn.commit()
+        mconn.commit()
+    # 2026-10-16 15:16 — the call's End Time + Total Time are saved too (operator:
+    # "start time, end time and total time ... save krva").  Catalog check first;
+    # the ALTER (only on an older table) waits at most 3 s.
+    cur.execute("""SELECT COUNT(*) FROM information_schema.columns
+                    WHERE table_name=%s AND column_name IN ('ended_at','total_seconds')""",
+                (REMARKS_TABLE,))
+    if cur.fetchone()[0] < 2:
+        cur.execute("SET LOCAL lock_timeout = '3s'")
+        cur.execute(f"""ALTER TABLE {REMARKS_TABLE}
+                          ADD COLUMN IF NOT EXISTS ended_at TIMESTAMP,
+                          ADD COLUMN IF NOT EXISTS total_seconds INTEGER""")
+        mconn.commit()
+    # 2026-10-21 — Others rows: Department is Production, plus an optional
+    # Sub Department (Maintenance / Tool Room) when the problem was theirs.
+    cur.execute("""SELECT COUNT(*) FROM information_schema.columns
+                    WHERE table_name=%s AND column_name='sub_dept'""", (REMARKS_TABLE,))
+    if cur.fetchone()[0] < 1:
+        cur.execute("SET LOCAL lock_timeout = '3s'")
+        cur.execute(f"ALTER TABLE {REMARKS_TABLE} ADD COLUMN IF NOT EXISTS sub_dept TEXT")
+        mconn.commit()
     _call_remarks_ready = True
 
 
@@ -1001,27 +1059,87 @@ def _slot_window(line_id, date, slot, shift=None):
     return ln["line_name"], sh, st, en, (_dt.combine(d0, sh_start_t) if sh_start_t else None)
 
 
+# 2026-10-16 — the breakdown slip Maintenance_DX made for a call (operator: "jo
+# slip generate ho uska slip yahan aa jaye").  Slips are made for Maintenance /
+# Toolroom calls open >= maintenance_slip_config.slip_threshold_min (5 min) and
+# carry the call's line and START MINUTE (bd_start_date + bd_start_time 'HH:MM').
+# andon_event_id is NOT andon_history.id, and production may change machine_no
+# on the slip, so the match is line + type + start minute.  Read-only.
+_SLIP_SRC_OF = {"MAINTENANCE": ("maintenance_auto_breakdown_slip", "AUTO-MAINT"),
+                "TOOLROOM":    ("toolroom_auto_breakdown_slip",    "AUTO-TOOLROOM")}
+
+
+def _call_slips(cur, rows):
+    """{(type_key, line, 'YYYY-MM-DD', 'HH:MM'): slip summary} for the calls in rows."""
+    out = {}
+    for tkey, (table, src) in _SLIP_SRC_OF.items():
+        want = [r for r in rows if _norm(r["display_name"]) == tkey]
+        if not want:
+            continue
+        lines = sorted({(r.get("line") or "").strip() for r in want})
+        days = sorted({r["started_at"].date() for r in want})
+        cur.execute(f"""
+            SELECT id, line, machine_no, machine_name, bd_start_date, bd_start_time,
+                   bd_ok_time, mc_down_time_minutes, category, prod_stage,
+                   problem_reported_by_production, problem_observed_by_maintenance,
+                   action_taken_on_problem, bd_attended_by
+              FROM {table}
+             WHERE TRIM(line) = ANY(%s) AND bd_start_date = ANY(%s)
+             ORDER BY id""", (lines, days))
+        for s in cur.fetchall():
+            k = (tkey, (s["line"] or "").strip(), s["bd_start_date"].isoformat(),
+                 (s["bd_start_time"] or "").strip()[:5])
+            stage = (s.get("prod_stage") or "PENDING_PRODUCTION").strip()
+            out[k] = {
+                "src": src, "id": s["id"], "stage": stage,
+                # 2026-10-21 — the pending side is the slip's own department
+                "stage_label": {"PENDING_PRODUCTION": "Production pending",
+                                "PENDING_MAINTENANCE": ("Maintenance pending" if tkey == "MAINTENANCE"
+                                                        else "Toolroom pending"),
+                                "COMPLETED": "Closed"}.get(stage, stage),
+                "dept": "Maintenance" if tkey == "MAINTENANCE" else "Toolroom",
+                "machine_no": (s.get("machine_no") or "").strip(),
+                "machine_name": (s.get("machine_name") or "").strip(),
+                "ok_time": (s.get("bd_ok_time") or "").strip(),
+                "down_min": s.get("mc_down_time_minutes"),
+                "category": (s.get("category") or "").strip(),
+                "problem": (s.get("problem_reported_by_production") or "").strip(),
+                "observed": (s.get("problem_observed_by_maintenance") or "").strip(),
+                "action": (s.get("action_taken_on_problem") or "").strip(),
+                "attended_by": (s.get("bd_attended_by") or "").strip(),
+            }
+    return out
+
+
 def _slot_calls(line_id, lname, st, en):
     """Every andon call overlapping [st, en] (completed + open), clipped."""
     from datetime import datetime as _dt
     keys = andon_keys(lname)
+    slips = {}
     try:
         with _maint_conn() as conn:
             c2 = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
             c2.execute(f"""
                 SELECT display_name, priority, machine_no, fault, started_at,
-                       ended_at, FALSE AS ongoing
+                       ended_at, FALSE AS ongoing, line
                   FROM andon_history
                  WHERE {_NORM_SQL} = ANY(%s)
                    AND started_at < %s AND COALESCE(ended_at, LOCALTIMESTAMP) > %s
                 UNION ALL
                 SELECT display_name, priority, machine_no, fault, started_at,
-                       NULL, TRUE
+                       NULL, TRUE, line
                   FROM andon_system
                  WHERE state = 'OPEN' AND {_NORM_SQL} = ANY(%s) AND started_at < %s
                  ORDER BY started_at
             """, (keys, en, st, keys, en))
             rows = c2.fetchall()
+            try:
+                slips = _call_slips(c2, rows)
+            except Exception as exc:              # slips are extra: never fail the card
+                conn.rollback()
+                print(f"[ANDON] slot slips read failed: {exc}")
+    except HTTPException:
+        raise
     except Exception as exc:
         raise HTTPException(503, f"andon data unavailable: {exc}")
     now = _dt.now()
@@ -1042,25 +1160,35 @@ def _slot_calls(line_id, lname, st, en):
             "end":      r["ended_at"].isoformat() if r["ended_at"] else None,
             "ongoing":  bool(r["ongoing"]),
             "open_s":   int(round((b - a).total_seconds())),
+            # a call is remarked only in the hour it STARTED (operator, 16-Oct)
+            "starts_here": r["started_at"] >= st,
+            "slip":     slips.get((_norm(r["display_name"]), (r.get("line") or "").strip(),
+                                   r["started_at"].date().isoformat(),
+                                   r["started_at"].strftime("%H:%M"))),
         })
-    # attach each call's own remark
+    # attach each call's own remark (maintenance_db.andon_remarks_history)
     if calls:
         try:
-            with get_conn() as conn:
-                _ensure_call_remarks_table(conn)
-                cur = dict_cursor(conn)
-                cur.execute("""SELECT call_type, machine_no, started_at, remark,
-                                      entered_by, updated_at
-                                 FROM mes_andon_call_remarks
-                                WHERE line_id=%s AND started_at = ANY(%s)""",
+            with _maint_conn() as mconn:
+                _ensure_call_remarks_table(mconn)
+                cur = mconn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+                cur.execute(f"""SELECT call_type, machine_no, started_at, remark,
+                                       filled_by, attended_by, bd_machine, sub_dept, entered_by, updated_at
+                                  FROM {REMARKS_TABLE}
+                                 WHERE line_id=%s AND started_at = ANY(%s)""",
                             (line_id, [_dt.fromisoformat(c["start"]) for c in calls]))
                 rem = {(r["call_type"], r["machine_no"], r["started_at"].isoformat()): r
                        for r in cur.fetchall()}
+                mconn.rollback()                   # read only: end the transaction
             for c in calls:
                 r = rem.get((c["type"], c["machine"], c["start"]))
-                c["remark"]     = (r or {}).get("remark") or ""
-                c["remark_by"]  = (r or {}).get("entered_by")
-                c["remark_at"]  = r["updated_at"].isoformat() if r and r.get("updated_at") else None
+                c["remark"]      = (r or {}).get("remark") or ""
+                c["filled_by"]   = (r or {}).get("filled_by") or ""
+                c["attended_by"] = (r or {}).get("attended_by") or ""
+                c["bd_machine"]  = (r or {}).get("bd_machine") or ""
+                c["sub_dept"]    = (r or {}).get("sub_dept") or ""
+                c["remark_by"]   = (r or {}).get("entered_by")
+                c["remark_at"]   = r["updated_at"].isoformat() if r and r.get("updated_at") else None
         except Exception as exc:
             print(f"[ANDON] call remarks read failed: {exc}")
     return calls
@@ -1090,6 +1218,28 @@ def andon_slot_calls(line_id: int = Query(...),
     calls = _slot_calls(line_id, lname, st, en)
     if lt:
         calls = [c for c in calls if c["bucket"] == lt]
+    # 2026-10-16 — a call carried over from an earlier hour is remarked in the
+    # hour it started; name that hour so the card can say where.
+    if sh and any(not c["starts_here"] for c in calls):
+        from datetime import datetime as _dtm
+        try:
+            with get_conn() as conn:
+                cur = dict_cursor(conn)
+                cur.execute("""SELECT slot_label, start_time, end_time FROM mes_hourly_slots
+                                WHERE line_id=%s AND shift_name=%s ORDER BY slot_order""",
+                            (line_id, sh))
+                sl = cur.fetchall()
+            for c in calls:
+                if c["starts_here"]:
+                    continue
+                t = _dtm.fromisoformat(c["start"]).time()
+                for s in sl:
+                    a, b = s["start_time"], s["end_time"]
+                    if (a <= t < b) if a < b else (t >= a or t < b):
+                        c["start_slot"] = s["slot_label"]
+                        break
+        except Exception as exc:
+            print(f"[ANDON] start slot lookup failed: {exc}")
     out["calls"] = calls
 
     # loss per type — same rule as the loss table (precedence over ALL calls)
@@ -1116,6 +1266,74 @@ def andon_slot_calls(line_id: int = Query(...),
     return out
 
 
+@router.get("/slot-pickers")
+def andon_slot_pickers(line_id: int = Query(...), user=Depends(get_current_user)):
+    """Pick lists for the breakdown minor-stoppage table (2026-10-16):
+      • machines — the line's machines from the machine master
+        (maintenance_machines, the slip's MACHINE NO. source), matched on the
+        same line keys as the andon calls (aliases included);
+      • leaders  — line leaders tagged with the line's zone (Employee Master
+        zone, mes_leader_meta.zone_id) for Attended by when the Department is
+        Production; every leader when nobody is tagged with that zone."""
+    with get_conn() as conn:
+        cur = dict_cursor(conn)
+        cur.execute("""SELECT l.line_name, l.zone_id, z.zone_name
+                         FROM mes_lines l LEFT JOIN mes_zones z ON z.id = l.zone_id
+                        WHERE l.id = %s""", (line_id,))
+        ln = cur.fetchone()
+        if not ln:
+            raise HTTPException(404, "line not found")
+        leaders = []
+        try:
+            cur.execute("""SELECT a.username FROM mes_admin a
+                             JOIN mes_leader_meta m ON m.admin_id = a.id
+                            WHERE a.role = 'leader' AND m.zone_id = %s
+                            ORDER BY a.username""", (ln["zone_id"],))
+            leaders = [r["username"] for r in cur.fetchall()]
+            if not leaders:
+                cur.execute("SELECT username FROM mes_admin WHERE role='leader' ORDER BY username")
+                leaders = [r["username"] for r in cur.fetchall()]
+        except Exception as exc:                   # meta table missing: names stay typed
+            conn.rollback()
+            print(f"[ANDON] slot pickers leaders failed: {exc}")
+        # Machine-master line names differ from MES (YHB_RC, TWO_UA_GEAR_LIFT,
+        # SA_6W_YRA): the slip page's alias map resolves them to this line.
+        keys = set(andon_keys(ln["line_name"]))
+        try:
+            from routers.prod_breakdown_slips import _line_aliases
+            keys |= {k for k, v in _line_aliases(cur).items() if v == line_id}
+        except Exception as exc:
+            conn.rollback()
+            print(f"[ANDON] slot pickers aliases failed: {exc}")
+    machines = []
+    try:
+        with _maint_conn() as mc:
+            c2 = mc.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            c2.execute("""
+                SELECT machine_no, machine_name FROM maintenance_machines
+                 WHERE COALESCE(is_active, TRUE)
+                   AND UPPER(REGEXP_REPLACE(COALESCE(line_name,''),'[^A-Za-z0-9]','','g')) = ANY(%s)
+                 ORDER BY serial_no NULLS LAST, machine_no""", (sorted(keys),))
+            machines = [{"machine_no": (r["machine_no"] or "").strip(),
+                         "machine_name": (r["machine_name"] or "").strip()}
+                        for r in c2.fetchall() if (r["machine_no"] or "").strip()]
+    except HTTPException:
+        pass                                       # maintenance_db down: MES list below
+    if not machines:
+        # Not in the machine master (Sub-Assembly, Nut Lifting): the line's own
+        # MES machines, as on Shift Allocation.
+        with get_conn() as conn:
+            cur = dict_cursor(conn)
+            cur.execute("""SELECT process_name FROM mes_processes
+                            WHERE line_id = %s AND is_active
+                              AND (plc_config_id IS NOT NULL OR machine_id IS NOT NULL)
+                            ORDER BY display_order, id""", (line_id,))
+            machines = [{"machine_no": (r["process_name"] or "").strip(), "machine_name": ""}
+                        for r in cur.fetchall() if (r["process_name"] or "").strip()]
+    return {"line_id": line_id, "zone_id": ln["zone_id"], "zone_name": ln["zone_name"],
+            "machines": machines, "leaders": leaders}
+
+
 @router.post("/call-remarks")
 def save_andon_call_remarks(body: dict, user=Depends(get_current_user)):
     """Save the remark of one or more andon calls of a slot.
@@ -1138,46 +1356,115 @@ def save_andon_call_remarks(body: dict, user=Depends(get_current_user)):
     author = ((user.get("username") if isinstance(user, dict) else getattr(user, "username", None))
               or "production")
     lname, sh, st, en, _ss = _slot_window(line_id, date_s, slot, body.get("shift") or None)
+    # 2026-10-16 — breakdown minor stoppages (no slip) are a table: Machine No. +
+    # Department (filled_by) + Attended by + Remarks, all required (operator:
+    # "jab tak saare field bhare naa jaye tab tak save nahi").
+    need_all = lt in ("breakdown", "others")
+    clean = []
+    for it in items:
+        it = it or {}
+        try:
+            started = _dt.fromisoformat(str(it.get("start") or ""))
+        except ValueError:
+            continue
+        if started < st:                           # carried over from an earlier hour
+            raise HTTPException(400, "This call started in an earlier hour - add its remark in that hour")
+        row = {"type": str(it.get("type") or "").strip(),
+               "machine": str(it.get("machine") or "").strip(),
+               "started": started,
+               "remark": str(it.get("remark") or "").strip()[:2000],
+               "filled_by": str(it.get("filled_by") or "").strip()[:60],
+               "attended_by": str(it.get("attended_by") or "").strip()[:160],
+               "bd_machine": str(it.get("bd_machine") or "").strip()[:80],
+               "sub_dept": str(it.get("sub_dept") or "").strip()[:40]}
+        if not row["type"]:
+            continue
+        # 2026-10-21 — Department is fixed: a breakdown call is its own button's
+        # department (Maintenance / Tool Room), an Others call is Production with
+        # an optional Sub Department (operator).
+        if lt == "breakdown":
+            row["filled_by"] = "Tool Room" if "tool" in row["type"].lower() else "Maintenance"
+            row["sub_dept"] = ""
+        elif lt == "others":
+            row["filled_by"] = "Production"
+            if row["sub_dept"] not in ("", "Maintenance", "Tool Room"):
+                raise HTTPException(400, "Sub Department must be Maintenance or Tool Room")
+        else:
+            row["sub_dept"] = ""
+        if need_all and not (row["remark"] and row["attended_by"] and row["bd_machine"]):
+            raise HTTPException(400, "Fill Machine No., Attended by and Remarks for every call")
+        if row["remark"]:
+            clean.append(row)
+    # End Time / Total Time of each call come from the andon data itself (not
+    # from the browser): {(type, machine, start): (ended_at, total_seconds)}.
+    ends = {}
+    if clean:
+        for c in _slot_calls(line_id, lname, st, en):
+            e = _dt.fromisoformat(c["end"]) if c.get("end") else None
+            tot = int(round((e - _dt.fromisoformat(c["start"])).total_seconds())) if e else None
+            ends[(c["type"], c["machine"], c["start"])] = (e, tot)
     saved = 0
-    with get_conn() as conn:
+    with _maint_conn() as conn:                    # maintenance_db.andon_remarks_history
         _ensure_call_remarks_table(conn)
-        cur = dict_cursor(conn)
-        for it in items:
-            txt = str((it or {}).get("remark") or "").strip()[:2000]
-            ctype = str((it or {}).get("type") or "").strip()
-            mach = str((it or {}).get("machine") or "").strip()
-            try:
-                started = _dt.fromisoformat(str((it or {}).get("start") or ""))
-            except ValueError:
-                continue
-            if not ctype or not txt:
-                continue
-            cur.execute("""SELECT remark, entered_by, audit_trail FROM mes_andon_call_remarks
-                            WHERE line_id=%s AND call_type=%s AND machine_no=%s AND started_at=%s""",
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        for it in clean:
+            ctype, mach, started, txt = it["type"], it["machine"], it["started"], it["remark"]
+            end_at, total_s = ends.get((ctype, mach, started.isoformat()), (None, None))
+            cur.execute(f"""SELECT remark, filled_by, attended_by, bd_machine, sub_dept, entered_by, audit_trail,
+                                   ended_at
+                              FROM {REMARKS_TABLE}
+                             WHERE line_id=%s AND call_type=%s AND machine_no=%s AND started_at=%s""",
                         (line_id, ctype, mach, started))
             ex = cur.fetchone()
-            if ex and (ex.get("remark") or "") == txt:
+            if ex and ((ex.get("remark") or ""), (ex.get("filled_by") or ""), (ex.get("attended_by") or ""),
+                       (ex.get("bd_machine") or ""), (ex.get("sub_dept") or "")) \
+                    == (txt, it["filled_by"], it["attended_by"], it["bd_machine"], it["sub_dept"]):
+                if end_at and ex.get("ended_at") is None:      # call closed since: times only
+                    cur.execute(f"""UPDATE {REMARKS_TABLE} SET ended_at=%s, total_seconds=%s
+                                     WHERE line_id=%s AND call_type=%s AND machine_no=%s AND started_at=%s""",
+                                (end_at, total_s, line_id, ctype, mach, started))
                 continue
             trail = list(ex["audit_trail"]) if ex and ex.get("audit_trail") else []
             if ex and ex.get("remark"):
-                trail.append({"remark": ex["remark"], "entered_by": ex.get("entered_by"),
+                trail.append({"remark": ex["remark"], "filled_by": ex.get("filled_by"),
+                              "attended_by": ex.get("attended_by"), "bd_machine": ex.get("bd_machine"),
+                              "sub_dept": ex.get("sub_dept"), "entered_by": ex.get("entered_by"),
                               "replaced_at": _dt.utcnow().isoformat() + "Z"})
-            cur.execute("""
-                INSERT INTO mes_andon_call_remarks
-                       (line_id, call_type, machine_no, started_at, remark, entered_by,
-                        audit_trail, updated_at)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
+            cur.execute(f"""
+                INSERT INTO {REMARKS_TABLE}
+                       (line_id, line_name, call_type, machine_no, started_at, ended_at, total_seconds,
+                        remark, filled_by, attended_by, bd_machine, sub_dept, entered_by, audit_trail, updated_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
                 ON CONFLICT (line_id, call_type, machine_no, started_at) DO UPDATE SET
-                       remark = EXCLUDED.remark, entered_by = EXCLUDED.entered_by,
+                       line_name = EXCLUDED.line_name,
+                       ended_at = COALESCE(EXCLUDED.ended_at, {REMARKS_TABLE}.ended_at),
+                       total_seconds = COALESCE(EXCLUDED.total_seconds, {REMARKS_TABLE}.total_seconds),
+                       remark = EXCLUDED.remark, filled_by = EXCLUDED.filled_by,
+                       attended_by = EXCLUDED.attended_by, bd_machine = EXCLUDED.bd_machine,
+                       sub_dept = EXCLUDED.sub_dept, entered_by = EXCLUDED.entered_by,
                        audit_trail = EXCLUDED.audit_trail, updated_at = NOW()
-            """, (line_id, ctype, mach, started, txt, author, psycopg2.extras.Json(trail)))
+            """, (line_id, lname, ctype, mach, started, end_at, total_s, txt, it["filled_by"] or None,
+                  it["attended_by"] or None, it["bd_machine"] or None, it["sub_dept"] or None, author,
+                  psycopg2.extras.Json(trail)))
             saved += 1
         conn.commit()
 
-    # combined slot remark for the reports
+    # combined slot remark for the reports (a slip call without a remark of its
+    # own is listed by its slip number + the problem production reported)
     calls = [c for c in _slot_calls(line_id, lname, st, en) if c["bucket"] == lt]
-    parts = [f"{c['start'][11:16]} {c['type']}{(' ' + c['machine']) if c['machine'] else ''}: {c['remark']}"
-             for c in calls if c.get("remark")]
+
+    def _part(c):
+        mach = c.get("bd_machine") or c["machine"]
+        head = f"{c['start'][11:16]} {c['type']}{(' ' + mach) if mach else ''}: "
+        if c.get("remark"):
+            who = f" (attended by {c['attended_by']})" if c.get("attended_by") else ""
+            sub = f" [{c['sub_dept']}]" if c.get("sub_dept") else ""
+            return head + c["remark"] + sub + who
+        s = c.get("slip")
+        if s:
+            return head + f"Slip #{s['id']}" + (f" {s['problem']}" if s.get("problem") else "")
+        return None
+    parts = [p for p in (_part(c) for c in calls) if p]
     combined = " | ".join(parts)[:2000]
     if combined:
         with get_conn() as conn:

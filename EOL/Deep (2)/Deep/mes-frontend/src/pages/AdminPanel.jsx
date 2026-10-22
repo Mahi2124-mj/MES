@@ -4,12 +4,14 @@ import { api } from "../api/client";
 import AIAssistant from "../components/AIAssistant";
 import NetworkPanel from "./NetworkPanel";
 import { NAV_ITEMS } from "../components/SlideNav";
-import MachineMaster from "./MachineMaster";
 import PyConfigEditor from "./PyConfigEditor";
 import FaultConfigPanel from "./FaultConfigPanel";
 import WeldMaster from "./WeldMaster";
 import ClipPriorityPage from "./ClipPriorityPage";
 import PeffDetailsPage from "./PeffDetailsPage";
+import WorkingCalendarPanel from "../components/WorkingCalendarPanel";
+import AgentsPanel from "../components/AgentsPanel";         // 2026-10-09 Admin → Agents
+import LiveReadButton from "../components/LiveReadButton";   // 2026-10-09 machine live values
 import { PAGE_MODULES, moduleKey, pageHasModules } from "../utils/pageModules";
 import TimerConfigPage from "./TimerConfigPage";
 import PanelMapPage from "./PanelMapPage";
@@ -1691,30 +1693,42 @@ export function LinesPage({ toast, readOnly = false }) {
   // (/provision, /stop, /restart) already existed but nothing in the UI called
   // provision or restart, so a newly-configured line silently never started —
   // saving the config does NOT start a collector, provisioning does.
-  const [collBusy, setCollBusy] = useState(null);   // line id currently working
+  // 2026-10-09 — a SET of busy lines.  It was one id, so starting a second
+  // restart hid the first one's "working…" and whichever finished first
+  // cleared both, which looked like the first restart had been cancelled.
+  const [collBusy, setCollBusy] = useState(() => new Set());
+  const busyOn  = (id) => setCollBusy(s => new Set(s).add(id));
+  const busyOff = (id) => setCollBusy(s => { const n = new Set(s); n.delete(id); return n; });
 
   const restartLine = async (l) => {
-    setCollBusy(l.id);
+    busyOn(l.id);
     try {
       const r = await api.post(`/api/lines/${l.id}/restart`, {}, token);
-      toast(`Restarted ✓ PID ${r.pid ?? "—"}`);
+      toast(`${l.line_name}: restarted ✓ PID ${r.pid ?? "—"}`);
       load();
-    } catch (e) { toast(e.message, "err"); }
-    finally { setCollBusy(null); }
+    } catch (e) { toast(`${l.line_name}: ${e.message}`, "err"); }
+    finally { busyOff(l.id); }
   };
 
   const provisionLine = async (l) => {
-    setCollBusy(l.id);
-    try { const r = await api.post(`/api/lines/${l.id}/provision`, {}, token); toast(`Started ✓ PID ${r.pid}`); load(); }
-    catch (e) { toast(e.message, "err"); }
-    finally { setCollBusy(null); }
+    busyOn(l.id);
+    try { const r = await api.post(`/api/lines/${l.id}/provision`, {}, token); toast(`${l.line_name}: started ✓ PID ${r.pid}`); load(); }
+    catch (e) { toast(`${l.line_name}: ${e.message}`, "err"); }
+    finally { busyOff(l.id); }
   };
 
   // ── Helpers ───────────────────────────────────────────────────
   const toggleShift    = (n) => setActiveShifts(s => s.includes(n) ? (s.length > 1 ? s.filter(x=>x!==n) : s) : [...s, n]);
   const togglePyModel  = (id) => setSelectedPyIds(s => s.includes(id) ? s.filter(x=>x!==id) : [...s, id]);
   const setMF          = (k,v) => setMachineForm(f => ({...f,[k]:v}));
-  const stopLine       = async (l) => { try { await api.post(`/api/lines/${l.id}/stop`,{},token); toast("Collector stopped"); load(); } catch(e){toast(e.message,"err");} };
+  // 2026-10-09 — Stop now really stops (server keeps a per-line stop flag so the
+  // never-die loop can't respawn it); show the server's own message.
+  const stopLine       = async (l) => {
+    busyOn(l.id);
+    try { const r = await api.post(`/api/lines/${l.id}/stop`,{},token); toast(`${l.line_name}: ${r.message || "collector stopped"}`); load(); }
+    catch(e){ toast(`${l.line_name}: ${e.message}`,"err"); }
+    finally { busyOff(l.id); }
+  };
 
   const SUB_LABELS = ["① Zone & Info","② Active Shifts","③ Machines","④ Dashboard PLC","⑤ Models","⑥ Planning","⑦ OT Config","⑧ Hourly Slots"];
   const canAll     = !!editing;
@@ -1765,7 +1779,7 @@ export function LinesPage({ toast, readOnly = false }) {
                   {/* Collector controls.  "Start" runs provision, which also
                       creates the line's table + collector script the first time
                       — that is the step a freshly-configured line is missing. */}
-                  {collBusy === l.id ? (
+                  {collBusy.has(l.id) ? (
                     <Btn size="sm" disabled>working…</Btn>
                   ) : running ? (
                     <>
@@ -2019,6 +2033,7 @@ export function LinesPage({ toast, readOnly = false }) {
                       <div style={{ fontSize:11, color:"#94a3b8", marginTop:2 }}>{m.plc_ip}:{m.plc_port} · {m.protocol} · Ideal CT: {m.ideal_cycle_time}s</div>
                     </div>
                     <div style={{ display:"flex", gap:6 }}>
+                      <LiveReadButton machine={m} />
                       <Btn size="sm" onClick={() => setMachineForm({...m})}>Edit</Btn>
                       <Btn size="sm" variant="danger" onClick={() => deleteMachine(m.id)}>Delete</Btn>
                     </div>
@@ -2075,10 +2090,11 @@ export function LinesPage({ toast, readOnly = false }) {
             .sort((a,b) => (a.bitNumber ?? 9999) - (b.bitNumber ?? 9999));
           const cleanName = s => String(s||"").replace(/^TYPE-SERIES:\s*/i,"");
           // Per-model CT editor: the model-aware lines — YWD-SS and (2026-10-10)
-          // every Sub-Assembly line; the collector follows the running model's CT.
+          // every Sub-Assembly and Loop Pipe line; the collector follows the
+          // running model's CT.
           const _lineZone = ((zones || []).find(z => String(z.id) === String(editing?.zone_id)) || {}).zone_name || "";
           const showModelCT = /ywd[\s_-]*ss/i.test(editing?.line_name || "")
-                           || /sub[\s_-]*assembly/i.test(_lineZone);
+                           || /sub[\s_-]*assembly|loop[\s_-]*pipe/i.test(_lineZone);
 
           return (
             <div>
@@ -3975,11 +3991,32 @@ function ExcelTools({ routePrefix, label, fileBaseName, token, toast, onDone }) 
 
 
 function PYMaster({ pyMaster, models, zones = [], toast, token, onReload, readOnly = false }) {
-  const TYPES = ["4 Way", "6 Way"];
+  // 2026-10-14 — Inner / Outer / All added (YWD zone models are named
+  // "INNER RH", "OUTER", "INR LH" … rather than "4 Way Inr LH").
+  const TYPES = ["4 Way", "6 Way", "Inner", "Outer", "All"];
+  const KEYWORD_TYPES = ["Inner", "Outer", "All"];
   const sidesFor = (type) => {
     if (type === "4 Way") return ["ALL", "LH", "RH", "OTR"];
     if (type === "6 Way") return ["ALL", "LH", "RH", "Otr LH", "Otr RH"];
+    if (type === "Inner" || type === "Outer") return ["ALL", "LH", "RH"];
+    if (type === "All") return ["ALL"];
     return [];
+  };
+  // Inner / Outer / All match Model Master entries by keyword in the model's
+  // type or name (INNER|INR, OUTER|OTR, LH, RH), within the chosen zone.
+  const keywordMatch = (m, type, side, zoneId) => {
+    if (zoneId && String(m.zoneId ?? "") !== String(zoneId)) return false;
+    const txt = ` ${(m.type || "")} ${(m.modelName || "")} `.toUpperCase();
+    if (type === "Inner" && !/\b(INNER|INR)\b/.test(txt)) return false;
+    if (type === "Outer" && !/\b(OUTER|OTR)\b/.test(txt)) return false;
+    if (side === "LH" && !/\bLH\b/.test(txt)) return false;
+    if (side === "RH" && !/\bRH\b/.test(txt)) return false;
+    return true;
+  };
+  const keywordHint = (type, side) => {
+    const what = type === "Inner" ? "named INNER / INR"
+               : type === "Outer" ? "named OUTER / OTR" : "of every type";
+    return side && side !== "ALL" ? `${what}, side ${side}` : what;
   };
   // Map (TYPE + SIDE) → list of model.type strings stored in Model Master.
   // ALL on a given TYPE returns every variant for that TYPE.
@@ -4052,13 +4089,18 @@ function PYMaster({ pyMaster, models, zones = [], toast, token, onReload, readOn
   // Eligible models for current type+side, sorted by bit number.
   // When side = "ALL", merges all variants for the chosen Type.
   const eligibleModels = useMemo(() => {
+    const bySeq = (a,b) => (a.bitNumber ?? 9999) - (b.bitNumber ?? 9999);
+    if (KEYWORD_TYPES.includes(form.modelType)) {
+      if (!form.typeSide) return [];
+      return models.filter(m => keywordMatch(m, form.modelType, form.typeSide, form.zoneId)).sort(bySeq);
+    }
     const wantedList = modelTypesFor(form.modelType, form.typeSide);
     if (wantedList.length === 0) return [];
     const wanted = new Set(wantedList);
     return models
       .filter(m => wanted.has(m.type || ""))
-      .sort((a,b) => (a.bitNumber ?? 9999) - (b.bitNumber ?? 9999));
-  }, [form.modelType, form.typeSide, models]);
+      .sort(bySeq);
+  }, [form.modelType, form.typeSide, form.zoneId, models]);
 
   // When type/side changes, drop any selected IDs that no longer apply.
   useEffect(() => {
@@ -4307,7 +4349,9 @@ function PYMaster({ pyMaster, models, zones = [], toast, token, onReload, readOn
               </div>
               <div style={{fontSize:10,color:"#9a3412",marginTop:2}}>
                 {form.modelType && form.typeSide
-                  ? `Showing Model Master entries where Type ∈ ${modelTypesFor(form.modelType, form.typeSide).map(t=>`"${t}"`).join(", ")}`
+                  ? (KEYWORD_TYPES.includes(form.modelType)
+                      ? `Showing Model Master entries ${keywordHint(form.modelType, form.typeSide)}${form.zoneId ? " in the selected zone" : ""}`
+                      : `Showing Model Master entries where Type ∈ ${modelTypesFor(form.modelType, form.typeSide).map(t=>`"${t}"`).join(", ")}`)
                   : "Select TYPE and SIDE above to see matching models."}
               </div>
             </div>
@@ -4325,7 +4369,9 @@ function PYMaster({ pyMaster, models, zones = [], toast, token, onReload, readOn
             </div>
           ) : eligibleModels.length === 0 ? (
             <div style={{fontSize:11,color:"#9a3412",fontStyle:"italic",padding:"8px 4px"}}>
-              No models in Model Master match <b>{modelTypesFor(form.modelType, form.typeSide).join(" / ")}</b>. Add some in the Model Master tab first.
+              No models in Model Master match <b>{KEYWORD_TYPES.includes(form.modelType)
+                ? keywordHint(form.modelType, form.typeSide)
+                : modelTypesFor(form.modelType, form.typeSide).join(" / ")}</b>. Add some in the Model Master tab first.
             </div>
           ) : (
             <div style={{maxHeight:240,overflowY:"auto",display:"flex",flexDirection:"column",gap:4}}>
@@ -5806,9 +5852,10 @@ const PAGE_PERM_GROUPS = [
     { key: "process-graphs",    label: "Process Graphs" },
     { key: "shift-allocation",  label: "Shift Allocation" },
     { key: "shift-compile",     label: "Shift Compile" },
+    { key: "plant-overview",    label: "Plant Overview" },
     { key: "shift-calculator",  label: "Shift Calculator" },
     { key: "operators",         label: "Employee Master" },
-    { key: "peff-sheet",        label: "PEFF Sheet" },
+    { key: "peff-sheet",        label: "Hourly Sheet" },
     { key: "six-sigma",         label: "6 Sigma (Ball Guide clip review)" },
     { key: "bin-filling",       label: "Bin Filling" },
     { key: "prod-breakdown-slip", label: "Breakdown Slip (Production)" },
@@ -7244,6 +7291,7 @@ export function MachinesPage({ toast, readOnly = false }) {
                   </div>
                   <div style={{ fontSize:11, color:"#64748b" }}>{m.plc_ip}:{m.plc_port} · {m.protocol}{m.nf2_camera_id ? ` · cam=${m.nf2_camera_id}` : ""}</div>
                 </div>
+                <LiveReadButton machine={m} />
                 <Btn size="sm" onClick={()=>{ selectMachine(m); setSubPage(1); }}>Edit PLC</Btn>
                 <Btn size="sm" onClick={()=>{ selectMachine(m); setSubPage(2); }}>Monitor Config</Btn>
                 <Btn size="sm" variant="danger" onClick={()=>deleteMachine(m)}>Delete</Btn>
@@ -10293,12 +10341,16 @@ export function SystemMapPage({ toast }) {
     "seat slid",   // covers "Seat Slider" / "Seat Slide Zone" / "SEAT SLIDER"
     "sub assem",   // "Sub Assembly" / "Sub-Assembly"
     "recliner",    // "Recliner"  (also matched by "thin recliner" — see below)
-    "press shop",  // "Press Shop"
     "loop pipe",   // "Loop Pipe"
     "thin recli",  // "Thin Recliner"
   ];
+  // 2026-10-11 — hyphen/underscore = space: MES names the zone "Sub-Assembly",
+  // which "sub assem" never matched, so the MES zone (with every PLC and camera
+  // IP) was dropped and only the legacy zones.json "Sub Assembly" (no IPs) showed.
+  const zoneKey = (zoneName) =>
+    String(zoneName || "").trim().toLowerCase().replace(/[-_]+/g, " ").replace(/\s+/g, " ");
   const isAllowedZone = (zoneName) => {
-    const n = String(zoneName || "").trim().toLowerCase();
+    const n = zoneKey(zoneName);
     if (!n) return false;
     return ZONE_ALLOWLIST.some(p => n.includes(p));
   };
@@ -10333,9 +10385,22 @@ export function SystemMapPage({ toast }) {
     // Zone → Line → [machines] dictionary, populated from camera-grid.
     // Skip any zone that isn't in the explicit allow-list above.
     const zMap = {};
+    // exact PLC row by id ("mes:<plc_id>") — two machines on a line can share
+    // a name (YRA-SA-6WAY's two Mag Weld robots), so a name match is not enough
+    const plcById = {};
+    Object.values(machinesByLine).forEach(mlist => mlist.forEach(mc => { plcById[String(mc.id)] = mc; }));
+    // a zone MES manages shows only its MES machines — the legacy zones.json
+    // copy of the same zone (no PLC / camera IPs) is dropped
+    const mesZones = new Set(grid.filter(m => String(m.machine_id || "").startsWith("mes:"))
+                                 .map(m => zoneKey(m.zone_name)));
+    lines.forEach(ln => { if (ln.zone_name) mesZones.add(zoneKey(ln.zone_name)); });
+    const camIpById = {};
+    grid.forEach(m => { if (m.camera_id && m.camera_ip) camIpById[m.camera_id] = { ip: m.camera_ip, name: m.camera_name }; });
     grid.forEach(m => {
       const zKey = m.zone_name || `Zone ${m.zone_id ?? "?"}`;
       if (!isAllowedZone(zKey)) return;       // ← drop unwanted zones
+      const isMes = String(m.machine_id || "").startsWith("mes:");
+      if (!isMes && mesZones.has(zoneKey(zKey))) return;   // legacy duplicate
       const lKey = m.line_name || "—";
       if (!zMap[zKey]) {
         zMap[zKey] = {
@@ -10358,9 +10423,12 @@ export function SystemMapPage({ toast }) {
       // Find PLC info for this (zone, line, machine) tuple.
       const k1 = `${norm(zKey)}|${norm(lKey)}|${norm(m.machine_name)}`;
       const k2 = `${norm(lKey)}|${norm(m.machine_name)}`;
-      const mc = plcByZLM[k1] || plcByLM[k2] || {};
+      const byId = String(m.machine_id || "").startsWith("mes:")
+        ? plcById[String(m.machine_id).slice(4)] : null;
+      const mc = byId || plcByZLM[k1] || plcByLM[k2] || {};
 
       ln.machines.push({
+        plc_id:        mc.id ?? null,
         // PLC details (may all be empty if MES hasn't provisioned this machine)
         machine_name:  m.machine_name,
         plc_ip:        mc.plc_ip      || "",
@@ -10395,16 +10463,23 @@ export function SystemMapPage({ toast }) {
       }
       const lineNode = zMap[zKey].lines[lKey];
       lineNode.db_table_name = ln.db_table_name || lineNode.db_table_name;
-      const have = new Set(lineNode.machines.map(x => norm(x.machine_name)));
+      const haveId = new Set(lineNode.machines.map(x => x.plc_id).filter(x => x != null).map(String));
+      const have = new Set(lineNode.machines.filter(x => x.plc_id == null).map(x => norm(x.machine_name)));
       mlist.forEach(mc => {
-        if (have.has(norm(mc.machine_name))) return;
+        if (haveId.has(String(mc.id)) || have.has(norm(mc.machine_name))) return;
+        const cam = mc.nf2_camera_id ? camIpById[mc.nf2_camera_id] : null;
         lineNode.machines.push({
+          plc_id:        mc.id ?? null,
           machine_name:  mc.machine_name,
           plc_ip:        mc.plc_ip || "",
           plc_port:      mc.plc_port || "",
           machine_seq:   mc.machine_seq ?? null,
           parent_plc_id: mc.parent_plc_id ?? null,
-          camera:        null,
+          camera:        mc.nf2_camera_id ? {
+            camera_id:   mc.nf2_camera_id,
+            camera_ip:   cam?.ip || "",
+            camera_name: cam?.name || "",
+          } : null,
         });
       });
     });
@@ -10546,6 +10621,7 @@ export const ADMIN_SECTIONS = [
       { key: "panelmap",    label: "Panel Displays",   icon: "🖥" },
       { key: "workcenter",  label: "Work Center (PEFF)", icon: "🎯" },
       { key: "peffdetails", label: "PEFF Details",       icon: "📋" },
+      { key: "calendar",    label: "Annual Calendar",    icon: "📅" },
       { key: "clippriority", label: "Clip Priority (48 h)", icon: "🎬" },
     ],
   },
@@ -10591,9 +10667,9 @@ export const ADMIN_SECTIONS = [
     tabs: [
       { key: "systemmap",   label: "System Map",       icon: "🗺" },
       { key: "network",     label: "Network Builder",  icon: "🖧" },
-      { key: "machinemaster", label: "Machine Master", icon: "🏭" },
       { key: "departments", label: "Departments",      icon: "🏛" },
       { key: "users",       label: "Users",            icon: "👥" },
+      { key: "agents",      label: "Agents",           icon: "🤖" },
       // 2026-09-13 — "Operators" moved OUT of the admin panel into its own
       // assignable page (/operators, OperatorMaster.jsx).  Removed here so it
       // isn't duplicated; the standalone page is authority-based via canAccess.
@@ -11742,6 +11818,7 @@ export function renderAdminTab(sectionKey, tabKey, props) {
       </div>
     );
     case "production/peffdetails": return <PeffDetailsPage {...t} />;
+    case "production/calendar":    return <WorkingCalendarPanel {...t} />;
     case "production/clippriority": return <ClipPriorityPage {...t} />;
     case "production/timercfg":    return <TimerConfigPage {...t} />;
     case "production/panelmap":    return <PanelMapPage {...t} />;
@@ -11763,9 +11840,9 @@ export function renderAdminTab(sectionKey, tabKey, props) {
     // Admin
     case "admin/systemmap":   return <SystemMapPage   {...t} />;
     case "admin/network":     return <NetworkPanel mode={t.readOnly ? "view" : "edit"} />;
-    case "admin/machinemaster": return <MachineMaster />;
     case "admin/departments": return <DepartmentsPage {...t} />;
     case "admin/users":       return <UsersPage       {...t} />;
+    case "admin/agents":      return <AgentsPanel     {...t} />;
     case "admin/operators":   return <OperatorsPage   {...t} />;
     default: return null;
   }

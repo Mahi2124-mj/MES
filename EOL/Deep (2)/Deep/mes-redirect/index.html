@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>TBDI MES</title>
+<!--
+  MES gateway page (12-Oct-2026).
+  Opens https://mes.tbdi.in when it is reachable; otherwise shows a
+  "temporarily unavailable" page that keeps checking and opens MES as soon as
+  it is back.
+
+  How the check works: mes.tbdi.in sits behind a Cloudflare tunnel, so when the
+  MES server is down Cloudflare still answers (with its own HTML error page),
+  and unknown paths on MES return the app's HTML.  A plain "did it answer"
+  check would therefore always pass.  Instead the page loads a real image from
+  MES (icon-192.png) with a unique query string, which bypasses the browser and
+  Cloudflare caches: it only loads as an image when the MES server itself
+  served it.
+
+  Host this file somewhere that does NOT depend on the MES server (another
+  server, a static host, or as a local file); on the same box it goes down
+  with MES.
+-->
+<style>
+  :root {
+    --bg: #f4f6f9; --card: #ffffff; --text: #1d2433; --muted: #5f6b7d;
+    --line: #e2e6ec; --accent: #1f5fbf; --accent-text: #ffffff;
+    --warn: #c0392b; --warn-bg: #fdecea; --ok: #1e8e3e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #10141b; --card: #1a202b; --text: #e7ebf2; --muted: #9aa5b5;
+      --line: #2a3240; --accent: #4c8dff; --accent-text: #0b1220;
+      --warn: #ff7b6e; --warn-bg: #3a1f1d; --ok: #4cc26f;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    display: flex; align-items: center; justify-content: center; padding: 16px;
+  }
+  .card {
+    width: 100%; max-width: 460px; background: var(--card);
+    border: 1px solid var(--line); border-radius: 14px; padding: 32px 28px;
+    text-align: center; box-shadow: 0 6px 24px rgba(0, 0, 0, .06);
+  }
+  .brand { font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin: 0 0 18px; }
+  h1 { font-size: 22px; margin: 0 0 10px; line-height: 1.3; }
+  p { margin: 0 0 14px; color: var(--muted); line-height: 1.5; font-size: 15px; }
+  .icon {
+    width: 56px; height: 56px; margin: 0 auto 18px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--warn-bg); color: var(--warn); font-size: 28px; font-weight: 700;
+  }
+  .spinner {
+    width: 40px; height: 40px; margin: 6px auto 18px; border-radius: 50%;
+    border: 4px solid var(--line); border-top-color: var(--accent);
+    animation: spin .9s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .status { font-size: 13px; color: var(--muted); margin-top: 18px; }
+  .status b { color: var(--text); font-weight: 600; }
+  button {
+    margin-top: 8px; border: 0; border-radius: 8px; padding: 11px 22px;
+    background: var(--accent); color: var(--accent-text); font-size: 15px;
+    font-weight: 600; cursor: pointer;
+  }
+  button:disabled { opacity: .6; cursor: default; }
+  a { color: var(--accent); }
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+<main class="card" role="main">
+  <p class="brand">TBDI MES</p>
+
+  <section id="checking" aria-live="polite">
+    <div class="spinner" aria-hidden="true"></div>
+    <h1>Connecting to MES…</h1>
+    <p>Checking that the server is available.</p>
+  </section>
+
+  <section id="down" class="hidden" aria-live="polite">
+    <div class="icon" aria-hidden="true">!</div>
+    <h1 id="down-title">MES is temporarily unavailable</h1>
+    <p id="down-text">The server is not responding. This page checks again automatically and opens MES as soon as it is back.</p>
+    <button id="retry" type="button">Try again</button>
+    <div class="status">
+      <span id="next">Next check in <b id="count">30</b> s</span><br>
+      Last checked: <b id="last">–</b>
+    </div>
+    <p class="status">If this continues, contact the IT team.</p>
+  </section>
+
+  <noscript>
+    <h1>Open MES</h1>
+    <p><a href="https://mes.tbdi.in/">https://mes.tbdi.in</a></p>
+  </noscript>
+</main>
+
+<script>
+(function () {
+  var TARGET = "https://mes.tbdi.in/";
+  var PROBE = TARGET + "icon-192.png";   // a real image served by MES itself
+  var TIMEOUT_MS = 8000;                 // no answer within this = unreachable
+  var RETRY_S = 30;                      // automatic re-check interval when down
+
+  var el = function (id) { return document.getElementById(id); };
+  var countdown = null, left = 0, busy = false;
+
+  function probe(done) {
+    var img = new Image(), finished = false;
+    var timer = setTimeout(function () { finish(false); }, TIMEOUT_MS);
+    function finish(ok) {
+      if (finished) { return; }
+      finished = true;
+      clearTimeout(timer);
+      img.onload = img.onerror = null;
+      done(ok);
+    }
+    img.onload = function () { finish(!("naturalWidth" in img) || img.naturalWidth > 0); };
+    img.onerror = function () { finish(false); };
+    // Unique query string: never answered from the browser or Cloudflare cache.
+    img.src = PROBE + "?_=" + new Date().getTime() + Math.random().toString(36).slice(2);
+  }
+
+  function pad(n) { return (n < 10 ? "0" : "") + n; }
+  function now() {
+    var d = new Date();
+    return pad(d.getHours()) + ":" + pad(d.getMinutes()) + ":" + pad(d.getSeconds());
+  }
+
+  function showDown() {
+    el("checking").className = "hidden";
+    el("down").className = "";
+    var offline = (typeof navigator.onLine === "boolean" && !navigator.onLine);
+    el("down-title").innerHTML = offline ? "No network connection" : "MES is temporarily unavailable";
+    el("down-text").innerHTML = offline
+      ? "This device is offline. Check the network connection; MES opens automatically once the connection is back."
+      : "The server is not responding. This page checks again automatically and opens MES as soon as it is back.";
+    el("last").innerHTML = now();
+    startCountdown();
+  }
+
+  function startCountdown() {
+    if (countdown) { clearInterval(countdown); }
+    left = RETRY_S;
+    el("count").innerHTML = left;
+    el("next").className = "";
+    countdown = setInterval(function () {
+      left -= 1;
+      if (left <= 0) {
+        clearInterval(countdown); countdown = null;
+        check(false);
+      } else {
+        el("count").innerHTML = left;
+      }
+    }, 1000);
+  }
+
+  function open() { window.location.replace(TARGET); }
+
+  // first: true on page load — one quick second attempt before showing "down",
+  // so a single dropped request does not flash the error page.
+  function check(first) {
+    if (busy) { return; }
+    busy = true;
+    el("retry").disabled = true;
+    el("next").className = "hidden";
+    probe(function (ok) {
+      if (ok) { open(); return; }
+      if (first) {
+        setTimeout(function () {
+          probe(function (ok2) {
+            busy = false;
+            el("retry").disabled = false;
+            if (ok2) { open(); } else { showDown(); }
+          });
+        }, 1500);
+        return;
+      }
+      busy = false;
+      el("retry").disabled = false;
+      showDown();
+    });
+  }
+
+  el("retry").onclick = function () {
+    if (countdown) { clearInterval(countdown); countdown = null; }
+    check(false);
+  };
+  if (window.addEventListener) {
+    // Network came back: check at once instead of waiting for the countdown.
+    window.addEventListener("online", function () {
+      if (countdown) { clearInterval(countdown); countdown = null; }
+      check(false);
+    });
+  }
+
+  check(true);
+})();
+</script>
+</body>
+</html>

@@ -13,6 +13,7 @@ Role-based access:
 
 import os
 import re
+import time
 from datetime import datetime, date as _date, timedelta
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse, Response
@@ -40,7 +41,7 @@ CYCLE_VIDEO_BASE_URL = os.environ.get(
 # a dead CMS socket.  Frontend video buttons just show "not available".
 CMS_INTEGRATION_ENABLED = bool(CYCLE_VIDEO_BASE_URL) and CYCLE_VIDEO_BASE_URL.lower() != "disabled"
 from auth import get_current_user, get_current_user_optional, require_admin, FLOOR_SCOPED_ROLES
-from provisioner import provision_line, stop_collector
+from provisioner import provision_line, stop_collector, set_stop_flag
 from ddl_once import once
 
 router = APIRouter(prefix="/api/lines", tags=["lines"])
@@ -1497,6 +1498,7 @@ def list_lines(plant_id: Optional[int] = None, user=Depends(get_current_user)):
 # (mes_model_mappings), not the one fixed line CT.
 _MODEL_CT_LINES = {int(x) for x in os.getenv("MODEL_CT_LINES", "6").split(",") if x.strip()}
 _SA_ZONE_ID = int(os.getenv("SA_ZONE_ID", "7") or 7)   # 2026-10-10: Sub-Assembly too
+_LP_ZONE_ID = int(os.getenv("LP_ZONE_ID", "6") or 6)   # 2026-10-10: Loop Pipe too
 
 
 _ZONE_CACHE: dict = {}          # line_id -> (zone_id, fetched_at)
@@ -1523,7 +1525,7 @@ def _running_model_ct(cur, line_id: int, model_no=None):
         return None
     try:
         val = None
-        if int(line_id) in _MODEL_CT_LINES or _line_zone(cur, line_id) == _SA_ZONE_ID:
+        if int(line_id) in _MODEL_CT_LINES or _line_zone(cur, line_id) in (_SA_ZONE_ID, _LP_ZONE_ID):
             if model_no is None:
                 cur.execute("SELECT db_table_name FROM mes_lines WHERE id = %s", (line_id,))
                 tbl = ((cur.fetchone() or {}).get("db_table_name") or "").strip()
@@ -1698,6 +1700,21 @@ def get_ct_history(
             cols += ", part_code"
         if has_ng:
             cols += ", is_ng"
+        # 2026-10-12 — a line with a model timeline returns each cycle's own
+        # model CT as `ideal` (routers/model_timeline.py), so the charts judge
+        # an INNER cycle at 23 s and an OUTER one at 14.4 s.
+        has_ideal = False
+        try:
+            from routers.model_timeline import has_timeline, ideal_expr
+            if has_timeline(cur, line_id):
+                _fb = _running_model_ct(cur, line_id)
+                if not _fb:
+                    cur.execute("SELECT ideal_cycle_time FROM mes_lines WHERE id = %s", (line_id,))
+                    _fb = float((cur.fetchone() or {}).get("ideal_cycle_time") or 15.0)
+                cols += ", " + ideal_expr(f"{tbl_log}.ts", line_id, float(_fb)) + " AS ideal"
+                has_ideal = True
+        except Exception:
+            has_ideal = False
 
         # ── Stale-row guard: if the collector restarted mid-shift after a
         # bug had pushed cycle_seq up to some huge number, the table now
@@ -1744,6 +1761,8 @@ def get_ct_history(
                 "cycle_seq":   r["cycle_seq"],
                 "part_code":   (r.get("part_code") if has_part else None) or "",
                 "is_ng":       bool(r.get("is_ng")) if has_ng else False,
+                **({"ideal": float(r["ideal"])}
+                   if has_ideal and r.get("ideal") is not None else {}),
             }
             for r in rows
         ]
@@ -1865,6 +1884,37 @@ def get_cycle_video(
             _params2,
         )
         hit = cur.fetchone()
+        # 2026-10-10 — a line whose final is a combined machine (the two
+        # YRA-SA-6WAY robots, mes_combined_machines.drives_line) has no camera
+        # of its own: serve the clip of the robot that made this part.
+        _robot = None
+        if hit:
+            try:
+                cur.execute("SELECT to_regclass('mes_combined_machines') AS t")
+                if cur.fetchone()["t"]:
+                    cur.execute("""SELECT c.member_ids FROM mes_combined_machines c
+                                     JOIN mes_plc_configs p ON p.id = c.plc_config_id
+                                    WHERE p.line_id = %s AND c.drives_line LIMIT 1""", (line_id,))
+                    _cm = cur.fetchone()
+                    if _cm and _cm["member_ids"]:
+                        cur.execute("""
+                            SELECT sub_plc_id, cycle_seq, COALESCE(is_ng, FALSE) AS is_ng
+                              FROM mes_submachine_ct_log
+                             WHERE sub_plc_id = ANY(%s) AND record_date = %s
+                               AND ts_end BETWEEN %s::timestamp - interval '5 seconds'
+                                              AND %s::timestamp + interval '2 seconds'
+                               AND COALESCE(is_ng, FALSE) = %s
+                             ORDER BY abs(extract(epoch FROM (ts_end - %s::timestamp)))
+                             LIMIT 1""",
+                            (list(_cm["member_ids"]), hit["record_date"], hit["ts"], hit["ts"],
+                             bool(hit.get("is_ng")), hit["ts"]))
+                        _robot = cur.fetchone()
+            except Exception:
+                conn.rollback()
+        if _robot:
+            from routers.submachines import cycle_video as _robot_clip
+            return _robot_clip(sub_id=_robot["sub_plc_id"], cycle_seq=_robot["cycle_seq"],
+                               ng=int(_robot["is_ng"]), token=token, request=request)
         # Use the row's OWN record_date from here on (archive lookup + clip
         # naming): across midnight it is the shift's date, not today's.
         if hit and hit.get("record_date"):
@@ -2744,69 +2794,50 @@ def get_line_realtime(line_id: int, user=Depends(get_current_user_optional)):
         except Exception as _spx:
             print(f"[LINES] sub-assembly plan compute skipped: {_spx}")
 
-        # ── LOOP PIPE + SUB-ASSEMBLY — loss time from parts short ────────
-        # 2026-10-03 — operator asked for the loss the line is JUDGED on to be
-        # the one they can check by eye: plan minus actual, valued at ideal CT.
-        # 2026-10-06 — same formula on the Sub-Assembly lines (operator: "sub-
-        # assy me loss time nikalne ka formula same vahi kar do jo loop pipe pe
-        # kiya tha … as per part loss").  Their PLCs, too, report no stop
-        # reason, so stops only ever showed up as speed loss with the >300 s
-        # gaps dropped.
-        #
-        # Why these lines need it: Loop Pipe's PLC never publishes a stop
-        # reason (D6005 is always 0), so every stop lands in Speed Loss — and
-        # the speed-loss accumulator ignores any gap longer than 300 s, so the
-        # two long stops on 3-Oct (33 min + 10 min) were reported NOWHERE.
-        # Counting parts cannot lose a stop that way: a stop of any length
-        # shows up as parts not made.  Running faster than ideal also offsets
-        # itself, because a faster line simply makes more parts and the
-        # shortfall shrinks — no separate credit needed.
-        #
-        # DISPLAY ONLY — nothing is written back, the collector's own numbers,
-        # the counting path and every other zone are untouched.  Loop Pipe has
-        # no reason codes, so the whole figure goes to speed (where it already
-        # went); the per-reason buckets stay exactly as the collector set them.
+        # ── 2026-10-19 — PARTS-BASED speed + OEE, every zone ─────────────
+        # (Replaces the 3/6-Oct Loop Pipe + Sub-Assembly shift-level rule and the
+        # 19-Oct Seat Slider block.)  Speed = Σ of the hourly breakup's
+        # parts-based slot speeds (_hourly_loss_core 4c: parts short × part time
+        # − the slot's other losses, 0 when the slot made its plan), so the Loss
+        # Distribution card and the hourly table always agree; OEE is recomputed
+        # from these losses with the collector's identity (_oee_from), plan_s read
+        # back from this row BEFORE the speed is replaced.  Lines with no part
+        # recorded keep the collector's values.  Cached per line/shift for
+        # _SS_SPEED_TTL s (polled every few seconds).  DISPLAY ONLY — nothing is
+        # written back.
         try:
-            cur.execute("SELECT z.zone_name FROM mes_lines l "
-                        "LEFT JOIN mes_zones z ON z.id = l.zone_id WHERE l.id=%s",
-                        (line_id,))
-            _zr = cur.fetchone()
-            if ((_zr or {}).get("zone_name") or "").strip().lower() in ("loop pipe", "sub-assembly"):
-                _plan = int(data.get("shift_plan_completed") or 0)
-                _made = int(data.get("ok_count") or 0)
-                #  realtime exposes the ideal CT as `cycle_time_plan` — there is
-                #  no plc_config block on this response.  Fall back to the DB so
-                #  a missing/zero field can never silently disable the override.
-                _ict = 0.0
-                for _k in ("cycle_time_plan", "ideal_cycle_time"):
-                    try:
-                        _ict = float(data.get(_k) or 0)
-                    except (TypeError, ValueError):
-                        _ict = 0.0
-                    if _ict > 0:
-                        break
-                if _ict <= 0:
-                    cur.execute("SELECT ideal_cycle_time FROM mes_plc_configs "
-                                "WHERE line_id=%s ORDER BY id ASC LIMIT 1", (line_id,))
-                    _ic = cur.fetchone()
-                    try:    _ict = float((_ic or {}).get("ideal_cycle_time") or 0)
-                    except (TypeError, ValueError): _ict = 0.0
-                if _plan > 0 and _ict > 0:
-                    _short = max(0, _plan - _made)        # aage ho to loss 0
-                    # 2026-10-06 — Loop Pipe's andon now reaches the dashboard
-                    # (LOOP_PIPE_n alias), so stops the andon names (breakdown,
-                    # material, other…) are already in their own buckets.  Speed
-                    # is what is LEFT of the parts shortfall, so the total stays
-                    # plan − actual and the same stop is never counted twice.
-                    _avail = sum(int(data.get(f"loss_{_k}_seconds") or 0)
-                                 for _k in ("breakdown", "quality", "setup",
-                                            "material", "others", "change_over"))
-                    data["loss_speed_seconds"] = max(0, int(round(_short * _ict)) - _avail)
-                    data["loss_from_parts"]    = True     # UI/debug ke liye
-        except Exception as _lpx:
-            print(f"[LINES] parts-based loss (loop pipe / sub-assembly) skipped: {_lpx}")
+            if (data.get("shift_name") and data.get("record_date")
+                    and not str(data["shift_name"]).upper().startswith(("GAP", "UNKNOWN"))):
+                _rd = str(data["record_date"])[:10]
+                _ck = (line_id, _rd, data["shift_name"])
+                _hit = _SS_SPEED_CACHE.get(_ck)
+                if _hit and time.time() - _hit[0] < _SS_SPEED_TTL:
+                    _mode, _spd, _pls = _hit[1]
+                else:
+                    _core = _hourly_loss_core(cur, line_id, _rd, data["shift_name"])
+                    _mode = _core.get("speed_mode")
+                    _spd = int((_core.get("totals") or {}).get("loss_speed") or 0)
+                    _pls = _core.get("plan_seconds") or 0
+                    _SS_SPEED_CACHE[_ck] = (time.time(), (_mode, _spd, _pls))
+                if _mode == "parts":
+                    _plan_s = _derive_plan_s(data)
+                    if not _plan_s and _pls:
+                        _plan_s = float(_pls) + _num(data, "loss_setup_seconds")
+                    data["loss_speed_seconds"] = _spd
+                    data["loss_from_parts"] = True
+                    _o = _oee_from(_plan_s, sum(_num(data, f"loss_{k}_seconds") for k in _AVAIL_KEYS),
+                                   _spd, _num(data, "quality_oee"))
+                    if _o:
+                        data.update(_o)
+                        data["oee_from_parts"] = True
+        except Exception as _ssx:
+            print(f"[LINES] parts speed / oee skipped: {_ssx}")
 
         return data
+
+
+_SS_SPEED_CACHE: dict = {}
+_SS_SPEED_TTL = 30.0
 
 
 @router.get("/{line_id}/status")
@@ -3276,6 +3307,10 @@ def _wait_for_lock_release(line_id: int, timeout_s: float = 50.0) -> None:
 @router.post("/{line_id}/restart")
 def restart(line_id: int, admin=Depends(require_admin)):
     stop_collector(line_id)
+    # 2026-10-09 — stop_collector now leaves a stop flag so a plain Stop
+    # sticks; a restart must not, so lift it at once and let the
+    # never-die loop (or provision below) bring the collector back.
+    set_stop_flag(line_id, False)
     with get_conn() as conn:
         conn.cursor().execute(
             "UPDATE mes_lines SET collector_status = 'stopped' WHERE id = %s",
@@ -3568,12 +3603,36 @@ _PLANNED_TAKT_COL_READY  = False
 _ENERGY_PER_PART_COL_READY = False
 
 
+def _cols_present(conn, table: str, cols) -> bool:
+    """2026-10-09 — lock-free catalog check.  `ALTER TABLE … ADD COLUMN IF NOT
+    EXISTS` takes ACCESS EXCLUSIVE even when every column exists, so on the
+    hot tables (mes_plc_configs, mes_lines) it timed out over and over — 69
+    times in the first hour after the 9-Oct 12:35 restart — and every request
+    that hit it waited 3 s with the readers queued behind it.  Reading
+    pg_attribute takes no lock on the table."""
+    try:
+        cur = conn.cursor()
+        cur.execute("""SELECT attname FROM pg_attribute
+                        WHERE attrelid = to_regclass(%s) AND attnum > 0 AND NOT attisdropped""",
+                    (table,))
+        have = {r[0] for r in cur.fetchall()}
+        cur.close()
+        return bool(have) and all(c in have for c in cols)
+    except Exception:
+        try: conn.rollback()
+        except Exception: pass
+        return False
+
+
 @once
 def _ensure_planned_takt_column(conn) -> None:
     """Idempotent — adds the planned_takt_time column on first call.
     Cached after first success so subsequent polls skip the DDL trip."""
     global _PLANNED_TAKT_COL_READY
     if _PLANNED_TAKT_COL_READY:
+        return
+    if _cols_present(conn, "mes_lines", ["planned_takt_time"]):
+        _PLANNED_TAKT_COL_READY = True
         return
     try:
         cur = conn.cursor()
@@ -3668,6 +3727,14 @@ def _ensure_semi_auto_schema(conn) -> None:
     global _SEMI_AUTO_SCHEMA_READY
     if _SEMI_AUTO_SCHEMA_READY:
         return
+    if (_cols_present(conn, "mes_plc_configs",
+                      ["sa_enabled", "sa_fetch_bit", "sa_part_code_addr", "sa_part_code_len",
+                       "sa_data_addr", "sa_data_len", "sa_time_addr", "sa_time_len",
+                       "sa_register_names", "sa_register_scales", "sa_shift_data_bit",
+                       "sa_shift_reset_bit", "is_bottleneck"])
+            and _cols_present(conn, "mes_submachine_data_log", ["sub_plc_id", "data_values"])):
+        _SEMI_AUTO_SCHEMA_READY = True          # nothing to add: no ALTER, no lock
+        return
     try:
         cur = conn.cursor()
         # Never queue for the lock.  If something else holds mes_plc_configs we
@@ -3752,8 +3819,12 @@ def _ensure_register_count_schema(conn) -> None:
     additive (ADD COLUMN IF NOT EXISTS) → bit-mode machines untouched,
     zero regression.  The mes_shift_count_archive table is owned and
     created by the collector; the API never writes it."""
+    if _cols_present(conn, "mes_plc_configs",
+                     ["count_mode", "ok_data_register", "ng_data_register", "shift_reset_bit"]):
+        return                                   # 2026-10-09 — no ALTER, no lock
     try:
         cur = conn.cursor()
+        cur.execute("SET LOCAL lock_timeout = '3s'")
         cur.execute("""
             ALTER TABLE mes_plc_configs
               ADD COLUMN IF NOT EXISTS count_mode        VARCHAR(20) DEFAULT 'bit',
@@ -4186,205 +4257,441 @@ def get_hourly_loss_breakdown(
           "totals": { ...same keys... }
         }
     """
-    from datetime import date as _date, datetime as _dt, time as _t, timedelta
+    from datetime import date as _date
     if not shift:
         raise HTTPException(400, "shift is required (e.g. 'A')")
     target_date = date or str(_date.today())
 
-    LOSS_KEYS = ["breakdown","quality","material","setup",
-                 "change_over","speed","others"]
 
     with get_conn() as conn:
         cur = dict_cursor(conn)
         _check_operator_access(user, line_id, conn)
+        return _hourly_loss_core(cur, line_id, target_date, shift)
 
-        # 1. Fetch status mappings for this line — name → loss_type
-        cur.execute("""
-            SELECT status_name, COALESCE(loss_type,'') AS loss_type
-              FROM mes_status_mappings
-             WHERE line_id = %s
-        """, (line_id,))
-        name_to_loss = { r["status_name"]: (r["loss_type"] or "").lower()
-                         for r in cur.fetchall() }
 
-        # 2. Fetch hourly slots for this shift (ordered)
-        cur.execute("""
-            SELECT slot_label, start_time, end_time, crosses_midnight,
-                   working_minutes
-              FROM mes_hourly_slots
-             WHERE line_id = %s AND shift_name = %s
-             ORDER BY slot_order
-        """, (line_id, shift))
-        slots = [dict(r) for r in cur.fetchall()]
-        if not slots:
-            return {"slots": [], "totals": { f"loss_{k}": 0 for k in LOSS_KEYS } | {"total_loss": 0}}
+def _hourly_loss_core(cur, line_id: int, target_date: str, shift: str) -> dict:
+    """Per-slot losses of one line / date / shift (the body of
+    /hourly-loss-breakdown, shared with the realtime Loss Distribution card,
+    the Hourly Report / Shift Compile / PEFF slot losses and Historical → Losses)."""
+    from datetime import date as _date, datetime as _dt, time as _t, timedelta
+    LOSS_KEYS = ["breakdown","quality","material","setup",
+                 "change_over","speed","others"]
 
-        # 3. Fetch status log for this line / date / shift, ordered by ts
-        cur.execute("""
-            SELECT ts, status, shift_name
-              FROM mes_status_log
-             WHERE line_id = %s AND record_date = %s AND shift_name = %s
-             ORDER BY ts ASC
-        """, (line_id, target_date, shift))
-        events = cur.fetchall()
-        if not events:
-            return {"slots": [
-                { "slot_label": s["slot_label"],
-                  "start": str(s["start_time"])[:5],
-                  "end":   str(s["end_time"])[:5],
-                  **{ f"loss_{k}": 0 for k in LOSS_KEYS },
-                  "total_loss": 0,
-                } for s in slots
-            ], "totals": { f"loss_{k}": 0 for k in LOSS_KEYS } | {"total_loss": 0}}
 
-        # Helper: convert HH:MM:SS time + base date → datetime, handling
-        # cross-midnight slots by adding 1 day to end if needed.
-        def _slot_window(slot, base_date):
-            base = _dt.combine(base_date, _t(0))
-            st = slot["start_time"]; en = slot["end_time"]
-            if isinstance(st, str): st = _dt.strptime(st, "%H:%M:%S").time()
-            if isinstance(en, str): en = _dt.strptime(en, "%H:%M:%S").time()
-            slot_start = base + timedelta(hours=st.hour, minutes=st.minute, seconds=st.second)
-            slot_end   = base + timedelta(hours=en.hour, minutes=en.minute, seconds=en.second)
-            if slot["crosses_midnight"] or slot_end <= slot_start:
-                slot_end += timedelta(days=1)
-            return slot_start, slot_end
+    # 1. Fetch status mappings for this line — name → loss_type
+    cur.execute("""
+        SELECT status_name, COALESCE(loss_type,'') AS loss_type
+          FROM mes_status_mappings
+         WHERE line_id = %s
+    """, (line_id,))
+    name_to_loss = { r["status_name"]: (r["loss_type"] or "").lower()
+                     for r in cur.fetchall() }
 
+    # 2. Fetch hourly slots for this shift (ordered)
+    cur.execute("""
+        SELECT slot_label, start_time, end_time, crosses_midnight,
+               working_minutes, slot_order, plan_pieces, db_column_prefix
+          FROM mes_hourly_slots
+         WHERE line_id = %s AND shift_name = %s
+         ORDER BY slot_order
+    """, (line_id, shift))
+    slots = [dict(r) for r in cur.fetchall()]
+    # 2026-10-21 — an OT slot (slot_order >= 900) is permanent in the slot master,
+    # so the Hourly Loss Breakup listed "17:15-18:20 OT" etc. on every shift.
+    # Keep it only when OT is ON for this running shift or the OT slot made
+    # parts — the rule the Dashboard hourly table and the Hourly Report use.
+    if any(int(s.get("slot_order") or 0) >= 900 for s in slots):
         try:
-            base_date = _dt.strptime(target_date, "%Y-%m-%d").date()
-        except Exception:
-            base_date = _date.today()
+            cur.execute("SELECT db_table_name, ot_active_shift FROM mes_lines WHERE id = %s", (line_id,))
+            _lm = cur.fetchone() or {}
+            _otrow = None
+            _ott = (_lm.get("db_table_name") or "").strip()
+            if re.match(r"^[a-z0-9_]+$", _ott):
+                cur.execute(f"SELECT * FROM {_ott} WHERE record_date = %s AND shift_name = %s "
+                            f"ORDER BY id DESC LIMIT 1", (target_date, shift))
+                _otrow = cur.fetchone()
+            _ot_on = (str(_lm.get("ot_active_shift") or "") == str(shift)
+                      and _otrow is not None and not _otrow.get("is_shift_completed"))
 
-        slot_windows = [(s, *_slot_window(s, base_date)) for s in slots]
+            def _ot_ran(sl):
+                pre = (sl.get("db_column_prefix") or "").strip()
+                return bool(_otrow is not None and pre and int(_otrow.get(f"{pre}_actual") or 0) > 0)
+            slots = [sl for sl in slots
+                     if int(sl.get("slot_order") or 0) < 900 or _ot_on or _ot_ran(sl)]
+        except Exception as _otx:
+            print(f"[LINES] OT slot gate skipped: {_otx}")
+    if not slots:
+        return {"slots": [], "totals": { f"loss_{k}": 0 for k in LOSS_KEYS } | {"total_loss": 0}}
+    # 2026-10-19 — speed loss per slot is PARTS-BASED (see 4c): Seat Slider
+    # first, every zone since the same day (operator: "baaki zones me bhi").
+    # A line that has recorded no part at all this shift keeps the old split.
+    parts_speed = True
 
-        # Initialise per-slot accumulator
-        slot_loss = []
-        for s, _, _ in slot_windows:
-            slot_loss.append({ f"loss_{k}": 0 for k in LOSS_KEYS })
+    # 3. Fetch status log for this line / date / shift, ordered by ts
+    cur.execute("""
+        SELECT ts, status, shift_name
+          FROM mes_status_log
+         WHERE line_id = %s AND record_date = %s AND shift_name = %s
+         ORDER BY ts ASC
+    """, (line_id, target_date, shift))
+    events = cur.fetchall()
+    if not events and not parts_speed:      # parts-based speed needs no status log
+        return {"slots": [
+            { "slot_label": s["slot_label"],
+              "start": str(s["start_time"])[:5],
+              "end":   str(s["end_time"])[:5],
+              **{ f"loss_{k}": 0 for k in LOSS_KEYS },
+              "total_loss": 0,
+            } for s in slots
+        ], "totals": { f"loss_{k}": 0 for k in LOSS_KEYS } | {"total_loss": 0}}
 
-        # 4. Walk events pairwise, attribute each span's seconds to slots
-        # Append a sentinel "now" at the end so the last open span gets
-        # counted up to the current moment.
-        events = list(events)
+    # Helper: convert HH:MM:SS time + base date → datetime, handling
+    # cross-midnight slots by adding 1 day to end if needed.
+    def _slot_window(slot, base_date):
+        base = _dt.combine(base_date, _t(0))
+        st = slot["start_time"]; en = slot["end_time"]
+        if isinstance(st, str): st = _dt.strptime(st, "%H:%M:%S").time()
+        if isinstance(en, str): en = _dt.strptime(en, "%H:%M:%S").time()
+        slot_start = base + timedelta(hours=st.hour, minutes=st.minute, seconds=st.second)
+        slot_end   = base + timedelta(hours=en.hour, minutes=en.minute, seconds=en.second)
+        if slot["crosses_midnight"] or slot_end <= slot_start:
+            slot_end += timedelta(days=1)
+        return slot_start, slot_end
+
+    try:
+        base_date = _dt.strptime(target_date, "%Y-%m-%d").date()
+    except Exception:
+        base_date = _date.today()
+
+    slot_windows = [(s, *_slot_window(s, base_date)) for s in slots]
+
+    # Initialise per-slot accumulator
+    slot_loss = []
+    for s, _, _ in slot_windows:
+        slot_loss.append({ f"loss_{k}": 0 for k in LOSS_KEYS })
+
+    # 4. Walk events pairwise, attribute each span's seconds to slots
+    # Append a sentinel "now" at the end so the last open span gets
+    # counted up to the current moment.
+    events = list(events)
+    if events:
         events.append({"ts": _dt.now(events[0]["ts"].tzinfo), "status": events[-1]["status"]})
 
-        for i in range(len(events) - 1):
-            ev   = events[i]
-            nxt  = events[i+1]
-            st   = ev["ts"]
-            en   = nxt["ts"]
-            if en <= st: continue
-            loss = name_to_loss.get(ev["status"], "")
-            if not loss or loss not in LOSS_KEYS: continue
-            span_key = f"loss_{loss}"
+    for i in range(len(events) - 1):
+        ev   = events[i]
+        nxt  = events[i+1]
+        st   = ev["ts"]
+        en   = nxt["ts"]
+        if en <= st: continue
+        loss = name_to_loss.get(ev["status"], "")
+        if not loss or loss not in LOSS_KEYS: continue
+        span_key = f"loss_{loss}"
 
-            # Distribute (st, en) seconds across each slot that overlaps
+        # Distribute (st, en) seconds across each slot that overlaps
+        for idx, (slot, slot_st, slot_en) in enumerate(slot_windows):
+            # Tz-handling — drop tz info for naive comparison if needed
+            a = max(st, slot_st.replace(tzinfo=st.tzinfo) if st.tzinfo else slot_st)
+            b = min(en, slot_en.replace(tzinfo=en.tzinfo) if en.tzinfo else slot_en)
+            if b > a:
+                slot_loss[idx][span_key] += int((b - a).total_seconds())
+
+    # 4a. ANDON-covered lines: the andon calls (completed + in-progress),
+    # clipped to each slot — the SAME source the Dashboard status/OEE use.
+    # breakdown = andon Maintenance+Toolroom (replaces the PLC status-log
+    # value); quality / setup / material / others = PLC value + that andon
+    # button's time (2026-10-06 — a Material or Other Loss press used to be
+    # counted nowhere).  The andon intervals are read ONCE for the whole
+    # shift and clipped per slot in Python.  Runs before the speed split so
+    # each slot's running time already excludes andon downtime.  Guarded.
+    _andon_speed_moved = 0.0
+    try:
+        from routers.andon import (andon_line_set, andon_lost_intervals,
+                                   andon_loss_split, SHIFT_START_SETUP_S,
+                                   _carve_setup, _overlap, _norm as _anorm)
+        cur.execute("SELECT line_name FROM mes_lines WHERE id=%s", (line_id,))
+        _lname = (cur.fetchone() or {}).get("line_name")
+        if _lname and _anorm(_lname) in andon_line_set() and slot_windows:
+            cur.execute("""SELECT start_time FROM mes_shift_configs
+                            WHERE line_id=%s AND shift_name=%s""", (line_id, shift))
+            _scr = cur.fetchone()
+            _setup_until = None
+            if _scr and _scr.get("start_time"):
+                _setup_until = (_dt.combine(base_date, _scr["start_time"])
+                                + timedelta(seconds=SHIFT_START_SETUP_S))
+            _w0 = min(w[1] for w in slot_windows)
+            _w1 = max(w[2] for w in slot_windows)
+            # what the line really lost while each call was open (its
+            # producing time + breaks taken out), the same as the Dashboard
+            _lost, _slow = andon_lost_intervals(_lname, _w0, _w1)
+            _lost = _carve_setup(_lost, _setup_until)
+            _andon_speed_moved = _overlap(_slow, _lost)
             for idx, (slot, slot_st, slot_en) in enumerate(slot_windows):
-                # Tz-handling — drop tz info for naive comparison if needed
-                a = max(st, slot_st.replace(tzinfo=st.tzinfo) if st.tzinfo else slot_st)
-                b = min(en, slot_en.replace(tzinfo=en.tzinfo) if en.tzinfo else slot_en)
-                if b > a:
-                    slot_loss[idx][span_key] += int((b - a).total_seconds())
+                _al = andon_loss_split(_lost, slot_st, slot_en)
+                slot_loss[idx]["loss_breakdown"] = int(round(_al["breakdown"]))
+                for _k in ("quality", "setup", "material", "others"):
+                    slot_loss[idx][f"loss_{_k}"] += int(round(_al[_k]))
+    except Exception as _abx:
+        print(f"[LINES] andon loss-breakdown override skipped: {_abx}")
 
-        # 4a. ANDON-covered lines: the andon calls (completed + in-progress),
-        # clipped to each slot — the SAME source the Dashboard status/OEE use.
-        # breakdown = andon Maintenance+Toolroom (replaces the PLC status-log
-        # value); quality / setup / material / others = PLC value + that andon
-        # button's time (2026-10-06 — a Material or Other Loss press used to be
-        # counted nowhere).  The andon intervals are read ONCE for the whole
-        # shift and clipped per slot in Python.  Runs before the speed split so
-        # each slot's running time already excludes andon downtime.  Guarded.
-        _andon_speed_moved = 0.0
-        try:
-            from routers.andon import (andon_line_set, andon_lost_intervals,
-                                       andon_loss_split, SHIFT_START_SETUP_S,
-                                       _carve_setup, _overlap, _norm as _anorm)
-            cur.execute("SELECT line_name FROM mes_lines WHERE id=%s", (line_id,))
-            _lname = (cur.fetchone() or {}).get("line_name")
-            if _lname and _anorm(_lname) in andon_line_set() and slot_windows:
-                cur.execute("""SELECT start_time FROM mes_shift_configs
-                                WHERE line_id=%s AND shift_name=%s""", (line_id, shift))
-                _scr = cur.fetchone()
-                _setup_until = None
-                if _scr and _scr.get("start_time"):
-                    _setup_until = (_dt.combine(base_date, _scr["start_time"])
-                                    + timedelta(seconds=SHIFT_START_SETUP_S))
-                _w0 = min(w[1] for w in slot_windows)
-                _w1 = max(w[2] for w in slot_windows)
-                # what the line really lost while each call was open (its
-                # producing time + breaks taken out), the same as the Dashboard
-                _lost, _slow = andon_lost_intervals(_lname, _w0, _w1)
-                _lost = _carve_setup(_lost, _setup_until)
-                _andon_speed_moved = _overlap(_slow, _lost)
-                for idx, (slot, slot_st, slot_en) in enumerate(slot_windows):
-                    _al = andon_loss_split(_lost, slot_st, slot_en)
-                    slot_loss[idx]["loss_breakdown"] = int(round(_al["breakdown"]))
-                    for _k in ("quality", "setup", "material", "others"):
-                        slot_loss[idx][f"loss_{_k}"] += int(round(_al[_k]))
-        except Exception as _abx:
-            print(f"[LINES] andon loss-breakdown override skipped: {_abx}")
-
-        # 4b. 2026-06-09 — Speed loss per slot.  Speed loss is NOT a status
-        # (the line is RUNNING, just slower than ideal), so it never shows up
-        # in the status-log walk above.  The dashboard's Loss-Distribution
-        # card carries the shift total (loss_speed_seconds, collector-computed);
-        # we split THAT total across slots in proportion to each slot's running
-        # time (elapsed − downtime) so Σ(slot speed) == the card total EXACTLY
-        # and busier slots carry more.  No per-cycle math.
+    # 4b. 2026-06-09 — Speed loss per slot.  Speed loss is NOT a status
+    # (the line is RUNNING, just slower than ideal), so it never shows up
+    # in the status-log walk above.  The dashboard's Loss-Distribution
+    # card carries the shift total (loss_speed_seconds, collector-computed);
+    # we split THAT total across slots in proportion to each slot's running
+    # time (elapsed − downtime) so Σ(slot speed) == the card total EXACTLY
+    # and busier slots carry more.  No per-cycle math.
+    speed_total = 0
+    try:
+        cur.execute("SELECT db_table_name FROM mes_lines WHERE id = %s", (line_id,))
+        _lr  = cur.fetchone()
+        _tbl = _lr["db_table_name"] if _lr else None
+        if _tbl:
+            cur.execute(
+                f"SELECT loss_speed_seconds FROM {_tbl} "
+                f"WHERE record_date = %s AND shift_name = %s "
+                f"ORDER BY id DESC LIMIT 1", (target_date, shift))
+            _sr = cur.fetchone()
+            if _sr and _sr.get("loss_speed_seconds") is not None:
+                speed_total = int(_sr["loss_speed_seconds"])
+    except Exception:
         speed_total = 0
+    # andon-named stop time the collector had filed as speed (see 4a)
+    speed_total = max(0, int(round(speed_total - _andon_speed_moved)))
+
+    now_naive = _dt.now()
+    running = []
+    for idx, (slot, slot_st, slot_en) in enumerate(slot_windows):
+        seg_end  = min(now_naive, slot_en)
+        elapsed  = max(0.0, (seg_end - slot_st).total_seconds())
+        downtime = sum(slot_loss[idx].values())   # other losses (speed still 0)
+        running.append(max(0.0, elapsed - downtime))
+    sum_run = sum(running)
+    if speed_total > 0 and sum_run > 0:
+        alloc = [int(speed_total * r / sum_run) for r in running]
+        rem   = speed_total - sum(alloc)
+        order = sorted(range(len(running)), key=lambda i: running[i], reverse=True)
+        for k in range(int(rem)):
+            if order:
+                alloc[order[k % len(order)]] += 1
+        for idx in range(len(slot_loss)):
+            slot_loss[idx]["loss_speed"] = alloc[idx]
+
+    # 4c. 2026-10-19 — PARTS-BASED speed loss per slot, every zone (operator:
+    # "26 parts ka loss hai … 3 min breakdown + 8:35 speed = 45 parts, mismatch",
+    # "plan ke according parts bante hai fir bhi speed loss" must not happen, and
+    # "baaki zones me bhi same laga de").  The shift speed total split by running
+    # time (4b) had nothing to do with the parts a slot actually missed.  Per slot:
+    #   seconds per part = working_minutes × 60 / the slot's plan — a FINISHED
+    #       slot uses its own stored plan (model-wise plans: YWD-SS, Sub-Assembly),
+    #       the running slot the last finished slot's value (else the slot master)
+    #   short  = max(0, plan so far − OK so far)   (line row hour_<prefix>_plan /
+    #            _ok, fallback _actual; the collector ramps the running slot)
+    #   speed  = max(0, short × seconds per part − the slot's other losses)
+    # So a slot that made its plan has no speed loss, and a slot's total loss is
+    # max(other losses, parts short × part time).  Slots not started yet and an
+    # OT slot that produced nothing get 0.  A line with NO part recorded this
+    # shift (final PLC unreachable: YRA/YHB/YNC/YSD Recliner, Nut Lifting) keeps
+    # the old split (4b) — parts-based would call the whole shift lost.
+    slot_parts = [None] * len(slot_windows)
+    plan_seconds = 0.0
+    if parts_speed:
         try:
             cur.execute("SELECT db_table_name FROM mes_lines WHERE id = %s", (line_id,))
-            _lr  = cur.fetchone()
-            _tbl = _lr["db_table_name"] if _lr else None
-            if _tbl:
-                cur.execute(
-                    f"SELECT loss_speed_seconds FROM {_tbl} "
-                    f"WHERE record_date = %s AND shift_name = %s "
-                    f"ORDER BY id DESC LIMIT 1", (target_date, shift))
-                _sr = cur.fetchone()
-                if _sr and _sr.get("loss_speed_seconds") is not None:
-                    speed_total = int(_sr["loss_speed_seconds"])
-        except Exception:
-            speed_total = 0
-        # andon-named stop time the collector had filed as speed (see 4a)
-        speed_total = max(0, int(round(speed_total - _andon_speed_moved)))
+            _pt = ((cur.fetchone() or {}).get("db_table_name") or "").strip()
+            _prow = None
+            if re.match(r"^[a-z0-9_]+$", _pt):
+                cur.execute(f"SELECT * FROM {_pt} WHERE record_date = %s AND shift_name = %s "
+                            f"ORDER BY id DESC LIMIT 1", (target_date, shift))
+                _prow = cur.fetchone()
+            _now = _dt.now()
+            cand, made_total, last_spp = [None] * len(slot_windows), 0, None
+            # 2026-10-21 — the RUNNING slot's plan so far = the Dashboard's plan so
+            # far (shift_plan_completed) minus the finished slots' plans.  The
+            # slot's own ramp (hour_*_plan) ignores the shift-start setup and ran
+            # ~20 parts ahead of the Dashboard, so a line above the Dashboard
+            # plan still showed speed loss (operator, YNC-SS 21-Oct A).
+            _spc = _prow.get("shift_plan_completed") if _prow is not None else None
+            _done_plan, _run_idx = 0, None
+            for idx, (slot, slot_st, slot_en) in enumerate(slot_windows):
+                pre = (slot.get("db_column_prefix") or "").strip()
+                full = int(slot.get("plan_pieces") or 0)
+                wmin = float(slot.get("working_minutes") or 0)
+                if _prow is None or not pre or wmin <= 0 or slot_st > _now:
+                    continue
+                if _prow.get(f"{pre}_plan") is None:
+                    continue                                 # no such column on this table
+                plan_now = int(_prow.get(f"{pre}_plan") or 0)
+                made_all = int(_prow.get(f"{pre}_actual") or 0)
+                ok_v = _prow.get(f"{pre}_ok")
+                made = int(ok_v if ok_v is not None else made_all)
+                made_total += made_all
+                if int(slot.get("slot_order") or 0) >= 900 and made_all <= 0:
+                    continue                                 # OT slot that did not run
+                if _now >= slot_en:
+                    _done_plan += plan_now
+                elif int(slot.get("slot_order") or 0) < 900:
+                    _run_idx = idx
+                if _now >= slot_en and plan_now > 0:
+                    spp = wmin * 60.0 / plan_now               # finished slot: its own plan
+                    last_spp = spp
+                elif last_spp:
+                    spp = last_spp
+                elif full > 0:
+                    spp = wmin * 60.0 / full
+                else:
+                    continue
+                cand[idx] = (plan_now, made, spp)
+            if _run_idx is not None and cand[_run_idx] is not None and _spc is not None:
+                _p, _m, _sp = cand[_run_idx]
+                cand[_run_idx] = (max(0, min(_p, int(_spc) - _done_plan)), _m, _sp)
+            # a shift the line did not really run (holiday: 1 stray part on
+            # 20-Oct) keeps the collector's split — parts-based would book the
+            # whole shift as speed loss
+            _plan_so_far = sum(c[0] for c in cand if c is not None)
+            if made_total >= max(5, 0.02 * _plan_so_far):
+                for idx in range(len(slot_windows)):
+                    if cand[idx] is None:
+                        slot_loss[idx]["loss_speed"] = 0
+                        continue
+                    plan_now, made, spp = cand[idx]
+                    short = max(0, plan_now - made)
+                    avail = sum(v for k, v in slot_loss[idx].items() if k != "loss_speed")
+                    slot_loss[idx]["loss_speed"] = max(0, int(round(short * spp - avail)))
+                    slot_parts[idx] = {"plan": plan_now, "ok": made, "short": short,
+                                       "sec_per_part": round(spp, 2)}
+                    plan_seconds += plan_now * spp
+            else:
+                parts_speed = False                          # nothing recorded: keep 4b
+        except Exception as _psx:
+            parts_speed = False
+            print(f"[LINES] parts-based slot speed skipped: {_psx}")
 
-        now_naive = _dt.now()
-        running = []
-        for idx, (slot, slot_st, slot_en) in enumerate(slot_windows):
-            seg_end  = min(now_naive, slot_en)
-            elapsed  = max(0.0, (seg_end - slot_st).total_seconds())
-            downtime = sum(slot_loss[idx].values())   # other losses (speed still 0)
-            running.append(max(0.0, elapsed - downtime))
-        sum_run = sum(running)
-        if speed_total > 0 and sum_run > 0:
-            alloc = [int(speed_total * r / sum_run) for r in running]
-            rem   = speed_total - sum(alloc)
-            order = sorted(range(len(running)), key=lambda i: running[i], reverse=True)
-            for k in range(int(rem)):
-                if order:
-                    alloc[order[k % len(order)]] += 1
-            for idx in range(len(slot_loss)):
-                slot_loss[idx]["loss_speed"] = alloc[idx]
+    # 5. Build response
+    out_slots = []
+    totals = { f"loss_{k}": 0 for k in LOSS_KEYS }
+    for idx, (slot, slot_st, slot_en) in enumerate(slot_windows):
+        row = {
+            "slot_label": slot["slot_label"],
+            "start": str(slot["start_time"])[:5],
+            "end":   str(slot["end_time"])[:5],
+            **slot_loss[idx],
+        }
+        row["total_loss"] = sum(slot_loss[idx][k] for k in slot_loss[idx])
+        if slot_parts[idx]:
+            row["parts"] = slot_parts[idx]          # basis of the parts-based speed (4c)
+        for k in LOSS_KEYS:
+            totals[f"loss_{k}"] += slot_loss[idx][f"loss_{k}"]
+        out_slots.append(row)
+    totals["total_loss"] = sum(totals[k] for k in totals)
 
-        # 5. Build response
-        out_slots = []
-        totals = { f"loss_{k}": 0 for k in LOSS_KEYS }
-        for idx, (slot, slot_st, slot_en) in enumerate(slot_windows):
-            row = {
-                "slot_label": slot["slot_label"],
-                "start": str(slot["start_time"])[:5],
-                "end":   str(slot["end_time"])[:5],
-                **slot_loss[idx],
-            }
-            row["total_loss"] = sum(slot_loss[idx][k] for k in slot_loss[idx])
-            for k in LOSS_KEYS:
-                totals[f"loss_{k}"] += slot_loss[idx][f"loss_{k}"]
-            out_slots.append(row)
-        totals["total_loss"] = sum(totals[k] for k in totals)
+    return {"slots": out_slots, "totals": totals, "speed_mode": "parts" if parts_speed else "share",
+            "plan_seconds": int(round(plan_seconds))}
 
-    return {"slots": out_slots, "totals": totals}
 
+
+# ── 2026-10-19 — OEE from the DISPLAYED losses (operator: "oee bhi isi hisab
+# se kar de").  Same identity as the collector / recompute_oee_with_andon:
+#   availability = (plan_s − availability losses) / plan_s
+#   performance  = (run_s − speed) / run_s,  run_s = plan_s − availability losses
+#   overall      = availability × performance × quality
+# plan_s is read back from a CONSISTENT set of values (stored row, or a row the
+# andon recompute already rewrote) — never after the speed was replaced.
+_AVAIL_KEYS = ("breakdown", "quality", "setup", "material", "others", "change_over")
+
+
+def _num(d, k):
+    try:
+        v = d.get(k) if hasattr(d, "get") else d[k]
+        return float(v or 0)
+    except Exception:
+        return 0.0
+
+
+def _derive_plan_s(d):
+    """Planned production seconds so far, from availability / performance and the
+    loss buckets of one consistent row; None when it cannot be told."""
+    avail = _num(d, "availability"); perf = _num(d, "performance")
+    al = sum(_num(d, f"loss_{k}_seconds") for k in _AVAIL_KEYS)
+    sp = _num(d, "loss_speed_seconds")
+    if 0 < avail < 100 and al > 0:
+        return al / (1 - avail / 100.0)
+    if 0 < perf < 100 and sp > 0:
+        return sp / (1 - perf / 100.0) + al
+    return None
+
+
+def _oee_from(plan_s, avail_losses, speed, quality):
+    if not plan_s or plan_s <= 0:
+        return None
+    run = max(0.0, plan_s - avail_losses)
+    a = min(100.0, max(0.0, run / plan_s * 100))
+    p = min(100.0, max(0.0, (run - speed) / run * 100)) if run > 0 else 0.0
+    o = a * p * float(quality or 0) / 10000.0
+    return {"availability": round(a, 2), "performance": round(p, 2), "overall_oee": round(o, 2),
+            "oee_grade": ("EXCELLENT" if o >= 85 else "GOOD" if o >= 75 else "AVERAGE" if o >= 65
+                          else "FAIR" if o >= 55 else "POOR")}
+
+
+_DISP_CACHE: dict = {}
+
+
+def display_loss_oee(cur, line_id: int, row, record_date, shift_name: str) -> dict:
+    """Losses + OEE of one STORED shift row as the dashboard shows them: andon
+    buckets (andon-covered lines) and the parts-based speed (_hourly_loss_core).
+    Returns {"losses": {bucket: s}, "availability", "performance", "overall_oee",
+    "oee_grade"} — the OEE keys are missing when plan_s cannot be told.  Never raises.
+    Cached: a finished shift for good (per stored row), a running one for 30 s."""
+    out = {"losses": {k: int(_num(row, f"loss_{k}_seconds")) for k in _AVAIL_KEYS + ("speed",)}}
+    try:
+        rd = record_date if hasattr(record_date, "year") else datetime.fromisoformat(str(record_date)[:10]).date()
+    except Exception:
+        return out
+    _ts = row.get("timestamp") if hasattr(row, "get") else None
+    _key = (line_id, rd, shift_name, str(_ts) if _ts is not None else
+            tuple(out["losses"].values()) + (_num(row, "availability"), _num(row, "performance")))
+    _run_key = (line_id, rd, shift_name, "running")     # the row changes every few s
+    _hit = _DISP_CACHE.get(_key) or _DISP_CACHE.get(_run_key)
+    if _hit and (_hit[0] is None or time.time() - _hit[0] < 30):
+        return {**_hit[1], "losses": dict(_hit[1]["losses"])}
+    _shift_over = False
+    try:
+        cur.execute("""SELECT l.line_name, sc.start_time, sc.end_time,
+                              COALESCE(sc.crosses_midnight, false) AS xm
+                         FROM mes_lines l
+                         LEFT JOIN mes_shift_configs sc ON sc.line_id = l.id AND sc.shift_name = %s
+                        WHERE l.id = %s""", (shift_name, line_id))
+        meta = cur.fetchone() or {}
+        plan_s = _derive_plan_s(row)
+        try:
+            from routers.andon import recompute_oee_with_andon
+            if meta.get("start_time") and meta.get("end_time"):
+                st = datetime.combine(rd, meta["start_time"]); en = datetime.combine(rd, meta["end_time"])
+                if meta.get("xm") or en <= st:
+                    en += timedelta(days=1)
+                _shift_over = en < datetime.now() - timedelta(minutes=10)
+                res = recompute_oee_with_andon(meta.get("line_name") or "", row, st, en)
+                if res:
+                    out["losses"].update({k: int(v) for k, v in (res.get("losses") or {}).items()})
+                    if res.get("speed_seconds") is not None:
+                        out["losses"]["speed"] = int(res["speed_seconds"])
+        except Exception as exc:
+            print(f"[LINES] display oee andon skipped: {exc}")
+        core = _hourly_loss_core(cur, line_id, rd.isoformat(), shift_name)
+        if core.get("speed_mode") == "parts":
+            out["losses"]["speed"] = int((core.get("totals") or {}).get("loss_speed") or 0)
+            if not plan_s and core.get("plan_seconds"):
+                plan_s = float(core["plan_seconds"]) + _num(row, "loss_setup_seconds")
+        al = sum(out["losses"].get(k, 0) for k in _AVAIL_KEYS)
+        o = _oee_from(plan_s, al, out["losses"]["speed"], _num(row, "quality_oee"))
+        if o:
+            out.update(o)
+        if len(_DISP_CACHE) > 20000:
+            _DISP_CACHE.clear()
+        _DISP_CACHE[_key if _shift_over else _run_key] = (
+            None if _shift_over else time.time(), {**out, "losses": dict(out["losses"])})
+    except Exception as exc:
+        print(f"[LINES] display_loss_oee skipped line {line_id} {record_date} {shift_name}: {exc}")
+    return out
 
 @router.get("/{line_id}/ot-config")
 def get_ot_config(line_id: int, user=Depends(get_current_user)):
@@ -4781,7 +5088,7 @@ def list_cycle_comments(
         "comments": [
             {
                 "id":          r["id"],
-                "comment":     r["comment"],
+                "comment":     (r["comment"] or "").upper(),   # 2026-10-15: CAPITALS
                 "author":      r["author"] or "anonymous",
                 "leader_name": r.get("leader_name"),
                 "created_at":  r["created_at"].isoformat() if r["created_at"] else None,
@@ -4805,7 +5112,9 @@ def add_cycle_comment(
     safe_pc = (part_code or "").strip()
     if not safe_pc:
         raise HTTPException(400, "part_code is required")
-    text = str(body.get("comment") or "").strip()
+    # 2026-10-15 — every cycle comment is stored in CAPITALS, however it was
+    # typed in the video box (operator: Comments History must be all caps).
+    text = str(body.get("comment") or "").strip().upper()
     if not text:
         raise HTTPException(400, "comment text is required")
     if len(text) > 2000:
@@ -5164,7 +5473,7 @@ def get_ng_process_remarks(
                 "id":           r["id"],
                 "machine_id":   r["machine_id"],
                 "machine_name": r["machine_name"],
-                "remark_text":  r["remark_text"],
+                "remark_text":  (r["remark_text"] or "").upper(),   # 2026-10-15: CAPITALS
                 "created_at":   r["created_at"].isoformat() if r["created_at"] else None,
                 "updated_at":   r["updated_at"].isoformat() if r["updated_at"] else None,
                 "created_by":   r["created_by"],
@@ -5209,7 +5518,7 @@ def save_ng_process_remark(
     except Exception:
         machine_id = 0
     machine_name = (body.get("machine_name") or "").strip()
-    remark_text  = (body.get("remark_text")  or "").strip()
+    remark_text  = (body.get("remark_text")  or "").strip().upper()   # 2026-10-15: stored in CAPITALS
     if not safe_pc or not machine_id or not remark_text:
         raise HTTPException(400, "part_code, machine_id, remark_text required")
 
@@ -5296,7 +5605,7 @@ def ng_process_remarks_summary(
                 "part_code":    r["part_code"],
                 "machine_id":   r["machine_id"],
                 "machine_name": r["machine_name"],
-                "remark_text":  r["remark_text"],
+                "remark_text":  (r["remark_text"] or "").upper(),   # 2026-10-15: CAPITALS
                 "created_at":   r["created_at"].isoformat() if r["created_at"] else None,
                 "updated_at":   r["updated_at"].isoformat() if r["updated_at"] else None,
                 "created_by":   r["created_by"],
@@ -5399,7 +5708,7 @@ def get_comments_history(
                 "shift_name":   r.get("shift_name"),
                 "machine_id":   r.get("machine_id"),
                 "machine_name": r.get("machine_name"),
-                "text":         r["comment"],
+                "text":         (r["comment"] or "").upper(),   # 2026-10-15: shown in CAPITALS
                 "author":       r["author"],
                 "leader_name":  r.get("leader_name"),
                 "ts":           r["ts"].isoformat() if r["ts"] else None,
@@ -5443,7 +5752,7 @@ def get_comments_history(
                 "shift_name":   r["shift_name"],
                 "machine_id":   r["machine_id"],
                 "machine_name": r["machine_name"],
-                "text":         r["remark_text"],
+                "text":         (r["remark_text"] or "").upper(),   # 2026-10-15: shown in CAPITALS
                 "author":       r["created_by"],
                 "ts":           r["ts"].isoformat() if r["ts"] else None,
                 "record_date":  str(r["record_date"]) if r["record_date"] else None,
@@ -5777,7 +6086,7 @@ def get_comments_pareto(
                     continue
                 k = disp.lower()   # "Bin change" and "Bin Change" are one problem
                 counts[k] = counts.get(k, 0) + int(r["n"])
-                labels.setdefault(k, disp)
+                labels.setdefault(k, disp.upper())   # 2026-10-15: comments shown in CAPITALS
 
         # per-cycle comments — grouped by the comment text
         w = "created_at::date BETWEEN %s AND %s AND btrim(comment) <> ''"

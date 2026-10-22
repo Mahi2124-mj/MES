@@ -406,6 +406,7 @@ def provision_line(line_id: int) -> dict:
     Returns {"ok": True, "pid": int, "table": str, "script": str}
     """
     os.makedirs(COLLECTORS_DIR, exist_ok=True)
+    set_stop_flag(line_id, False)      # 2026-10-09 — Start lifts an Admin Stop
 
     with get_conn() as conn:
         cur = dict_cursor(conn)
@@ -618,34 +619,95 @@ def provision_line(line_id: int) -> dict:
     }
 
 
+def _stop_flag_path(line_id: int) -> str:
+    return os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                        "collectors", f"STOP_line_{int(line_id)}.flag")
+
+
+def set_stop_flag(line_id: int, on: bool) -> None:
+    """2026-10-09 — per-line stop flag read by collector_engine at start-up, so
+    the never-die loop cannot bring a stopped line straight back."""
+    p = _stop_flag_path(line_id)
+    if on:
+        with open(p, "w") as f:
+            f.write(f"stopped from Admin at {datetime.now().isoformat(timespec='seconds')}\n")
+    elif os.path.exists(p):
+        os.remove(p)
+
+
+def _collector_pids(line_code: str, stored_pid=None) -> list:
+    """PIDs of the python processes running this line's collector script.
+    2026-10-09 — mes_lines.collector_pid is only written by provision; for a
+    collector started by start_everything's never-die loop it is NULL or a
+    long-dead PID (L-2 held 3034314 while 3341182 ran), so Stop killed
+    nothing.  Match the script name instead, and trust the stored PID only if
+    its command line really is that script (a reused PID is never killed)."""
+    safe = (line_code or "").lower().replace("-", "_").replace(" ", "_")
+    script = f"collector_{safe}.py"
+    pids = []
+    for d in os.listdir("/proc"):
+        if not d.isdigit():
+            continue
+        try:
+            with open(f"/proc/{d}/cmdline", "rb") as f:
+                argv = [a.decode(errors="replace") for a in f.read().split(b"\0") if a]
+        except Exception:
+            continue
+        if not argv or "python" not in os.path.basename(argv[0]):
+            continue
+        if any(os.path.basename(a) == script for a in argv[1:]):
+            pids.append(int(d))
+    if stored_pid and int(stored_pid) not in pids:
+        pass                      # stale / reused PID — never signalled
+    return pids
+
+
 def stop_collector(line_id: int) -> dict:
-    """Stop the running collector process for a line."""
+    """Stop the running collector process(es) for a line and keep it stopped."""
     import signal
+    import time as _t
+    set_stop_flag(line_id, True)      # before the kill: the respawn must see it
 
     with get_conn() as conn:
         cur = dict_cursor(conn)
         cur.execute(
-            "SELECT collector_pid, collector_status FROM mes_lines WHERE id = %s",
+            "SELECT line_code, collector_pid, collector_status FROM mes_lines WHERE id = %s",
             (line_id,)
         )
         line = cur.fetchone()
-        if not line or not line["collector_pid"]:
-            return {"ok": False, "message": "No running collector found"}
+        if not line:
+            return {"ok": False, "message": "Line not found"}
 
-        pid = line["collector_pid"]
-        try:
-            if platform.system() == "Windows":
-                import ctypes
-                kernel32 = ctypes.windll.kernel32
-                handle = kernel32.OpenProcess(1, False, pid)
-                kernel32.TerminateProcess(handle, 0)
-                kernel32.CloseHandle(handle)
-            else:
-                os.kill(pid, signal.SIGTERM)
-        except ProcessLookupError:
-            pass   # Already gone
-        except PermissionError as e:
-            return {"ok": False, "message": str(e)}
+        pids = []
+        if platform.system() == "Windows":
+            if line["collector_pid"]:
+                try:
+                    import ctypes
+                    kernel32 = ctypes.windll.kernel32
+                    handle = kernel32.OpenProcess(1, False, line["collector_pid"])
+                    kernel32.TerminateProcess(handle, 0)
+                    kernel32.CloseHandle(handle)
+                    pids = [line["collector_pid"]]
+                except Exception:
+                    pass
+        else:
+            pids = _collector_pids(line["line_code"], line["collector_pid"])
+            for pid in pids:
+                try:
+                    os.kill(pid, signal.SIGTERM)
+                except ProcessLookupError:
+                    pass
+                except PermissionError as e:
+                    return {"ok": False, "message": str(e)}
+            deadline = _t.time() + 15          # a clean exit closes the PLC session
+            while _t.time() < deadline and any(os.path.exists(f"/proc/{p}") for p in pids):
+                _t.sleep(0.5)
+            for pid in pids:
+                if os.path.exists(f"/proc/{pid}"):
+                    try:
+                        os.kill(pid, signal.SIGKILL)
+                    except ProcessLookupError:
+                        pass
 
         conn.cursor().execute("""
             UPDATE mes_lines
@@ -658,6 +720,8 @@ def stop_collector(line_id: int) -> dict:
         conn.cursor().execute("""
             INSERT INTO mes_audit_log (action, entity_type, entity_id, details)
             VALUES ('COLLECTOR_STOPPED', 'line', %s, %s)
-        """, (line_id, f"pid={pid}"))
+        """, (line_id, f"pids={pids}"))
 
-    return {"ok": True, "message": f"Collector PID {pid} stopped"}
+    if not pids:
+        return {"ok": True, "message": "No collector process was running; the line will stay stopped"}
+    return {"ok": True, "message": f"Collector stopped (PID {', '.join(map(str, pids))}); it stays stopped until Start or Restart"}

@@ -41,7 +41,12 @@ _TBL_RE = re.compile(r"^[a-z0-9_]+$")   # per-line table names are plain idents
 # Ball Guide cameras their own footage instead of the line's Final-Inspection
 # clip.  Same default as routers/submachines.py.
 CYCLE_VIDEO_BASE_URL = os.environ.get("CYCLE_VIDEO_BASE_URL", "http://127.0.0.1:5555")
-CLIP_PROXY_TIMEOUT = float(os.environ.get("SIXSIGMA_CLIP_TIMEOUT", "20") or 20)
+# 2026-10-09 — 20 → 90 s.  The CMS took 17-40 s to START answering a Ball Guide
+# cut (even one it had cached), so every click gave up at 20 s with a 502 and
+# the page showed "No video with supported format".  This is the wait for the
+# first byte; connecting still fails fast (5 s) when the CMS is down.
+CLIP_PROXY_TIMEOUT = float(os.environ.get("SIXSIGMA_CLIP_TIMEOUT", "90") or 90)
+CLIP_CONNECT_TIMEOUT = 5.0
 
 # ── browser-playable clips (2026-09-25) ─────────────────────────────────────
 # "video kuch PC me render ho rahi, kuch me nahi."  The cameras on this station
@@ -100,7 +105,7 @@ def _prune_clip_cache():
         pass
 
 
-def _to_h264(src: str, dst: str) -> bool:
+def _to_h264(src: str, dst: str, background: bool = False) -> bool:
     """Re-encode `src` into a browser-safe MP4 at `dst`.  True if it worked.
 
     Constrained Baseline + yuv420p + limited range is the lowest common
@@ -108,20 +113,28 @@ def _to_h264(src: str, dst: str) -> bool:
     playback can begin before the whole file has arrived.  The cameras tag
     their stream full-range (yuvj420p), so the range conversion is explicit
     rather than left to the encoder's guess.
+
+    `background` (the pre-warm worker): 2 threads at nice 10, so a clip nobody
+    is waiting for never competes with the collectors or a live click.
     """
-    tmp = dst + ".part"
+    # unique per caller: the API runs 4 worker processes, and two of them (a
+    # click and the pre-warm) writing one shared .part broke both encodes
+    tmp = f"{dst}.{os.getpid()}.{threading.get_ident()}.part"
     cmd = [FFMPEG, "-hide_banner", "-loglevel", "error", "-nostdin", "-y",
            "-i", src,
            "-vf", "scale=in_range=full:out_range=tv,format=yuv420p",
            "-c:v", "libx264", "-preset", "veryfast", "-crf", "23",
            "-profile:v", "baseline", "-level", "3.1", "-color_range", "tv",
-           "-an", "-movflags", "+faststart",
-           # `-f mp4` explicitly: the temp name ends in .part, and ffmpeg picks
-           # its muxer from the extension, so without this it just refuses
-           # ("Unable to choose an output format").
-           "-f", "mp4", tmp]
+           "-an", "-movflags", "+faststart"]
+    if background:
+        cmd += ["-threads", "2"]
+    # `-f mp4` explicitly: the temp name ends in .part, and ffmpeg picks
+    # its muxer from the extension, so without this it just refuses
+    # ("Unable to choose an output format").
+    cmd += ["-f", "mp4", tmp]
     try:
-        r = subprocess.run(cmd, capture_output=True, timeout=CLIP_PROXY_TIMEOUT * 3)
+        r = subprocess.run(cmd, capture_output=True, timeout=CLIP_PROXY_TIMEOUT * 3,
+                           preexec_fn=(lambda: os.nice(10)) if background else None)
         if r.returncode != 0 or not os.path.getsize(tmp):
             print(f"[6SIGMA] transcode failed rc={r.returncode}: "
                   f"{r.stderr[:200]!r}", flush=True)
@@ -512,6 +525,39 @@ def sixsigma_clip(line_id: int = Query(...),
     # the range-aware server from clip_archive do the rest so seeking works.
     from routers.clip_archive import serve as _serve_file
 
+    key, cached = _clip_cache_path(cid, ts_start, ts_end)
+    if os.path.exists(cached) and os.path.getsize(cached) > 0:
+        return _mp4_named(_serve_file(cached, request),
+                          line_id, cycle_seq, cam, rec_date)
+
+    if not _build_clip(cid, ts_start, ts_end, key, cached):
+        # Never leave the page blank because a conversion failed: hand the
+        # original through, which still plays wherever HEVC is supported.
+        def _passthrough():
+            rr = requests.get(f"{CYCLE_VIDEO_BASE_URL}/api/submachine/clip",
+                              params={"camera_id": cid,
+                                      "ts_start": ts_start.isoformat(),
+                                      "ts_end": ts_end.isoformat()},
+                              stream=True,
+                              timeout=(CLIP_CONNECT_TIMEOUT, CLIP_PROXY_TIMEOUT))
+            try:
+                for chunk in rr.iter_content(chunk_size=64 * 1024):
+                    yield chunk
+            finally:
+                try: rr.close()
+                except Exception: pass
+        return StreamingResponse(
+            _passthrough(), media_type="video/mp4",
+            headers={"Accept-Ranges": "bytes",
+                     "Cache-Control": "no-cache, no-store, must-revalidate",
+                     "X-Clip-Codec": "source-passthrough"})
+
+    return _mp4_named(_serve_file(cached, request), line_id, cycle_seq, cam, rec_date)
+
+
+def _clip_cache_path(cid, ts_start, ts_end):
+    """(key, cached .mp4 path) for one camera + window.  The click and the
+    pre-warm worker must name the same file, so both come through here."""
     key = hashlib.sha1(
         f"{cid}|{ts_start.isoformat()}|{ts_end.isoformat()}".encode()
     ).hexdigest()[:24]
@@ -519,17 +565,27 @@ def sixsigma_clip(line_id: int = Query(...),
         os.makedirs(CLIP_CACHE_DIR, exist_ok=True)
     except OSError:
         pass
-    cached = os.path.join(CLIP_CACHE_DIR, f"{key}.mp4")
+    return key, os.path.join(CLIP_CACHE_DIR, f"{key}.mp4")
 
-    if os.path.exists(cached) and os.path.getsize(cached) > 0:
-        return _mp4_named(_serve_file(cached, request),
-                          line_id, cycle_seq, cam, rec_date)
 
-    with _clip_lock(key):
+def _build_clip(cid, ts_start, ts_end, key, cached, background=False) -> bool:
+    """Fetch the CMS cut for one camera + window and convert it into `cached`.
+
+    True when `cached` is ready (also when another request finished it while we
+    waited on the lock); False when the conversion failed.  An upstream failure
+    raises HTTPException, exactly as the endpoint always answered it.
+    """
+    import fcntl
+    import requests
+
+    with _clip_lock(key), open(os.path.join(CLIP_CACHE_DIR, f"{key}.lock"), "w") as lockf:
+        # The thread lock covers this process; the file lock covers the other
+        # API workers — a click waits for the pre-warm already building this
+        # clip instead of asking the CMS a second time.
+        fcntl.flock(lockf, fcntl.LOCK_EX)
         # Another request may have finished it while we waited on the lock.
         if os.path.exists(cached) and os.path.getsize(cached) > 0:
-            return _mp4_named(_serve_file(cached, request),
-                              line_id, cycle_seq, cam, rec_date)
+            return True
 
         # Always fetch the WHOLE cut — a Range would give us a fragment that
         # cannot be re-encoded.  The player's Range is answered off the cached
@@ -539,7 +595,8 @@ def sixsigma_clip(line_id: int = Query(...),
                              params={"camera_id": cid,
                                      "ts_start": ts_start.isoformat(),
                                      "ts_end": ts_end.isoformat()},
-                             stream=True, timeout=CLIP_PROXY_TIMEOUT)
+                             stream=True,
+                             timeout=(CLIP_CONNECT_TIMEOUT, CLIP_PROXY_TIMEOUT))
         except Exception as exc:
             raise HTTPException(502, f"Upstream unreachable: {exc}")
         if r.status_code >= 400:
@@ -548,47 +605,25 @@ def sixsigma_clip(line_id: int = Query(...),
             except Exception: pass
             raise HTTPException(code, detail)
 
-        raw = os.path.join(CLIP_CACHE_DIR, f"{key}.src")
+        raw = os.path.join(CLIP_CACHE_DIR,
+                           f"{key}.{os.getpid()}.{threading.get_ident()}.src")
         try:
             with open(raw, "wb") as fh:
                 for chunk in r.iter_content(chunk_size=256 * 1024):
                     if chunk:
                         fh.write(chunk)
+            ok = _to_h264(raw, cached, background=background)
         except Exception as exc:
             raise HTTPException(502, f"Upstream read failed: {exc}")
         finally:
             try: r.close()
             except Exception: pass
-
-        ok = _to_h264(raw, cached)
-        try:
-            os.unlink(raw)
-        except OSError:
-            pass
+            try:
+                os.unlink(raw)
+            except OSError:
+                pass
         _prune_clip_cache()
-
-        if not ok:
-            # Never leave the page blank because a conversion failed: hand the
-            # original through, which still plays wherever HEVC is supported.
-            def _passthrough():
-                rr = requests.get(f"{CYCLE_VIDEO_BASE_URL}/api/submachine/clip",
-                                  params={"camera_id": cid,
-                                          "ts_start": ts_start.isoformat(),
-                                          "ts_end": ts_end.isoformat()},
-                                  stream=True, timeout=CLIP_PROXY_TIMEOUT)
-                try:
-                    for chunk in rr.iter_content(chunk_size=64 * 1024):
-                        yield chunk
-                finally:
-                    try: rr.close()
-                    except Exception: pass
-            return StreamingResponse(
-                _passthrough(), media_type="video/mp4",
-                headers={"Accept-Ranges": "bytes",
-                         "Cache-Control": "no-cache, no-store, must-revalidate",
-                         "X-Clip-Codec": "source-passthrough"})
-
-    return _mp4_named(_serve_file(cached, request), line_id, cycle_seq, cam, rec_date)
+        return ok
 
 
 def _mp4_named(resp, line_id, cycle_seq, cam, rec_date):
@@ -617,3 +652,143 @@ def _cfg_public(cfg):
         "cam1_name": cfg.get("cam1_name"), "cam2_name": cfg.get("cam2_name"),
         "retention_days": cfg.get("retention_days", DEFAULT_RETENTION),
     }
+
+
+# ── pre-warm (2026-10-09) ────────────────────────────────────────────────────
+# Operator: "6 Sigma video nahi aa rahi."  The CMS needs 17-40 s before it starts
+# answering a Ball Guide cut, so a click waited that long (or gave up).  This
+# worker builds the H.264 copy of every NEW cycle, both cameras, a few seconds
+# after the cycle ends, into the same cache the click reads — so opening a
+# recent cycle is instant.  Older cycles still convert on the click.
+#
+# One background-leader process only (main.py @bg_startup).  Newest first, at
+# most PREWARM_WORKERS cuts in flight, ffmpeg at nice 10 / 2 threads, and only
+# cycles from the last PREWARM_LOOKBACK_MIN minutes, so a slow CMS never makes
+# the backlog grow without bound.  SIXSIGMA_PREWARM=0 turns it off.
+PREWARM_ON = os.environ.get("SIXSIGMA_PREWARM", "1") != "0"
+PREWARM_EVERY_S = 15
+PREWARM_SETTLE_S = 12          # the CMS waits for the footage tail itself (≤8 s)
+PREWARM_LOOKBACK_MIN = int(os.environ.get("SIXSIGMA_PREWARM_LOOKBACK_MIN", "30") or 30)
+PREWARM_WORKERS = int(os.environ.get("SIXSIGMA_PREWARM_WORKERS", "2") or 2)
+
+_prewarm_started = False
+_prewarm_stats = {"built": 0, "failed": 0, "secs": 0.0, "since": time.time()}
+# key -> (failures, retry_at).  A cycle the CMS has no footage for (camera down)
+# would otherwise stay "newest" and be retried forever ahead of everything else.
+_prewarm_failed: dict = {}
+PREWARM_MAX_TRIES = 3
+
+
+def _prewarm_jobs():
+    """[(ts_end, cid, ts_start, ts_end)] for every recent cycle not cached yet,
+    newest first — windows computed exactly as sixsigma_clip() computes them."""
+    jobs = []
+    with get_conn() as conn:
+        cur = dict_cursor(conn)
+        cur.execute("""SELECT c.*, l.db_table_name FROM mes_sixsigma_config c
+                         JOIN mes_lines l ON l.id = c.line_id""")
+        cfgs = cur.fetchall()
+        for cfg in cfgs:
+            cids = [c.strip() for c in (cfg.get("cam1_cid"), cfg.get("cam2_cid"))
+                    if c and c.strip()]
+            if not cids:
+                continue
+            mid = cfg.get("machine_plc_id")
+            if mid:
+                cur.execute("""SELECT ts_end AS ts, ct_seconds AS ct
+                                 FROM mes_submachine_ct_log
+                                WHERE sub_plc_id = %s
+                                  AND ts_end > now() - make_interval(mins => %s)
+                                  AND ts_end < now() - make_interval(secs => %s)""",
+                            (int(mid), PREWARM_LOOKBACK_MIN, PREWARM_SETTLE_S))
+            else:
+                tbl = (cfg["db_table_name"] or "") + "_ct_log"
+                if not _TBL_RE.match(tbl):
+                    continue
+                cur.execute(f"""SELECT ts, ct_value AS ct FROM {tbl}
+                                 WHERE ts > now() - make_interval(mins => %s)
+                                   AND ts < now() - make_interval(secs => %s)""",
+                            (PREWARM_LOOKBACK_MIN, PREWARM_SETTLE_S))
+            for row in cur.fetchall():
+                ts_end = row.get("ts")
+                if not ts_end:
+                    continue
+                ct = min(max(float(row.get("ct") or 0), 3.0), 120.0)
+                ts_start = ts_end - timedelta(seconds=ct)
+                for cid in cids:
+                    key, cached = _clip_cache_path(cid, ts_start, ts_end)
+                    n, retry_at = _prewarm_failed.get(key, (0, 0.0))
+                    if n >= PREWARM_MAX_TRIES or time.time() < retry_at:
+                        continue
+                    if not (os.path.exists(cached) and os.path.getsize(cached) > 0):
+                        jobs.append((ts_end, cid, ts_start, ts_end))
+        conn.rollback()
+    if len(_prewarm_failed) > 2000:
+        _prewarm_failed.clear()
+    jobs.sort(key=lambda j: j[0], reverse=True)
+    return jobs
+
+
+def _prewarm_one(job):
+    _, cid, ts_start, ts_end = job
+    key, cached = _clip_cache_path(cid, ts_start, ts_end)
+    t0 = time.time()
+    try:
+        ok = _build_clip(cid, ts_start, ts_end, key, cached, background=True)
+    except HTTPException as exc:
+        ok = False
+        if exc.status_code != 404:          # 404 = no footage for that cycle
+            print(f"[6SIGMA-PREWARM] {cid} {ts_end:%H:%M:%S}: {exc.detail}", flush=True)
+    except Exception as exc:
+        ok = False
+        print(f"[6SIGMA-PREWARM] {cid} {ts_end:%H:%M:%S}: {exc}", flush=True)
+    if ok:
+        _prewarm_failed.pop(key, None)
+    else:
+        n = _prewarm_failed.get(key, (0, 0.0))[0] + 1
+        _prewarm_failed[key] = (n, time.time() + 60 * n)
+    _prewarm_stats["built" if ok else "failed"] += 1
+    _prewarm_stats["secs"] += time.time() - t0
+
+
+def _prewarm_loop():
+    from concurrent.futures import ThreadPoolExecutor
+    print(f"[6SIGMA-PREWARM] on: last {PREWARM_LOOKBACK_MIN} min, "
+          f"{PREWARM_WORKERS} at a time", flush=True)
+    pool = ThreadPoolExecutor(max_workers=max(1, PREWARM_WORKERS),
+                              thread_name_prefix="6sigma-prewarm")
+    last_report = time.time()
+    while True:
+        jobs, batch = [], []
+        try:
+            jobs = _prewarm_jobs()
+            # one batch at a time: re-read after it, so the newest cycle always
+            # goes next and a finished click is never built twice
+            batch = jobs[:max(1, PREWARM_WORKERS)]
+            if batch:
+                list(pool.map(_prewarm_one, batch))
+        except RuntimeError as exc:
+            if "shutdown" in str(exc):      # the API is stopping
+                return
+            print(f"[6SIGMA-PREWARM] error: {exc}", flush=True)
+        except Exception as exc:
+            print(f"[6SIGMA-PREWARM] error: {exc}", flush=True)
+        if time.time() - last_report >= 600:
+            st = _prewarm_stats
+            n = st["built"] + st["failed"]
+            print(f"[6SIGMA-PREWARM] last 10 min: built {st['built']}, failed {st['failed']}"
+                  f", avg {st['secs'] / n if n else 0:.1f} s, waiting {len(jobs)}",
+                  flush=True)
+            _prewarm_stats.update(built=0, failed=0, secs=0.0, since=time.time())
+            last_report = time.time()
+        if not batch:
+            time.sleep(PREWARM_EVERY_S)
+
+
+def start_prewarm():
+    """Called once from main.py in the background-leader process."""
+    global _prewarm_started
+    if not PREWARM_ON or _prewarm_started:
+        return
+    _prewarm_started = True
+    threading.Thread(target=_prewarm_loop, daemon=True, name="6sigma-prewarm").start()

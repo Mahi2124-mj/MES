@@ -141,6 +141,19 @@ def _load_shift_row(line_id: int, record_date: date, shift_name: str) -> dict:
         row["_report_shift"]  = shift_name
         # Needed by _slot_losses to reach the ct_log + breakdown tables.
         row["_line_id"]       = line_id
+        # 2026-10-19 — the PDF / mail show the dashboard's losses and OEE
+        # (andon buckets + parts-based speed), not the collector's raw ones.
+        try:
+            from routers.lines import display_loss_oee
+            _d = display_loss_oee(cur, line_id, row, record_date, shift_name)
+            for _k, _v in (_d.get("losses") or {}).items():
+                row[f"loss_{_k}_seconds"] = _v
+            for _k in ("availability", "performance", "overall_oee", "oee_grade"):
+                if _k in _d:
+                    row[_k] = _d[_k]
+        except Exception as _dx:
+            conn.rollback()
+            print(f"[REPORT] display losses/oee skipped: {_dx}")
         # 2026-06-19 — manual OT target for this shift, overlaid onto the OT slot
         # in the report (the collector writes the OT bucket's _plan as 0).
         try:
@@ -258,6 +271,23 @@ def _slot_losses(line_id: int, record_date: date, shift_name: str,
             ct_tbl = f"{ln['db_table_name']}_ct_log"
             ideal  = float(ln["ict"] or 15.0)
 
+            # 2026-10-19 — the slot speed loss is the dashboard's parts-based one
+            # (lines._hourly_loss_core 4c: parts short × part time − the slot's
+            # other losses, 0 when the plan was made), every zone, so the Hourly
+            # Report / Shift Compile / PEFF show what the dashboard shows.  A line
+            # with no part recorded (core falls back to "share") keeps the old rule.
+            _parts_speed = None
+            try:
+                from routers.lines import _hourly_loss_core
+                _core = _hourly_loss_core(cur, line_id, str(record_date), shift_name)
+                if _core.get("speed_mode") == "parts":
+                    _parts_speed = {r["slot_label"]: float(r.get("loss_speed") or 0)
+                                    for r in (_core.get("slots") or [])}
+            except Exception as _pe:
+                conn.rollback()
+                _parts_speed = None
+                print(f"[REPORT] parts-based slot speed skipped: {_pe}")
+
             # On andon-covered lines the breakdown loss comes from the physical
             # Andon Maintenance+Toolroom calls (andon_history), not mes_breakdowns
             # — same source the Dashboard/OEE uses. Display-only; guarded.
@@ -306,17 +336,20 @@ def _slot_losses(line_id: int, record_date: date, shift_name: str,
                     continue
 
                 # Speed loss — same rule the wallboard uses, so the two agree.
-                try:
-                    cur.execute(f"""
-                        SELECT COALESCE(SUM(ct_value - %s), 0) AS loss
-                          FROM {ct_tbl}
-                         WHERE ts >= %s AND ts < %s
-                           AND ct_value IS NOT NULL
-                           AND ct_value >= %s * 0.5
-                    """, (ideal, a, b, ideal))
-                    s["speed_loss"] = float((cur.fetchone() or {}).get("loss") or 0.0)
-                except Exception:
-                    conn.rollback()
+                if _parts_speed is not None:
+                    s["speed_loss"] = _parts_speed.get(s["label"], 0.0)
+                else:
+                    try:
+                        cur.execute(f"""
+                            SELECT COALESCE(SUM(ct_value - %s), 0) AS loss
+                              FROM {ct_tbl}
+                             WHERE ts >= %s AND ts < %s
+                               AND ct_value IS NOT NULL
+                               AND ct_value >= %s * 0.5
+                        """, (ideal, a, b, ideal))
+                        s["speed_loss"] = float((cur.fetchone() or {}).get("loss") or 0.0)
+                    except Exception:
+                        conn.rollback()
 
                 # Breakdown — on andon-covered lines use the Andon
                 # Maintenance+Toolroom call durations clipped to the slot;
@@ -1027,8 +1060,11 @@ def build_pdf_report(row: dict) -> bytes:
 
     # ── Hourly bar chart inset
     slots = _hourly_slots_from_row(row)
-    _slot_losses(row.get("_line_id"), row.get("_report_date"),
-                 row.get("_report_shift") or row.get("shift_name") or "", slots)
+    _sh = row.get("_report_shift") or row.get("shift_name") or ""
+    _allowed = _shift_slot_labels(row.get("_line_id"), _sh)   # this shift's hours only
+    if _allowed:
+        slots = [s for s in slots if _norm_slot(s["label"]) in _allowed]
+    _slot_losses(row.get("_line_id"), row.get("_report_date"), _sh, slots)
     chart = fig.add_axes([0.06, 0.07, 0.65, 0.32])
     if slots:
         idx = list(range(len(slots)))
@@ -1429,9 +1465,82 @@ LOSS_KINDS = [
 ]
 
 
+# 2026-10-17 — the Losses tab showed (almost) only Speed (operator: "sirf speed
+# loss hi aa raha hai baki loss show kyon nahi ho rahe").  The stored shift row
+# holds what the COLLECTOR filed: lines with no PLC stop reason put every stop
+# in speed, and the andon breakdown / quality / setup / material / others time
+# is applied for DISPLAY only (lines.get_line_realtime) and never stored.  So
+# the tab now applies the same two display rules as the line dashboard:
+#   1. andon-covered lines: routers.andon.recompute_oee_with_andon over the
+#      shift window — each andon button's lost time in its own bucket
+#      (production-aware), and the part of it already in speed taken out;
+#   2. Loop Pipe + Sub-Assembly: speed = (plan so far − OK) × ideal CT − the
+#      availability buckets (dashboard "parts-based loss").
+# No DB write.  Results for shifts that ended > 10 min ago are cached per
+# worker (key includes the stored row's timestamp, so a late update re-runs).
+_LOSS_ADJ_CACHE: dict = {}
+_LOSS_KEY_OF = {"breakdown": "Breakdown", "quality": "Quality", "setup": "Setup",
+                "material": "Material", "others": "Others"}
+
+
+def _display_losses(line: dict, rec_date: date, shift_name: str, row: dict,
+                    shift_cfg: Optional[dict], andon_on: bool, parts_on: bool,
+                    ideal_ct: float, ss_parts: bool = False) -> dict:
+    """{label: seconds} for one stored shift row, as the dashboard shows it."""
+    losses = {label: int(row.get(key) or 0) for key, label in LOSS_KINDS}
+    if not shift_cfg or not shift_cfg.get("start_time") or not shift_cfg.get("end_time"):
+        return losses
+    st = datetime.combine(rec_date, shift_cfg["start_time"])
+    en = datetime.combine(rec_date, shift_cfg["end_time"])
+    if shift_cfg.get("xm") or en <= st:
+        en += timedelta(days=1)
+    key = (line["id"], rec_date, shift_name, str(row.get("timestamp")))
+    if key in _LOSS_ADJ_CACHE:
+        return dict(_LOSS_ADJ_CACHE[key])
+    if andon_on:
+        try:
+            from routers.andon import recompute_oee_with_andon
+            res = recompute_oee_with_andon(line["line_name"], row, st, en)
+            if res:
+                for k, lbl in _LOSS_KEY_OF.items():
+                    losses[lbl] = int((res.get("losses") or {}).get(k, losses[lbl]) or 0)
+                if res.get("speed_seconds") is not None:
+                    losses["Speed"] = int(res["speed_seconds"])
+        except Exception as exc:
+            print(f"[REPORTS] losses andon skipped {line['line_name']} {rec_date} {shift_name}: {exc}")
+    _core_parts = False
+    if ss_parts:
+        # 2026-10-19 — Speed = Σ of the dashboard's parts-based slot speeds
+        # (lines._hourly_loss_core 4c), every zone — the same number the Loss
+        # Distribution card and the hourly breakup show.
+        try:
+            from routers.lines import _hourly_loss_core
+            with get_conn() as _c:
+                _core = _hourly_loss_core(dict_cursor(_c), line["id"], rec_date.isoformat(), shift_name)
+                _c.rollback()
+            if _core.get("speed_mode") == "parts":
+                losses["Speed"] = int((_core.get("totals") or {}).get("loss_speed") or 0)
+                _core_parts = True
+        except Exception as exc:
+            print(f"[REPORTS] losses parts speed skipped {line['line_name']} {rec_date} {shift_name}: {exc}")
+    if parts_on and ideal_ct > 0 and not _core_parts:
+        plan = int(row.get("shift_plan_completed") or 0)
+        made = int(row.get("ok_count") or 0)
+        if plan > 0:
+            avail = sum(losses[l] for l in ("Breakdown", "Quality", "Setup", "Material",
+                                            "Others", "Change over"))
+            losses["Speed"] = max(0, int(round(max(0, plan - made) * ideal_ct)) - avail)
+    if en < datetime.now() - timedelta(minutes=10):           # shift over: stable
+        if len(_LOSS_ADJ_CACHE) > 50000:
+            _LOSS_ADJ_CACHE.clear()
+        _LOSS_ADJ_CACHE[key] = dict(losses)
+    return losses
+
+
 def _loss_rows(cur, user, d0: date, d1: date, shift: Optional[str],
                line_id: Optional[int], zone: Optional[str] = None):
-    """One row per line / date / shift, with every loss category in seconds."""
+    """One row per line / date / shift, with every loss category in seconds —
+    as the line dashboard shows them (see _display_losses)."""
     q = ("SELECT l.id, l.line_name, l.db_table_name, z.zone_name "
          "FROM mes_lines l LEFT JOIN mes_zones z ON z.id = l.zone_id ")
     where, args = [], []
@@ -1460,6 +1569,14 @@ def _loss_rows(cur, user, d0: date, d1: date, shift: Optional[str],
         pass
 
     cols = ", ".join(k for k, _ in LOSS_KINDS)
+    # the extra columns the dashboard rules need (only where the table has them)
+    extra_want = ["availability", "performance", "quality_oee",
+                  "shift_plan_completed", "ok_count", "timestamp"]
+    try:
+        from routers.andon import andon_line_set, _norm as _anorm
+        andon_set = andon_line_set()
+    except Exception:
+        andon_set, _anorm = set(), (lambda s: s)
     out = []
     for ln in lines:
         if allowed is not None and int(ln["id"]) not in allowed:
@@ -1470,6 +1587,25 @@ def _loss_rows(cur, user, d0: date, d1: date, shift: Optional[str],
         cur.execute("SELECT to_regclass(%s) AS r", (f"public.{tbl}",))
         if not cur.fetchone()["r"]:
             continue
+        cur.execute("""SELECT column_name FROM information_schema.columns
+                        WHERE table_schema='public' AND table_name=%s""", (tbl,))
+        have = {r["column_name"] for r in cur.fetchall()}
+        extra = [c for c in extra_want if c in have]
+        cur.execute("""SELECT shift_name, start_time, end_time,
+                              COALESCE(crosses_midnight, false) AS xm
+                         FROM mes_shift_configs WHERE line_id=%s""", (ln["id"],))
+        shift_cfgs = {r["shift_name"]: r for r in cur.fetchall()}
+        andon_on = _anorm(ln["line_name"]) in andon_set
+        parts_on = (ln.get("zone_name") or "").strip().lower() in ("loop pipe", "sub-assembly")
+        ss_parts = True                      # parts-based speed for every zone (19-Oct)
+        ideal_ct = 0.0
+        if parts_on:
+            cur.execute("SELECT ideal_cycle_time FROM mes_plc_configs "
+                        "WHERE line_id=%s ORDER BY id ASC LIMIT 1", (ln["id"],))
+            try:
+                ideal_ct = float((cur.fetchone() or {}).get("ideal_cycle_time") or 0)
+            except (TypeError, ValueError):
+                ideal_ct = 0.0
         w = ["record_date BETWEEN %s AND %s"]
         a: list = [d0, d1]
         if shift and shift.upper() != "ALL":
@@ -1479,13 +1615,17 @@ def _loss_rows(cur, user, d0: date, d1: date, shift: Optional[str],
             #  GAP rows are the gaps BETWEEN shifts, not a shift's own loss.
             w.append("shift_name NOT LIKE 'GAP%%'")
         try:
-            cur.execute(f"SELECT record_date, shift_name, {cols} "
+            sel = ", ".join([cols] + extra)
+            cur.execute(f"SELECT record_date, shift_name, {sel} "
                         f"FROM {tbl} WHERE {' AND '.join(w)} "
                         f"ORDER BY record_date, shift_name", a)
         except Exception:
+            cur.connection.rollback()          # keep the shared cursor usable
             continue
         for r in cur.fetchall():
-            losses = {label: int(r.get(key) or 0) for key, label in LOSS_KINDS}
+            losses = _display_losses(ln, r["record_date"], r["shift_name"], r,
+                                     shift_cfgs.get(r["shift_name"]), andon_on,
+                                     parts_on, ideal_ct, ss_parts)
             total = sum(losses.values())
             if total == 0:
                 continue          # nothing lost that shift — not worth a row

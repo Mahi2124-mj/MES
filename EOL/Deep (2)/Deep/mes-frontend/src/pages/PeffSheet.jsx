@@ -13,10 +13,10 @@ export default function PeffSheet() {
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100vh",
                   background: "#fff", minHeight: 0 }}>
-      <PageTopbar leading="PEFF" accent="Sheet" />
+      <PageTopbar leading="Hourly Monitoring" accent="Sheet" />
       <iframe
         src="/peff-sheet.html"
-        title="PEFF Sheet"
+        title="Hourly Monitoring Sheet"
         style={{ flex: 1, width: "100%", border: "none", minHeight: 0 }}
       />
     </div>

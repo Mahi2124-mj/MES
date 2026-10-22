@@ -1,0 +1,34 @@
+# Breakdown clipper — user systemd service (installed copy:
+# ~/.config/systemd/user/breakdown-clipper.service).
+# Added 2026-10-12: cuts a camera clip for every auto breakdown slip
+# (Maintenance + Tool Room) into Maintenance_breakdown_video /
+# Toolroom_breakdown_video.  Reads maintenance_db READ-ONLY.  User-linger is on,
+# so it starts at boot without a login, like binvision.service.
+#
+#   systemctl --user status  breakdown-clipper
+#   systemctl --user restart breakdown-clipper
+#   tail -f "/run/media/server/5b4e6f01-4c04-4bc3-b34e-b0df376c067f/server backup/D DRIVE/EOL/EOL/Deep (2)/Deep/logs/breakdown_clipper.log"
+#
+# The code disk is mounted by eol.service; until it is, the start fails and
+# systemd retries every 30 s (StartLimitIntervalSec=0 = never give up).
+[Unit]
+Description=Breakdown clipper — camera clip for every auto breakdown slip
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+WorkingDirectory=/run/media/server/5b4e6f01-4c04-4bc3-b34e-b0df376c067f/server backup/D DRIVE/EOL/EOL/Deep (2)/Deep/Phase2
+Environment=PYTHONUNBUFFERED=1
+ExecStart="/run/media/server/5b4e6f01-4c04-4bc3-b34e-b0df376c067f/server backup/D DRIVE/EOL/EOL/Deep (2)/Deep/Phase2/.venv-linux/bin/python" -u breakdown_clipper.py
+Restart=always
+RestartSec=30
+# Background work: always yields CPU and disk to the recorders, collectors and API.
+Nice=19
+IOSchedulingClass=idle
+CPUQuota=400%
+TimeoutStopSec=20
+
+[Install]
+WantedBy=default.target

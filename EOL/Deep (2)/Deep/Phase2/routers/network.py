@@ -180,11 +180,20 @@ def _arp_poller():
         time.sleep(90)
 
 
+_PING_IS_WIN = os.name == "nt"
+
+
 def _ping(ip: str) -> bool:
-    """ICMP reachability for PC / endpoint nodes (Windows ping)."""
+    """ICMP reachability for PC / endpoint nodes and SNMP-less switches.
+
+    2026-10-13 — the flags were Windows-only (`-n 1 -w 700`).  On this Linux
+    server that command fails outright, so every ping answered "no": each
+    switch without SNMP (YMC / YFG / YJC / YWD) and every PC node showed
+    OFFLINE while it was up, and Discover's ping sweep found nothing."""
+    cmd = (["ping", "-n", "1", "-w", "700", ip] if _PING_IS_WIN
+           else ["ping", "-c", "1", "-W", "1", ip])
     try:
-        r = subprocess.run(["ping", "-n", "1", "-w", "700", ip],
-                           capture_output=True, text=True, timeout=4)
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=4)
         out = (r.stdout or "").lower()
         return r.returncode == 0 and "ttl=" in out
     except Exception:
@@ -540,10 +549,11 @@ def _publish_snapshot(snap: dict) -> None:
         print(f"[NET-POLL] could not publish snapshot: {exc}", flush=True)
 
 
-def _read_published_snapshot():
-    """The leader's latest snapshot, or None when it is missing or stale."""
+def _read_published_snapshot(max_age=_SNAP_MAX_AGE):
+    """The leader's latest snapshot, or None when it is missing or (with a
+    max_age) older than that many seconds."""
     try:
-        if time.time() - os.path.getmtime(_SNAP_FILE) > _SNAP_MAX_AGE:
+        if max_age is not None and time.time() - os.path.getmtime(_SNAP_FILE) > max_age:
             return None
         with open(_SNAP_FILE, encoding="utf-8") as fh:
             snap = json.load(fh)
@@ -571,7 +581,16 @@ def _poller():
 
 
 def start_network_poller():
+    # 2026-10-13 — seed the last published statuses, then publish the saved map
+    # at once.  The first full poll after a restart took ~5.5 min, and until it
+    # landed the other workers had no fresh file and served the 4-switch demo.
+    prev = _read_published_snapshot(max_age=None)
+    if prev and prev.get("devices"):
+        with _lock:
+            _snapshot["devices"] = prev["devices"]
     _rebuild_snapshot_quick()      # show the saved map immediately on boot
+    with _lock:
+        _publish_snapshot(dict(_snapshot))
     _refresh_arp()                 # seed ARP table for auto-discovery
     threading.Thread(target=_arp_poller, name="net-arp", daemon=True).start()
     threading.Thread(target=_poller, name="net-poller", daemon=True).start()
@@ -587,6 +606,24 @@ def network_status(user=Depends(get_current_user)):
     shared = _read_published_snapshot()
     if shared:
         return shared
+    # 2026-10-13 — never fall back to the DEMO map while a real plan exists
+    # (operator saw the 4-switch demo "kabhi kabhi": after an API restart, or
+    # when one poll round ran past _SNAP_MAX_AGE).  Serve the last published
+    # snapshot marked stale, else the saved layout with unknown status.
+    old = _read_published_snapshot(max_age=None)
+    if old:
+        old["stale"] = True
+        return old
+    devs = _load(_DEV_FILE, [])
+    if devs:
+        out = []
+        for d in devs:
+            rec = dict(d)
+            rec.pop("community", None)
+            rec["status"] = "area" if d.get("kind") == "area" else "unconfigured"
+            out.append(rec)
+        return {"devices": out, "cables": _load(_CAB_FILE, _cables),
+                "generated_at": None, "stale": True}
     return {"devices": [], "cables": _cables, "generated_at": None, "demo": True}
 
 # 2026-09-17 — ONE scan at a time, and never an unbounded one.

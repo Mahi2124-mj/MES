@@ -29,6 +29,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 
 from auth import get_current_user_optional
 from database import get_conn, dict_cursor
+from routers.model_timeline import has_timeline, ideal_expr
 
 
 router = APIRouter(prefix="/api/lines", tags=["wallboard"])
@@ -428,28 +429,56 @@ def wallboard_cycles(
             d["loss_seconds"]   = info.get("loss_seconds", 0.0)
             d["cycles_counted"] = info.get("cycles_counted", 0)
 
+        # 2026-10-10 — combined machines (routers/submachines.combined_map):
+        # the members' cycles merged and numbered by time, losses added up.
+        try:
+            from routers.submachines import combined_map, combined_cycles
+            _cmap = combined_map(cur)
+            for d in out:
+                _mem = _cmap.get(d["sub_id"])
+                if not _mem:
+                    continue
+                d["cycles"] = [{"cycle_seq": r["vseq"],
+                                "ts":        r["ts_end"].isoformat() if r["ts_end"] else None,
+                                "ct":        float(r["ct_seconds"] or 0),
+                                "is_ng":     bool(r["is_ng"])}
+                               for r in combined_cycles(cur, _mem, today, shift)]
+                d["loss_seconds"]   = sum(loss_by_sub.get(m, {}).get("loss_seconds", 0.0) for m in _mem)
+                d["cycles_counted"] = sum(loss_by_sub.get(m, {}).get("cycles_counted", 0) for m in _mem)
+                d["combined_of"]    = _mem
+        except Exception as exc:
+            print(f"[WALLBOARD] combined machines skipped: {exc}")
+
         # ── MAIN-LINE CT chart ────────────────────────────────────────
         # 2026-05-18 — Operator wants the final-machine (line aggregate)
         # CT graph as the FIRST row above all sub-machines.  It comes
         # from the line's own *_ct_log table (NOT mes_submachine_ct_log)
         # because the main line counts L108 from the head PLC.
         main_table = line["db_table_name"] + "_ct_log"
+        _main_ideal = _model_ideal(cur, line_id, float(line["ideal_cycle_time"] or 15.0))
+        # 2026-10-12 — a line with a model timeline judges every cycle against
+        # the CT of the model that made it (routers/model_timeline.py).
+        _ie = (ideal_expr("c.ts", line_id, _main_ideal)
+               if has_timeline(cur, line_id) else None)
         cur.execute("SELECT to_regclass(%s) AS t", (main_table,))
         if cur.fetchone()["t"]:
             cur.execute(f"""
-                SELECT cycle_seq, ts, ct_value AS ct,
-                       COALESCE(is_ng, FALSE) AS is_ng
-                FROM {main_table}
-                WHERE record_date = %s AND shift_name = %s
-                ORDER BY ts, cycle_seq          -- see the note above
+                SELECT c.cycle_seq, c.ts, c.ct_value AS ct,
+                       COALESCE(c.is_ng, FALSE) AS is_ng
+                       {(", " + _ie + " AS ideal") if _ie else ""}
+                FROM {main_table} c
+                WHERE c.record_date = %s AND c.shift_name = %s
+                ORDER BY c.ts, c.cycle_seq      -- see the note above
             """, (today, shift))
-            main_cycles = [
-                {"cycle_seq": r["cycle_seq"],
-                 "ts":        r["ts"].isoformat() if r["ts"] else None,
-                 "ct":        float(r["ct"]) if r["ct"] is not None else 0.0,
-                 "is_ng":     bool(r["is_ng"])}
-                for r in cur.fetchall()
-            ]
+            main_cycles = []
+            for r in cur.fetchall():
+                _cy = {"cycle_seq": r["cycle_seq"],
+                       "ts":        r["ts"].isoformat() if r["ts"] else None,
+                       "ct":        float(r["ct"]) if r["ct"] is not None else 0.0,
+                       "is_ng":     bool(r["is_ng"])}
+                if _ie and r.get("ideal") is not None:
+                    _cy["ideal"] = float(r["ideal"])
+                main_cycles.append(_cy)
         else:
             main_cycles = []
 
@@ -459,21 +488,22 @@ def wallboard_cycles(
         # "Final Inspection" — there's no separate machine, the final
         # inspection station IS what counts the line's output.
         # Main line's running-only loss, same rule as the sub-machines above.
-        _main_ideal = _model_ideal(cur, line_id, float(line["ideal_cycle_time"] or 15.0))
         main_counted = 0
         if main_cycles:
             try:
+                _ix = _ie or "%s"
+                _ip = () if _ie else (_main_ideal,)
                 cur.execute(_RUN_CTE + f"""
-                    SELECT COALESCE(SUM(c.ct_value - %s), 0) AS loss_s,
+                    SELECT COALESCE(SUM(c.ct_value - {_ix}), 0) AS loss_s,
                            COUNT(*) AS n_counted
                     FROM {main_table} c
                     WHERE c.record_date = %s AND c.shift_name = %s
                       AND c.ct_value IS NOT NULL
                       AND NOT (COALESCE(c.is_ng, FALSE) AND c.ct_value < 0.1)
-                      AND c.ct_value >= %s * 0.5
+                      AND c.ct_value >= {_ix} * 0.5
                       AND EXISTS (SELECT 1 FROM run r
                                   WHERE c.ts >= r.a AND c.ts < r.b)
-                """, (line_id, today, shift, _main_ideal, today, shift, _main_ideal))
+                """, (line_id, today, shift) + _ip + (today, shift) + _ip)
                 _mr = cur.fetchone() or {}
                 main_loss     = float(_mr.get("loss_s") or 0.0)
                 main_counted  = int(_mr.get("n_counted") or 0)
@@ -665,6 +695,14 @@ def wallboard_summary(
             """, ([s["id"] for s in subs], record_date, shift_name))
             for r in cur.fetchall():
                 slot_counts[(r["sub_plc_id"], r["slot_idx"])] = r["cnt"]
+            # 2026-10-10 — a combined machine's slot = its members' slots added
+            try:
+                from routers.submachines import combined_map
+                for _vid, _mem in combined_map(cur).items():
+                    for _i in range(len(slots)):
+                        slot_counts[(_vid, _i)] = sum(slot_counts.get((m, _i), 0) for m in _mem)
+            except Exception as exc:
+                print(f"[WALLBOARD] combined slot counts skipped: {exc}")
 
         machines_hourly = []
         for s in subs:
@@ -702,6 +740,22 @@ def wallboard_summary(
             "cycle_time_actual":   shift_row.get("cycle_time_actual"),
             "cycle_time_plan":     shift_row.get("cycle_time_plan"),
         }
+
+        # 2026-10-19 — OEE as the Dashboard shows it (andon buckets +
+        # parts-based speed loss); the stored OEE stays when it cannot be told.
+        if not str(shift_name).upper().startswith(("GAP", "UNKNOWN")):
+            try:
+                from routers.lines import display_loss_oee
+                cur.execute("SAVEPOINT _wb_d")
+                _d = display_loss_oee(cur, line_id, shift_row, record_date, shift_name)
+                cur.execute("RELEASE SAVEPOINT _wb_d")
+                if _d.get("overall_oee") is not None:
+                    for _k in ("overall_oee", "availability", "performance"):
+                        kpi[_k] = _d[_k]
+            except Exception as _dx:
+                try: cur.execute("ROLLBACK TO SAVEPOINT _wb_d")
+                except Exception: pass
+                print(f"[WALLBOARD] display oee skipped: {_dx}")
 
         # 2026-10-07 — andon-covered lines: the Supervisor header shows the SAME
         # andon-driven status as the MANAGEMENT screen (/realtime) — the open
@@ -912,11 +966,16 @@ def over_target_history(
         if not cur.fetchone()["t"]:
             return {"ideal_ct": ideal, "rows": []}
 
+        # 2026-10-12 — main machine of a line with a model timeline: each cycle
+        # against its own model's CT (routers/model_timeline.py).
+        _thr = "%(ideal)s"
+        if not sub_id and has_timeline(cur, line_id):
+            _thr = ideal_expr("c.ts", line_id, ideal)
         cur.execute(f"""
             SELECT record_date::text AS d, shift_name AS s,
-                   COUNT(*) FILTER (WHERE {ctcol} > %(ideal)s) AS over,
+                   COUNT(*) FILTER (WHERE {ctcol} > {_thr}) AS over,
                    COUNT(*) AS total
-            FROM {table}
+            FROM {table} c
             WHERE {where}record_date >= CURRENT_DATE - %(days)s::int * INTERVAL '1 day'
               AND {ctcol} > 0
             GROUP BY record_date, shift_name

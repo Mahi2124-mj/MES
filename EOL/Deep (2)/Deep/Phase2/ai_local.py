@@ -163,20 +163,93 @@ def _live_rows(lines):
     return out
 
 
+# 2026-10-19 — finished shifts of the last 7 days carry the OEE + losses the
+# Dashboard shows (lines.display_loss_oee: andon buckets + parts-based speed).
+# Built per line in a background thread and kept 10 min, so an answer never
+# waits on it; until the first build those rows keep the stored values.
+_PAST_COLS = {"overall_oee": "d_oee", "availability": "d_av", "performance": "d_pf",
+              **{c: f"d_l{i}" for i, (c, _a) in enumerate(_LOSS)}}
+_PAST_DISP = {}           # line_id -> (built_at, {(record_date, shift): {col: value}})
+_PAST_BUSY = set()
+_PAST_LOCK = __import__("threading").Lock()
+_PAST_TTL_S = 600.0
+
+
+def _past_build(lid, tbl):
+    try:
+        from routers.lines import display_loss_oee
+        m = {}
+        with get_conn() as c:
+            cur = dict_cursor(c)
+            cur.execute(psql.SQL(
+                "SELECT DISTINCT ON (record_date, shift_name) * FROM {} "
+                "WHERE record_date >= current_date - 7 AND shift_name IN ('A','B') "
+                "AND COALESCE(ok_count,0) + COALESCE(ng_count,0) > 0 "
+                "ORDER BY record_date, shift_name, timestamp DESC").format(psql.Identifier(tbl)))
+            for r in cur.fetchall():
+                d = display_loss_oee(cur, lid, r, r["record_date"], r["shift_name"])
+                if d.get("overall_oee") is None:
+                    continue
+                v = {k: d.get(k) for k in ("overall_oee", "availability", "performance")}
+                for k, s in (d.get("losses") or {}).items():
+                    v[f"loss_{k}_seconds"] = s
+                m[(r["record_date"], r["shift_name"])] = v
+            c.rollback()
+        _PAST_DISP[lid] = (time.time(), m)
+    except Exception as exc:
+        print(f"[AI-LOCAL] past display oee skipped line {lid}: {exc}")
+    finally:
+        with _PAST_LOCK:
+            _PAST_BUSY.discard(lid)
+
+
+def _past_display(lines):
+    out = {}
+    for l in lines:
+        hit = _PAST_DISP.get(l["id"])
+        if hit:
+            out[l["id"]] = hit[1]
+        if not hit or time.time() - hit[0] > _PAST_TTL_S:
+            with _PAST_LOCK:
+                start = l["id"] not in _PAST_BUSY
+                if start:
+                    _PAST_BUSY.add(l["id"])
+            if start:
+                _LIVE_POOL.submit(_past_build, l["id"], l["db_table_name"])
+    return out
+
+
 def _views_sql(conn, lines, live=None):
     """WITH prefix defining the curated views over this user's lines.
-    The running shift's row takes the live values (live = _live_rows())."""
+    The running shift's row takes the live values (live = _live_rows());
+    recent finished shifts take the Dashboard's OEE + losses (_past_display)."""
     ids = [l["id"] for l in lines]
     parts = []
     live = live or {}
+    past = _past_display(lines)
 
     def num(v):
         try:
             return float(v)
         except (TypeError, ValueError):
             return None
+
+    def lit_sql(v):
+        return psql.Literal(v).as_string(conn).replace("{", "{{").replace("}", "}}")
     for l in lines:
         r = live.get(l["id"])
+        pm = past.get(l["id"]) or {}
+        join = ""
+        if pm:
+            vals = ",".join(
+                "(" + ", ".join([lit_sql(rd) + "::date", lit_sql(sh)]
+                                + [lit_sql(num(v.get(c))) + "::numeric" for c in _PAST_COLS]) + ")"
+                for (rd, sh), v in pm.items())
+            join = (f" LEFT JOIN (VALUES {vals}) AS d(d_rd, d_sh, {', '.join(_PAST_COLS.values())})"
+                    " ON d.d_rd = record_date AND d.d_sh = shift_name")
+
+        def base(col):
+            return f"COALESCE(d.{_PAST_COLS[col]}, {col})" if pm and col in _PAST_COLS else col
         if r:
             cond = (f"(record_date = {psql.Literal(r['record_date']).as_string(conn)} "
                     f"AND shift_name = {psql.Literal(r['shift_name']).as_string(conn)})")
@@ -184,10 +257,10 @@ def _views_sql(conn, lines, live=None):
                 v = r.get(key)
                 lit = psql.Literal(v if isinstance(v, str) else num(v)).as_string(conn)
                 lit = lit.replace("{", "{{").replace("}", "}}")     # the text goes through psql.SQL().format()
-                return f"CASE WHEN {cond} THEN {lit} ELSE {col} END"
+                return f"CASE WHEN {cond} THEN {lit} ELSE {base(col)} END"
         else:
             def ov(col, key):
-                return col
+                return base(col)
         loss_cols = ", ".join(f"COALESCE({ov(c, c)},0) AS {a}" for c, a in _LOSS)
         loss_sum = " + ".join(f"COALESCE({ov(c, c)},0)" for c, _ in _LOSS)
         q = psql.SQL(
@@ -207,7 +280,7 @@ def _views_sql(conn, lines, live=None):
             f"({ov('current_model_name', 'current_model_name')})::text AS model, "
             f"({ov('operating_status', 'operating_status')})::text AS status, "
             + (f"CASE WHEN {cond} THEN now() ELSE updated_at END AS updated_at " if r else "updated_at ") +
-            "FROM {tbl} WHERE shift_name IN ('A','B')"
+            "FROM {tbl}" + join + " WHERE shift_name IN ('A','B')"
         ).format(lid=psql.Literal(l["id"]), lname=psql.Literal(l["line_name"]),
                  zname=psql.Literal(l["zone_name"]), tbl=psql.Identifier(l["db_table_name"]))
         parts.append(q.as_string(conn))

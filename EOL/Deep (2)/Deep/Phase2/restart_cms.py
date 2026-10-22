@@ -123,6 +123,12 @@ if pid:
             _p, _args = int(_parts[0]), _parts[1]
             if "ffmpeg" not in _args or "rtsp://" not in _args:
                 continue
+            #  2026-10-12 -- not the CMS's: BinVision (Bin-Filling) records its
+            #  own camera with -f segment too, and every CMS restart was
+            #  SIGKILLing it (09:29:35 and 09:46:28): a cut-off segment and a
+            #  few seconds of bin footage lost each time.
+            if "/Bin-Filling/" in _args:
+                continue
             if ("-f mpegts" not in _args and "-f segment" not in _args
                     and not _args.rstrip().endswith(".ts")):
                 continue                      # not a continuous TS recorder
@@ -155,7 +161,9 @@ try:
     _out = subprocess.check_output(["ps", "-eo", "pid,args"], text=True)
     _n = 0
     for _ln in _out.splitlines():
-        if "libx264" in _ln and "grep" not in _ln:
+        # 2026-10-12 — never the breakdown clipper's encoder (its own service,
+        # not a CMS child; its output path always holds "_breakdown_video/").
+        if "libx264" in _ln and "grep" not in _ln and "_breakdown_video/" not in _ln:
             _p = _ln.split(None, 1)
             if _p and _p[0].isdigit():
                 try:

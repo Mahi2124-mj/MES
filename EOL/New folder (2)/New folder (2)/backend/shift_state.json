@@ -1,6 +1,6 @@
 {
-  "last_fired_shift_label": "2026-09-27_1830",
-  "last_fired_at": "2026-09-27T18:30:00",
+  "last_fired_shift_label": "2026-10-22_0830",
+  "last_fired_at": "2026-10-22T08:30:00",
   "wiped_cameras": [
     "cam_lock_bar_1779043510",
     "cam_lower_rail_grease_bar_coding_m_c_1782554629",
@@ -11,7 +11,6 @@
     "cam_lower_rail_grease_bar_coding_m_c_1782449890",
     "cam_lock_bar_y17_1784952289",
     "cam_lower_rail_grease_bar_coding_m_c_1782554828",
-    "cam_nut_lifting_1782385759",
     "cam_ywd_ss_1782385690",
     "cam_ywd_rc_1782385798",
     "cam_machine_1_2_yra_1785488968",
@@ -69,7 +68,6 @@
     "cam_release_arm_mag_welding_inside_1784264562",
     "cam_release_arm_magw_torsion_spring_fitment_1784264713",
     "cam_final_inspection_machine_1784264923",
-    "cam_ylm_bending_karakuri_1785943130",
     "cam_projection_welding_of_washer_with_lwr_arm_uprbkt_nut_pjw_m_c_1786350106",
     "cam_mag_welding_of_arm_x_recliner_st_1_1786350205",
     "cam_mag_welding_of_arm_x_recliner_st_2_1786350293",
@@ -126,11 +124,16 @@
     "cam_upr_rail_bolt_fr_pjw_m_c_4_way_1790063741",
     "cam_bolt_strength_checking_4way_1790063788",
     "cam_upr_rinforce_s_a_uprinrbkt_pjw_m_c_6_way_1790063841",
-    "cam_upr_rinforce_s_a_uprinrbkt_pjw_m_c_6_way_1790063911",
-    "cam_mag_weld_upr_brkt_with_t_nut_bolt_m_c_1790063983",
     "cam_ysd_ss_ball_guide_01_camera_1_1790265370",
     "cam_ysd_ss_ball_guide_01_camera_2_1790265370",
     "cam_location_pin_stacking_lps_3_1790334921",
-    "cam_2ua_1782385638"
+    "cam_2ua_1782385638",
+    "cam_upr_rinforce_s_a_uprinrbkt_pjw_m_c_6_way_1790063911",
+    "cam_mag_weld_upr_brkt_with_t_nut_bolt_m_c_1790063983",
+    "cam_upr_rinforce_s_a_uprinrbkt_pjw_m_c_6_way_1791801830",
+    "cam_riser_bkt_staking_inner_m_c_1791802317",
+    "cam_upr_rinforce_s_a_uprinrbkt_pjw_m_c_6_way_1791875079",
+    "cam_mag_weld_upr_brkt_with_t_nut_bolt_m_c_1791877588",
+    "cam_upr_rail_inspection_m_c_1791877693"
   ]
 }

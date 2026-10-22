@@ -123,8 +123,7 @@ def _tick() -> None:
             with get_conn() as conn:
                 c2 = dict_cursor(conn)
                 c2.execute(f"""
-                    SELECT id, shift_name, overall_oee, ok_count, ng_count,
-                           shift_plan, current_model_name, timestamp
+                    SELECT *
                       FROM {table}
                      WHERE record_date = CURRENT_DATE
                        AND shift_name NOT LIKE 'GAP%'
@@ -139,6 +138,18 @@ def _tick() -> None:
             continue
 
         oee = float(row.get("overall_oee") or 0)
+        # 2026-10-19 — the OEE the Dashboard shows (andon buckets + parts-based
+        # speed loss); the stored OEE when that cannot be told.
+        try:
+            from routers.lines import display_loss_oee
+            with get_conn() as conn:
+                _d = display_loss_oee(dict_cursor(conn), line_id, row,
+                                      row.get("record_date") or now.date(),
+                                      row.get("shift_name") or "")
+            if _d.get("overall_oee") is not None:
+                oee = float(_d["overall_oee"])
+        except Exception as exc:
+            print(f"[OEE-ALARM] display oee skipped line {line_id}: {exc}")
         if oee >= threshold:
             # Recovered — clear the streak so the NEXT drop fires fresh.
             _below_since.pop(line_id, None)

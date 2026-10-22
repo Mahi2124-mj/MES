@@ -2,6 +2,43 @@ import { useState, useRef, useEffect, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../context/AuthContext";
+import { NAV_ITEMS } from "./SlideNav";
+
+// 2026-10-11 — page/module name suggestions in the assistant input.  The slide
+// nav's NAV_ITEMS carry the exact paths; the pages the nav injects per-role
+// (maintenance / weld / quality) aren't in that static list, so they're added
+// here (their route is always "/" + key).  Each entry is filtered through
+// canAccess(key) at render, so a user only ever sees pages they can open.
+const EXTRA_PAGES = [
+  { key: "weld-monitor",          label: "Weld Monitor" },
+  { key: "maintenance-dashboard", label: "Maintenance Dashboard" },
+  { key: "maintenance-historical",label: "Maintenance Historical" },
+  { key: "maintenance-capa",      label: "Maintenance CAPA" },
+  { key: "maintenance-deviations",label: "Maintenance Deviations" },
+  { key: "maintenance-poka-yoke", label: "Maintenance Poka Yoke" },
+  { key: "maintenance-logbook",   label: "Maintenance Log Book" },
+  { key: "maintenance-pm",        label: "Preventive Maintenance" },
+  { key: "maintenance-air-flow",  label: "Air Flow" },
+  { key: "quality-dashboard",     label: "Quality Dashboard" },
+  { key: "quality-deviations",    label: "Quality Deviation" },
+  { key: "video-coverage",        label: "Video Coverage" },
+  { key: "py-bypass",             label: "PY Bypass" },
+  { key: "sa-fi-history",         label: "SA / FI History" },
+  { key: "redbin-lock",           label: "Red Bin Lock" },
+  { key: "logs",                  label: "Log Viewer" },
+].map(p => ({ ...p, path: "/" + p.key }));
+
+const ALL_PAGES = (() => {
+  const out = [], seen = new Set();
+  const add = (it) => {
+    if (!it || !it.path || !it.key || seen.has(it.path)) return;
+    seen.add(it.path);
+    out.push({ key: it.key, label: it.label, path: it.path, icon: it.iconImg ? null : it.icon });
+  };
+  for (const sec of (NAV_ITEMS || [])) (sec.items || []).forEach(add);
+  EXTRA_PAGES.forEach(add);
+  return out;
+})();
 
 // ───────────────────────────────────────────────────────────────────────
 // AIAssistant — floating production-data chatbot.
@@ -11,6 +48,29 @@ import { useAuth } from "../context/AuthContext";
 // the phone app (was a fixed 400px wide panel → horizontal overflow < ~424px).
 // Backend is the offline DB chatbot at /api/ai/chat (no external LLM).
 // ───────────────────────────────────────────────────────────────────────
+
+// Draggable floating button: size, where its position is remembered, and a
+// clamp that keeps it fully on screen (also after a resize / rotation).
+const BTN_SIZE = 54;
+const BTN_POS_KEY = "mes_ai_btn_pos";
+const clampBtn = (p) => ({
+  x: Math.min(Math.max(4, p.x), Math.max(4, window.innerWidth - BTN_SIZE - 4)),
+  y: Math.min(Math.max(4, p.y), Math.max(4, window.innerHeight - BTN_SIZE - 4)),
+});
+// The chat panel opens on the button's side of the screen (left/right,
+// top/bottom), so moving the button also moves where the chat covers the
+// page.  No saved position = the original bottom-right corner.
+const panelAnchor = (p) => {
+  if (!p) return { bottom: 16, right: 16 };
+  const w = window.innerWidth, h = window.innerHeight;
+  const pw = Math.min(400, w - 32), ph = Math.min(560, h - 88);
+  const out = {};
+  if (p.x + BTN_SIZE / 2 < w / 2) out.left  = Math.max(16, Math.min(p.x, w - 16 - pw));
+  else                            out.right = Math.max(16, Math.min(w - p.x - BTN_SIZE, w - 16 - pw));
+  if (p.y + BTN_SIZE / 2 < h / 2) out.top    = Math.max(16, Math.min(p.y, h - 16 - ph));
+  else                            out.bottom = Math.max(16, Math.min(h - p.y - BTN_SIZE, h - 16 - ph));
+  return out;
+};
 
 const api = axios.create({ baseURL: "" });
 api.interceptors.request.use(cfg => {
@@ -95,7 +155,11 @@ const pageInfoFor = (path) => PAGE_INFO.find(i => i.test(path || "")) || GENERAL
 
 // Not on the TV wall dashboards (they run unattended on the panels and must
 // stay as they are) or before sign-in.
-const NO_ASSISTANT = p => p === "/login" || /\/(MANAGEMENT|SUPERVISOR)$/i.test(p) ||
+// 2026-10-10 — operator wants the assistant on the MANAGEMENT wall
+// (/:line/MANAGEMENT), so that path is NO LONGER excluded.  The other
+// unattended walls (SUPERVISOR, plain /fullscreen/, wallboard, submachine)
+// stay excluded.
+const NO_ASSISTANT = p => p === "/login" || /\/SUPERVISOR$/i.test(p) ||
   p.startsWith("/fullscreen/") || p.startsWith("/ywd-fullscreen/") ||
   p.startsWith("/wallboard/") || p.startsWith("/submachine-fullscreen/");
 
@@ -140,6 +204,48 @@ function AssistantPanel({ pageContext = {}, path = "" }) {
   const inputRef  = useRef(null);
   const panelRef  = useRef(null);
 
+  // 2026-10-14 — the floating button can be dragged anywhere (it was covering
+  // the TOTAL column); the spot is remembered per browser.  null = default
+  // bottom-right corner.
+  const [btnPos, setBtnPos] = useState(() => {
+    try {
+      const p = JSON.parse(localStorage.getItem(BTN_POS_KEY) || "null");
+      if (p && Number.isFinite(p.x) && Number.isFinite(p.y)) return clampBtn(p);
+    } catch {}
+    return null;
+  });
+  const drag = useRef(null);
+  const justDragged = useRef(false);
+  useEffect(() => {
+    const onResize = () => setBtnPos(p => (p ? clampBtn(p) : p));
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+  const onBtnDown = (e) => {
+    if (e.button !== undefined && e.button !== 0) return;
+    const r = e.currentTarget.getBoundingClientRect();
+    drag.current = { sx: e.clientX, sy: e.clientY, ox: r.left, oy: r.top, moved: false };
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch {}
+  };
+  const onBtnMove = (e) => {
+    const d = drag.current;
+    if (!d) return;
+    const dx = e.clientX - d.sx, dy = e.clientY - d.sy;
+    if (!d.moved && Math.hypot(dx, dy) < 6) return;
+    d.moved = true;
+    setBtnPos(clampBtn({ x: d.ox + dx, y: d.oy + dy }));
+  };
+  const onBtnUp = () => {
+    const d = drag.current;
+    drag.current = null;
+    if (!d?.moved) return;
+    justDragged.current = true;
+    setBtnPos(p => {
+      try { if (p) localStorage.setItem(BTN_POS_KEY, JSON.stringify(p)); } catch {}
+      return p;
+    });
+  };
+
   // Line names power the autocomplete suggestions (e.g. "YSD-SS OEE today").
   useEffect(() => {
     let alive = true;
@@ -183,6 +289,28 @@ function AssistantPanel({ pageContext = {}, path = "" }) {
     if (!suggestion) return;
     setInput(suggestion);
     setTimeout(() => inputRef.current?.focus(), 0);
+  };
+
+  // ── Page / module name suggestions: type a name, pick it, the page opens ──
+  const myPages = useMemo(() => ALL_PAGES.filter(p => canAccess(p.key)), [canAccess]);
+  const pageMatches = useMemo(() => {
+    const q = input.trim().toLowerCase();
+    if (!q) return [];
+    const starts = [], contains = [];
+    for (const p of myPages) {
+      const l = (p.label || "").toLowerCase();
+      if (l.startsWith(q) || (p.key || "").toLowerCase().startsWith(q)) starts.push(p);
+      else if (l.includes(q)) contains.push(p);
+    }
+    return [...starts, ...contains].slice(0, 6);
+  }, [input, myPages]);
+  const [pageIdx, setPageIdx] = useState(-1);
+  useEffect(() => { setPageIdx(-1); }, [input]);
+  const openPage = (p) => {
+    if (!p || !canAccess(p.key)) return;
+    setInput("");
+    setOpen(false);
+    setTimeout(() => navigate(p.path), 0);
   };
 
   // Close on outside click
@@ -244,11 +372,16 @@ function AssistantPanel({ pageContext = {}, path = "" }) {
 
       {/* Floating button */}
       {!open && (
-        <button onClick={() => setOpen(true)} title="Assistant" style={{
-          position: "fixed", bottom: 20, right: 20, zIndex: 10000,
-          width: 54, height: 54, borderRadius: 14,
+        <button
+          onClick={() => { if (justDragged.current) { justDragged.current = false; return; } setOpen(true); }}
+          onPointerDown={onBtnDown} onPointerMove={onBtnMove}
+          onPointerUp={onBtnUp} onPointerCancel={() => { drag.current = null; }}
+          title="Assistant (drag to move)" style={{
+          position: "fixed", zIndex: 10000,
+          ...(btnPos ? { left: btnPos.x, top: btnPos.y } : { bottom: 20, right: 20 }),
+          width: BTN_SIZE, height: BTN_SIZE, borderRadius: 14,
           background: C.panel, border: `1px solid ${C.border}`,
-          cursor: "pointer", outline: "none",
+          cursor: "grab", outline: "none", touchAction: "none",
           display: "flex", alignItems: "center", justifyContent: "center",
           fontSize: 24, boxShadow: "0 6px 18px rgba(0,0,0,.35)",
         }}>
@@ -264,7 +397,7 @@ function AssistantPanel({ pageContext = {}, path = "" }) {
       {/* Panel — responsive width/height so it never overflows the screen */}
       {open && (
         <div ref={panelRef} style={{
-          position: "fixed", bottom: 16, right: 16, zIndex: 10000,
+          position: "fixed", zIndex: 10000, ...panelAnchor(btnPos),
           width: "min(400px, calc(100vw - 32px))",
           height: "min(560px, calc(100dvh - 88px))",
           maxWidth: "calc(100vw - 32px)", maxHeight: "calc(100dvh - 88px)",
@@ -362,6 +495,27 @@ function AssistantPanel({ pageContext = {}, path = "" }) {
 
           {/* Input */}
           <div style={{ padding: "10px 12px", borderTop: `1px solid ${C.border}`, background: C.panel, flexShrink: 0 }}>
+            {/* Page / module name suggestions — click to open, ↑/↓ then Enter to pick */}
+            {pageMatches.length > 0 && (
+              <div style={{ marginBottom: 8, borderRadius: 10, overflow: "hidden",
+                            border: `1px solid ${C.border}`, background: C.bg }}>
+                <div style={{ padding: "5px 10px", fontSize: 10, fontWeight: 700, color: C.textDim,
+                              textTransform: "uppercase", letterSpacing: ".05em" }}>Open page</div>
+                {pageMatches.map((p, i) => (
+                  <div key={p.path}
+                       onMouseDown={e => { e.preventDefault(); openPage(p); }}
+                       onMouseEnter={() => setPageIdx(i)}
+                       style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer",
+                                padding: "8px 10px", fontSize: 12.5, color: C.text,
+                                background: i === pageIdx ? C.aiBg : "transparent",
+                                borderTop: `1px solid ${C.border}` }}>
+                    <span style={{ fontSize: 14, flexShrink: 0 }}>{p.icon && !/^\//.test(p.icon) ? p.icon : "📄"}</span>
+                    <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.label}</span>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: C.accent, flexShrink: 0 }}>Open ↵</span>
+                  </div>
+                ))}
+              </div>
+            )}
             {/* Autocomplete hint — tap to complete (touch), or press Tab */}
             {ghost && (
               <div onClick={acceptSuggestion} style={{
@@ -394,6 +548,11 @@ function AssistantPanel({ pageContext = {}, path = "" }) {
                   value={input}
                   onChange={e => setInput(e.target.value)}
                   onKeyDown={e => {
+                    if (pageMatches.length) {
+                      if (e.key === "ArrowDown") { e.preventDefault(); setPageIdx(i => Math.min(i + 1, pageMatches.length - 1)); return; }
+                      if (e.key === "ArrowUp")   { e.preventDefault(); setPageIdx(i => Math.max(i - 1, -1)); return; }
+                      if (e.key === "Enter" && !e.shiftKey && pageIdx >= 0) { e.preventDefault(); openPage(pageMatches[pageIdx]); return; }
+                    }
                     if (ghost && (e.key === "Tab" ||
                         (e.key === "ArrowRight" && e.target.selectionStart === input.length && e.target.selectionEnd === input.length))) {
                       e.preventDefault(); acceptSuggestion(); return;

@@ -139,6 +139,56 @@ def _seat_slider_columns(cur, line_id: int):
     return [(c, cols[c]) for c in columns]
 
 
+# 2026-10-17 — YRA-SS has its own station numbers (operator): SS-06 Upper Rail
+# Greasing, SS-07 Handle Support, SS-08 Lock Mechanism, SS-09/10 Guide S/Ab
+# #1/#2, SS-11 Lwr Rail Greasing, SS-12/14 Stopper Bending Rr/Fr, SS-15 Slide
+# Force Inspection, SS-16 Fr Lighter Protector, SS-17 Manual Movement, SS-19
+# Final Inspection.  The sheet shows them as 8 columns, paired stations sharing
+# one column (names + operators joined).
+YRA_SS_COLUMNS = ["SS-06,07", "SS-08", "SS-09,10", "SS-11", "SS-12,14",
+                  "SS-15,16", "SS-17", "SS-19"]
+
+
+def _yra_ss_column(name: str) -> Optional[str]:
+    n = (name or "").lower()
+    if re.search(r"final\s*inspection", n):
+        return "SS-19"
+    if re.search(r"manual\s*movement", n):
+        return "SS-17"
+    if re.search(r"slide\s*force", n) or re.search(r"\bfr\.?\s*lighter\s*protector", n):
+        return "SS-15,16"
+    if re.search(r"stopper\s*bending", n):
+        return "SS-12,14"
+    if "greas" in n and re.search(r"\b(lwr|lower)\s*rail", n):
+        return "SS-11"
+    if re.search(r"guide\s*s\s*/?\s*ab", n):
+        return "SS-09,10"
+    if re.search(r"lock\s*mecha", n):
+        return "SS-08"
+    if ("greas" in n and re.search(r"\b(upr|upper)\s*rail", n)) or re.search(r"handle\s*su?p", n):
+        return "SS-06,07"
+    return None
+
+
+def _yra_ss_columns(cur, line_id: int):
+    """YRA-SS: [(column no, [process rows])] in YRA_SS_COLUMNS order; None for
+    any other line.  Inactive processes are kept when they are one of the named
+    stations (SS-07 Handle Support is switched off in MES but is still a
+    station on the sheet)."""
+    cur.execute("SELECT line_name FROM mes_lines WHERE id = %s", (line_id,))
+    ln = (cur.fetchone() or {}).get("line_name") or ""
+    if re.sub(r"[^A-Z0-9]", "", ln.upper()) != "YRASS":
+        return None
+    cur.execute("""SELECT id, process_name, is_active FROM mes_processes
+                    WHERE line_id = %s ORDER BY display_order, id""", (line_id,))
+    cols = {c: [] for c in YRA_SS_COLUMNS}
+    for p in cur.fetchall():
+        c = _yra_ss_column(p["process_name"])
+        if c:
+            cols[c].append(p)
+    return [(c, cols[c]) for c in YRA_SS_COLUMNS]
+
+
 @once
 def _ensure_wc_col():
     """Add mes_lines.peff_wc (base WC code) once; safe to call repeatedly."""
@@ -234,7 +284,7 @@ def peff_data(line_id: int = Query(...),
                 op_by_pid = _fetch_ops(cr["sd"])
 
         machines = []
-        ss_cols = _seat_slider_columns(cur, line_id)
+        ss_cols = _yra_ss_columns(cur, line_id) or _seat_slider_columns(cur, line_id)
         if ss_cols is not None:
             # seat slider: fixed SS-01..SS-09 columns (see SS_COLUMNS); an
             # empty column stays in place so every name lands under its SS no.
@@ -251,10 +301,17 @@ def peff_data(line_id: int = Query(...),
                     "operator": ", ".join(ops),
                 })
         else:
+            # 2026-10-16 — LOOP PIPE: LP-01..LP-05 (operator ask).  The Karakuri
+            # middle shelf is not a manned machine (Shift Allocation puts the
+            # neighbouring machines' operator on it), so it gets no column.
+            loop_pipe = "LOOPPIPE" in re.sub(r"[^A-Z0-9]", "", (line["line_name"] or "").upper())
+            if loop_pipe:
+                mrows = [r for r in mrows if not re.search(r"karakuri", r["process_name"] or "", re.I)]
+            no_prefix = "LP" if loop_pipe else "SS"
             for i, r in enumerate(mrows):
                 pid = int(r["id"])
                 machines.append({
-                    "no": f"SS-{i+1:02d}",
+                    "no": f"{no_prefix}-{i+1:02d}",
                     "name": r["process_name"] or "",
                     "process_id": pid,
                     "operator": ", ".join(op_by_pid.get(pid, [])) or "",
@@ -415,7 +472,7 @@ def peff_data(line_id: int = Query(...),
         plan = int(s["plan_pieces"] or 0)
         elapsed = latest is not None and _mins(ss) <= latest   # slot already started
         if elapsed:
-            cum += ok + ng
+            cum += ok               # 2026-10-19 — the sheet counts OK parts only
         h = {
             "label": s["slot_label"],
             "plan": plan or None,
@@ -443,7 +500,7 @@ def peff_data(line_id: int = Query(...),
     # grand totals from ALL cycles (so break-gap cycles still count)
     grand_ok = sum(1 for c in cycles if not c["is_ng"])
     grand_ng = sum(1 for c in cycles if c["is_ng"])
-    grand_total = grand_ok + grand_ng
+    grand_total = grand_ok          # 2026-10-19 — OK parts only (operator)
 
     # ── product rows, one per model. Per-model PLAN/Balance is a production
     #    target MES doesn't store, so it auto-fills only on a single-model
@@ -451,7 +508,7 @@ def peff_data(line_id: int = Query(...),
     products = []
     for m in model_rows:
         mno = int(m["mno"])
-        total = int(m["ok"]) + int(m["ng"])
+        total = int(m["ok"])        # 2026-10-19 — OK parts only (operator)
         fm = first_min.get(mno)
         first_seen = None
         if fm is not None and shift_start is not None:

@@ -22,6 +22,19 @@ from ddl_once import once
 
 router = APIRouter(prefix="/api/poka-yoke", tags=["poka-yoke"])
 
+# 2026-10-12 — lines whose PY e-mails are switched off (operator: Sub-Assembly
+# 10-Oct "ON kar, par mail mat bhejna"; YRA-SS 12-Oct "publish kar de, mail mat
+# bhejna").  The checks, the floor alarms and the bypass cases all still run;
+# only e-mail is suppressed — per event, in the 15-min digest and in the
+# bypass-approval mail (routers/py_bypass.py).  Without this the cases sat
+# "unmailed" and would all go out the moment any address was configured.
+# PY_NO_MAIL_LINES="none" mails every line again.
+import os as _nm_os
+PY_NO_MAIL_LINES = frozenset(
+    int(x) for x in (_nm_os.environ.get("PY_NO_MAIL_LINES")
+                     or "18,33,34,35,36,37,38,39").split(",")
+    if x.strip().isdigit())
+
 
 # ── Helper ─────────────────────────────────────────────────────
 def _check_operator_access(user: dict, line_id: int, conn) -> None:
@@ -895,6 +908,42 @@ def get_live_status(
             """, (mn_lower,))
             checks = [dict(r) for r in cur.fetchall()]
 
+        # 2026-10-10 — a line set up only through PY Config (published
+        # mes_py_config_live, e.g. the Sub-Assembly bolt checkers) has no
+        # mes_py_assignments rows, so the tile said "NO CHECKS" while the
+        # collector was checking every PY.  Fall back to the running model's
+        # published rows — the same Active rows check_py_bypass compares.
+        published = False
+        if not checks and resolved_bit is not None:
+            try:
+                cur.execute("SAVEPOINT py_live_pub")
+                cur.execute("""
+                    SELECT c.id,
+                           m.id            AS py_master_id,
+                           z.zone_name     AS zone_name,
+                           c.sensing_bits  AS sensing_bits,
+                           c.py_no         AS poka_yoke_no,
+                           c.py_name       AS poka_yoke_name,
+                           'ALL'           AS side,
+                           c.d_bit         AS bit,
+                           c.desired_value AS value,
+                           COALESCE(m.machine_name, c.station_label) AS machine_name,
+                           c.model_name,
+                           c.model_number  AS model_bit,
+                           'WARNING'       AS alert_level
+                      FROM mes_py_config_live c
+                      LEFT JOIN mes_py_master m ON m.py_no = c.py_no AND m.is_active = true
+                      LEFT JOIN mes_zones z     ON z.id    = m.zone_id
+                     WHERE c.line_id = %s AND c.model_number = %s AND c.enabled
+                     ORDER BY c.station_seq NULLS LAST, c.d_bit, c.id
+                """, (line_id, resolved_bit))
+                checks = [dict(r) for r in cur.fetchall()]
+                published = bool(checks)
+                cur.execute("RELEASE SAVEPOINT py_live_pub")
+            except Exception as _exc:
+                cur.execute("ROLLBACK TO SAVEPOINT py_live_pub")
+                print(f"[POKA-LIVE] published-config fallback failed: {_exc}")
+
         # ── 3. Also include any line-scoped rules still in DB ──
         # (fallback / compatibility — reads mes_poka_yoke_rules if any exist)
         cur.execute("""
@@ -991,39 +1040,45 @@ def get_live_status(
         #       previous ack was confirmed — drop any older sibling
         #       events still hanging from the same py_no
         STALE_AFTER_SEC = 120   # 2 min — sensor surely settled by then
+        # 2026-10-10 — not for published-config lines: there the collector
+        # raises ONE event per bypass and auto-acks it itself the moment the
+        # PLC shows the desired value again.  Here a PLC value of PASS IS the
+        # bypass, so rule (A) and the 2-minute rule (B) would clear a bypass
+        # that is still in place.
         try:
-            cur.execute("""
-                WITH latest_per_py AS (
-                    SELECT DISTINCT ON ((context_json::jsonb)->>'py_no')
-                           (context_json::jsonb)->>'py_no'  AS py_no,
-                           (context_json::jsonb)->>'actual' AS actual_state,
-                           detected_at
-                    FROM mes_poka_yoke_events
-                    WHERE line_id        = %s
-                      AND rule_id        IS NULL
-                      AND rule_type      = 'SENSOR_BYPASS'
-                      AND detected_at    > NOW() - INTERVAL '8 hours'
-                      AND context_json IS NOT NULL
-                      AND context_json ~ '^\\s*\\{'
-                    ORDER BY (context_json::jsonb)->>'py_no', detected_at DESC
-                )
-                UPDATE mes_poka_yoke_events e
-                   SET acknowledged    = true,
-                       acknowledged_at = NOW(),
-                       acknowledged_by = 'auto_sweep'
-                  FROM latest_per_py lp
-                 WHERE e.line_id      = %s
-                   AND e.rule_id      IS NULL
-                   AND e.rule_type    = 'SENSOR_BYPASS'
-                   AND e.acknowledged = false
-                   AND (e.context_json::jsonb)->>'py_no' = lp.py_no
-                   AND (
-                         -- (A) explicit PASS recovery
-                         lp.actual_state = 'PASS'
-                         -- (B) no new event in STALE_AFTER_SEC → recovered
-                         OR lp.detected_at < NOW() - INTERVAL '1 second' * %s
-                       )
-            """, (line_id, line_id, STALE_AFTER_SEC))
+            if not published:
+                cur.execute("""
+                    WITH latest_per_py AS (
+                        SELECT DISTINCT ON ((context_json::jsonb)->>'py_no')
+                               (context_json::jsonb)->>'py_no'  AS py_no,
+                               (context_json::jsonb)->>'actual' AS actual_state,
+                               detected_at
+                        FROM mes_poka_yoke_events
+                        WHERE line_id        = %s
+                          AND rule_id        IS NULL
+                          AND rule_type      = 'SENSOR_BYPASS'
+                          AND detected_at    > NOW() - INTERVAL '8 hours'
+                          AND context_json IS NOT NULL
+                          AND context_json ~ '^\\s*\\{'
+                        ORDER BY (context_json::jsonb)->>'py_no', detected_at DESC
+                    )
+                    UPDATE mes_poka_yoke_events e
+                       SET acknowledged    = true,
+                           acknowledged_at = NOW(),
+                           acknowledged_by = 'auto_sweep'
+                      FROM latest_per_py lp
+                     WHERE e.line_id      = %s
+                       AND e.rule_id      IS NULL
+                       AND e.rule_type    = 'SENSOR_BYPASS'
+                       AND e.acknowledged = false
+                       AND (e.context_json::jsonb)->>'py_no' = lp.py_no
+                       AND (
+                             -- (A) explicit PASS recovery
+                             lp.actual_state = 'PASS'
+                             -- (B) no new event in STALE_AFTER_SEC → recovered
+                             OR lp.detected_at < NOW() - INTERVAL '1 second' * %s
+                           )
+                """, (line_id, line_id, STALE_AFTER_SEC))
         except Exception as _exc:
             print(f"[POKA-LIVE] auto-ack sweep failed: {_exc}")
 
@@ -1256,6 +1311,9 @@ def _send_bypass_email_async(body: "EventIngest") -> None:
 
     rule_type = (body.rule_type or "").upper()
     kind      = "health" if rule_type == "SENSOR_HEALTH" else "bypass"
+    if body.line_id in PY_NO_MAIL_LINES:
+        print(f"[POKA-YOKE-EMAIL/{kind}] line {body.line_id}: mail switched off for this line")
+        return
     to_list, cc_list = _get_mail_addrs(kind)
 
     if not (smtp_user and smtp_pass and to_list):
@@ -1900,8 +1958,9 @@ def _send_bypass_digest_now() -> None:
                 WHERE e.rule_type    = 'SENSOR_BYPASS'
                   AND e.acknowledged = false
                   AND e.detected_at  > NOW() - INTERVAL '15 minutes'
+                  AND NOT (e.line_id = ANY(%s))
                 ORDER BY e.detected_at DESC
-            """)
+            """, (list(PY_NO_MAIL_LINES),))
             events = cur.fetchall()
     except Exception as exc:
         print(f"[POKA-DIGEST] DB query failed: {exc}")

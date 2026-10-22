@@ -15,6 +15,7 @@ const MaintenanceHistorical = lazy(() => import("./pages/MaintenanceHistorical")
 const MaintenanceCAPA = lazy(() => import("./pages/MaintenanceCAPA"));
 const MaintenanceDeviations = lazy(() => import("./pages/MaintenanceDeviations"));
 const MaintenancePokaYoke = lazy(() => import("./pages/MaintenancePokaYoke"));
+const AirFlow = lazy(() => import("./pages/AirFlow"));  // 2026-10-10 Maintenance → Air Flow (chart + master)
 const LogBook = lazy(() => import("./pages/LogBook"));
 const PMPanel = lazy(() => import("./pages/PMPanel"));
 const ProcessGraphs = lazy(() => import("./pages/ProcessGraphs"));
@@ -44,6 +45,7 @@ const ShiftCompile = lazy(() => import("./pages/ShiftCompile"));
 const OperatorMaster = lazy(() => import("./pages/OperatorMaster"));
 const MyTeam = lazy(() => import("./pages/MyTeam"));
 const AndonHistory = lazy(() => import("./pages/AndonHistory"));
+const PlantOverview = lazy(() => import("./pages/PlantOverview"));  // 2026-10-08 HOD / Plant Head
 const ProdBreakdownSlip = lazy(() => import("./pages/ProdBreakdownSlip"));
 const MyEscalations = lazy(() => import("./pages/MyEscalations"));
 const EscalationAdmin = lazy(() => import("./pages/EscalationAdmin"));
@@ -743,6 +745,9 @@ function AppRoutes() {
       <Route path="/shift-compile" element={
         <Protected requiredAccess="shift-compile"><ShiftCompile /></Protected>
       } />
+      <Route path="/plant-overview" element={
+        <Protected requiredAccess="plant-overview"><PlantOverview /></Protected>
+      } />
       <Route path="/operators" element={
         <Protected requiredAccess="operators"><OperatorMaster /></Protected>
       } />
@@ -813,6 +818,9 @@ function AppRoutes() {
           detail; Quality side stays simple (counts + bypass list). */}
       <Route path="/maintenance-poka-yoke" element={
         <Protected requiredAccess="maintenance-poka-yoke"><MaintenancePokaYoke /></Protected>
+      } />
+      <Route path="/maintenance-air-flow" element={
+        <Protected requiredAccess="maintenance-air-flow"><AirFlow /></Protected>
       } />
 
       {/* Quality Dashboard — zone-tile health view.  Each zone tile rolls

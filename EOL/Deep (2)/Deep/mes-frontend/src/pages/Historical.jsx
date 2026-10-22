@@ -7,6 +7,7 @@ import PartTrace from "./PartTrace";
 import PeffDetails from "../components/PeffDetails";
 import CycleTimeStudy from "../components/CycleTimeStudy";
 import BreakdownSlipView from "../components/BreakdownSlipPaper";
+import { downloadSlipPdf, MAINT_SRC } from "../components/breakdownSlipPdf";
 import { useAuth } from "../context/AuthContext";
 
 const api = axios.create({ baseURL: "" });
@@ -1825,6 +1826,8 @@ function BreakdownLogTab() {
   const [loading,setLoading]  = useState(true);
   const [addOpen,setAddOpen]  = useState(false);
   const [view,   setView]     = useState(null);     // row whose slip is open
+  const [pdfBusy, setPdfBusy] = useState("");      // row key whose PDF is downloading
+  const [pdfErr,  setPdfErr]  = useState("");
 
   useEffect(() => {
     api.get("/api/breakdowns/log/master")
@@ -1917,21 +1920,24 @@ function BreakdownLogTab() {
         {chip("open", sum?.open, "#b91c1c")}
         {chip("production pending", sum?.production_pending, "#b45309")}
         {chip("maintenance pending", sum?.maintenance_pending, "#b91c1c")}
+        {chip("toolroom pending", sum?.toolroom_pending, "#be185d")}
         {chip("closed", sum?.closed, "#15803d")}
         {chip("downtime hrs", sum?.downtime_hours)}
       </div>
+      {pdfErr && <div onClick={()=>setPdfErr("")} style={{margin:"-6px 0 10px",fontSize:12,fontWeight:700,
+                   color:"#b91c1c",cursor:"pointer"}} title="Dismiss">PDF: {pdfErr} ✕</div>}
 
       <div style={{overflowX:"auto"}}>
         <table className="slot-tbl" style={{minWidth:1250}}>
           <thead><tr>
-            {["Date","Zone","Line","Machine","Sh","Problem","Action","Spares","By","Dept","Cat","Min","Status","Src"].map(h=>
+            {["Date","Zone","Line","Machine","Sh","Problem","Action","Spares","By","Dept","Cat","Min","Status","Src","PDF"].map(h=>
               <th key={h}>{h}</th>)}
           </tr></thead>
           <tbody>
             {loading
-              ? <tr><td colSpan={14} style={{padding:24,textAlign:"center",color:"#94a3b8"}}>Loading…</td></tr>
+              ? <tr><td colSpan={15} style={{padding:24,textAlign:"center",color:"#94a3b8"}}>Loading…</td></tr>
               : rows.length===0
-                ? <tr><td colSpan={14} style={{padding:24,textAlign:"center",color:"#94a3b8"}}>No breakdowns for this filter.</td></tr>
+                ? <tr><td colSpan={15} style={{padding:24,textAlign:"center",color:"#94a3b8"}}>No breakdowns for this filter.</td></tr>
                 : rows.map(r=>{
                   const sc = BD_STAGE_CLR[r.stage] || ["#f1f5f9","#475569"];
                   return (
@@ -1952,6 +1958,16 @@ function BreakdownLogTab() {
                         background:sc[0],color:sc[1]}}>{r.stage_label}</span></td>
                     <td><span style={{fontSize:9,fontWeight:700,padding:"2px 7px",borderRadius:99,whiteSpace:"nowrap",
                         background:"#f1f5f9",color:"#64748b"}}>{BD_SRC_LABEL[r.src]||r.src}</span></td>
+                    <td onClick={e=>e.stopPropagation()} style={{whiteSpace:"nowrap"}}>
+                      {MAINT_SRC.includes(r.src)
+                        ? <button title="Download this slip as a PDF" disabled={pdfBusy===r.key}
+                            onClick={async()=>{ setPdfBusy(r.key); const e=await downloadSlipPdf(r.src, r.id);
+                                                if (e) setPdfErr(e); setPdfBusy(""); }}
+                            style={{fontSize:11,fontWeight:700,padding:"3px 9px",borderRadius:6,cursor:"pointer",
+                                    border:"1px solid #bfdbfe",background:"#eff6ff",color:"#1d4ed8"}}>
+                            {pdfBusy===r.key ? "…" : "⬇ PDF"}</button>
+                        : <span style={{color:"#cbd5e1"}}>—</span>}
+                    </td>
                   </tr>);
                 })}
           </tbody>

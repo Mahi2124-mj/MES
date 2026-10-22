@@ -142,6 +142,57 @@ function OperatorCard({ op, count = 0, dragging, onDragStart, onDragEnd, compact
 }
 
 /* ── Toast ────────────────────────────────────────────────────────── */
+// 2026-10-12 — identity of a crew ({process_id: [op_id|null,…]}): order-free,
+// empty slots ignored, so "is what's on screen what was saved?" is one compare.
+function crewSig(crew) {
+  return JSON.stringify(Object.keys(crew || {}).sort().map(pid =>
+    [pid, (crew[pid] || []).filter(Boolean).map(String).sort()]));
+}
+
+function _fmtSaved(at) {
+  if (!at) return "";
+  const d = new Date(at);
+  if (isNaN(d)) return "";
+  const hm = d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: false });
+  const sameDay = d.toDateString() === new Date().toDateString();
+  return sameDay ? hm : `${d.toLocaleDateString("en-IN", { day: "2-digit", month: "short" })} ${hm}`;
+}
+
+// Save status beside the Save button: saved (green tick) / unsaved edits /
+// not allocated yet.
+function SaveStatus({ info, dirty, justSavedAt, saving }) {
+  if (saving) return null;
+  const base = { display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 12px",
+                 borderRadius: 999, fontSize: 12.5, fontWeight: 700, whiteSpace: "nowrap" };
+  if (!info || !info.saved) {
+    return (
+      <span style={{ ...base, background: "#fef2f2", color: "#b91c1c", border: "1px solid #fecaca" }}
+            title="No crew has been saved for this line, date and shift">
+        ⚠ Shift allocation not done yet
+      </span>
+    );
+  }
+  if (dirty) {
+    return (
+      <span style={{ ...base, background: "#fffbeb", color: "#b45309", border: "1px solid #fde68a" }}
+            title="The crew on screen differs from the saved allocation">
+        ● Unsaved changes — click Save
+      </span>
+    );
+  }
+  const when = justSavedAt ? _fmtSaved(justSavedAt) : _fmtSaved(info.at);
+  return (
+    <span style={{ ...base, background: "#f0fdf4", color: "#15803d", border: "1px solid #bbf7d0" }}
+          title={info.by ? `Saved by ${info.by}` : "Saved"}>
+      <span style={{ display: "inline-flex", width: 18, height: 18, borderRadius: "50%",
+                     background: "#16a34a", color: "#fff", alignItems: "center",
+                     justifyContent: "center", fontSize: 12 }}>✓</span>
+      {justSavedAt ? "Data saved" : "Saved"}{when ? ` · ${when}` : ""}
+      {!justSavedAt && info.by ? <span style={{ fontWeight: 500, opacity: 0.8 }}>· {info.by}</span> : null}
+    </span>
+  );
+}
+
 function Toast({ msg, kind }) {
   if (!msg) return null;
   const c = kind === "err" ? "#dc2626" : "#16a34a";
@@ -190,6 +241,12 @@ export default function ShiftAllocation() {
   const [dragOp, setDragOp]       = useState(null);    // {op_id, fromProcessId|null, slotIdx|null}
   const [dropHover, setDropHover] = useState(null);    // process_id or 'pool'
   const [carriedFrom, setCarriedFrom] = useState(null); // date this shift's crew was carried from (unsaved suggestion)
+  // 2026-10-12 — save status beside the Save button (operator: "save hone ke baad
+  // pata nahi chalta … green tick … aur allocation nahi hua toh bhi dikha de").
+  // saved/at/by come from the server rows; sig = the saved crew, so any edit
+  // after it reads as "Unsaved changes"; justSavedAt = a save made on this page.
+  const [saveInfo, setSaveInfo]       = useState({ saved: false, at: null, by: null, sig: null });
+  const [justSavedAt, setJustSavedAt] = useState(null);
 
   // 2026-09-13 — LINE LEADER for this shift (like manpower): which leader runs
   // this line for the date+shift.
@@ -299,6 +356,13 @@ export default function ShiftAllocation() {
       // operators are merged into the pool so their chips render.
       let carried = null;          // set only when NOT auto-committed (suggestion)
       let poolNext = punches || [];
+      let savedAt = null, savedBy = null;
+      (allocs || []).forEach(a => {
+        if (a.allocated_at && (!savedAt || String(a.allocated_at) > String(savedAt))) {
+          savedAt = a.allocated_at; savedBy = a.allocated_by || null;
+        }
+      });
+      if ((allocs || []).length && !savedAt) savedAt = date;   // rows without a timestamp
       if (!(allocs && allocs.length) && !(date < today)) {
         try {
           const c = await api.get(`/api/manpower/allocations/carry?line_id=${lineId}&date=${date}&shift=${encodeURIComponent(shift)}`, token);
@@ -319,6 +383,7 @@ export default function ShiftAllocation() {
                   rows, allocated_by: (user?.username || "auto-carry"),
                 }, token);
                 showToast(`Same crew auto-carried from ${c.carried_from} ✓`);
+                savedAt = new Date().toISOString(); savedBy = user?.username || "auto-carry";
               } catch (e2) { carried = c.carried_from || null; }  // failed → show as suggestion
             } else {
               carried = c.carried_from || null;                  // future day → suggestion
@@ -328,6 +393,7 @@ export default function ShiftAllocation() {
       }
       setPool(poolNext);
       setCarriedFrom(carried);
+      setSaveInfo({ saved: !!savedAt, at: savedAt, by: savedBy, sig: savedAt ? crewSig(next) : null });
       setPending(next);
       setShakeIds(new Set());
     } catch (e) { showToast(`Refresh failed: ${e.message}`, "err"); }
@@ -335,6 +401,7 @@ export default function ShiftAllocation() {
   }, [lineId, date, shift, token]);
 
   useEffect(() => { refresh(); }, [refresh]);
+  useEffect(() => { setJustSavedAt(null); }, [lineId, date, shift]);
 
   // ── Derived stats ────────────────────────────────────────────────
   const assignmentCount = useMemo(() => {
@@ -476,6 +543,7 @@ export default function ShiftAllocation() {
       } else {
         showToast(`Allocation saved · ${res?.added ?? rows.length} new, ${res?.closed ?? 0} removed`);
       }
+      setJustSavedAt(new Date());
       refresh();
     } catch (e) { showToast(e.message, "err"); }
     finally { setSaving(false); }
@@ -671,6 +739,10 @@ export default function ShiftAllocation() {
                                  cursor: (saving || needLeader) ? "not-allowed" : "pointer" }}>
                   {saving ? "Saving…" : "💾 Save Allocation"}
                 </button>
+              )}
+              {!loading && lineId && (
+                <SaveStatus info={saveInfo} dirty={saveInfo.saved && crewSig(pending) !== saveInfo.sig}
+                            justSavedAt={justSavedAt} saving={saving} />
               )}
             </div>
             {!locked && writable && needLeader && (

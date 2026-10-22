@@ -3,7 +3,7 @@
 AUTO-GENERATED COLLECTOR — YMC-SS
 Line ID    : 19
 Table      : ymc_l9_complete
-Generated  : 2026-09-05 16:51:47
+Generated  : 2026-10-19 13:21:15
 
 DO NOT EDIT MANUALLY — regenerate via admin panel if config changes.
 """

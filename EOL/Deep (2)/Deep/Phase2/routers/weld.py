@@ -85,12 +85,23 @@ def _ensure_weld_table(conn):
     conn.commit()
 
 
+_MASTER_READY = False
+
+
 def _ensure_master_table(conn):
     """Weld MASTER — one row per welding station (robot).  This is what the
     Quality admin edits: which analog card / channel a robot's current shunt is
     wired to, where that robot sits (zone → line → machine), and the acceptable
     current / voltage band.  The live poller reads this table, so adding a
-    robot here is all it takes to start logging it — no code change."""
+    robot here is all it takes to start logging it — no code change.
+
+    2026-10-10 — runs ONCE per process (not per request).  The per-request
+    CREATE + migrate used to re-run on every /weld/gas poll; a migrate ALTER
+    racing the poller's reads of this table closed the connection and 500'd the
+    read (same per-request-DDL convoy as the comments / energy_per_part fixes)."""
+    global _MASTER_READY
+    if _MASTER_READY:
+        return
     cur = conn.cursor()
     cur.execute("""
         CREATE TABLE IF NOT EXISTS mes_weld_master (
@@ -137,6 +148,7 @@ def _ensure_master_table(conn):
             ON CONFLICT (station) DO NOTHING
         """)
         conn.commit()
+    _MASTER_READY = True
 
 
 _MASTER_MIGRATED = False
@@ -150,11 +162,31 @@ def _migrate_master_once(conn) -> None:
     global _MASTER_MIGRATED
     if _MASTER_MIGRATED:
         return
-    cur = conn.cursor()
-    for col in ("signal TEXT NOT NULL DEFAULT 'current'", "unit TEXT", "scale NUMERIC",
-                "offset_val NUMERIC", "sample_s NUMERIC"):
-        cur.execute(f"ALTER TABLE mes_weld_master ADD COLUMN IF NOT EXISTS {col}")
-    conn.commit()
+    # 2026-10-10 — only ALTER when a column is genuinely missing: reading the
+    # catalog takes no lock, while ADD COLUMN takes an ACCESS EXCLUSIVE lock that
+    # races the poller's reads of this table and closed the request's connection
+    # ("connection already closed" -> 500 on /weld/gas).  Never let this break a
+    # read: on any error, roll back and still mark it done so it can't retry-storm.
+    defs = {"signal": "signal TEXT NOT NULL DEFAULT 'current'", "unit": "unit TEXT",
+            "scale": "scale NUMERIC", "offset_val": "offset_val NUMERIC",
+            "sample_s": "sample_s NUMERIC",
+            "band_lo": "band_lo NUMERIC", "band_hi": "band_hi NUMERIC"}
+    try:
+        cur = conn.cursor()
+        cur.execute("SELECT column_name FROM information_schema.columns "
+                    "WHERE table_name = 'mes_weld_master'")
+        have = {r[0] for r in cur.fetchall()}
+        missing = [c for c in defs if c not in have]
+        if missing:
+            for c in missing:
+                cur.execute(f"ALTER TABLE mes_weld_master ADD COLUMN IF NOT EXISTS {defs[c]}")
+            conn.commit()
+    except Exception as exc:
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        print(f"[WELD] master migrate skipped: {str(exc)[:120]}", flush=True)
     _MASTER_MIGRATED = True
 
 
@@ -167,7 +199,7 @@ _MASTER_FIELDS = [
     "current_min", "current_set", "current_max",
     "voltage_min", "voltage_set", "voltage_max",
     "on_threshold_a", "gap_s", "min_weld_s", "sample_hz", "is_active", "note",
-    "signal", "unit", "scale", "offset_val", "sample_s",
+    "signal", "unit", "scale", "offset_val", "sample_s", "band_lo", "band_hi",
 ]
 
 
@@ -480,3 +512,177 @@ def gas_readings(minutes: int = Query(30, ge=1, le=720),
             "latest": (last or {}).get("value"),
             "latest_ts": last["ts"].isoformat() if last else None,
             "age_s": (last or {}).get("age_s")}
+
+
+# Per-CYCLE air flow for a sensor's machine — 2026-10-10.  For each production
+# cycle in the line's ct_log, the air flow over that cycle's window
+# [ts - ct_value, ts] from mes_gas_log, filterable by date + shift.  Read-only.
+@weld_router.get("/air-cycles")
+def air_cycles(station: str,
+               date: Optional[str] = None,
+               shift: Optional[str] = None,
+               limit: int = Query(300, ge=1, le=2000),
+               user=Depends(get_current_user_optional)):
+    with get_conn() as conn:
+        _ensure_master_table(conn)
+        cur = dict_cursor(conn)
+        cur.execute("""SELECT m.card_ip, m.channel, m.unit, m.line_id, m.machine_name,
+                              l.db_table_name, l.line_name
+                         FROM mes_weld_master m LEFT JOIN mes_lines l ON l.id = m.line_id
+                        WHERE m.station = %s
+                          AND COALESCE(m.signal,'current') IN ('sensor','gas')
+                        LIMIT 1""", (station,))
+        m = cur.fetchone()
+        if not m or not (m.get("db_table_name") or "").strip():
+            conn.rollback()
+            return {"configured": False, "rows": [], "dates": [], "note": "no line / cycle log for this sensor"}
+        ct = m["db_table_name"].strip() + "_ct_log"
+        cur.execute("SELECT to_regclass(%s) AS t", (ct,))
+        if not (cur.fetchone() or {}).get("t"):
+            conn.rollback()
+            return {"configured": False, "rows": [], "dates": [], "note": f"no cycle log ({ct})"}
+        cur.execute(f'SELECT DISTINCT record_date FROM "{ct}" ORDER BY record_date DESC LIMIT 60')
+        dates = [str(r["record_date"]) for r in (cur.fetchall() or [])]
+        d = date or (dates[0] if dates else None)
+        meta = {"configured": True, "station": station, "unit": m.get("unit") or "L/min",
+                "machine": m.get("machine_name"), "line": m.get("line_name"),
+                "card": m["card_ip"], "channel": m["channel"], "dates": dates,
+                "date": d, "shift": shift or ""}
+        if not d:
+            conn.rollback()
+            return {**meta, "rows": []}
+        params = [m["card_ip"], m["channel"], d]
+        shift_cond = ""
+        if shift in ("A", "B"):
+            shift_cond = "AND c.shift_name = %s"
+            params.append(shift)
+        params.append(int(limit))
+        cur.execute(f'''
+            SELECT c.ts, c.record_date, c.shift_name, ROUND(c.ct_value, 1) AS ct,
+                   c.part_code, c.is_ng,
+                   ROUND(AVG(g.value)::numeric, 1) AS air_avg,
+                   ROUND(MIN(g.value)::numeric, 1) AS air_min,
+                   ROUND(MAX(g.value)::numeric, 1) AS air_max,
+                   COUNT(g.*) AS samples
+              FROM "{ct}" c
+              LEFT JOIN mes_gas_log g
+                ON g.card_ip = %s AND g.channel = %s
+               AND g.ts >  c.ts - (COALESCE(c.ct_value, 0) * interval '1 second')
+               AND g.ts <= c.ts
+             WHERE c.record_date = %s {shift_cond}
+             GROUP BY c.id, c.ts, c.record_date, c.shift_name, c.ct_value, c.part_code, c.is_ng
+             ORDER BY c.ts DESC
+             LIMIT %s
+        ''', params)
+        rows = [{"ts": r["ts"].isoformat() if r["ts"] else None,
+                 "shift": r["shift_name"],
+                 "ct": float(r["ct"]) if r["ct"] is not None else None,
+                 "part_code": r["part_code"], "is_ng": bool(r["is_ng"]),
+                 "air_avg": float(r["air_avg"]) if r["air_avg"] is not None else None,
+                 "air_min": float(r["air_min"]) if r["air_min"] is not None else None,
+                 "air_max": float(r["air_max"]) if r["air_max"] is not None else None,
+                 "samples": int(r["samples"] or 0)}
+                for r in (cur.fetchall() or [])]
+        conn.rollback()
+    return {**meta, "rows": rows}
+
+
+# Per-CYCLE weld CURRENT for a station's line — 2026-10-13.  For each production
+# cycle in the line's ct_log, the weld current (avg / min / max / peak) from
+# mes_weld_log over that cycle's window [ts - ct_value, ts], by date + shift.
+# Same shape as /air-cycles but reads the weld-current log.  Read-only.
+@weld_router.get("/current-cycles")
+def current_cycles(station: str,
+                   date: Optional[str] = None,
+                   shift: Optional[str] = None,
+                   limit: int = Query(300, ge=1, le=2000),
+                   user=Depends(get_current_user_optional)):
+    # 2026-10-13 — grouped by the welding machine's OWN part counter
+    # (mes_weld_log.part_count = one welded part = one cycle at the station),
+    # NOT the line ct_log: the weld happens at this station while the line
+    # counter increments later at the final station, so a ct_log-window join
+    # missed ~40% of welds.  All fields come from mes_weld_log (no tz mismatch).
+    with get_conn() as conn:
+        _ensure_master_table(conn)
+        cur = dict_cursor(conn)
+        cur.execute("""SELECT m.station, m.line_id, m.machine_name, l.line_name
+                         FROM mes_weld_master m LEFT JOIN mes_lines l ON l.id = m.line_id
+                        WHERE m.station = %s
+                          AND COALESCE(m.signal,'current') = 'current'
+                        LIMIT 1""", (station,))
+        m = cur.fetchone()
+        if not m:
+            conn.rollback()
+            return {"configured": False, "rows": [], "dates": [], "note": "weld-current station not found"}
+        cur.execute("SELECT DISTINCT record_date FROM mes_weld_log "
+                    "WHERE station = %s AND record_date IS NOT NULL "
+                    "ORDER BY record_date DESC LIMIT 60", (station,))
+        dates = [str(r["record_date"]) for r in (cur.fetchall() or [])]
+        d = date or (dates[0] if dates else None)
+        meta = {"configured": True, "station": station, "unit": "A",
+                "machine": m.get("machine_name"), "line": m.get("line_name"),
+                "dates": dates, "date": d, "shift": shift or ""}
+        if not d:
+            conn.rollback()
+            return {**meta, "rows": []}
+        # the same line's gas sensor (card/channel), to pull gas flow per part.
+        cur.execute("SELECT card_ip, channel FROM mes_weld_master "
+                    "WHERE COALESCE(signal,'') = 'gas' AND line_id = %s LIMIT 1", (m["line_id"],))
+        grow = cur.fetchone()
+        gas_ip = grow["card_ip"] if grow else None
+        gas_ch = grow["channel"] if grow else None
+        shift_cond = ""
+        params = [station, d]
+        if shift in ("A", "B"):
+            shift_cond = "AND shift = %s"
+            params.append(shift)
+        params += [gas_ip, gas_ch, int(limit)]
+        # parts = welds grouped by the machine's part counter; ct_s = time since
+        # the previous part (actual cycle time, incl. idle gaps); gas avg/peak
+        # from mes_gas_log over the part's weld window.  mes_weld_log.ts is
+        # tz-aware, mes_gas_log.ts is naive IST -> cast the weld window to naive
+        # IST for the gas join.
+        cur.execute(f'''
+            WITH parts AS (
+              SELECT part_count, MIN(ts) AS t0, MAX(ts) AS t1, MAX(shift) AS shift,
+                     COUNT(*) AS welds,
+                     ROUND(AVG(weld_current)::numeric, 1) AS cur_avg,
+                     ROUND(MIN(weld_current)::numeric, 1) AS cur_min,
+                     ROUND(MAX(weld_current)::numeric, 1) AS cur_max,
+                     ROUND(MAX(weld_peak_a)::numeric, 1)  AS peak,
+                     BOOL_OR(is_ng) AS is_ng,
+                     MAX(part_code) AS part_code, MAX(model) AS model
+                FROM mes_weld_log
+               WHERE station = %s AND record_date = %s {shift_cond}
+               GROUP BY part_count
+            ), ranked AS (
+              SELECT *, ROUND(EXTRACT(EPOCH FROM (t1 - LAG(t1) OVER (ORDER BY t1)))::numeric, 1) AS ct_s
+                FROM parts
+            )
+            SELECT r.part_count, r.t1 AS ts, r.shift, r.welds, r.ct_s,
+                   r.cur_avg, r.cur_min, r.cur_max, r.peak, r.is_ng, r.part_code, r.model,
+                   ROUND(AVG(gl.value)::numeric, 1) AS gas_avg,
+                   ROUND(MAX(gl.value)::numeric, 1) AS gas_max
+              FROM ranked r
+              LEFT JOIN mes_gas_log gl
+                ON gl.card_ip = %s AND gl.channel = %s
+               AND gl.ts >= (r.t0 AT TIME ZONE 'Asia/Kolkata')
+               AND gl.ts <= (r.t1 AT TIME ZONE 'Asia/Kolkata')
+             GROUP BY r.part_count, r.t1, r.shift, r.welds, r.ct_s,
+                      r.cur_avg, r.cur_min, r.cur_max, r.peak, r.is_ng, r.part_code, r.model
+             ORDER BY r.t1 DESC
+             LIMIT %s
+        ''', params)
+        _f = lambda v: float(v) if v is not None else None
+        rows = [{"part": r["part_count"],
+                 "ts": r["ts"].isoformat() if r["ts"] else None,
+                 "shift": r["shift"], "welds": int(r["welds"] or 0),
+                 "ct": _f(r["ct_s"]),
+                 "cur_avg": _f(r["cur_avg"]), "cur_min": _f(r["cur_min"]),
+                 "cur_max": _f(r["cur_max"]), "peak": _f(r["peak"]),
+                 "gas_avg": _f(r["gas_avg"]), "gas_max": _f(r["gas_max"]),
+                 "is_ng": bool(r["is_ng"]),
+                 "part_code": r["part_code"], "model": r["model"]}
+                for r in (cur.fetchall() or [])]
+        conn.rollback()
+    return {**meta, "rows": rows, "has_gas": gas_ip is not None}

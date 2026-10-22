@@ -19,10 +19,11 @@ export const NAV_ITEMS = [
     items: [
       { key: "dashboard",        label: "Dashboard",        icon: "/dashboard-icon.png",     iconImg: true, path: "/dashboard" },
       { key: "historical",       label: "Historical Data",  icon: "/historical-icon.png",    iconImg: true, path: "/historical" },
-      { key: "peff-sheet",       label: "PEFF Sheet",       icon: "📄",                      path: "/peff-sheet" },
+      { key: "peff-sheet",       label: "Hourly Sheet",     icon: "📄",                      path: "/peff-sheet" },
       { key: "process-graphs",   label: "Process Graphs",   icon: "📊",                      path: "/process-graphs" },
       { key: "shift-allocation", label: "Shift Allocation", icon: "👥",                      path: "/shift-allocation" },
       { key: "shift-compile",    label: "Shift Compile",    icon: "🗂",                       path: "/shift-compile" },
+      { key: "plant-overview",   label: "Plant Overview",   icon: "🏭",                      path: "/plant-overview" },
       { key: "shift-calculator", label: "Shift Calculator", icon: "🧮",                      path: "/shift-calculator" },
       { key: "operators",        label: "Employee Master",  icon: "🪪",                      path: "/operators" },
       // 2026-05-14 — Kanban Dispatch + Heijunka Schedule hidden for all
@@ -135,6 +136,7 @@ export default function SlideNav({ hideTrigger = false, raise = false }) {
           { key: "maintenance-poka-yoke",   label: "Poka Yoke",             icon: "🔍",                   path: "/maintenance-poka-yoke" },
           { key: "maintenance-logbook",     label: "Log Book",              icon: "📒",                   path: "/maintenance-logbook" },
           { key: "maintenance-pm",          label: "Preventive Maint.",     icon: "🛠",                   path: "/maintenance-pm" },
+          { key: "maintenance-air-flow",    label: "Air Flow",              icon: "💨",                   path: "/maintenance-air-flow" },
         ],
       };
       const adminQual = {
@@ -252,6 +254,12 @@ export default function SlideNav({ hideTrigger = false, raise = false }) {
           label:  "Preventive Maint.",
           icon:   "🛠",
           path:   "/maintenance-pm",
+        });
+        workItems.push({
+          key:    "maintenance-air-flow",
+          label:  "Air Flow",
+          icon:   "💨",
+          path:   "/maintenance-air-flow",
         });
       }
       if (slug === "quality") {

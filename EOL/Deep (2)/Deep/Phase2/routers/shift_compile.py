@@ -165,9 +165,16 @@ def _can_close(cur, user: dict, line_id: int) -> bool:
     return cur.fetchone() is not None
 
 
-def _prod_summary(cur, db_table: str, rec_date: date, shift_name: str):
+_DISP_COLS = ("timestamp, loss_breakdown_seconds, loss_quality_seconds, loss_setup_seconds, "
+              "loss_material_seconds, loss_others_seconds, loss_change_over_seconds, "
+              "loss_speed_seconds")
+
+
+def _prod_summary(cur, db_table: str, rec_date: date, shift_name: str,
+                  line_id: Optional[int] = None):
     """Latest cumulative production row for a line's shift (counting-owned;
-    we only READ it)."""
+    we only READ it).  With line_id, the OEE is the one the Dashboard shows
+    (lines.display_loss_oee: andon buckets + parts-based speed)."""
     if not db_table or not _TABLE_RE.match(db_table):
         return None
     try:
@@ -178,17 +185,34 @@ def _prod_summary(cur, db_table: str, rec_date: date, shift_name: str):
             f"""SELECT ok_count, ng_count, shift_plan, overall_oee, availability,
                        performance, quality_oee, operating_status,
                        current_model_name, is_shift_completed
+                       {", " + _DISP_COLS if line_id else ""}
                   FROM {db_table}
                  WHERE record_date=%s AND shift_name=%s
                  ORDER BY timestamp DESC LIMIT 1""",
             (rec_date, shift_name))
         r = cur.fetchone()
         cur.execute("RELEASE SAVEPOINT _ps")
-        return dict(r) if r else None
     except Exception:
         try: cur.execute("ROLLBACK TO SAVEPOINT _ps")
         except Exception: pass
         return None
+    if not r:
+        return None
+    r = dict(r)
+    if line_id and not str(shift_name).upper().startswith("GAP"):
+        try:
+            from routers.lines import display_loss_oee
+            cur.execute("SAVEPOINT _pd")
+            d = display_loss_oee(cur, line_id, r, rec_date, shift_name)
+            cur.execute("RELEASE SAVEPOINT _pd")
+            if d.get("overall_oee") is not None:
+                for k in ("overall_oee", "availability", "performance"):
+                    r[k] = d[k]
+        except Exception as exc:
+            try: cur.execute("ROLLBACK TO SAVEPOINT _pd")
+            except Exception: pass
+            print(f"[shift-compile] display oee skipped {db_table}: {exc}")
+    return r
 
 
 def _compile_row(cur, line_id: int, db_table: str, line_name: str,
@@ -207,7 +231,7 @@ def _compile_row(cur, line_id: int, db_table: str, line_name: str,
         status = "running"          # shift still in progress
     else:
         status = "pending"          # ended but nobody closed it
-    prod = _prod_summary(cur, db_table, rec_date, sh.get("base", shift_name)) or {}
+    prod = _prod_summary(cur, db_table, rec_date, sh.get("base", shift_name), line_id) or {}
     return {
         "line_id":       line_id,
         "line_name":     line_name,
@@ -287,11 +311,12 @@ def detail(line_id: int = Query(...),
 
         prod = _prod_summary(cur, ln["db_table_name"], rec_date, base_shift) or {}
 
-        # Andon-covered lines: recompute the OEE shown here from the andon
-        # Maintenance+Toolroom breakdown — same source & math as the Dashboard
-        # (display-only; the collector's stored OEE is untouched).
+        # OEE + losses as the Dashboard shows them: andon buckets (andon-covered
+        # lines) and the parts-based speed loss (display-only; the collector's
+        # stored OEE is untouched).
+        _disp = None
         try:
-            from routers.andon import recompute_oee_with_andon
+            from routers.lines import display_loss_oee
             _tbl = ln["db_table_name"]
             if prod and _tbl and _TABLE_RE.match(_tbl) \
                and not str(base_shift).upper().startswith("GAP"):
@@ -313,17 +338,13 @@ def detail(line_id: int = Query(...),
                                 (rec_date, base_shift))
                     _lr = cur.fetchone()
                     if _lr:
-                        _st = datetime.combine(rec_date, _sc["start_time"])
-                        _en = datetime.combine(rec_date, _sc["end_time"])
-                        if _sc["xm"] or _en <= _st:
-                            _en += timedelta(days=1)
-                        _res = recompute_oee_with_andon(ln["line_name"], _lr, _st, _en)
-                        if _res and _res["overall_oee"] is not None:
-                            prod["overall_oee"] = _res["overall_oee"]
-                            prod["availability"] = _res["availability"]
-                            prod["performance"]  = _res["performance"]
+                        _disp = display_loss_oee(cur, line_id, _lr, rec_date, base_shift)
+                        if _disp.get("overall_oee") is not None:
+                            prod["overall_oee"] = _disp["overall_oee"]
+                            prod["availability"] = _disp["availability"]
+                            prod["performance"]  = _disp["performance"]
         except Exception as _ax:
-            print(f"[shift-compile] andon oee recompute skipped: {_ax}")
+            print(f"[shift-compile] display oee skipped: {_ax}")
 
         # manpower per machine / process
         cur.execute("""
@@ -402,9 +423,15 @@ def detail(line_id: int = Query(...),
         hourly = []
         try:
             from routers.reports import (_load_shift_row, _hourly_slots_from_row,
-                                         _slot_losses)
+                                         _slot_losses, _shift_slot_labels, _norm_slot)
             srow  = _load_shift_row(line_id, rec_date, base_shift)
             slots = _hourly_slots_from_row(srow)
+            # 2026-10-19 — only THIS shift's slots (the row holds every shift's
+            # hour buckets, so A also listed B's 18:30-03:15 hours) — same
+            # filter as the Hourly Report Excel / PDF.
+            _allowed = _shift_slot_labels(line_id, base_shift)
+            if _allowed:
+                slots = [s for s in slots if _norm_slot(s["label"]) in _allowed]
             _slot_losses(line_id, rec_date, base_shift, slots)
             for s in slots:
                 sl = round(float(s.get("speed_loss") or 0) / 60.0, 1)
@@ -469,11 +496,18 @@ def detail(line_id: int = Query(...),
                           "setup":     _mn("loss_setup_seconds"),
                           "change_over": _mn("loss_change_over_seconds"),
                           "others":    _mn("loss_others_seconds")}
+                # same buckets as the Dashboard (andon + parts-based speed),
+                # taken from the OEE step above when it ran
+                if _disp and _disp.get("losses"):
+                    for _k, _v in _disp["losses"].items():
+                        if _k in losses:
+                            losses[_k] = round(float(_v or 0) / 60.0, 1)
                 # andon-covered line: breakdown loss = andon Maintenance+Toolroom
                 # (union), matching the Dashboard OEE + the breakdowns list below;
                 # quality / setup / material / others = the stored value + that
                 # andon button's time (2026-10-06 — same rule as the Dashboard).
-                try:
+                else:
+                  try:
                     from routers.andon import (andon_line_set, andon_loss_detail,
                                                SHIFT_START_SETUP_S, _norm as _an)
                     if _an(ln["line_name"]) in andon_line_set():
@@ -495,7 +529,7 @@ def detail(line_id: int = Query(...),
                             losses["speed"] = round(max(0.0, losses["speed"] - _moved / 60.0), 1)
                             for _k in ("quality", "setup", "material", "others"):
                                 losses[_k] = round(losses[_k] + _al[_k] / 60.0, 1)
-                except Exception:
+                  except Exception:
                     pass
                 losses["total"] = round(sum(v for k, v in losses.items()
                                             if k != "total"), 1)
@@ -1027,7 +1061,7 @@ def _compiled_day(cur, lines, rec_date, shift):
                                or str(sh["shift_name"] or "").upper().startswith("GAP")):
                 continue
             base_shift = sh.get("base", sh["shift_name"])
-            prod = _prod_summary(cur, ln["db_table_name"], rec_date, base_shift) or {}
+            prod = _prod_summary(cur, ln["db_table_name"], rec_date, base_shift, ln["id"]) or {}
             ok   = int(prod.get("ok_count") or 0)
             ng   = int(prod.get("ng_count") or 0)
             plan = int(prod.get("shift_plan") or 0)
@@ -1325,7 +1359,8 @@ def _zone_summary(cur, user, d0, d1, shift, zone_only, zone_id, lids):
             cur.execute("SAVEPOINT _zs_row")
             cur.execute(f"""SELECT DISTINCT ON (record_date, shift_name)
                                    record_date, shift_name, ok_count, ng_count, shift_plan,
-                                   overall_oee, operating_status,
+                                   overall_oee, operating_status, timestamp,
+                                   availability, performance, quality_oee,
                                    {", ".join(c for _k, _l, c in _ZONE_LOSSES)}
                               FROM {tbl}
                              WHERE record_date BETWEEN %s AND %s AND shift_name = ANY(%s)
@@ -1363,8 +1398,27 @@ def _zone_summary(cur, user, d0, d1, shift, zone_only, zone_id, lids):
                 L["planned_shifts"] += 1
             if made > 0:
                 L["ran_shifts"] += 1
-                if r["overall_oee"] is not None:
+                # OEE + losses as the Dashboard shows them (andon buckets +
+                # parts-based speed); the stored values if that cannot be told
+                _d = None
+                try:
+                    from routers.lines import display_loss_oee
+                    cur.execute("SAVEPOINT _zs_d")
+                    _d = display_loss_oee(cur, ln["id"], r, r["record_date"], r["shift_name"])
+                    cur.execute("RELEASE SAVEPOINT _zs_d")
+                except Exception as _dx:
+                    try: cur.execute("ROLLBACK TO SAVEPOINT _zs_d")
+                    except Exception: pass
+                    print(f"[shift-compile] zone summary display {tbl}: {_dx}")
+                    _d = None
+                if _d and _d.get("overall_oee") is not None:
+                    oees.append(float(_d["overall_oee"]))
+                elif r["overall_oee"] is not None:
                     oees.append(float(r["overall_oee"]))
+                if _d and _d.get("losses"):
+                    for k, _lab, col in _ZONE_LOSSES:
+                        loss[k] = loss.get(k, 0.0) + float(_d["losses"].get(k, r[col]) or 0)
+                    continue
                 for k, _lab, col in _ZONE_LOSSES:
                     loss[k] = loss.get(k, 0.0) + float(r[col] or 0)
                 if ivs is not None:

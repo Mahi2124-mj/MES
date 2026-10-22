@@ -61,6 +61,7 @@ from routers.quality         import router as quality_router
 from routers.sa_fi_quality  import router as sa_fi_quality_router
 from routers.redbin_lock    import router as redbin_lock_router
 from routers.breakdown_history import router as breakdown_history_router
+from routers.bd_clip import router as bd_clip_router
 from routers.ct_study       import router as ct_study_router
 from routers.wallboard       import router as wallboard_router
 from routers.ui_timing      import router as ui_timing_router
@@ -95,6 +96,10 @@ from routers.faults           import router as faults_router
 from routers.logs           import router as logs_router
 from routers.video_coverage import router as video_coverage_router
 from routers.py_bypass import router as py_bypass_router
+from routers.working_calendar import router as working_calendar_router  # 2026-10-08 Annual Calendar (D-QMP import + MES edits)
+from routers.plant_overview import router as plant_overview_router      # 2026-10-08 Plant Overview (HOD / Plant Head, read-only)
+from routers.agents import router as agents_router                      # 2026-10-09 Admin → Agents (on/off + live report)
+from routers.live_read import router as live_read_router                # 2026-10-09 machine 'Read live' via the collector
 from routers.pm_status        import pm_status_router
 
 # ── App ────────────────────────────────────────────────────────
@@ -166,6 +171,7 @@ app.include_router(quality_router)
 app.include_router(sa_fi_quality_router)   # SEAT SLIDER: Semi-Auto <-> Final NG trace + history/export
 app.include_router(redbin_lock_router)      # Quality: Red Bin part lock (redbin.PartLock -> Final reject) + bit master
 app.include_router(breakdown_history_router)  # Historical: all breakdown slips (Maintenance_DX + MES), open -> closed
+app.include_router(bd_clip_router)            # ▶ Video of an auto breakdown slip (breakdown_clipper clips)
 app.include_router(ct_study_router)           # Historical: Cycle Time Study (part-to-part CT + prediction)
 app.include_router(reports_router)
 app.include_router(operators_router)
@@ -212,6 +218,10 @@ app.include_router(pm_status_router)            # Per-line PM due/overdue status
 app.include_router(logs_router)                  # Log Viewer: filtered tail of every log, by text / level / HTTP code
 app.include_router(video_coverage_router)        # Video Coverage: clip per cycle + reason, read-only Video Agent
 app.include_router(py_bypass_router)             # PY bypass: mail approve/reject, auto deviation, machine bit
+app.include_router(working_calendar_router)      # Annual Calendar: FY working days from D-QMP + MES day edits (PEFF, Plant Overview)
+app.include_router(plant_overview_router)        # Plant Overview: today live + last working day, read-only
+app.include_router(agents_router)                # Agents: password-guarded on/off + who is doing what
+app.include_router(live_read_router)             # Read live: queue -> collector reads on its own PLC session
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -281,6 +291,18 @@ def _start_clip_archive():
         _clip_archive_start()
     except Exception as exc:
         print(f"[CLIP-ARCHIVE] not started: {exc}")
+
+
+@bg_startup
+def _start_sixsigma_prewarm():
+    """6 Sigma: build each new Ball Guide cycle's H.264 clip (both cameras) in
+    the background, so opening a recent cycle does not wait on the CMS.
+    SIXSIGMA_PREWARM=0 disables it."""
+    try:
+        from routers.sixsigma import start_prewarm as _ss_prewarm
+        _ss_prewarm()
+    except Exception as exc:
+        print(f"[6SIGMA-PREWARM] not started: {exc}")
 
 
 @bg_startup
@@ -1345,6 +1367,25 @@ def export_data(
         records = cur.fetchall()
         if not records:
             raise HTTPException(404, "No data found for selected date range")
+        # 2026-10-19 — losses + OEE as the Dashboard shows them (andon buckets +
+        # parts-based speed loss); the stored values when that cannot be told.
+        try:
+            from routers.lines import display_loss_oee
+            _recs = []
+            for _r in records:
+                _r = dict(_r)
+                if not str(_r.get("shift_name") or "").upper().startswith("GAP"):
+                    _d = display_loss_oee(cur, line_id, _r, _r.get("record_date"), _r.get("shift_name"))
+                    for _k, _v in (_d.get("losses") or {}).items():
+                        _r[f"loss_{_k}_seconds"] = _v
+                    for _k in ("overall_oee", "availability", "performance", "oee_grade"):
+                        if _k in _d:
+                            _r[_k] = _d[_k]
+                _recs.append(_r)
+            records = _recs
+        except Exception as _dx:
+            conn.rollback()
+            print(f"[EXPORT] display losses/oee skipped: {_dx}")
         cur.execute("""
             SELECT slot_label, db_column_prefix, shift_name, slot_order
             FROM mes_hourly_slots

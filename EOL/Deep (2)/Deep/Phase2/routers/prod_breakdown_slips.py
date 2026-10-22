@@ -335,6 +335,21 @@ def pending(user=Depends(get_current_user)):
     mode, names = _user_scope(user)
     if mode == "none":
         return []
+    if mode == "some":
+        # 2026-10-14 — slips carry the maintenance-side line name (LOOP_PIPE_2,
+        # YWD_RC, TWO_UA_REC …) while the user's lines are MES names ("Loop
+        # Pipe-Line 2" → LOOPPIPELINE2), so every Loop Pipe slip was filtered
+        # out for Loop Pipe users.  Widen the scope with every alias of the
+        # user's own lines (the same map the supervisor's /line-pending uses).
+        with get_conn() as mconn:
+            aliases = _line_aliases(dict_cursor(mconn))
+        mine = {aliases[n] for n in names if n in aliases}
+        names = set(names) | {k for k, v in aliases.items() if v in mine}
+        try:
+            from routers.andon import ANDON_LINE_ALIAS
+            names |= {k for k, v in ANDON_LINE_ALIAS.items() if v in names}
+        except Exception:
+            pass
     out = []
     with _maint_conn() as conn:
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
@@ -447,8 +462,55 @@ _ATT_SLOTS = ("G", "A", "B", "WO", "LEAVE", "WFH")
 _DUTY_DAY_FROM, _DUTY_NIGHT_FROM = 7, 18
 
 
+# 2026-10-17 — Tool Room slips take B/D ATTENDED BY from the Tool Room's own
+# attendance (operator: "toolroom db me toolroom attendance table me se employee
+# name … same as maintenance").  tool_room_db.tool_room_attendance holds one row
+# per member per day with a status; tool_room_attendance_members lists who is
+# on the board (in_attendance).  Same duty rule as maintenance: 07:00-18:00 =
+# day (G / A shift, plus P and HALF_DAY), otherwise night (B); after midnight it
+# is still yesterday's night.  Read-only.
+_TR_DAY_STATUSES = ("G_SHIFT", "A_SHIFT", "P", "HALF_DAY")
+_TR_NIGHT_STATUSES = ("B_SHIFT",)
+
+
+def _toolroom_attendees(day, night: bool) -> list:
+    dsn = dict(_MAINT_DSN)
+    dsn["dbname"] = os.getenv("TOOLROOM_DB_NAME", "tool_room_db")
+    try:
+        conn = psycopg2.connect(options="-c default_transaction_read_only=on", **dsn)
+    except Exception as exc:
+        raise HTTPException(503, f"tool_room_db unavailable: {exc}")
+    try:
+        conn.set_session(readonly=True)
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        try:
+            cur.execute("""
+                WITH latest AS (
+                    SELECT DISTINCT ON (a.member_id) a.member_id, a.member_name,
+                           a.emp_code, UPPER(TRIM(a.status)) AS status
+                      FROM tool_room_attendance a
+                     WHERE a.att_date <= %s
+                     ORDER BY a.member_id, a.att_date DESC)
+                SELECT COALESCE(NULLIF(TRIM(m.name), ''), l.member_name) AS name,
+                       COALESCE(m.emp_code, l.emp_code) AS emp_code, l.status
+                  FROM latest l
+                  LEFT JOIN tool_room_attendance_members m ON m.id = l.member_id
+                 WHERE COALESCE(m.in_attendance, TRUE)
+                 ORDER BY m.sort_no NULLS LAST, name
+            """, (day,))
+            rows = cur.fetchall()
+        except psycopg2.Error:
+            rows = []                     # board not set up -> typed names only
+    finally:
+        conn.close()
+    want = _TR_NIGHT_STATUSES if night else _TR_DAY_STATUSES
+    return [{"name": r["name"].strip(), "emp_code": r.get("emp_code") or ""}
+            for r in rows if (r.get("status") or "") in want and (r.get("name") or "").strip()]
+
+
 @router.get("/attendees")
-def attendees(user=Depends(get_current_user)):
+def attendees(dept: Optional[str] = Query(None, description="toolroom = Tool Room attendance; default maintenance"),
+              user=Depends(get_current_user)):
     now = datetime.now()
     day = now.date()
     if _DUTY_DAY_FROM <= now.hour < _DUTY_NIGHT_FROM:
@@ -457,6 +519,9 @@ def attendees(user=Depends(get_current_user)):
         slots, label = ("B",), "B"
         if now.hour < _DUTY_DAY_FROM:
             day = day - timedelta(days=1)
+    if re.sub(r"[^a-z]", "", (dept or "").lower()) == "toolroom":
+        return {"shift": label, "day": day.isoformat(), "dept": "toolroom",
+                "people": _toolroom_attendees(day, night=(slots == ("B",)))}
     people = []
     with _maint_conn() as conn:
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
@@ -505,11 +570,44 @@ def _alloc_shift(shift, hhmm):
         return None
 
 
+def _mes_line_id(cur, line) -> Optional[int]:
+    """MES line id for a slip's maintenance-side line name (LOOP_PIPE_2,
+    YWD_RC, TWO_UA_REC …) — the same alias map /line-pending uses."""
+    key = _norm(line)
+    if not key:
+        return None
+    aliases = _line_aliases(cur)
+    if key in aliases:
+        return aliases[key]
+    try:
+        from routers.andon import ANDON_LINE_ALIAS
+        return aliases.get(ANDON_LINE_ALIAS.get(key, ""))
+    except Exception:
+        return None
+
+
+def _alloc_day(slip_date, shift, hhmm):
+    """(shift, production date) a slip's Shift Allocation is filed under: a B
+    shift breakdown after midnight (before 08:00) belongs to the day before."""
+    try:
+        d = _date.fromisoformat(str(slip_date)[:10]) if slip_date else _date.today()
+    except ValueError:
+        d = _date.today()
+    sh = _alloc_shift(shift, hhmm)
+    try:
+        if sh == "B" and hhmm and int(str(hhmm).split(":")[0]) < 8:
+            d = d - timedelta(days=1)
+    except ValueError:
+        pass
+    return sh, d
+
+
 @router.get("/allocated-operator")
 def allocated_operator(line: str = Query(...), machine_name: str = Query(""),
                        date: Optional[str] = Query(None), shift: Optional[str] = Query(None),
                        time: Optional[str] = Query(None), user=Depends(get_current_user)):
-    out = {"line_id": None, "date": None, "shift": None, "process": None, "operators": []}
+    out = {"line_id": None, "date": None, "shift": None, "process": None, "operators": [],
+           "all_operators": []}
     try:
         d = _date.fromisoformat(str(date)[:10]) if date else _date.today()
     except ValueError:
@@ -530,11 +628,11 @@ def allocated_operator(line: str = Query(...), machine_name: str = Query(""),
     out["shift"] = sh
     with get_conn() as conn:
         cur = dict_cursor(conn)
-        cur.execute("SELECT id, line_name FROM mes_lines")
-        hit = [r["id"] for r in cur.fetchall() if _norm(r["line_name"]) == _norm(line)]
-        if not hit:
+        # 2026-10-14 — alias-aware: LOOP_PIPE_2 / YWD_RC / TWO_UA_REC never
+        # equalled the MES line_name, so their operator was never filled.
+        out["line_id"] = _mes_line_id(cur, line)
+        if not out["line_id"]:
             return out
-        out["line_id"] = hit[0]
         if not sh:
             return out
         for day in days:
@@ -551,6 +649,10 @@ def allocated_operator(line: str = Query(...), machine_name: str = Query(""),
                 break
         else:
             return out
+    # every operator on the line this shift — the dropdown when the machine
+    # has no allocated operator (or a different one is to be named)
+    out["all_operators"] = list(dict.fromkeys(
+        r["full_name"].strip() for r in rows if (r["full_name"] or "").strip()))
     # Shift Allocation columns carry the MES machine editor's names since
     # 8-Oct, which differ slightly from maintenance_machines ("Upper Rail
     # Greasing Machine" vs "Upper Rail Greasing m/c") — take the closest.
@@ -581,7 +683,17 @@ def get_one(sid: int, src: str = Query("maintenance"), user=Depends(get_current_
     d["_src"] = "toolroom" if tbl == TOOLROOM_SLIP_TABLE else "maintenance"
     t = _row_to_ticket(d)
     with get_conn() as conn:
-        _lock_fields(t, _fill_deadline(dict_cursor(conn), t, {}), user)
+        cur = dict_cursor(conn)
+        _lock_fields(t, _fill_deadline(cur, t, {}), user)
+        # 2026-10-14 — the MES line + the shift/date its allocation is filed
+        # under, so the page can pull the line leader (with signature) and the
+        # operators from Shift Allocation.  Without line_id the leader lookup
+        # (/api/leaders/slip-defaults) 422'd and never filled anything.
+        t["line_id"] = _mes_line_id(cur, t.get("line"))
+        sh, day = _alloc_day(t.get("slip_date") or t.get("bd_start_date"),
+                             t.get("shift"), t.get("bd_start_time"))
+        t["alloc_shift"] = sh
+        t["alloc_date"] = day.isoformat()
     return t
 
 

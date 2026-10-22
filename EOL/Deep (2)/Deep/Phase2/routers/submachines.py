@@ -98,6 +98,54 @@ def _check_sub_belongs_to_line(sub_id: int, conn) -> dict:
     return dict(row)
 
 
+# ── COMBINED (virtual) machines ───────────────────────────────────────
+# 2026-10-10 — a row in mes_combined_machines turns a sub-machine config row
+# into the SUM of its member sub-machines.  YRA-SA-6WAY "Final Machine" = the
+# two Mag Weld robots (222 + 223).  The row has no PLC (blank count bit, so the
+# collector skips it); every read swaps its id for the members' ids, and the
+# merged cycles are numbered 1..n by time over the whole record_date so the CT
+# chart, the clip lookup and the wallboard all agree on one sequence.
+def combined_map(cur) -> dict:
+    """{virtual plc_config_id: [member ids]} — empty when nothing is set up."""
+    cur.execute("SELECT to_regclass('mes_combined_machines') AS t")
+    r = cur.fetchone()
+    if not (r["t"] if isinstance(r, dict) else r[0]):
+        return {}
+    cur.execute("SELECT plc_config_id, member_ids FROM mes_combined_machines")
+    out = {}
+    for r in cur.fetchall():
+        vid, ids = (r["plc_config_id"], r["member_ids"]) if isinstance(r, dict) else (r[0], r[1])
+        if ids:
+            out[int(vid)] = [int(x) for x in ids]
+    return out
+
+
+def combined_members(cur, sub_id) -> Optional[list]:
+    return combined_map(cur).get(int(sub_id))
+
+
+def combined_cycles(cur, members, record_date, shift=None, limit=None) -> list:
+    """The members' cycles of one record_date, oldest first.  `vseq` numbers
+    them 1..n by time across the whole day (the shift filter is applied after
+    numbering); `sub_plc_id` / `src_cycle_seq` point back at the real row."""
+    cur.execute("""
+        SELECT * FROM (
+            SELECT ROW_NUMBER() OVER (ORDER BY ts_end, sub_plc_id, cycle_seq) AS vseq,
+                   sub_plc_id, cycle_seq AS src_cycle_seq, ts_start, ts_end,
+                   ct_seconds, shift_name, model_number, model_name, part_code,
+                   COALESCE(is_ng, FALSE) AS is_ng
+              FROM mes_submachine_ct_log
+             WHERE sub_plc_id = ANY(%s) AND record_date = %s
+        ) x
+        WHERE (%s::text IS NULL OR shift_name = %s)
+        ORDER BY ts_end DESC, vseq DESC
+        LIMIT %s
+    """, (list(members), record_date, shift, shift, limit))
+    rows = [dict(r) for r in cur.fetchall()]
+    rows.reverse()
+    return rows
+
+
 # ── PUBLIC LIST: NF2-camera-ids belonging to ANY sub-machine ─────────
 # NF2 Flask polls this so it can auto-skip per-cycle MP4 extraction for
 # sub-machine cameras WITHOUT requiring an extract_per_cycle flag in
@@ -194,7 +242,83 @@ def list_submachines(line_id: int, user=Depends(get_current_user)):
             )
             subs.append(d)
 
+        # Combined machines: today's figures are the members' figures added up.
+        cmap = combined_map(cur)
+        if cmap:
+            by_id = {d["id"]: d for d in subs}
+            # members on another line (e.g. a trial mapping) are not in this
+            # list — fetch their name/IP/ideal and today's figures directly
+            _missing = sorted({m for d in subs for m in cmap.get(d["id"], []) if m not in by_id})
+            if _missing:
+                cur.execute("""
+                    SELECT p.id, p.machine_name, p.plc_ip, p.ideal_cycle_time AS ideal_ct,
+                           COALESCE(agg.cnt, 0) AS today_count, agg.avg_ct AS today_avg_ct,
+                           agg.last_ts AS last_cycle_ts
+                      FROM mes_plc_configs p
+                      LEFT JOIN LATERAL (
+                          WITH last_row AS (
+                              SELECT shift_name FROM mes_submachine_ct_log
+                               WHERE sub_plc_id = p.id AND record_date = %s
+                               ORDER BY ts_end DESC NULLS LAST LIMIT 1)
+                          SELECT COUNT(*) AS cnt, AVG(ct_seconds) AS avg_ct, MAX(ts_end) AS last_ts
+                            FROM mes_submachine_ct_log l, last_row r
+                           WHERE l.sub_plc_id = p.id AND l.record_date = %s
+                             AND l.shift_name = r.shift_name) agg ON TRUE
+                     WHERE p.id = ANY(%s)""", (today, today, _missing))
+                for r in cur.fetchall():
+                    x = dict(r)
+                    x["today_count"] = int(x["today_count"] or 0)
+                    x["today_avg_ct"] = round(float(x["today_avg_ct"]), 2) if x.get("today_avg_ct") is not None else None
+                    x["last_cycle_ts"] = x["last_cycle_ts"].isoformat() if x.get("last_cycle_ts") else None
+                    x["ideal_ct"] = float(x["ideal_ct"]) if x.get("ideal_ct") is not None else None
+                    by_id[x["id"]] = x
+            for d in subs:
+                mem = [by_id[m] for m in cmap.get(d["id"], []) if m in by_id]
+                if not mem:
+                    continue
+                d["combined_members"] = [{"id": m["id"], "machine_name": m["machine_name"],
+                                          "plc_ip": m["plc_ip"], "ideal_ct": m["ideal_ct"]}
+                                         for m in mem]
+                n = sum(m["today_count"] for m in mem)
+                ct_w = sum((m["today_avg_ct"] or 0) * m["today_count"] for m in mem)
+                ts = [m["last_cycle_ts"] for m in mem if m["last_cycle_ts"]]
+                d.update(today_count=n,
+                         today_avg_ct=round(ct_w / n, 2) if n else None,
+                         last_cycle_seq=n,
+                         last_cycle_ts=max(ts) if ts else None,
+                         combined_of=[m["id"] for m in mem])
+
         return subs
+
+
+# ── Members of the combined machine that drives a line ────────────────
+@router.get("/api/lines/{line_id}/combined-members")
+def line_combined_members(line_id: int, user=Depends(get_current_user)):
+    """2026-10-10 — the robots behind a line whose final is a combined machine
+    (YRA-SA-6WAY FINAL = Mag Weld robot 1 + 2), in order; [] for every other
+    line.  The Management dashboard draws one CT chart per member."""
+    with get_conn() as conn:
+        cur = dict_cursor(conn)
+        cur.execute("SELECT to_regclass('mes_combined_machines') AS t")
+        if not cur.fetchone()["t"]:
+            return []
+        cur.execute("""SELECT c.member_ids FROM mes_combined_machines c
+                         JOIN mes_plc_configs p ON p.id = c.plc_config_id
+                        WHERE p.line_id = %s AND c.drives_line LIMIT 1""", (line_id,))
+        r = cur.fetchone()
+        if not r or not r["member_ids"]:
+            return []
+        ids = [int(x) for x in r["member_ids"]]
+        cur.execute("""SELECT id, machine_name, plc_ip, ideal_cycle_time AS ideal_ct
+                         FROM mes_plc_configs WHERE id = ANY(%s)""", (ids,))
+        rows = {x["id"]: dict(x) for x in cur.fetchall()}
+    out = []
+    for i in ids:
+        if i in rows:
+            d = rows[i]
+            d["ideal_ct"] = float(d["ideal_ct"]) if d["ideal_ct"] is not None else None
+            out.append(d)
+    return out
 
 
 # ── CT history (graph data) ───────────────────────────────────────────
@@ -229,25 +353,33 @@ def ct_history(
             if date_str else date.today()
         )
 
-        where  = "sub_plc_id = %s AND record_date = %s"
-        params = [sub_id, record_date]
-        if shift:
-            where += " AND shift_name = %s"
-            params.append(shift)
+        members = combined_members(cur, sub_id)
+        if members:
+            # combined machine: the members' cycles, numbered by time
+            rows = combined_cycles(cur, members, record_date, shift, limit)
+            for r in rows:
+                r["cycle_seq"] = r["vseq"]
+            rows.reverse()                  # newest first, like the query below
+        else:
+            where  = "sub_plc_id = %s AND record_date = %s"
+            params = [sub_id, record_date]
+            if shift:
+                where += " AND shift_name = %s"
+                params.append(shift)
 
-        cur.execute(f"""
-            SELECT cycle_seq, ts_start, ts_end, ct_seconds,
-                   shift_name, model_number, model_name, part_code
-            FROM mes_submachine_ct_log
-            WHERE {where}
-            -- 2026-09-25 — newest by TIME.  cycle_seq follows the machine's
-            -- own D-register, so it restarts whenever that register is reset
-            -- and repeats within a shift; ordering by it pinned this chart to
-            -- the cycles before the last reset (YMC Recliner M-4/M-6).
-            ORDER BY ts_end DESC, cycle_seq DESC
-            LIMIT %s
-        """, params + [limit])
-        rows = cur.fetchall()
+            cur.execute(f"""
+                SELECT cycle_seq, ts_start, ts_end, ct_seconds,
+                       shift_name, model_number, model_name, part_code
+                FROM mes_submachine_ct_log
+                WHERE {where}
+                -- 2026-09-25 — newest by TIME.  cycle_seq follows the machine's
+                -- own D-register, so it restarts whenever that register is reset
+                -- and repeats within a shift; ordering by it pinned this chart to
+                -- the cycles before the last reset (YMC Recliner M-4/M-6).
+                ORDER BY ts_end DESC, cycle_seq DESC
+                LIMIT %s
+            """, params + [limit])
+            rows = cur.fetchall()
 
     # Resolve cap from this sub-machine's ideal_ct.  Falls back to 75 s
     # (= 5 × 15 s default) if ideal isn't configured.
@@ -264,7 +396,7 @@ def ct_history(
     for r in rows:
         raw_ct = float(r["ct_seconds"]) if r.get("ct_seconds") is not None else 0.0
         clamped = min(raw_ct, cap) if raw_ct > 0 else 0.0
-        out.append({
+        item = {
             "cycle_seq":     r["cycle_seq"],
             "ts_start":      r["ts_start"].isoformat() if r.get("ts_start") else None,
             "ts_end":        r["ts_end"].isoformat()   if r.get("ts_end")   else None,
@@ -275,7 +407,11 @@ def ct_history(
             "model_number":  r["model_number"],
             "model_name":    r["model_name"],
             "part_code":     r["part_code"] or "",
-        })
+        }
+        if members:
+            item["src_sub_id"] = r["sub_plc_id"]
+            item["src_cycle_seq"] = r["src_cycle_seq"]
+        out.append(item)
     return out
 
 
@@ -346,9 +482,21 @@ def hourly_target_actual(
         shift_plans_main = {r["shift_name"]: int(r["total_plan"] or 0)
                             for r in cur.fetchall()}
 
+        # Combined machine: count the members' cycles; its target is the sum
+        # of the members' targets (each rescaled by its own ideal CT).
+        members = combined_members(cur, sub_id)
+        member_rescale = None
+        if members:
+            cur.execute("SELECT ideal_cycle_time FROM mes_plc_configs WHERE id = ANY(%s)",
+                        (members,))
+            member_rescale = sum(
+                (main_ideal_ct / float(r["ideal_cycle_time"]))
+                if r["ideal_cycle_time"] and float(r["ideal_cycle_time"]) > 0 else 1.0
+                for r in cur.fetchall())
+
         # Per-shift sub-machine cycles
-        where  = "sub_plc_id = %s AND record_date = %s"
-        params = [sub_id, record_date]
+        where  = "sub_plc_id = ANY(%s) AND record_date = %s"
+        params = [members or [sub_id], record_date]
         if shift:
             where += " AND shift_name = %s"
             params.append(shift)
@@ -381,6 +529,8 @@ def hourly_target_actual(
     # Guard against zero/None sub-machine ideal_ct so we fall back to
     # main line's plan as-is (better than dividing by zero).
     rescale = (main_ideal_ct / ideal_ct) if ideal_ct > 0 else 1.0
+    if member_rescale:
+        rescale = member_rescale
     for s in slots:
         if s["shift_name"] not in active_shifts:
             continue
@@ -475,6 +625,20 @@ def cycle_video(
     with get_conn() as conn:
         sub = _check_sub_belongs_to_line(sub_id, conn)
         cur = dict_cursor(conn)
+        # Combined machine: the clicked number is the merged sequence — map it
+        # back to the member's own row and serve that robot's clip.
+        _mem = combined_members(cur, sub_id)
+        if _mem:
+            cur.execute("""SELECT MAX(record_date) AS d FROM mes_submachine_ct_log
+                            WHERE sub_plc_id = ANY(%s) AND record_date >= CURRENT_DATE - 1""",
+                        (_mem,))
+            _d = (cur.fetchone() or {}).get("d")
+            _hit = (next((r for r in combined_cycles(cur, _mem, _d) if r["vseq"] == cycle_seq), None)
+                    if _d else None)
+            if not _hit:
+                raise HTTPException(404, "Cycle not found")
+            sub_id, cycle_seq, ng = _hit["sub_plc_id"], _hit["src_cycle_seq"], int(_hit["is_ng"])
+            sub = _check_sub_belongs_to_line(sub_id, conn)
         # 2026-08-11 — an Alarm row and an OK row can carry the SAME cycle_seq
         # (the collector writes the Alarm with its own 60 s review window), and
         # this lookup only kept the later ts_end — so clicking one dot could

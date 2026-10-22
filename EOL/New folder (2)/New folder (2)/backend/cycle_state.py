@@ -8,6 +8,7 @@ multiple OS processes (Flask API + Dash dashboard) are safe from each other.
 """
 import json
 import os
+import threading
 from datetime import datetime
 from typing import Dict, Optional
 
@@ -119,20 +120,58 @@ def get_all_states(base_dir: Optional[str] = None) -> Dict:
     return load_state(base_dir)
 
 
+# 2026-10-09 — remember how far the CSV was read.  cycles.csv had grown to
+# 177 MB / 1.08 M rows, and this ran on EVERY PLC edge: 1.7 s of pure-Python
+# parsing that held the GIL, so the single edge worker managed ~0.4 edges/s
+# against ~1/s arriving.  The queue ran 2 h behind, filled to 5000 and dropped
+# edges, and every other CMS thread (clip cuts, video serving) crawled behind
+# it.  The file is append-only here, so only the new tail is parsed; the
+# answer is the same max(cycle_number)+1 as the full scan.
+_NEXT_CYCLE_CACHE: Dict[str, Dict] = {}
+_NEXT_CYCLE_LOCK = threading.Lock()
+
+
+def _scan_cycle_rows(data: bytes, cur_max: int) -> int:
+    for line in data.split(b"\n"):
+        head = line.split(b",", 1)[0].strip()
+        if head.isdigit():
+            n = int(head)
+            if n > cur_max:
+                cur_max = n
+    return cur_max
+
+
 def get_next_cycle_num(csv_path: str) -> int:
     """Read CSV and return next available cycle number."""
-    if not os.path.exists(csv_path):
+    try:
+        st = os.stat(csv_path)
+    except OSError:
         return 1
     try:
-        with open(csv_path, "r", encoding="utf-8") as f:
-            lines = f.readlines()
-        if len(lines) <= 1:
-            return 1
-        nums = []
-        for line in lines[1:]:
-            parts = line.strip().split(",")
-            if parts and parts[0].strip().isdigit():
-                nums.append(int(parts[0].strip()))
-        return max(nums) + 1 if nums else 1
+        with _NEXT_CYCLE_LOCK, open(csv_path, "rb") as f:
+            c = _NEXT_CYCLE_CACHE.get(csv_path)
+            if c and c["ino"] == st.st_ino and c["off"] <= st.st_size:
+                # Still a row boundary?  A rewrite (update_cycle_tag) can shift
+                # the rows; then start over rather than parse half a row.
+                if c["off"] > 0:
+                    f.seek(c["off"] - 1)
+                    if f.read(1) != b"\n":
+                        c = None
+            else:
+                c = None
+            if c is None:
+                c = {"ino": st.st_ino, "off": 0, "max": 0}
+            f.seek(c["off"])
+            data = f.read(st.st_size - c["off"])
+            end = data.rfind(b"\n")
+            if end >= 0:
+                chunk = data[:end + 1]
+                if c["off"] == 0:                       # skip the header row
+                    nl = chunk.find(b"\n")
+                    chunk = chunk[nl + 1:]
+                c["max"] = _scan_cycle_rows(chunk, c["max"])
+                c["off"] += end + 1
+            _NEXT_CYCLE_CACHE[csv_path] = c
+            return c["max"] + 1 if c["max"] > 0 else 1
     except Exception:
         return 1

@@ -16,6 +16,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import VideoProgressBar from "../components/VideoProgressBar";
+import CombinedMachineView from "../components/CombinedMachineView";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   LineChart, Line, ReferenceLine, LabelList,
@@ -193,7 +194,13 @@ export default function SubmachineFullscreen() {
         const subs = await api.get(`/api/lines/${ln.id}/submachines`, token).catch(() => []);
         const m = (subs || []).find(s => String(s.id) === String(subId));
         if (m) {
-          setMeta({ ...m, line_id: ln.id, line_name: ln.line_name });
+          // combined machine (e.g. YRA-SA-6WAY Final = both Mag Weld robots):
+          // keep its member rows, in order, for the per-robot charts
+          const members = (m.combined_of || [])
+            .map(id => (subs || []).find(s => s.id === id)
+                       || (m.combined_members || []).find(s => s.id === id))
+            .filter(Boolean);
+          setMeta({ ...m, members, line_id: ln.id, line_name: ln.line_name });
           return;
         }
       }
@@ -587,6 +594,13 @@ export default function SubmachineFullscreen() {
         }}>{err}</div>
       )}
 
+      {/* Combined machine: per-robot charts, side-by-side video, robot-wise hourly */}
+      {meta?.members?.length > 0 && (
+        <CombinedMachineView
+          members={meta.members} hourly={hourly} shift={shift} ideal={ideal} token={token}
+          th={{ D, bgDeep, border, text, textSub, textMut, card: card() }} />
+      )}
+      {!(meta?.members?.length > 0) && (<>
       {/* ── CYCLE-TIME CHART ────────────────────────────────── */}
       <div style={{
         ...card({ padding: 12, marginBottom: 10 }),
@@ -910,6 +924,8 @@ export default function SubmachineFullscreen() {
           </table>
         </div>
       </div>
+
+      </>)}
 
       {/* Video plays inline inside the floating-box over the graph now;
           no separate full-screen modal needed. */}

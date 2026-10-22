@@ -10,6 +10,8 @@
 # still needs training.
 # ───────────────────────────────────────────────────────────────────────
 import re
+import threading
+import time
 from datetime import date, timedelta
 from typing import List, Optional
 
@@ -80,9 +82,56 @@ def _quality(cur, db_table, d0):
         return (0, 0)
 
 
-def _oee(cur, db_table, d0):
+# 2026-10-19 — the capability OEE is the one the Dashboard shows (andon buckets
+# + parts-based speed, lines.display_loss_oee), averaged over the shifts that
+# made parts.  ~40 ms per shift cold, so it is built in a background thread
+# and kept 10 min; until the first build the stored average is shown.
+_OEE7: dict = {}
+_OEE7_BUSY: set = set()
+_OEE7_LOCK = threading.Lock()
+_OEE7_TTL_S = 600
+
+
+def _oee7_build(line_id, db_table, d0):
+    try:
+        from routers.lines import display_loss_oee
+        vals = []
+        with get_conn() as conn:
+            cur = dict_cursor(conn)
+            cur.execute(f"""SELECT DISTINCT ON (record_date, shift_name) *
+                              FROM {db_table}
+                             WHERE record_date >= %s AND shift_name NOT LIKE 'GAP%%'
+                               AND COALESCE(ok_count,0) + COALESCE(ng_count,0) > 0
+                             ORDER BY record_date, shift_name, timestamp DESC""", (d0,))
+            for r in cur.fetchall():
+                v = display_loss_oee(cur, line_id, r, r["record_date"], r["shift_name"]).get("overall_oee")
+                if v is None:
+                    v = r.get("overall_oee")
+                if v is not None:
+                    vals.append(float(v))
+            conn.rollback()
+        _OEE7[(line_id, d0)] = (time.time(), round(sum(vals) / len(vals), 1) if vals else None)
+    except Exception as exc:
+        print(f"[LEADERS] display oee build skipped line {line_id}: {exc}")
+    finally:
+        with _OEE7_LOCK:
+            _OEE7_BUSY.discard((line_id, d0))
+
+
+def _oee(cur, line_id, db_table, d0):
     if not db_table or not _TABLE_RE.match(db_table):
         return None
+    hit = _OEE7.get((line_id, d0))
+    if not hit or time.time() - hit[0] > _OEE7_TTL_S:
+        with _OEE7_LOCK:
+            start = (line_id, d0) not in _OEE7_BUSY
+            if start:
+                _OEE7_BUSY.add((line_id, d0))
+        if start:
+            threading.Thread(target=_oee7_build, args=(line_id, db_table, d0),
+                             daemon=True, name=f"leaders-oee-{line_id}").start()
+    if hit:
+        return hit[1]
     try:
         cur.execute(f"""SELECT AVG(overall_oee) AS a FROM {db_table}
                          WHERE record_date >= %s AND overall_oee IS NOT NULL""", (d0,))
@@ -146,7 +195,7 @@ def list_leaders(days: int = 7, user=Depends(get_current_user)):
                 for ln in lines:
                     t, n = _quality(cur, ln["db_table_name"], d0)
                     tot += t; ng += n
-                    o = _oee(cur, ln["db_table_name"], d0)
+                    o = _oee(cur, ln["id"], ln["db_table_name"], d0)
                     if o is not None:
                         oees.append(o)
                 ng_pct = round(ng * 100.0 / tot, 2) if tot else 0.0
