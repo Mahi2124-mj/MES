@@ -123,8 +123,8 @@ export function AuthProvider({ children }) {
   // old code logged the user out on ANY failure — including a transient one
   // (a network blip or the backend mid-restart) — which bounced the operator
   // off whatever page they refreshed on.  Now: only a real 401/403 (bad/expired
-  // token) logs out; a 5xx or network error is RETRIED for ~12 s so a refresh
-  // during a backend restart keeps the session and the page.
+  // token) logs out; a 5xx or network error is RETRIED until the server answers
+  // so a refresh during a backend restart keeps the session and the page.
   useEffect(() => {
     let cancelled = false;
     const validate = (tok, attempt = 0) => {
@@ -155,8 +155,17 @@ export function AuthProvider({ children }) {
         })
         .catch(() => {
           if (cancelled) return;
-          if (attempt < 8) setTimeout(() => validate(tok, attempt + 1), 1500);
-          else setLoading(false);                       // keep token; stop spinner
+          // 2026-10-23 — never give up while the token exists.  This stopped
+          // after ~12 s and dropped the spinner with NO user loaded, so every
+          // permission check failed and the wall landed on "No access" / another
+          // page until someone reloaded it.  That is exactly what a backend
+          // restart or a >30 s network blip produced on the SA panels: the line
+          // dashboard's stale-data watchdog reloads at 30 s, the API is still
+          // down, and the panel lost its dashboard.  Keep the spinner and retry
+          // (1.5 s growing to 10 s) until the server answers; only a real
+          // 401/403 above logs out.
+          const wait = Math.min(10000, Math.round(1500 * Math.pow(1.5, Math.min(attempt, 5))));
+          setTimeout(() => validate(tok, attempt + 1), wait);
         });
     };
     const boot = async () => {

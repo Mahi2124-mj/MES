@@ -343,7 +343,7 @@ export default function ProdBreakdownSlip() {
               <div className="bds-close-x" onClick={() => { setVideoOpen(false); setSlip(null); }} title="Close">×</div>
             </div>
             {videoOpen && slip.id && (
-              <SlipVideo src={slip.src} slipId={slip.id} token={token}
+              <SlipVideo src={slip.src} slipId={slip.id} token={token} machineNo={slip.machine_no}
                          title={`${slip.src === "toolroom" ? "Tool Room" : "Maintenance"} slip #${slip.id} · ${slip.machine_no || slip.line || ""}`}
                          onClose={() => setVideoOpen(false)} />
             )}

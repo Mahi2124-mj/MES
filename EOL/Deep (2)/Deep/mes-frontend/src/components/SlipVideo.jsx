@@ -22,7 +22,7 @@ const ERRORS = {
   4: "This video cannot be played on this device.",
 };
 
-export default function SlipVideo({ src, slipId, token, title, onClose }) {
+export default function SlipVideo({ src, slipId, token, title, onClose, machineNo }) {
   const [info, setInfo] = useState(null);          // null = checking
   const [cam, setCam] = useState(0);
   const [state, setState] = useState("load");      // load | play | paused | error
@@ -32,14 +32,17 @@ export default function SlipVideo({ src, slipId, token, title, onClose }) {
   useEffect(() => {
     let alive = true;
     const s = /tool/i.test(src || "") ? "toolroom" : "maintenance";
-    fetch(`/api/bd-clip/${s}/${slipId}/info`, { headers: { Authorization: `Bearer ${token}` } })
+    // 2026-10-23 — the machine picked on the form lets a pending slip show a
+    // preview from the camera recording before it is submitted.
+    const q = machineNo ? `?machine_no=${encodeURIComponent(machineNo)}` : "";
+    fetch(`/api/bd-clip/${s}/${slipId}/info${q}`, { headers: { Authorization: `Bearer ${token}` } })
       .then(async (r) => (r.ok ? r.json()
         : { available: false, reason: r.status === 403 ? "This line is not assigned to you."
                                                        : `Could not check the video (HTTP ${r.status}).` }))
       .catch(() => ({ available: false, reason: "Could not reach the server." }))
       .then((d) => { if (alive) setInfo(d); });
     return () => { alive = false; };
-  }, [src, slipId, token]);
+  }, [src, slipId, token, machineNo]);
 
   // release the buffer / stop the download as soon as the player goes away
   useLayoutEffect(() => () => {
@@ -78,7 +81,7 @@ export default function SlipVideo({ src, slipId, token, title, onClose }) {
                              cursor: "pointer", fontFamily: "inherit",
                              background: i === cam ? "#2563eb" : "#1e293b", color: "#fff" }}>{c.label}</button>
           ))}
-          {clip && <span style={{ fontSize: 11.5, fontWeight: 700, color: "#94a3b8", whiteSpace: "nowrap" }}>{clip.size_mb} MB</span>}
+          {clip && clip.size_mb != null && <span style={{ fontSize: 11.5, fontWeight: 700, color: "#94a3b8", whiteSpace: "nowrap" }}>{clip.size_mb} MB</span>}
           <button onClick={close} title="Close"
                   style={{ border: "none", background: "#1e293b", color: "#e2e8f0", borderRadius: 8, width: 32, height: 32,
                            fontSize: 18, cursor: "pointer", fontFamily: "inherit" }}>×</button>
@@ -95,7 +98,7 @@ export default function SlipVideo({ src, slipId, token, title, onClose }) {
                      onCanPlay={() => setState((s) => (s === "load" && !vref.current?.paused ? "play" : s))}
                      onError={() => { setErr(ERRORS[vref.current?.error?.code] || "The video could not be loaded."); setState("error"); }}
                      style={{ width: "100%", maxHeight: "76vh", display: "block", background: "#000" }} />
-              {state === "load" && <div style={overlay}>Loading video…</div>}
+              {state === "load" && <div style={overlay}>{info.preview ? "Preparing the video… (up to 15 s)" : "Loading video…"}</div>}
               {state === "paused" && (
                 <div style={{ ...overlay, pointerEvents: "auto" }}>
                   <button onClick={play} title="Play"
@@ -116,6 +119,11 @@ export default function SlipVideo({ src, slipId, token, title, onClose }) {
             </div>
           )}
         </div>
+        {info && info.preview && info.note && (
+          <div style={{ padding: "8px 14px", fontSize: 12, fontWeight: 600, color: "#fbbf24", background: "#111827" }}>
+            {info.note} The saved clip replaces this after the slip is submitted.
+          </div>
+        )}
       </div>
     </div>,
     document.body

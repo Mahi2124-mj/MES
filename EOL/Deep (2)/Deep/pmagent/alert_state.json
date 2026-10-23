@@ -1,95 +1,4 @@
 {
- "collector:collector_l_5:plc_offline": {
-  "sev": "warning",
-  "what": "YRA-SA-6WAY (collector_l_5): main PLC unreachable 100% of the time"
- },
- "collector:collector_l_5:sub_offline": {
-  "sev": "warning",
-  "what": "YRA-SA-6WAY (collector_l_5): 2 sub-machine(s) offline"
- },
- "collector:collector_lp_01:sub_offline": {
-  "sev": "warning",
-  "what": "Loop Pipe-Line 1 (collector_lp_01): 1 sub-machine(s) offline"
- },
- "collector:collector_lp_03:sub_offline": {
-  "sev": "warning",
-  "what": "Loop Pipe-Line 3 (collector_lp_03): 1 sub-machine(s) offline"
- },
- "collector:collector_lp_03:sub_idle": {
-  "sev": "warning",
-  "what": "Loop Pipe-Line 3 (collector_lp_03): 1 sub-machine(s) not counting while siblings made \u226510 parts"
- },
- "collector:collector_nut_lifting:plc_offline": {
-  "sev": "info",
-  "what": "NUT LIFTING (collector_nut_lifting): main PLC unreachable 100% of the time (line not producing)"
- },
- "collector:collector_yhb_l3_rec:not_counting": {
-  "sev": "critical",
-  "what": "YHB Recliner (collector_yhb_l3_rec): main count not moving \u2014 sub-machines made 57 parts in 15 min, main 0"
- },
- "collector:collector_yhb_l3_rec:plc_offline": {
-  "sev": "warning",
-  "what": "YHB Recliner (collector_yhb_l3_rec): main PLC unreachable 100% of the time"
- },
- "collector:collector_yhb_l3_rec:sub_offline": {
-  "sev": "warning",
-  "what": "YHB Recliner (collector_yhb_l3_rec): 2 sub-machine(s) offline"
- },
- "collector:collector_yhb_l3_rec:sub_idle": {
-  "sev": "warning",
-  "what": "YHB Recliner (collector_yhb_l3_rec): 2 sub-machine(s) not counting while siblings made \u226510 parts"
- },
- "collector:collector_ymc_l9:sub_offline": {
-  "sev": "warning",
-  "what": "YMC-SS (collector_ymc_l9): 1 sub-machine(s) offline"
- },
- "collector:collector_ync_l4:db_errors": {
-  "sev": "critical",
-  "what": "YNC Recliner (collector_ync_l4): DB writes failing \u2014 30\u00d7 traceback in 15 min"
- },
- "collector:collector_ync_l4:plc_offline": {
-  "sev": "warning",
-  "what": "YNC Recliner (collector_ync_l4): main PLC unreachable 100% of the time"
- },
- "collector:collector_ync_l4:sub_offline": {
-  "sev": "warning",
-  "what": "YNC Recliner (collector_ync_l4): 2 sub-machine(s) offline"
- },
- "collector:collector_ync_l4:sub_idle": {
-  "sev": "warning",
-  "what": "YNC Recliner (collector_ync_l4): 2 sub-machine(s) not counting while siblings made \u226510 parts"
- },
- "collector:collector_yra_l1:not_counting": {
-  "sev": "critical",
-  "what": "YRA Recliner (collector_yra_l1): main count not moving \u2014 sub-machines made 55 parts in 15 min, main 0"
- },
- "collector:collector_yra_l1:plc_offline": {
-  "sev": "warning",
-  "what": "YRA Recliner (collector_yra_l1): main PLC unreachable 100% of the time"
- },
- "collector:collector_yra_l1:sub_offline": {
-  "sev": "warning",
-  "what": "YRA Recliner (collector_yra_l1): 3 sub-machine(s) offline"
- },
- "collector:collector_ysd_l2_rec:db_errors": {
-  "sev": "critical",
-  "what": "YSD Recliner (collector_ysd_l2_rec): DB writes failing \u2014 30\u00d7 traceback in 15 min"
- },
- "collector:collector_ysd_l2_rec:plc_offline": {
-  "sev": "warning",
-  "what": "YSD Recliner (collector_ysd_l2_rec): main PLC unreachable 100% of the time"
- },
- "collector:collector_ysd_l2_rec:sub_offline": {
-  "sev": "warning",
-  "what": "YSD Recliner (collector_ysd_l2_rec): 6 sub-machine(s) offline"
- },
- "binfill:_auto_seen": {
-  "sev": "info",
-  "what": "auto updates reported",
-  "keys": [
-   "20261022 1 08:50:52"
-  ]
- },
  "user:24:nodash": {
   "sev": "info",
   "what": "pawan has no Dashboard grant"
@@ -190,6 +99,10 @@
   "sev": "warning",
   "what": "/api/maintenance-kpi/targets is slow"
  },
+ "ep:/api/plant-overview:slow": {
+  "sev": "warning",
+  "what": "/api/plant-overview is slow"
+ },
  "ep:/api/quality/sa-fi/log:slow": {
   "sev": "warning",
   "what": "/api/quality/sa-fi/log is slow"
@@ -204,130 +117,239 @@
  },
  "data:coverage": {
   "sev": "warning",
-  "what": "clip pre-render coverage only 31%"
+  "what": "clip pre-render coverage only 32%"
+ },
+ "sys:load": {
+  "sev": "warning",
+  "what": "CPU load 64 above 64 cores"
  },
  "video:tracker:error": {
   "sev": "warning",
   "what": "Video Coverage tracker reports an error"
  },
- "video:fi:37": {
-  "sev": "info",
-  "what": "YRA-SA-6WAY Final Inspection video 16% (30/192)"
- },
- "video:fi:7": {
+ "video:fi:40": {
   "sev": "critical",
-  "what": "GEAR LIFTER Final Inspection video 31% (44/140)"
+  "what": "LOCATION PIN STACKING - LPS-3 Final Inspection video 35% (137/389)"
  },
  "video:fi:41": {
   "sev": "critical",
-  "what": "NUT WELDING SA Final Inspection video 36% (90/252)"
- },
- "video:fi:11": {
-  "sev": "critical",
-  "what": "YHB-SS Final Inspection video 36% (35/96)"
- },
- "video:fi:40": {
-  "sev": "critical",
-  "what": "LOCATION PIN STACKING - LPS-3 Final Inspection video 40% (81/200)"
- },
- "video:fi:21": {
-  "sev": "critical",
-  "what": "Loop Pipe-Line 2 Final Inspection video 43% (93/215)"
- },
- "video:fi:31": {
-  "sev": "critical",
-  "what": "Loop Pipe-Line 3 Final Inspection video 44% (88/200)"
- },
- "video:fi:33": {
-  "sev": "critical",
-  "what": "YRA-SA-4WAY Final Inspection video 45% (87/195)"
- },
- "video:fi:4": {
-  "sev": "critical",
-  "what": "YSD-SS Final Inspection video 45% (34/76)"
- },
- "video:fi:35": {
-  "sev": "critical",
-  "what": "YHB-SA-4WAY Final Inspection video 46% (84/183)"
- },
- "video:fi:20": {
-  "sev": "critical",
-  "what": "YMC Recliner Final Inspection video 46% (38/82)"
- },
- "video:fi:13": {
-  "sev": "critical",
-  "what": "YJC-SS Final Inspection video 46% (39/84)"
+  "what": "NUT WELDING SA Final Inspection video 38% (132/347)"
  },
  "video:fi:34": {
   "sev": "critical",
-  "what": "YSD-SA-4WAY Final Inspection video 47% (83/178)"
+  "what": "YSD-SA-4WAY Final Inspection video 42% (99/237)"
  },
- "video:fi:30": {
-  "sev": "critical",
-  "what": "Loop Pipe-Line 1 Final Inspection video 47% (78/166)"
+ "video:fi:37": {
+  "sev": "info",
+  "what": "YRA-SA-6WAY Final Inspection video 42% (72/171)"
  },
- "video:fi:12": {
+ "video:fi:21": {
   "sev": "critical",
-  "what": "YCA-SS Final Inspection video 47% (37/78)"
+  "what": "Loop Pipe-Line 2 Final Inspection video 43% (132/305)"
+ },
+ "video:fi:31": {
+  "sev": "critical",
+  "what": "Loop Pipe-Line 3 Final Inspection video 44% (130/298)"
+ },
+ "video:fi:7": {
+  "sev": "critical",
+  "what": "GEAR LIFTER Final Inspection video 44% (128/293)"
  },
  "video:fi:36": {
   "sev": "critical",
-  "what": "YNC-SA-4WAY Final Inspection video 48% (67/141)"
+  "what": "YNC-SA-4WAY Final Inspection video 46% (114/246)"
  },
- "video:fi:2": {
+ "video:fi:33": {
   "sev": "critical",
-  "what": "YNC-SS Final Inspection video 48% (43/90)"
+  "what": "YRA-SA-4WAY Final Inspection video 46% (127/274)"
  },
  "video:fi:39": {
   "sev": "critical",
-  "what": "Y17-SA-4WAY Final Inspection video 48% (80/165)"
+  "what": "Y17-SA-4WAY Final Inspection video 48% (120/252)"
+ },
+ "video:fi:11": {
+  "sev": "critical",
+  "what": "YHB-SS Final Inspection video 49% (105/213)"
+ },
+ "video:fi:35": {
+  "sev": "critical",
+  "what": "YHB-SA-4WAY Final Inspection video 50% (107/213)"
+ },
+ "video:fi:2": {
+  "sev": "critical",
+  "what": "YNC-SS Final Inspection video 53% (112/213)"
  },
  "video:fi:15": {
   "sev": "critical",
-  "what": "Y17-SS Final Inspection video 49% (41/83)"
+  "what": "Y17-SS Final Inspection video 53% (107/202)"
  },
- "video:fi:19": {
+ "video:fi:12": {
   "sev": "critical",
-  "what": "YMC-SS Final Inspection video 49% (40/81)"
+  "what": "YCA-SS Final Inspection video 53% (105/198)"
+ },
+ "video:fi:20": {
+  "sev": "critical",
+  "what": "YMC Recliner Final Inspection video 53% (102/192)"
  },
  "video:fi:14": {
   "sev": "critical",
-  "what": "YFG-SS Final Inspection video 51% (37/72)"
+  "what": "YFG-SS Final Inspection video 55% (102/184)"
  },
  "video:fi:18": {
   "sev": "critical",
-  "what": "YRA-SS Final Inspection video 56% (35/63)"
+  "what": "YRA-SS Final Inspection video 56% (104/186)"
+ },
+ "video:fi:30": {
+  "sev": "critical",
+  "what": "Loop Pipe-Line 1 Final Inspection video 56% (103/184)"
+ },
+ "video:fi:4": {
+  "sev": "critical",
+  "what": "YSD-SS Final Inspection video 56% (94/167)"
  },
  "video:fi:6": {
   "sev": "critical",
-  "what": "YWD-SS Final Inspection video 62% (28/45)"
+  "what": "YWD-SS Final Inspection video 57% (88/155)"
+ },
+ "video:fi:19": {
+  "sev": "critical",
+  "what": "YMC-SS Final Inspection video 59% (106/179)"
+ },
+ "video:fi:13": {
+  "sev": "critical",
+  "what": "YJC-SS Final Inspection video 60% (98/164)"
+ },
+ "video:fi:10": {
+  "sev": "critical",
+  "what": "YWD RECLINER Final Inspection video 61% (80/131)"
  },
  "video:fi:38": {
   "sev": "critical",
-  "what": "YNC-SA-6WAY Final Inspection video 65% (68/105)"
- },
- "video:fi:8": {
-  "sev": "critical",
-  "what": "2UA RECLINER Final Inspection video 68% (41/60)"
+  "what": "YNC-SA-6WAY Final Inspection video 65% (88/135)"
  },
  "video:zone0:Recliner": {
   "sev": "warning",
   "what": "Recliner: no sub-machine clips at all"
  },
- "video:cam:cam_riser_bkt_staking_inner_m_c_1791802317": {
-  "sev": "warning",
-  "what": "YRA-SA-6WAY \u00b7 Riser Bkt. Staking Inner M/C camera 192.168.35.31 offline (no ping) since 08:41"
- },
  "video:cam:cam_ylm_bending_machine_01_1787550875": {
   "sev": "warning",
-  "what": "Loop Pipe-Line 3 \u00b7 YLM Bending Machine-01 camera 192.168.37.72 offline (no ping) since 08:44"
+  "what": "Loop Pipe-Line 3 \u00b7 YLM Bending Machine-01 camera 192.168.37.72 offline (no ping) since 14:46"
  },
  "video:archiver": {
   "sev": "warning",
-  "what": "Archiver is not keeping up: 93% of missing clips were never cut"
+  "what": "Archiver is not keeping up: 96% of missing clips were never cut"
  },
  "video:nocam": {
   "sev": "info",
   "what": "2 machines produce cycles but have no camera"
+ },
+ "collector:collector_l_5:plc_offline": {
+  "sev": "warning",
+  "what": "YRA-SA-6WAY (collector_l_5): main PLC unreachable 100% of the time"
+ },
+ "collector:collector_l_5:sub_offline": {
+  "sev": "warning",
+  "what": "YRA-SA-6WAY (collector_l_5): 2 sub-machine(s) offline"
+ },
+ "collector:collector_lp_01:sub_offline": {
+  "sev": "warning",
+  "what": "Loop Pipe-Line 1 (collector_lp_01): 1 sub-machine(s) offline"
+ },
+ "collector:collector_lp_03:sub_offline": {
+  "sev": "warning",
+  "what": "Loop Pipe-Line 3 (collector_lp_03): 1 sub-machine(s) offline"
+ },
+ "collector:collector_lp_03:sub_idle": {
+  "sev": "warning",
+  "what": "Loop Pipe-Line 3 (collector_lp_03): 1 sub-machine(s) not counting while siblings made \u226510 parts"
+ },
+ "collector:collector_nut_lifting:plc_offline": {
+  "sev": "info",
+  "what": "NUT LIFTING (collector_nut_lifting): main PLC unreachable 100% of the time (line not producing)"
+ },
+ "collector:collector_yhb_l3_rec:not_counting": {
+  "sev": "critical",
+  "what": "YHB Recliner (collector_yhb_l3_rec): main count not moving \u2014 sub-machines made 65 parts in 15 min, main 0"
+ },
+ "collector:collector_yhb_l3_rec:plc_offline": {
+  "sev": "warning",
+  "what": "YHB Recliner (collector_yhb_l3_rec): main PLC unreachable 100% of the time"
+ },
+ "collector:collector_yhb_l3_rec:sub_offline": {
+  "sev": "warning",
+  "what": "YHB Recliner (collector_yhb_l3_rec): 2 sub-machine(s) offline"
+ },
+ "collector:collector_yhb_l3_rec:sub_idle": {
+  "sev": "warning",
+  "what": "YHB Recliner (collector_yhb_l3_rec): 2 sub-machine(s) not counting while siblings made \u226510 parts"
+ },
+ "collector:collector_ymc_l9:sub_offline": {
+  "sev": "warning",
+  "what": "YMC-SS (collector_ymc_l9): 1 sub-machine(s) offline"
+ },
+ "collector:collector_ync_l4:db_stale": {
+  "sev": "critical",
+  "what": "YNC Recliner (collector_ync_l4): dashboard not updated for 160 min"
+ },
+ "collector:collector_ync_l4:db_errors": {
+  "sev": "critical",
+  "what": "YNC Recliner (collector_ync_l4): DB writes failing \u2014 719\u00d7 hourly write in 15 min"
+ },
+ "collector:collector_ync_l4:plc_offline": {
+  "sev": "warning",
+  "what": "YNC Recliner (collector_ync_l4): main PLC unreachable 100% of the time"
+ },
+ "collector:collector_ync_l4:sub_offline": {
+  "sev": "warning",
+  "what": "YNC Recliner (collector_ync_l4): 2 sub-machine(s) offline"
+ },
+ "collector:collector_ync_l4:sub_idle": {
+  "sev": "warning",
+  "what": "YNC Recliner (collector_ync_l4): 2 sub-machine(s) not counting while siblings made \u226510 parts"
+ },
+ "collector:collector_yra_l1:not_counting": {
+  "sev": "critical",
+  "what": "YRA Recliner (collector_yra_l1): main count not moving \u2014 sub-machines made 67 parts in 15 min, main 0"
+ },
+ "collector:collector_yra_l1:plc_offline": {
+  "sev": "warning",
+  "what": "YRA Recliner (collector_yra_l1): main PLC unreachable 100% of the time"
+ },
+ "collector:collector_yra_l1:sub_offline": {
+  "sev": "warning",
+  "what": "YRA Recliner (collector_yra_l1): 3 sub-machine(s) offline"
+ },
+ "collector:collector_ysd_l2_rec:db_stale": {
+  "sev": "critical",
+  "what": "YSD Recliner (collector_ysd_l2_rec): dashboard not updated for 160 min"
+ },
+ "collector:collector_ysd_l2_rec:db_errors": {
+  "sev": "critical",
+  "what": "YSD Recliner (collector_ysd_l2_rec): DB writes failing \u2014 1065\u00d7 hourly write in 15 min"
+ },
+ "collector:collector_ysd_l2_rec:plc_offline": {
+  "sev": "warning",
+  "what": "YSD Recliner (collector_ysd_l2_rec): main PLC unreachable 100% of the time"
+ },
+ "collector:collector_ysd_l2_rec:sub_offline": {
+  "sev": "warning",
+  "what": "YSD Recliner (collector_ysd_l2_rec): 6 sub-machine(s) offline"
+ },
+ "binfill:short_confirmed": {
+  "sev": "warning",
+  "what": "1 short bin(s) confirmed by the recount \u2014 real shorts"
+ },
+ "binfill:_auto_seen": {
+  "sev": "info",
+  "what": "auto updates reported",
+  "keys": [
+   "20261023 3 09:00:01",
+   "20261023 14 09:29:48",
+   "20261023 19 09:52:21",
+   "20261023 27 10:32:48",
+   "20261023 46 11:25:59",
+   "20261023 58 11:54:26",
+   "20261023 89 13:47:20"
+  ]
  }
 }

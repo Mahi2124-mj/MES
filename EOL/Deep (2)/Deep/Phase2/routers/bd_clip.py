@@ -18,10 +18,21 @@ routers/bd_clip.py (9965):
 
   GET /api/bd-clip/{src}/{sid}/info  -> {available, reason?, clips: [{label, url, size_mb, name}]}
   GET /api/bd-clip/file?t=<signed>   -> video/mp4 (206 with Range)
+
+2026-10-23 — PREVIEW before the slip is submitted (operator: "slip submit karne
+se pahle video play karke dekh sake").  The clipper cuts only after MACHINE NO.
+is filled, so a pending slip had no video.  When no finished clip exists,
+`/info?machine_no=` (the machine picked on the form, else the slip's own) now
+returns signed preview links: that machine's camera(s) — same mapping as the
+clipper — over the breakdown window (start − 30 s … end + 30 s, at most 10 min,
+end = now while the breakdown is open), cut by the CMS from its recordings like
+a cycle clip (~8 s for 7 min).  GET /api/bd-clip/preview?t= relays it with
+Range.  The finished clip replaces the preview once the clipper has cut it.
 """
 import glob
 import os
 import re
+import time
 from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
@@ -91,14 +102,80 @@ def _check_scope(src: str, sid: int, user) -> None:
         raise HTTPException(403, "This line is not assigned to you")
 
 
+PREVIEW_PAD_S = 30
+PREVIEW_MAX_S = 600
+_CAM_MAP = {"at": 0.0, "by_machine": {}}
+
+
+def _cams_for(machine_no: str) -> list:
+    """Camera ids of a maintenance machine_no — the clipper's own mapping
+    (maintenance_machines.ip → mes_plc_configs.plc_ip → nf2_camera_id), cached 5 min."""
+    if time.time() - _CAM_MAP["at"] > 300:
+        import breakdown_clipper as bc
+        from database import get_conn
+        from routers.andon import _maint_conn
+        with _maint_conn() as mc, get_conn() as ec:
+            by_machine, _by_line = bc.load_cameras(mc, ec)
+        _CAM_MAP.update(at=time.time(), by_machine=by_machine)
+    return list((_CAM_MAP["by_machine"].get((machine_no or "").strip().upper()) or {}).get("cams") or [])
+
+
+def _slip_row(src: str, sid: int) -> dict:
+    import psycopg2.extras
+    from routers.andon import _maint_conn
+    with _maint_conn() as mc:
+        cur = mc.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cur.execute(f"""SELECT id, zone, line, machine_no, bd_start_date, bd_start_time,
+                               bd_end_date, bd_ok_time FROM {_TABLE_OF[src]} WHERE id = %s""", (int(sid),))
+        return dict(cur.fetchone() or {})
+
+
+def _preview(s: str, sid: int, machine_no) -> dict:
+    import breakdown_clipper as bc
+    try:
+        row = _slip_row(s, sid)
+    except Exception as exc:
+        return {"available": False, "clips": [], "reason": f"Could not read the slip ({exc})."}
+    mno = (machine_no or row.get("machine_no") or "").strip()
+    if not mno:
+        return {"available": False, "clips": [],
+                "reason": "Select MACHINE NO. on the slip to watch its camera."}
+    start, end, _problem = bc.slip_window(row)
+    if not start:
+        return {"available": False, "clips": [], "reason": "The breakdown start time is missing on the slip."}
+    now = datetime.now()
+    ws = start - timedelta(seconds=PREVIEW_PAD_S)
+    we = min((end or now) + timedelta(seconds=PREVIEW_PAD_S), ws + timedelta(seconds=PREVIEW_MAX_S), now)
+    if we - ws < timedelta(seconds=5):
+        return {"available": False, "clips": [], "reason": "The breakdown has only just started. Try again in a minute."}
+    try:
+        cams = _cams_for(mno)
+    except Exception as exc:
+        return {"available": False, "clips": [], "reason": f"Could not look up the camera ({exc})."}
+    if not cams:
+        return {"available": False, "clips": [], "reason": f"No camera is set up for machine {mno}."}
+    out = []
+    for i, cam in enumerate(cams[:2], start=1):
+        tok = jwt.encode({"purpose": "bdprev", "src": s, "sid": int(sid), "cam": cam,
+                          "ws": ws.isoformat(), "we": we.isoformat(),
+                          "exp": datetime.utcnow() + timedelta(minutes=LINK_MIN)},
+                         auth.SECRET_KEY, algorithm=auth.ALGORITHM)
+        out.append({"label": f"Camera {i}", "url": f"/api/bd-clip/preview?t={tok}",
+                    "size_mb": None, "name": cam})
+    clipped = (end or now) + timedelta(seconds=PREVIEW_PAD_S) > we + timedelta(seconds=1)
+    note = (f"Preview of {mno} from the camera recording, {ws:%H:%M:%S}–{we:%H:%M:%S}"
+            + (" (first 10 min)" if clipped and end else "") + ".")
+    return {"available": True, "preview": True, "clips": out, "note": note}
+
+
 @router.get("/{src}/{sid}/info")
-def clip_info(src: str, sid: int, user=Depends(get_current_user)):
+def clip_info(src: str, sid: int, machine_no: str = Query(None),
+              user=Depends(get_current_user)):
     s = _src(src)
     _check_scope(s, sid, user)
     clips = _clips(s, sid)
     if not clips:
-        return {"available": False, "clips": [],
-                "reason": "No video for this slip yet. The clip is made after the breakdown ends."}
+        return _preview(s, sid, machine_no)
     out = []
     for cam, p in clips:
         tok = jwt.encode({"purpose": "bdclip", "src": s, "sid": int(sid), "cam": cam,
@@ -153,3 +230,49 @@ def clip_file(request: Request, t: str = Query("")):
         headers["Content-Range"] = f"bytes {start}-{end}/{size}"
     return StreamingResponse(_pieces(path, start, end), status_code=status,
                              media_type="video/mp4", headers=headers)
+
+
+@router.get("/preview")
+def clip_preview(request: Request, t: str = Query("")):
+    """Relay the CMS cut of a pending slip's camera window (see _preview)."""
+    try:
+        d = jwt.decode(t, auth.SECRET_KEY, algorithms=[auth.ALGORITHM])
+        if d.get("purpose") != "bdprev":
+            raise JWTError()
+        ws = datetime.fromisoformat(str(d["ws"]))
+        we = datetime.fromisoformat(str(d["we"]))
+        cam = str(d["cam"])
+    except (JWTError, KeyError, ValueError):
+        raise HTTPException(401, "Video link expired - open the video again.")
+    import requests
+    from routers.submachines import CYCLE_VIDEO_BASE_URL, CMS_INTEGRATION_ENABLED
+    if not CMS_INTEGRATION_ENABLED:
+        raise HTTPException(404, "Video integration disabled")
+    tz = "+05:30"
+    params = {"camera_id": cam, "plc_ip": "",
+              "ts_start": ws.isoformat() + tz, "ts_end": we.isoformat() + tz}
+    fwd = {"Range": request.headers["range"]} if request.headers.get("range") else {}
+    try:
+        r = requests.get(f"{CYCLE_VIDEO_BASE_URL}/api/submachine/clip", params=params,
+                         headers=fwd, stream=True, timeout=(5, 90))
+    except Exception as exc:
+        raise HTTPException(502, f"Camera server unreachable: {exc}")
+    if r.status_code >= 400:
+        detail = r.text[:200]
+        r.close()
+        raise HTTPException(404 if r.status_code == 404 else 502,
+                            f"No recording for this time on the camera ({detail}).")
+    headers = {h: r.headers[h] for h in ("Content-Type", "Content-Length", "Content-Range")
+               if h in r.headers}
+    headers["Accept-Ranges"] = "bytes"
+    headers["Cache-Control"] = "private, max-age=600"
+
+    def _relay():
+        try:
+            for chunk in r.iter_content(chunk_size=CHUNK):
+                yield chunk
+        finally:
+            r.close()
+
+    return StreamingResponse(_relay(), status_code=r.status_code,
+                             media_type=headers.get("Content-Type", "video/mp4"), headers=headers)

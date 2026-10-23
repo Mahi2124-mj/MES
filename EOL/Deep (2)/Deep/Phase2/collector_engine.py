@@ -148,6 +148,72 @@ _PY_ON1_OFF2_LINES = {int(x) for x in
                       if x.strip()}
 
 
+class _DropSocketOnFailure:
+    """2026-10-22 — a register-mode sub socket that had ONE failed MC
+    transaction is never used again.
+
+    pymcprotocol has no request id.  When a read times out (soc_timeout 3 s)
+    the PLC's reply still arrives a moment later; the pre-send drain in
+    type3e._send only clears bytes that are ALREADY there, so the late reply
+    lands in the NEXT read on the same socket and the values shift by one
+    request.  Seen 22-Oct on the YRA-SA-6WAY robots: a swallowed model-register
+    (D1016) timeout made the next D1001 read return the model code (3 / 5),
+    the mirror took it for a shift wipe, and when the real count came back it
+    wrote 133 + 196 duplicate rows.  Several reads on this socket swallow their
+    errors (model, NG, fault bits, live read), so the rule lives here: any
+    transport error closes the socket and every later call raises, which sends
+    the poller down its normal reconnect path.  A clean MC error reply
+    (complete frame, e.g. a bad device) or a bad address rejected before
+    sending is not a transport error and leaves the socket alone."""
+
+    def __init__(self, raw):
+        self._raw = raw
+        self._dead = None
+
+    def close(self):
+        try:
+            self._raw.close()
+        except Exception:
+            pass
+
+    def __getattr__(self, name):
+        attr = getattr(self._raw, name)
+        if not callable(attr):
+            return attr
+
+        def _call(*a, **kw):
+            if self._dead is not None:
+                raise ConnectionError(f"socket dropped after earlier failure: {self._dead}")
+            try:
+                return attr(*a, **kw)
+            except (pymcprotocol.mcprotocolerror.MCProtocolError,
+                    pymcprotocol.mcprotocolerror.UnsupportedComandError,
+                    ValueError, TypeError):
+                raise
+            except Exception as e:
+                self._dead = (str(e) or type(e).__name__)[:60]
+                self.close()
+                raise
+        return _call
+
+
+def _reg_hold(hold, val, tol=3):
+    """2026-10-22 — follow a register value that disagrees with the mirror
+    baseline (drop, or a jump over 200).  hold = [first_value, first_ts, polls].
+    A value more than `tol` away from the first one starts a new hold."""
+    if hold is None or abs(val - hold[0]) > tol:
+        return [val, time.time(), 1]
+    hold[2] += 1
+    return hold
+
+
+def _reg_hold_confirmed(hold, polls=3, secs=5.0):
+    """True once the disagreeing value has held for `polls` reads AND `secs`.
+    A real reset (shift start, operator reset) stays down; a desynced or
+    garbled single read does not, so it never moves the baseline."""
+    return hold is not None and hold[2] >= polls and time.time() - hold[1] >= secs
+
+
 def _fx5_dev(addr: str, port) -> str:
     a = (addr or "").strip().upper()
     try:
@@ -2437,6 +2503,11 @@ _SUB_WATCH_KEYS = (
     # arriving at 1.0.  A setting that silently does nothing is worse than one
     # that is missing.
     "sa_register_scales", "sa_register_names",
+    # 2026-10-23 — the count / alarm REGISTERS too.  YNC-SS Lock Bar and Ball
+    # Guide #2 had no NG register (Alarm always 0); setting it in the admin
+    # panel changed nothing until a collector restart, because only count_bit
+    # was watched.
+    "ok_data_register", "ng_data_register",
 )
 
 
@@ -10293,6 +10364,8 @@ class CollectorEngine:
         last_bit        = 0
         last_ok_reg     = None    # register-mirror: last OK register value seen
         last_ng_reg     = None    # register-mirror: last NG register value seen
+        ok_hold         = None    # 2026-10-22 unconfirmed OK drop / jump (_reg_hold)
+        ng_hold         = None    # 2026-10-22 unconfirmed NG drop / jump
         last_edge_ts    = None
         cycle_seq_today = 0
         last_date       = None
@@ -10383,6 +10456,7 @@ class CollectorEngine:
                 # probe that; otherwise probe the count bit as before.
                 if sub_reg_mode and sub_ok_reg:
                     plc.batchread_wordunits(headdevice=sub_ok_reg, readsize=1)
+                    plc = _DropSocketOnFailure(plc)   # 2026-10-22 no reuse after a failed read
                 else:
                     plc.batchread_bitunits(headdevice=count_bit, readsize=1)
                 _mark_online()
@@ -10840,6 +10914,8 @@ class CollectorEngine:
                 # carrying the previous shift's high value forward.
                 last_ok_reg     = None
                 last_ng_reg     = None
+                ok_hold         = None
+                ng_hold         = None
                 print(f"{tag} day={today} shift={cur_shift} "
                       f"resume seq={cycle_seq_today}", flush=True)
 
@@ -11009,14 +11085,26 @@ class CollectorEngine:
                         _delta = _ok_now - last_ok_reg
                         if _delta > 200:
                             # No real sub makes 200 parts in one 0.1s poll —
-                            # garbage read / register wrap.  Rebaseline only;
-                            # the count re-syncs on the next clean increment.
-                            print(f"{tag} [REG-MIRROR] OK {sub_ok_reg} "
-                                  f"implausible +{_delta} "
-                                  f"({last_ok_reg}->{_ok_now}) — garbage/wrap, "
-                                  f"rebaselined, no rows", flush=True)
-                            last_ok_reg = _ok_now
+                            # garbage read / register wrap.  Rebaseline only,
+                            # and (2026-10-22) only once the new value has held
+                            # for 3 reads / 5 s: one desynced read must never
+                            # move the baseline.
+                            ok_hold = _reg_hold(ok_hold, _ok_now)
+                            if _reg_hold_confirmed(ok_hold):
+                                print(f"{tag} [REG-MIRROR] OK {sub_ok_reg} "
+                                      f"implausible +{_delta} "
+                                      f"({last_ok_reg}->{_ok_now}) held "
+                                      f"{ok_hold[2]} reads — rebaselined, no rows",
+                                      flush=True)
+                                last_ok_reg = _ok_now
+                                ok_hold = None
+                            elif ok_hold[2] == 1:
+                                print(f"{tag} [REG-MIRROR] OK {sub_ok_reg} "
+                                      f"jump +{_delta} ({last_ok_reg}->{_ok_now}) "
+                                      f"not trusted yet — baseline kept, no rows",
+                                      flush=True)
                         else:
+                            ok_hold = None
                             _now_dt = datetime.now()
                             _ct_tot = ((_now_dt - last_sub_ok_ts).total_seconds()
                                        if last_sub_ok_ts else 0.0)
@@ -11086,11 +11174,27 @@ class CollectorEngine:
                                       f"{cycle_seq_today} ct/part="
                                       f"{_ct_per:.1f}s", flush=True)
                     elif _ok_now < last_ok_reg:
-                        print(f"{tag} [REG-MIRROR] OK {sub_ok_reg} reset "
-                              f"{last_ok_reg}->{_ok_now} (shift wipe) — "
-                              f"rebaseline, rows untouched", flush=True)
-                        last_ok_reg = _ok_now
-                        _sub_wipe   = True   # OK reset -> real wipe; NG may reset too
+                        # 2026-10-22 — a drop is a real reset only if it stays
+                        # down for 3 reads / 5 s.  A desynced read (e.g. the
+                        # model code 3 / 5 arriving as D1001) comes back to the
+                        # real count on the next read; accepting it at once
+                        # restarted the seq and then duplicated every part
+                        # between the junk value and the real one.
+                        ok_hold = _reg_hold(ok_hold, _ok_now)
+                        if _reg_hold_confirmed(ok_hold):
+                            print(f"{tag} [REG-MIRROR] OK {sub_ok_reg} reset "
+                                  f"{last_ok_reg}->{ok_hold[0]} (shift wipe, held "
+                                  f"{ok_hold[2]} reads) — rebaseline, rows untouched",
+                                  flush=True)
+                            last_ok_reg = ok_hold[0]
+                            ok_hold     = None
+                            _sub_wipe   = True   # OK reset -> real wipe; NG may reset too
+                        elif ok_hold[2] == 1:
+                            print(f"{tag} [REG-MIRROR] OK {sub_ok_reg} drop "
+                                  f"{last_ok_reg}->{_ok_now} not trusted yet — "
+                                  f"baseline kept", flush=True)
+                    else:
+                        ok_hold = None
 
                 # ── NG register → ct_log rows (is_ng=True) ──
                 if _ng_now is not None and sub_ng_reg:
@@ -11098,12 +11202,30 @@ class CollectorEngine:
                         last_ng_reg = _ng_now
                     elif _ng_now > last_ng_reg:
                         _dn = _ng_now - last_ng_reg
-                        if _dn > 200:
-                            print(f"{tag} [REG-MIRROR] NG {sub_ng_reg} "
-                                  f"implausible +{_dn} — garbage/wrap, "
-                                  f"rebaselined, no rows", flush=True)
-                            last_ng_reg = _ng_now
-                        else:
+                        # 2026-10-22 — NG moves by 1 per part, so a jump of
+                        # more than 5 in one read is held for 3 reads / 5 s
+                        # first.  A desynced read (the OK count arriving as
+                        # the NG register) used to become NG rows or the NG
+                        # baseline.  Held and real: <=200 writes the rows,
+                        # >200 only rebaselines (wrap / garbage, as before).
+                        _ng_go = _dn <= 5
+                        if not _ng_go:
+                            ng_hold = _reg_hold(ng_hold, _ng_now)
+                            if _reg_hold_confirmed(ng_hold):
+                                ng_hold = None
+                                if _dn > 200:
+                                    print(f"{tag} [REG-MIRROR] NG {sub_ng_reg} "
+                                          f"implausible +{_dn} held — "
+                                          f"rebaselined, no rows", flush=True)
+                                    last_ng_reg = _ng_now
+                                else:
+                                    _ng_go = True
+                            elif ng_hold[2] == 1:
+                                print(f"{tag} [REG-MIRROR] NG {sub_ng_reg} "
+                                      f"jump +{_dn} ({last_ng_reg}->{_ng_now}) "
+                                      f"not trusted yet — no rows", flush=True)
+                        if _ng_go:
+                            ng_hold = None
                             _now_dt = datetime.now()
                             _ng_pc  = (self._cur_part_code or "").strip().rstrip(":") or None
                             _wrote_n = 0
@@ -11154,7 +11276,14 @@ class CollectorEngine:
                                       f"+{_wrote_n}/{_dn} -> seq="
                                       f"{cycle_seq_today}", flush=True)
                     elif _ng_now < last_ng_reg:
-                        last_ng_reg = _ng_now   # 2026-06-02 EXACT mirror down (D102)
+                        # 2026-06-02 EXACT mirror down (D102); 2026-10-22 only
+                        # once the lower value has held for 3 reads / 5 s.
+                        ng_hold = _reg_hold(ng_hold, _ng_now)
+                        if _reg_hold_confirmed(ng_hold):
+                            last_ng_reg = ng_hold[0]
+                            ng_hold = None
+                    else:
+                        ng_hold = None
 
                 # Heartbeat (register subs skip the bit-path heartbeat below).
                 if time.time() - last_heartbeat >= 30:

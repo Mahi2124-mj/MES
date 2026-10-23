@@ -5631,6 +5631,10 @@ def get_comments_history(
     part_code:  Optional[str] = Query(None, description="exact or substring match"),
     machine_id: Optional[int] = Query(None),
     q:          Optional[str] = Query(None, description="text search in comment"),
+    days:       Optional[int] = Query(None, ge=1, le=400,
+                                      description="last N days ending today on the SERVER "
+                                                  "clock; used when date_from / date_to are "
+                                                  "not given"),
     user=Depends(get_current_user_optional),
 ):
     """2026-05-27 — Combined comments + NG-process-remarks history.
@@ -5647,8 +5651,13 @@ def get_comments_history(
     Default date range: today + last 7 days (operator's typical review
     window).  Override with date_from / date_to in YYYY-MM-DD."""
     from datetime import date as _date, timedelta as _td
+    # 2026-10-23 — `days` lets the line screens ask for "yesterday + today"
+    # without sending dates.  They used to build date_from/date_to from the
+    # PANEL's own clock, and several SA panels run days or months behind
+    # (no NTP on the plant LAN), so they asked for old dates and never showed
+    # today's comments.
     if not date_from:
-        date_from = str(_date.today() - _td(days=7))
+        date_from = str(_date.today() - _td(days=(days - 1) if days else 7))
     if not date_to:
         date_to = str(_date.today())
 

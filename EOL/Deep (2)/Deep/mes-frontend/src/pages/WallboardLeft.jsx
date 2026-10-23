@@ -331,13 +331,10 @@ function OtTable({ cycles, ideal, onVideo, onBack, D, lineId, isMain, machineId,
   useEffect(() => {
     if (!lineId) return;
     let stop = false;
-    const pad = (n) => String(n).padStart(2, "0");
-    const localDay = (off = 0) => {
-      const d = new Date(); d.setDate(d.getDate() - off);
-      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-    };
-    const url = `/api/lines/${lineId}/comments-history`
-              + `?date_from=${localDay(1)}&date_to=${localDay(0)}`;   // yesterday+today (night-shift safe)
+    // Yesterday + today (night-shift safe) on the SERVER clock.  2026-10-23 —
+    // the dates used to come from this device's clock, and SA panels running
+    // days/months behind asked for old dates, so today's comments never showed.
+    const url = `/api/lines/${lineId}/comments-history?days=2`;
     const load = () => {
       fetch(url)
         .then(r => (r.ok ? r.json() : Promise.reject(r.status)))
@@ -2700,12 +2697,10 @@ async function _fetchCommentHistory(lineId, source) {
   const now = Date.now();
   const hit = _suggHistCache[key];
   if (hit && (now - hit.ts) < 5 * 60 * 1000) return hit.rows;
-  const from = new Date(now - 120 * 864e5).toISOString().slice(0, 10);
-  const to   = new Date(now).toISOString().slice(0, 10);
   const wantType = source === "ng_remark" ? "NG-Remark" : "Comment";
   try {
-    const r = await fetch(
-      `/api/lines/${lineId}/comments-history?date_from=${from}&date_to=${to}`);
+    // Last 120 days on the server clock (not this device's clock).
+    const r = await fetch(`/api/lines/${lineId}/comments-history?days=120`);
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     const d = await r.json();
     const rows = (Array.isArray(d.rows) ? d.rows : [])

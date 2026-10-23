@@ -352,6 +352,45 @@ def wallboard_cycles(
             # parses it to a Python list of dicts automatically.
             out.append(d)
 
+        # 2026-10-23 — Semi-Auto alarms ("kisi kisi process me alarm count 0 hi
+        # rahta hai").  A Semi-Auto's NG never reaches mes_submachine_ct_log:
+        # its NG register D5202 stays 0 on every line (live-read 10 of 10), and
+        # the only NG rows there were desync bursts (181/188/167 in one second).
+        # The real verdict is the SA capture: mes_sa_fi_quality_log station
+        # 'SEMI', result 'NG' (YHB 65, YMC 130, YFG 315 … in 30 days).  For a
+        # machine that has SEMI rows, take its alarms from there (numbered 1..n,
+        # ct 0 so the chart hides them like every sub NG) and drop its ct_log NG.
+        try:
+            _ids = [d["sub_id"] for d in out]
+            if _ids:
+                cur.execute("""SELECT DISTINCT plc_id FROM mes_sa_fi_quality_log
+                                WHERE plc_id = ANY(%s) AND station = 'SEMI'
+                                  AND record_date >= %s""", (_ids, today - timedelta(days=30)))
+                _semi = {r["plc_id"] for r in cur.fetchall()}
+                if _semi:
+                    cur.execute("""SELECT plc_id, ts FROM mes_sa_fi_quality_log
+                                    WHERE plc_id = ANY(%s) AND station = 'SEMI' AND result = 'NG'
+                                      AND record_date = %s AND shift_name = %s
+                                    ORDER BY ts""", (list(_semi), today, shift))
+                    _ng_ts = {}
+                    for r in cur.fetchall():
+                        _ng_ts.setdefault(r["plc_id"], []).append(r["ts"])
+                    for d in out:
+                        if d["sub_id"] not in _semi:
+                            continue
+                        _ok = [c for c in (d.get("cycles") or []) if not c.get("is_ng")]
+                        _ng = [{"cycle_seq": i, "ts": t.isoformat() if t else None,
+                                "ct": 0.0, "is_ng": True}
+                               for i, t in enumerate(_ng_ts.get(d["sub_id"], []), start=1)]
+                        d["cycles"] = sorted(_ok + _ng, key=lambda c: str(c.get("ts") or ""))
+                        d["alarm_source"] = "semi"
+        except Exception as exc:
+            print(f"[WALLBOARD] semi-auto alarms skipped: {exc}")
+            try:
+                cur.connection.rollback()     # read-only so far; keep the next queries usable
+            except Exception:
+                pass
+
         # ── TOTAL LOSS, counted only while the LINE was RUNNING ───────────
         # 2026-08-07 — operator spec: speed loss must NOT accrue while the
         # line is stopped.  A cycle that straddles a breakdown / material-wait

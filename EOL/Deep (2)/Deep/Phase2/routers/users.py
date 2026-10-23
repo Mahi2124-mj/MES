@@ -263,8 +263,49 @@ def set_operator_lines(user_id: int, line_ids: List[int], admin=Depends(require_
         for line_id in line_ids:
             cur.execute("INSERT INTO mes_operator_lines (admin_id, line_id) VALUES (%s, %s)",
                         (user_id, line_id))
+        _sync_line_scopes(cur, user_id, line_ids)
         conn.commit()
     return {"ok": True}
+
+
+def _sync_line_scopes(cur, user_id: int, line_ids: List[int]) -> None:
+    """2026-10-23 — keep the Permissions-modal scope in step with Assign Lines.
+
+    A user's lines live in two places: mes_operator_lines (Assign Lines; what
+    every page uses for visibility) and the 'line' / 'machine' rows of
+    mes_user_scope_permissions (Permissions → Scope).  PUT /scope copies its
+    line rows back into mes_operator_lines, so a line removed here but still
+    in the scope came back the next time anyone saved that user's Permissions
+    (user 'ss' kept getting YRA / YHB Recliner back).  So the assignment just
+    saved is made the scope's line set too: line and machine rows of lines no
+    longer assigned are dropped, and newly assigned lines get a 'full' line
+    row.  Users who never had line scopes are left alone (their scope is not
+    in use, and /scope does not touch their assignment)."""
+    cur.execute("SELECT to_regclass('public.mes_user_scope_permissions')")
+    if cur.fetchone()[0] is None:
+        return
+    cur.execute("SELECT scope_id FROM mes_user_scope_permissions "
+                "WHERE user_id = %s AND scope_type = 'line'", (user_id,))
+    have = {r[0] for r in cur.fetchall()}
+    if not have:
+        return
+    keep = sorted({int(x) for x in line_ids})
+    cur.execute("""DELETE FROM mes_user_scope_permissions
+                    WHERE user_id = %s AND scope_type = 'line'
+                      AND NOT (scope_id = ANY(%s))""", (user_id, keep))
+    cur.execute("""DELETE FROM mes_user_scope_permissions s
+                    USING mes_plc_configs p
+                    WHERE s.user_id = %s AND s.scope_type = 'machine'
+                      AND p.id = s.scope_id AND NOT (p.line_id = ANY(%s))""", (user_id, keep))
+    for lid in keep:
+        if lid in have:
+            cur.execute("""UPDATE mes_user_scope_permissions SET perm_level = 'full'
+                            WHERE user_id = %s AND scope_type = 'line' AND scope_id = %s
+                              AND perm_level = 'none'""", (user_id, lid))
+        else:
+            cur.execute("""INSERT INTO mes_user_scope_permissions
+                               (user_id, scope_type, scope_id, perm_level)
+                           VALUES (%s, 'line', %s, 'full')""", (user_id, lid))
 
 
 # ═════════════════════════════════════════════════════════════════════

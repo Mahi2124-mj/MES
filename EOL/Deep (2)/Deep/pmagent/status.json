@@ -1,19 +1,19 @@
 {
- "ran_at": "2026-10-22 11:18:02",
- "took_s": 60.3,
- "checks": 289,
+ "ran_at": "2026-10-23 15:18:15",
+ "took_s": 73.8,
+ "checks": 288,
  "counts": {
-  "critical": 29,
-  "warning": 48,
+  "critical": 31,
+  "warning": 50,
   "info": 6
  },
  "gaps": [
   {
-   "id": "video:fi:7",
+   "id": "video:fi:40",
    "sev": "critical",
    "area": "Video",
-   "what": "GEAR LIFTER Final Inspection video 31% (44/140)",
-   "detail": "main reason: clip not cut (camera was recording) (96 of 96 missing)",
+   "what": "LOCATION PIN STACKING - LPS-3 Final Inspection video 35% (137/389)",
+   "detail": "main reason: clip not cut (camera was recording) (251 of 251 missing)",
    "cause": "Cameras recorded the cycles but the clip archiver could not cut them in time.",
    "action": "Capacity issue, covered by the 48-hour footage and zone archiver plan."
   },
@@ -21,89 +21,8 @@
    "id": "video:fi:41",
    "sev": "critical",
    "area": "Video",
-   "what": "NUT WELDING SA Final Inspection video 36% (90/252)",
-   "detail": "main reason: clip not cut (camera was recording) (161 of 161 missing)",
-   "cause": "Cameras recorded the cycles but the clip archiver could not cut them in time.",
-   "action": "Capacity issue, covered by the 48-hour footage and zone archiver plan."
-  },
-  {
-   "id": "video:fi:11",
-   "sev": "critical",
-   "area": "Video",
-   "what": "YHB-SS Final Inspection video 36% (35/96)",
-   "detail": "main reason: clip not cut (camera was recording) (61 of 61 missing)",
-   "cause": "Cameras recorded the cycles but the clip archiver could not cut them in time.",
-   "action": "Capacity issue, covered by the 48-hour footage and zone archiver plan."
-  },
-  {
-   "id": "video:fi:40",
-   "sev": "critical",
-   "area": "Video",
-   "what": "LOCATION PIN STACKING - LPS-3 Final Inspection video 40% (81/200)",
-   "detail": "main reason: clip not cut (camera was recording) (118 of 118 missing)",
-   "cause": "Cameras recorded the cycles but the clip archiver could not cut them in time.",
-   "action": "Capacity issue, covered by the 48-hour footage and zone archiver plan."
-  },
-  {
-   "id": "video:fi:21",
-   "sev": "critical",
-   "area": "Video",
-   "what": "Loop Pipe-Line 2 Final Inspection video 43% (93/215)",
-   "detail": "main reason: clip not cut (camera was recording) (121 of 121 missing)",
-   "cause": "Cameras recorded the cycles but the clip archiver could not cut them in time.",
-   "action": "Capacity issue, covered by the 48-hour footage and zone archiver plan."
-  },
-  {
-   "id": "video:fi:31",
-   "sev": "critical",
-   "area": "Video",
-   "what": "Loop Pipe-Line 3 Final Inspection video 44% (88/200)",
-   "detail": "main reason: clip not cut (camera was recording) (112 of 112 missing)",
-   "cause": "Cameras recorded the cycles but the clip archiver could not cut them in time.",
-   "action": "Capacity issue, covered by the 48-hour footage and zone archiver plan."
-  },
-  {
-   "id": "video:fi:33",
-   "sev": "critical",
-   "area": "Video",
-   "what": "YRA-SA-4WAY Final Inspection video 45% (87/195)",
-   "detail": "main reason: clip not cut (camera was recording) (102 of 107 missing)",
-   "cause": "Cameras recorded the cycles but the clip archiver could not cut them in time.",
-   "action": "Capacity issue, covered by the 48-hour footage and zone archiver plan."
-  },
-  {
-   "id": "video:fi:4",
-   "sev": "critical",
-   "area": "Video",
-   "what": "YSD-SS Final Inspection video 45% (34/76)",
-   "detail": "main reason: clip not cut (camera was recording) (42 of 42 missing)",
-   "cause": "Cameras recorded the cycles but the clip archiver could not cut them in time.",
-   "action": "Capacity issue, covered by the 48-hour footage and zone archiver plan."
-  },
-  {
-   "id": "video:fi:35",
-   "sev": "critical",
-   "area": "Video",
-   "what": "YHB-SA-4WAY Final Inspection video 46% (84/183)",
-   "detail": "main reason: clip not cut (camera was recording) (98 of 98 missing)",
-   "cause": "Cameras recorded the cycles but the clip archiver could not cut them in time.",
-   "action": "Capacity issue, covered by the 48-hour footage and zone archiver plan."
-  },
-  {
-   "id": "video:fi:20",
-   "sev": "critical",
-   "area": "Video",
-   "what": "YMC Recliner Final Inspection video 46% (38/82)",
-   "detail": "main reason: clip not cut (camera was recording) (44 of 44 missing)",
-   "cause": "Cameras recorded the cycles but the clip archiver could not cut them in time.",
-   "action": "Capacity issue, covered by the 48-hour footage and zone archiver plan."
-  },
-  {
-   "id": "video:fi:13",
-   "sev": "critical",
-   "area": "Video",
-   "what": "YJC-SS Final Inspection video 46% (39/84)",
-   "detail": "main reason: clip not cut (camera was recording) (45 of 45 missing)",
+   "what": "NUT WELDING SA Final Inspection video 38% (132/347)",
+   "detail": "main reason: clip not cut (camera was recording) (214 of 214 missing)",
    "cause": "Cameras recorded the cycles but the clip archiver could not cut them in time.",
    "action": "Capacity issue, covered by the 48-hour footage and zone archiver plan."
   },
@@ -111,26 +30,35 @@
    "id": "video:fi:34",
    "sev": "critical",
    "area": "Video",
-   "what": "YSD-SA-4WAY Final Inspection video 47% (83/178)",
-   "detail": "main reason: clip not cut (camera was recording) (94 of 94 missing)",
+   "what": "YSD-SA-4WAY Final Inspection video 42% (99/237)",
+   "detail": "main reason: clip not cut (camera was recording) (97 of 138 missing)",
    "cause": "Cameras recorded the cycles but the clip archiver could not cut them in time.",
    "action": "Capacity issue, covered by the 48-hour footage and zone archiver plan."
   },
   {
-   "id": "video:fi:30",
+   "id": "video:fi:21",
    "sev": "critical",
    "area": "Video",
-   "what": "Loop Pipe-Line 1 Final Inspection video 47% (78/166)",
-   "detail": "main reason: clip not cut (camera was recording) (88 of 88 missing)",
+   "what": "Loop Pipe-Line 2 Final Inspection video 43% (132/305)",
+   "detail": "main reason: clip not cut (camera was recording) (173 of 173 missing)",
    "cause": "Cameras recorded the cycles but the clip archiver could not cut them in time.",
    "action": "Capacity issue, covered by the 48-hour footage and zone archiver plan."
   },
   {
-   "id": "video:fi:12",
+   "id": "video:fi:31",
    "sev": "critical",
    "area": "Video",
-   "what": "YCA-SS Final Inspection video 47% (37/78)",
-   "detail": "main reason: clip not cut (camera was recording) (41 of 41 missing)",
+   "what": "Loop Pipe-Line 3 Final Inspection video 44% (130/298)",
+   "detail": "main reason: clip not cut (camera was recording) (167 of 167 missing)",
+   "cause": "Cameras recorded the cycles but the clip archiver could not cut them in time.",
+   "action": "Capacity issue, covered by the 48-hour footage and zone archiver plan."
+  },
+  {
+   "id": "video:fi:7",
+   "sev": "critical",
+   "area": "Video",
+   "what": "GEAR LIFTER Final Inspection video 44% (128/293)",
+   "detail": "main reason: clip not cut (camera was recording) (164 of 164 missing)",
    "cause": "Cameras recorded the cycles but the clip archiver could not cut them in time.",
    "action": "Capacity issue, covered by the 48-hour footage and zone archiver plan."
   },
@@ -138,17 +66,17 @@
    "id": "video:fi:36",
    "sev": "critical",
    "area": "Video",
-   "what": "YNC-SA-4WAY Final Inspection video 48% (67/141)",
-   "detail": "main reason: clip not cut (camera was recording) (74 of 74 missing)",
+   "what": "YNC-SA-4WAY Final Inspection video 46% (114/246)",
+   "detail": "main reason: clip not cut (camera was recording) (131 of 131 missing)",
    "cause": "Cameras recorded the cycles but the clip archiver could not cut them in time.",
    "action": "Capacity issue, covered by the 48-hour footage and zone archiver plan."
   },
   {
-   "id": "video:fi:2",
+   "id": "video:fi:33",
    "sev": "critical",
    "area": "Video",
-   "what": "YNC-SS Final Inspection video 48% (43/90)",
-   "detail": "main reason: clip not cut (camera was recording) (47 of 47 missing)",
+   "what": "YRA-SA-4WAY Final Inspection video 46% (127/274)",
+   "detail": "main reason: clip not cut (camera was recording) (146 of 146 missing)",
    "cause": "Cameras recorded the cycles but the clip archiver could not cut them in time.",
    "action": "Capacity issue, covered by the 48-hour footage and zone archiver plan."
   },
@@ -156,8 +84,35 @@
    "id": "video:fi:39",
    "sev": "critical",
    "area": "Video",
-   "what": "Y17-SA-4WAY Final Inspection video 48% (80/165)",
-   "detail": "main reason: clip not cut (camera was recording) (85 of 85 missing)",
+   "what": "Y17-SA-4WAY Final Inspection video 48% (120/252)",
+   "detail": "main reason: clip not cut (camera was recording) (131 of 131 missing)",
+   "cause": "Cameras recorded the cycles but the clip archiver could not cut them in time.",
+   "action": "Capacity issue, covered by the 48-hour footage and zone archiver plan."
+  },
+  {
+   "id": "video:fi:11",
+   "sev": "critical",
+   "area": "Video",
+   "what": "YHB-SS Final Inspection video 49% (105/213)",
+   "detail": "main reason: clip not cut (camera was recording) (107 of 107 missing)",
+   "cause": "Cameras recorded the cycles but the clip archiver could not cut them in time.",
+   "action": "Capacity issue, covered by the 48-hour footage and zone archiver plan."
+  },
+  {
+   "id": "video:fi:35",
+   "sev": "critical",
+   "area": "Video",
+   "what": "YHB-SA-4WAY Final Inspection video 50% (107/213)",
+   "detail": "main reason: clip not cut (camera was recording) (106 of 106 missing)",
+   "cause": "Cameras recorded the cycles but the clip archiver could not cut them in time.",
+   "action": "Capacity issue, covered by the 48-hour footage and zone archiver plan."
+  },
+  {
+   "id": "video:fi:2",
+   "sev": "critical",
+   "area": "Video",
+   "what": "YNC-SS Final Inspection video 53% (112/213)",
+   "detail": "main reason: clip not cut (camera was recording) (101 of 101 missing)",
    "cause": "Cameras recorded the cycles but the clip archiver could not cut them in time.",
    "action": "Capacity issue, covered by the 48-hour footage and zone archiver plan."
   },
@@ -165,17 +120,26 @@
    "id": "video:fi:15",
    "sev": "critical",
    "area": "Video",
-   "what": "Y17-SS Final Inspection video 49% (41/83)",
-   "detail": "main reason: clip not cut (camera was recording) (42 of 42 missing)",
+   "what": "Y17-SS Final Inspection video 53% (107/202)",
+   "detail": "main reason: clip not cut (camera was recording) (94 of 94 missing)",
    "cause": "Cameras recorded the cycles but the clip archiver could not cut them in time.",
    "action": "Capacity issue, covered by the 48-hour footage and zone archiver plan."
   },
   {
-   "id": "video:fi:19",
+   "id": "video:fi:12",
    "sev": "critical",
    "area": "Video",
-   "what": "YMC-SS Final Inspection video 49% (40/81)",
-   "detail": "main reason: clip not cut (camera was recording) (41 of 41 missing)",
+   "what": "YCA-SS Final Inspection video 53% (105/198)",
+   "detail": "main reason: clip not cut (camera was recording) (92 of 92 missing)",
+   "cause": "Cameras recorded the cycles but the clip archiver could not cut them in time.",
+   "action": "Capacity issue, covered by the 48-hour footage and zone archiver plan."
+  },
+  {
+   "id": "video:fi:20",
+   "sev": "critical",
+   "area": "Video",
+   "what": "YMC Recliner Final Inspection video 53% (102/192)",
+   "detail": "main reason: clip not cut (camera was recording) (89 of 89 missing)",
    "cause": "Cameras recorded the cycles but the clip archiver could not cut them in time.",
    "action": "Capacity issue, covered by the 48-hour footage and zone archiver plan."
   },
@@ -183,8 +147,8 @@
    "id": "video:fi:14",
    "sev": "critical",
    "area": "Video",
-   "what": "YFG-SS Final Inspection video 51% (37/72)",
-   "detail": "main reason: clip not cut (camera was recording) (35 of 35 missing)",
+   "what": "YFG-SS Final Inspection video 55% (102/184)",
+   "detail": "main reason: clip not cut (camera was recording) (81 of 81 missing)",
    "cause": "Cameras recorded the cycles but the clip archiver could not cut them in time.",
    "action": "Capacity issue, covered by the 48-hour footage and zone archiver plan."
   },
@@ -192,8 +156,26 @@
    "id": "video:fi:18",
    "sev": "critical",
    "area": "Video",
-   "what": "YRA-SS Final Inspection video 56% (35/63)",
-   "detail": "main reason: clip not cut (camera was recording) (28 of 28 missing)",
+   "what": "YRA-SS Final Inspection video 56% (104/186)",
+   "detail": "main reason: clip not cut (camera was recording) (81 of 81 missing)",
+   "cause": "Cameras recorded the cycles but the clip archiver could not cut them in time.",
+   "action": "Capacity issue, covered by the 48-hour footage and zone archiver plan."
+  },
+  {
+   "id": "video:fi:30",
+   "sev": "critical",
+   "area": "Video",
+   "what": "Loop Pipe-Line 1 Final Inspection video 56% (103/184)",
+   "detail": "main reason: clip not cut (camera was recording) (81 of 81 missing)",
+   "cause": "Cameras recorded the cycles but the clip archiver could not cut them in time.",
+   "action": "Capacity issue, covered by the 48-hour footage and zone archiver plan."
+  },
+  {
+   "id": "video:fi:4",
+   "sev": "critical",
+   "area": "Video",
+   "what": "YSD-SS Final Inspection video 56% (94/167)",
+   "detail": "main reason: clip not cut (camera was recording) (72 of 72 missing)",
    "cause": "Cameras recorded the cycles but the clip archiver could not cut them in time.",
    "action": "Capacity issue, covered by the 48-hour footage and zone archiver plan."
   },
@@ -201,8 +183,35 @@
    "id": "video:fi:6",
    "sev": "critical",
    "area": "Video",
-   "what": "YWD-SS Final Inspection video 62% (28/45)",
-   "detail": "main reason: clip not cut (camera was recording) (17 of 17 missing)",
+   "what": "YWD-SS Final Inspection video 57% (88/155)",
+   "detail": "main reason: clip not cut (camera was recording) (66 of 66 missing)",
+   "cause": "Cameras recorded the cycles but the clip archiver could not cut them in time.",
+   "action": "Capacity issue, covered by the 48-hour footage and zone archiver plan."
+  },
+  {
+   "id": "video:fi:19",
+   "sev": "critical",
+   "area": "Video",
+   "what": "YMC-SS Final Inspection video 59% (106/179)",
+   "detail": "main reason: clip not cut (camera was recording) (73 of 73 missing)",
+   "cause": "Cameras recorded the cycles but the clip archiver could not cut them in time.",
+   "action": "Capacity issue, covered by the 48-hour footage and zone archiver plan."
+  },
+  {
+   "id": "video:fi:13",
+   "sev": "critical",
+   "area": "Video",
+   "what": "YJC-SS Final Inspection video 60% (98/164)",
+   "detail": "main reason: clip not cut (camera was recording) (65 of 65 missing)",
+   "cause": "Cameras recorded the cycles but the clip archiver could not cut them in time.",
+   "action": "Capacity issue, covered by the 48-hour footage and zone archiver plan."
+  },
+  {
+   "id": "video:fi:10",
+   "sev": "critical",
+   "area": "Video",
+   "what": "YWD RECLINER Final Inspection video 61% (80/131)",
+   "detail": "main reason: clip not cut (camera was recording) (50 of 50 missing)",
    "cause": "Cameras recorded the cycles but the clip archiver could not cut them in time.",
    "action": "Capacity issue, covered by the 48-hour footage and zone archiver plan."
   },
@@ -210,17 +219,8 @@
    "id": "video:fi:38",
    "sev": "critical",
    "area": "Video",
-   "what": "YNC-SA-6WAY Final Inspection video 65% (68/105)",
-   "detail": "main reason: clip not cut (camera was recording) (37 of 37 missing)",
-   "cause": "Cameras recorded the cycles but the clip archiver could not cut them in time.",
-   "action": "Capacity issue, covered by the 48-hour footage and zone archiver plan."
-  },
-  {
-   "id": "video:fi:8",
-   "sev": "critical",
-   "area": "Video",
-   "what": "2UA RECLINER Final Inspection video 68% (41/60)",
-   "detail": "main reason: clip not cut (camera was recording) (19 of 19 missing)",
+   "what": "YNC-SA-6WAY Final Inspection video 65% (88/135)",
+   "detail": "main reason: clip not cut (camera was recording) (47 of 47 missing)",
    "cause": "Cameras recorded the cycles but the clip archiver could not cut them in time.",
    "action": "Capacity issue, covered by the 48-hour footage and zone archiver plan."
   },
@@ -228,17 +228,26 @@
    "id": "collector:collector_yhb_l3_rec:not_counting",
    "sev": "critical",
    "area": "Collector",
-   "what": "YHB Recliner (collector_yhb_l3_rec): main count not moving \u2014 sub-machines made 57 parts in 15 min, main 0",
+   "what": "YHB Recliner (collector_yhb_l3_rec): main count not moving \u2014 sub-machines made 65 parts in 15 min, main 0",
    "detail": "no cycle rows in 15 min while the line produces",
    "cause": "stuck count, DB write failure or main PLC not read",
    "action": "check this collector (operator)"
   },
   {
+   "id": "collector:collector_ync_l4:db_stale",
+   "sev": "critical",
+   "area": "Collector",
+   "what": "YNC Recliner (collector_ync_l4): dashboard not updated for 160 min",
+   "detail": "ync_recliner_complete.updated_at",
+   "cause": "main loop stuck or DB writes failing",
+   "action": "check this collector's log (operator)"
+  },
+  {
    "id": "collector:collector_ync_l4:db_errors",
    "sev": "critical",
    "area": "Collector",
-   "what": "YNC Recliner (collector_ync_l4): DB writes failing \u2014 30\u00d7 traceback in 15 min",
-   "detail": "DB reconnect 60, traceback 30",
+   "what": "YNC Recliner (collector_ync_l4): DB writes failing \u2014 719\u00d7 hourly write in 15 min",
+   "detail": "column \"hour_0305_1605_ok\" of relation \"ync_recliner_complete\" does not exist",
    "cause": "every failed write drops the DB connection; counts/graph freeze",
    "action": "fix the error shown (config/column); then restart only this collector"
   },
@@ -246,17 +255,26 @@
    "id": "collector:collector_yra_l1:not_counting",
    "sev": "critical",
    "area": "Collector",
-   "what": "YRA Recliner (collector_yra_l1): main count not moving \u2014 sub-machines made 55 parts in 15 min, main 0",
+   "what": "YRA Recliner (collector_yra_l1): main count not moving \u2014 sub-machines made 67 parts in 15 min, main 0",
    "detail": "no cycle rows in 15 min while the line produces",
    "cause": "stuck count, DB write failure or main PLC not read",
    "action": "check this collector (operator)"
   },
   {
+   "id": "collector:collector_ysd_l2_rec:db_stale",
+   "sev": "critical",
+   "area": "Collector",
+   "what": "YSD Recliner (collector_ysd_l2_rec): dashboard not updated for 160 min",
+   "detail": "ysd_recliner_complete.updated_at",
+   "cause": "main loop stuck or DB writes failing",
+   "action": "check this collector's log (operator)"
+  },
+  {
    "id": "collector:collector_ysd_l2_rec:db_errors",
    "sev": "critical",
    "area": "Collector",
-   "what": "YSD Recliner (collector_ysd_l2_rec): DB writes failing \u2014 30\u00d7 traceback in 15 min",
-   "detail": "DB reconnect 60, traceback 30",
+   "what": "YSD Recliner (collector_ysd_l2_rec): DB writes failing \u2014 1065\u00d7 hourly write in 15 min",
+   "detail": "column \"hour_0305_1605_ok\" of relation \"ysd_recliner_complete\" does not exist",
    "cause": "every failed write drops the DB connection; counts/graph freeze",
    "action": "fix the error shown (config/column); then restart only this collector"
   },
@@ -264,8 +282,8 @@
    "id": "priority:p1",
    "sev": "critical",
    "area": "Clip priority",
-   "what": "P1 clips 43.7% (2338/5348) \u2014 2777 not cut, 233 no footage",
-   "detail": "Sub-Assembly 38.3%, Loop Pipe 41.0%, YWD/2UA 47.7%, SEAT SLIDER 50.4%",
+   "what": "P1 clips 39.7% (2019/5080) \u2014 2855 not cut, 206 no footage",
+   "detail": "Sub-Assembly 34.5%, Loop Pipe 37.1%, YWD/2UA 45.0%, SEAT SLIDER 45.6%",
    "cause": "not cut = archiver behind (GPU); no footage = camera not recording",
    "action": "fix the listed cameras; if 'not cut' grows, lower the P2 zone count"
   },
@@ -414,28 +432,35 @@
    "sev": "warning",
    "area": "Page/API",
    "what": "/api/agents is slow",
-   "detail": "2450ms (>2000ms)"
+   "detail": "3832ms (>2000ms)"
   },
   {
    "id": "ep:/api/maintenance-kpi/targets:slow",
    "sev": "warning",
    "area": "Page/API",
    "what": "/api/maintenance-kpi/targets is slow",
-   "detail": "2278ms (>2000ms)"
+   "detail": "2196ms (>2000ms)"
+  },
+  {
+   "id": "ep:/api/plant-overview:slow",
+   "sev": "warning",
+   "area": "Page/API",
+   "what": "/api/plant-overview is slow",
+   "detail": "3335ms (>2000ms)"
   },
   {
    "id": "ep:/api/quality/sa-fi/log:slow",
    "sev": "warning",
    "area": "Page/API",
    "what": "/api/quality/sa-fi/log is slow",
-   "detail": "2871ms (>2000ms)"
+   "detail": "2774ms (>2000ms)"
   },
   {
    "id": "ep:/api/shift-compile/historical:slow",
    "sev": "warning",
    "area": "Page/API",
    "what": "/api/shift-compile/historical is slow",
-   "detail": "2094ms (>2000ms)"
+   "detail": "2773ms (>2000ms)"
   },
   {
    "id": "data:leaderlines",
@@ -448,15 +473,22 @@
    "id": "data:coverage",
    "sev": "warning",
    "area": "Video",
-   "what": "clip pre-render coverage only 31%",
-   "detail": "367/1156 recent cycles ready \u2014 opens will render on demand"
+   "what": "clip pre-render coverage only 32%",
+   "detail": "375/1171 recent cycles ready \u2014 opens will render on demand"
+  },
+  {
+   "id": "sys:load",
+   "sev": "warning",
+   "area": "System",
+   "what": "CPU load 64 above 64 cores",
+   "detail": ""
   },
   {
    "id": "video:tracker:error",
    "sev": "warning",
    "area": "Video",
    "what": "Video Coverage tracker reports an error",
-   "detail": "15:06:20 sample: cannot schedule new futures after interpreter shutdown",
+   "detail": "14:46:18 sample: cannot schedule new futures after interpreter shutdown",
    "cause": "The Video Coverage tracker reported an error on its last pass.",
    "action": "Read the error text; check the MES-API log for [VCOV]."
   },
@@ -465,24 +497,15 @@
    "sev": "warning",
    "area": "Video",
    "what": "Recliner: no sub-machine clips at all",
-   "detail": "1298 cycles in the last judged hour, 0 clips",
+   "detail": "3112 cycles in the last judged hour, 0 clips",
    "cause": "Machines in this zone produce cycles but no clips are being cut.",
    "action": "Check the zone's cameras on the Video Coverage page."
-  },
-  {
-   "id": "video:cam:cam_riser_bkt_staking_inner_m_c_1791802317",
-   "sev": "warning",
-   "area": "Video",
-   "what": "YRA-SA-6WAY \u00b7 Riser Bkt. Staking Inner M/C camera 192.168.35.31 offline (no ping) since 08:41",
-   "detail": "",
-   "cause": "The camera does not answer ping: power, cable or switch port.",
-   "action": "Check camera power and cable at the machine."
   },
   {
    "id": "video:cam:cam_ylm_bending_machine_01_1787550875",
    "sev": "warning",
    "area": "Video",
-   "what": "Loop Pipe-Line 3 \u00b7 YLM Bending Machine-01 camera 192.168.37.72 offline (no ping) since 08:44",
+   "what": "Loop Pipe-Line 3 \u00b7 YLM Bending Machine-01 camera 192.168.37.72 offline (no ping) since 14:46",
    "detail": "",
    "cause": "The camera does not answer ping: power, cable or switch port.",
    "action": "Check camera power and cable at the machine."
@@ -491,8 +514,8 @@
    "id": "video:archiver",
    "sev": "warning",
    "area": "Video",
-   "what": "Archiver is not keeping up: 93% of missing clips were never cut",
-   "detail": "10362 of 11079 missing in the last judged hour (Final Inspection 1648, sub-machines 8714)",
+   "what": "Archiver is not keeping up: 96% of missing clips were never cut",
+   "detail": "19574 of 20213 missing in the last judged hour (Final Inspection 2679, sub-machines 16895)",
    "cause": "Cameras recorded the cycles but the clip archiver could not cut them in time.",
    "action": "Capacity issue, covered by the 48-hour footage and zone archiver plan."
   },
@@ -510,7 +533,7 @@
    "sev": "warning",
    "area": "Collector",
    "what": "YRA-SA-6WAY (collector_l_5): 2 sub-machine(s) offline",
-   "detail": "220 Upr Bkt. Staking Outer M/C 192.168.34.31; 222 Mag WELD Upr Brkt With T-Nut 192.168.34.33",
+   "detail": "219 Upr \u00d7Rinforce S/A\u00d7UprINRBKT 192.168.34.30; 220 Upr Bkt. Staking Outer M/C 192.168.34.31",
    "cause": "network / PLC side",
    "action": "check PLC network"
   },
@@ -591,7 +614,7 @@
    "sev": "warning",
    "area": "Collector",
    "what": "YNC Recliner (collector_ync_l4): 2 sub-machine(s) offline",
-   "detail": "127 Projection Welding of Washer 192.168.32.110; 131 Press in REC with PIN Hinge 192.168.32.114",
+   "detail": "131 Press in REC with PIN Hinge 192.168.32.114; 127 Projection Welding of Washer 192.168.32.110",
    "cause": "network / PLC side",
    "action": "check PLC network"
   },
@@ -618,7 +641,7 @@
    "sev": "warning",
    "area": "Collector",
    "what": "YRA Recliner (collector_yra_l1): 3 sub-machine(s) offline",
-   "detail": "123 SP Insert Fixture with Machi 192.168.32.36; 117 Projection Welding of Washer 192.168.32.30; 121 Press in REC with PIN Hinge 192.168.32.34",
+   "detail": "121 Press in REC with PIN Hinge 192.168.32.34; 123 SP Insert Fixture with Machi 192.168.32.36; 117 Projection Welding of Washer 192.168.32.30",
    "cause": "network / PLC side",
    "action": "check PLC network"
   },
@@ -636,16 +659,25 @@
    "sev": "warning",
    "area": "Collector",
    "what": "YSD Recliner (collector_ysd_l2_rec): 6 sub-machine(s) offline",
-   "detail": "145 Mag Welding Relese x Hinge P 192.168.32.95; 146 SP Insert Fixture with Machi 192.168.32.96; 141 MAG Welding of Arm x Recline 192.168.32.91; 144 MAG Welding of Arm x Recline 192.168.32.91; 140 Projection Welding of Washer 192.168.32.90; 143 Press in REC with PIN Hinge 192.168.32.94",
+   "detail": "146 SP Insert Fixture with Machi 192.168.32.96; 140 Projection Welding of Washer 192.168.32.90; 144 MAG Welding of Arm x Recline 192.168.32.91; 141 MAG Welding of Arm x Recline 192.168.32.91; 143 Press in REC with PIN Hinge 192.168.32.94; 145 Mag Welding Relese x Hinge P 192.168.32.95",
    "cause": "network / PLC side",
    "action": "check PLC network"
+  },
+  {
+   "id": "binfill:short_confirmed",
+   "sev": "warning",
+   "area": "Bin Filling",
+   "what": "1 short bin(s) confirmed by the recount \u2014 real shorts",
+   "detail": "bin 89 13:51:18 (9/10)",
+   "cause": "live count and recount agree the bin is short",
+   "action": "check the bin on the line"
   },
   {
    "id": "priority:p2",
    "sev": "warning",
    "area": "Clip priority",
-   "what": "P2 clips 16.6% (1682/10128) \u2014 8032 not cut, 414 no footage",
-   "detail": "Loop Pipe 0.0%, SEAT SLIDER 20.8%",
+   "what": "P2 clips 12.3% (1247/10153) \u2014 8521 not cut, 385 no footage",
+   "detail": "Loop Pipe 0.0%, SEAT SLIDER 15.1%",
    "cause": "not cut = archiver behind (GPU); no footage = camera not recording",
    "action": "fix the listed cameras; if 'not cut' grows, lower the P2 zone count"
   },
@@ -674,8 +706,8 @@
    "id": "video:fi:37",
    "sev": "info",
    "area": "Video",
-   "what": "YRA-SA-6WAY Final Inspection video 16% (30/192)",
-   "detail": "main reason: no camera assigned (162 of 162 missing)",
+   "what": "YRA-SA-6WAY Final Inspection video 42% (72/171)",
+   "detail": "main reason: no camera assigned (98 of 98 missing)",
    "cause": "No camera is assigned to this Final Inspection machine.",
    "action": "Assign a camera if video is needed, otherwise mute this item."
   },
@@ -684,7 +716,7 @@
    "sev": "info",
    "area": "Video",
    "what": "2 machines produce cycles but have no camera",
-   "detail": "Loop Pipe-Line 2 \u00b7 Squeezing Machine (6020), YRA-SA-6WAY \u00b7 Final (Mag Weld 1 + 2) (1090)",
+   "detail": "Loop Pipe-Line 2 \u00b7 Squeezing Machine (5180), YRA-SA-6WAY \u00b7 Final (Mag Weld 1 + 2) (2165)",
    "cause": "These machines produce cycles but have no camera assigned.",
    "action": "Assign cameras where video is needed, otherwise mute this item."
   },
@@ -706,7 +738,7 @@
    "role": "admin",
    "pages": 0,
    "lines": 0,
-   "ms": 16,
+   "ms": 31,
    "state": "ok"
   },
   {
@@ -715,7 +747,7 @@
    "role": "department",
    "pages": 0,
    "lines": 0,
-   "ms": 59,
+   "ms": 63,
    "state": "ok"
   },
   {
@@ -724,7 +756,7 @@
    "role": "production",
    "pages": 7,
    "lines": 9,
-   "ms": 53,
+   "ms": 210,
    "state": "ok"
   },
   {
@@ -733,7 +765,7 @@
    "role": "operator",
    "pages": 9,
    "lines": 5,
-   "ms": 54,
+   "ms": 200,
    "state": "ok"
   },
   {
@@ -742,7 +774,7 @@
    "role": "operator",
    "pages": 9,
    "lines": 5,
-   "ms": 54,
+   "ms": 192,
    "state": "ok"
   },
   {
@@ -751,7 +783,7 @@
    "role": "production_incharge",
    "pages": 13,
    "lines": 19,
-   "ms": 62,
+   "ms": 139,
    "state": "ok"
   },
   {
@@ -760,7 +792,7 @@
    "role": "section_incharge",
    "pages": 15,
    "lines": 23,
-   "ms": 56,
+   "ms": 54,
    "state": "ok"
   },
   {
@@ -769,7 +801,7 @@
    "role": "shift_incharge",
    "pages": 11,
    "lines": 14,
-   "ms": 55,
+   "ms": 65,
    "state": "ok"
   },
   {
@@ -778,7 +810,7 @@
    "role": "shift_incharge",
    "pages": 19,
    "lines": 14,
-   "ms": 54,
+   "ms": 161,
    "state": "ok"
   },
   {
@@ -787,7 +819,7 @@
    "role": "production",
    "pages": 4,
    "lines": 14,
-   "ms": 57,
+   "ms": 130,
    "state": "ok"
   },
   {
@@ -796,7 +828,7 @@
    "role": "production",
    "pages": 1,
    "lines": 14,
-   "ms": 54,
+   "ms": 188,
    "state": "no dashboard"
   },
   {
@@ -805,7 +837,7 @@
    "role": "section_incharge",
    "pages": 16,
    "lines": 5,
-   "ms": 53,
+   "ms": 115,
    "state": "ok"
   },
   {
@@ -814,7 +846,7 @@
    "role": "operator",
    "pages": 8,
    "lines": 3,
-   "ms": 50,
+   "ms": 160,
    "state": "ok"
   },
   {
@@ -823,7 +855,7 @@
    "role": "shift_incharge",
    "pages": 16,
    "lines": 5,
-   "ms": 51,
+   "ms": 123,
    "state": "ok"
   },
   {
@@ -832,7 +864,7 @@
    "role": "shift_incharge",
    "pages": 4,
    "lines": 5,
-   "ms": 52,
+   "ms": 50,
    "state": "ok"
   },
   {
@@ -841,7 +873,7 @@
    "role": "shift_incharge",
    "pages": 9,
    "lines": 3,
-   "ms": 120,
+   "ms": 59,
    "state": "ok"
   },
   {
@@ -850,7 +882,7 @@
    "role": "production",
    "pages": 18,
    "lines": 26,
-   "ms": 179,
+   "ms": 71,
    "state": "ok"
   },
   {
@@ -859,7 +891,7 @@
    "role": "section_incharge",
    "pages": 17,
    "lines": 5,
-   "ms": 67,
+   "ms": 96,
    "state": "ok"
   },
   {
@@ -868,7 +900,7 @@
    "role": "operator",
    "pages": 5,
    "lines": 1,
-   "ms": 95,
+   "ms": 73,
    "state": "ok"
   },
   {
@@ -876,8 +908,8 @@
    "user": "ss",
    "role": "operator",
    "pages": 9,
-   "lines": 11,
-   "ms": 67,
+   "lines": 9,
+   "ms": 327,
    "state": "ok"
   },
   {
@@ -886,7 +918,7 @@
    "role": "leader",
    "pages": 0,
    "lines": 0,
-   "ms": 61,
+   "ms": 56,
    "state": "no lines"
   },
   {
@@ -895,7 +927,7 @@
    "role": "leader",
    "pages": 0,
    "lines": 0,
-   "ms": 55,
+   "ms": 70,
    "state": "no lines"
   },
   {
@@ -904,7 +936,7 @@
    "role": "leader",
    "pages": 0,
    "lines": 0,
-   "ms": 62,
+   "ms": 96,
    "state": "no lines"
   },
   {
@@ -913,7 +945,7 @@
    "role": "leader",
    "pages": 0,
    "lines": 0,
-   "ms": 55,
+   "ms": 91,
    "state": "no lines"
   },
   {
@@ -922,7 +954,7 @@
    "role": "leader",
    "pages": 0,
    "lines": 0,
-   "ms": 136,
+   "ms": 57,
    "state": "no lines"
   },
   {
@@ -931,7 +963,7 @@
    "role": "leader",
    "pages": 0,
    "lines": 0,
-   "ms": 55,
+   "ms": 118,
    "state": "no lines"
   },
   {
@@ -940,7 +972,7 @@
    "role": "leader",
    "pages": 0,
    "lines": 0,
-   "ms": 79,
+   "ms": 72,
    "state": "no lines"
   },
   {
@@ -949,7 +981,7 @@
    "role": "leader",
    "pages": 0,
    "lines": 0,
-   "ms": 54,
+   "ms": 65,
    "state": "no lines"
   },
   {
@@ -958,7 +990,7 @@
    "role": "leader",
    "pages": 0,
    "lines": 0,
-   "ms": 52,
+   "ms": 64,
    "state": "no lines"
   },
   {
@@ -967,7 +999,7 @@
    "role": "section_incharge",
    "pages": 6,
    "lines": 3,
-   "ms": 63,
+   "ms": 68,
    "state": "ok"
   },
   {
@@ -976,7 +1008,7 @@
    "role": "leader",
    "pages": 0,
    "lines": 0,
-   "ms": 54,
+   "ms": 56,
    "state": "no lines"
   },
   {
@@ -985,7 +1017,7 @@
    "role": "leader",
    "pages": 0,
    "lines": 0,
-   "ms": 58,
+   "ms": 77,
    "state": "no lines"
   },
   {
@@ -994,7 +1026,7 @@
    "role": "leader",
    "pages": 0,
    "lines": 0,
-   "ms": 59,
+   "ms": 68,
    "state": "no lines"
   },
   {
@@ -1003,7 +1035,7 @@
    "role": "leader",
    "pages": 0,
    "lines": 5,
-   "ms": 59,
+   "ms": 80,
    "state": "ok"
   },
   {
@@ -1012,7 +1044,7 @@
    "role": "leader",
    "pages": 0,
    "lines": 0,
-   "ms": 55,
+   "ms": 403,
    "state": "no lines"
   },
   {
@@ -1021,7 +1053,7 @@
    "role": "leader",
    "pages": 0,
    "lines": 0,
-   "ms": 62,
+   "ms": 121,
    "state": "no lines"
   },
   {
@@ -1030,7 +1062,7 @@
    "role": "leader",
    "pages": 0,
    "lines": 0,
-   "ms": 82,
+   "ms": 69,
    "state": "no lines"
   },
   {
@@ -1039,7 +1071,7 @@
    "role": "quality_incharge",
    "pages": 13,
    "lines": 31,
-   "ms": 71,
+   "ms": 100,
    "state": "ok"
   },
   {
@@ -1048,7 +1080,7 @@
    "role": "operator",
    "pages": 11,
    "lines": 9,
-   "ms": 58,
+   "ms": 85,
    "state": "ok"
   },
   {
@@ -1057,7 +1089,7 @@
    "role": "leader",
    "pages": 0,
    "lines": 0,
-   "ms": 67,
+   "ms": 184,
    "state": "no lines"
   },
   {
@@ -1066,7 +1098,7 @@
    "role": "quality_incharge",
    "pages": 1,
    "lines": 0,
-   "ms": 78,
+   "ms": 61,
    "state": "no dashboard"
   },
   {
@@ -1075,7 +1107,7 @@
    "role": "leader",
    "pages": 0,
    "lines": 0,
-   "ms": 55,
+   "ms": 56,
    "state": "no lines"
   },
   {
@@ -1084,7 +1116,7 @@
    "role": "leader",
    "pages": 0,
    "lines": 0,
-   "ms": 54,
+   "ms": 61,
    "state": "no lines"
   },
   {
@@ -1093,7 +1125,7 @@
    "role": "leader",
    "pages": 0,
    "lines": 0,
-   "ms": 58,
+   "ms": 62,
    "state": "no lines"
   },
   {
@@ -1102,7 +1134,7 @@
    "role": "leader",
    "pages": 0,
    "lines": 0,
-   "ms": 55,
+   "ms": 73,
    "state": "no lines"
   },
   {
@@ -1111,7 +1143,7 @@
    "role": "admin",
    "pages": 0,
    "lines": 0,
-   "ms": 55,
+   "ms": 66,
    "state": "ok"
   },
   {
@@ -1120,522 +1152,515 @@
    "role": "production",
    "pages": 1,
    "lines": 31,
-   "ms": 62,
+   "ms": 77,
    "state": "no dashboard"
   }
  ],
  "endpoints": [
   {
-   "path": "/api/quality/sa-fi/log",
-   "status": 200,
-   "ms": 2871
-  },
-  {
    "path": "/api/agents",
    "status": 200,
-   "ms": 2450
-  },
-  {
-   "path": "/api/maintenance-kpi/targets",
-   "status": 200,
-   "ms": 2278
-  },
-  {
-   "path": "/api/shift-compile/historical",
-   "status": 200,
-   "ms": 2094
-  },
-  {
-   "path": "/api/faults/history-excel",
-   "status": 200,
-   "ms": 1694
-  },
-  {
-   "path": "/api/shift-compile/compiled",
-   "status": 200,
-   "ms": 1425
+   "ms": 3832
   },
   {
    "path": "/api/plant-overview",
    "status": 200,
-   "ms": 1059
+   "ms": 3335
+  },
+  {
+   "path": "/api/quality/sa-fi/log",
+   "status": 200,
+   "ms": 2774
+  },
+  {
+   "path": "/api/shift-compile/historical",
+   "status": 200,
+   "ms": 2773
+  },
+  {
+   "path": "/api/maintenance-kpi/targets",
+   "status": 200,
+   "ms": 2196
+  },
+  {
+   "path": "/api/shift-compile/compiled",
+   "status": 200,
+   "ms": 1909
+  },
+  {
+   "path": "/api/faults/history-excel",
+   "status": 200,
+   "ms": 1469
   },
   {
    "path": "/api/leaders",
    "status": 200,
-   "ms": 1012
-  },
-  {
-   "path": "/api/shift-compile/overview",
-   "status": 200,
-   "ms": 520
-  },
-  {
-   "path": "/api/quality/ppm",
-   "status": 200,
-   "ms": 481
-  },
-  {
-   "path": "/api/lines/producing",
-   "status": 200,
-   "ms": 471
-  },
-  {
-   "path": "/api/ui-timing/stats",
-   "status": 200,
-   "ms": 433
-  },
-  {
-   "path": "/api/breakdown-history",
-   "status": 200,
-   "ms": 337
-  },
-  {
-   "path": "/api/escalation/my",
-   "status": 200,
-   "ms": 297
-  },
-  {
-   "path": "/api/logs/ports",
-   "status": 200,
-   "ms": 284
+   "ms": 1015
   },
   {
    "path": "/api/maintenance-kpi/",
    "status": 200,
-   "ms": 282
-  },
-  {
-   "path": "/api/manpower/punches",
-   "status": 422,
-   "ms": 245,
-   "note": "needs params"
-  },
-  {
-   "path": "/api/faults/history",
-   "status": 200,
-   "ms": 201
-  },
-  {
-   "path": "/api/shift-compile/zone-summary",
-   "status": 200,
-   "ms": 194
-  },
-  {
-   "path": "/api/breakdowns/stats",
-   "status": 200,
-   "ms": 193
+   "ms": 616
   },
   {
    "path": "/api/logs/collector-reads",
    "status": 200,
-   "ms": 193
+   "ms": 569
   },
   {
-   "path": "/api/clip-priority",
+   "path": "/api/shift-compile/overview",
    "status": 200,
-   "ms": 172
+   "ms": 538
+  },
+  {
+   "path": "/api/quality/ppm",
+   "status": 200,
+   "ms": 526
+  },
+  {
+   "path": "/api/ct-study",
+   "status": 422,
+   "ms": 508,
+   "note": "needs params"
+  },
+  {
+   "path": "/api/py-config/meta/models",
+   "status": 422,
+   "ms": 497,
+   "note": "needs params"
+  },
+  {
+   "path": "/api/py-bypass/act",
+   "status": 422,
+   "ms": 465,
+   "note": "needs params"
+  },
+  {
+   "path": "/api/kanban/model-links",
+   "status": 200,
+   "ms": 448
+  },
+  {
+   "path": "/api/ui-timing/stats",
+   "status": 200,
+   "ms": 445
+  },
+  {
+   "path": "/api/plant-overview/",
+   "status": 200,
+   "ms": 366
+  },
+  {
+   "path": "/api/anything-wrong/summary",
+   "status": 200,
+   "ms": 365
+  },
+  {
+   "path": "/api/leaders/zones",
+   "status": 200,
+   "ms": 342
+  },
+  {
+   "path": "/api/py-config/publish-status",
+   "status": 422,
+   "ms": 322,
+   "note": "needs params"
   },
   {
    "path": "/api/network/status",
    "status": 200,
-   "ms": 152
+   "ms": 301
+  },
+  {
+   "path": "/api/breakdowns/log/stats",
+   "status": 200,
+   "ms": 296
+  },
+  {
+   "path": "/api/breakdown-history",
+   "status": 200,
+   "ms": 280
+  },
+  {
+   "path": "/api/network/ip-conflicts",
+   "status": 200,
+   "ms": 279
+  },
+  {
+   "path": "/api/breakdown-mails/",
+   "status": 200,
+   "ms": 274
+  },
+  {
+   "path": "/api/faults/history",
+   "status": 200,
+   "ms": 266
+  },
+  {
+   "path": "/api/logs/ports",
+   "status": 200,
+   "ms": 262
+  },
+  {
+   "path": "/api/lines/producing",
+   "status": 200,
+   "ms": 255
+  },
+  {
+   "path": "/api/breakdowns/slip-config",
+   "status": 200,
+   "ms": 249
+  },
+  {
+   "path": "/api/manpower/config",
+   "status": 200,
+   "ms": 249
+  },
+  {
+   "path": "/api/escalation/my",
+   "status": 200,
+   "ms": 247
+  },
+  {
+   "path": "/api/5s/items",
+   "status": 200,
+   "ms": 241
   },
   {
    "path": "/api/andon/history",
    "status": 200,
-   "ms": 144
+   "ms": 237
   },
   {
-   "path": "/api/py-bypass/history",
+   "path": "/api/panel/auto-open",
    "status": 200,
-   "ms": 117
+   "ms": 209
   },
   {
-   "path": "/api/andon/active",
+   "path": "/api/timer-config",
    "status": 200,
-   "ms": 101
+   "ms": 205
   },
   {
-   "path": "/api/network/devices",
+   "path": "/api/quality/ncr",
    "status": 200,
-   "ms": 99
+   "ms": 200
   },
   {
-   "path": "/api/devices/list",
+   "path": "/api/capa/pareto",
    "status": 200,
-   "ms": 92
-  },
-  {
-   "path": "/api/sixsigma/config",
-   "status": 200,
-   "ms": 83
-  },
-  {
-   "path": "/api/ui-timing/activity/summary",
-   "status": 200,
-   "ms": 81
+   "ms": 199
   },
   {
    "path": "/api/py-bypass/cases",
    "status": 200,
-   "ms": 76
+   "ms": 187
   },
   {
-   "path": "/api/quality/kpi",
+   "path": "/api/poka-yoke/mail-config/",
    "status": 200,
-   "ms": 68
-  },
-  {
-   "path": "/api/prod-breakdown-slips/pending",
-   "status": 200,
-   "ms": 57
-  },
-  {
-   "path": "/api/leaders/for-line",
-   "status": 422,
-   "ms": 56,
-   "note": "needs params"
-  },
-  {
-   "path": "/api/poka-yoke/bypass-history",
-   "status": 422,
-   "ms": 56,
-   "note": "needs params"
-  },
-  {
-   "path": "/api/5s/audits",
-   "status": 200,
-   "ms": 55
-  },
-  {
-   "path": "/api/store/stock",
-   "status": 200,
-   "ms": 55
-  },
-  {
-   "path": "/api/manpower/alerts",
-   "status": 200,
-   "ms": 54
-  },
-  {
-   "path": "/api/plants/",
-   "status": 200,
-   "ms": 54
-  },
-  {
-   "path": "/api/poka-yoke/master/",
-   "status": 200,
-   "ms": 54
+   "ms": 182
   }
  ],
- "endpoint_total": 198,
+ "endpoint_total": 199,
  "notes": [
   "lines: 31",
   "leaders: 21",
-  "clip coverage 31%",
-  "video: Final Inspection 44.3%, sub-machines 10.7%"
+  "clip coverage 32%",
+  "video: Final Inspection 45.0%, sub-machines 9.4%"
  ],
  "system": {
   "MES-API": {
-   "ms": 68,
+   "ms": 73,
    "status": 200
   },
   "CMS": {
-   "ms": 7,
+   "ms": 4,
    "status": 401
   },
-  "load": 59.3,
+  "load": 64.2,
   "cores": 64,
-  "cms_threads": 481
+  "cms_threads": 483
  },
  "alerts": {
-  "new": 3,
+  "new": 2,
   "cleared": 1,
   "alerts_sent": 4,
   "would_send": null
  },
  "video": {
-  "ran_at": "2026-10-22 11:18:01",
+  "ran_at": "2026-10-23 15:45:01",
   "tracker": {
-   "sample": 0.8,
-   "eval": 1.7,
-   "agent": 0.9
+   "sample": 0.1,
+   "eval": 1.4,
+   "agent": 0.3
   },
   "fi": [
    {
-    "line_id": 37,
-    "line": "YRA-SA-6WAY",
+    "line_id": 40,
+    "line": "LOCATION PIN STACKING - LPS-3",
     "zone": "Sub-Assembly",
-    "cycles": 192,
-    "clips": 30,
-    "pct": 15.6
-   },
-   {
-    "line_id": 7,
-    "line": "GEAR LIFTER",
-    "zone": "YWD/2UA",
-    "cycles": 140,
-    "clips": 44,
-    "pct": 31.4
+    "cycles": 389,
+    "clips": 137,
+    "pct": 35.2
    },
    {
     "line_id": 41,
     "line": "NUT WELDING SA",
     "zone": "Sub-Assembly",
-    "cycles": 252,
-    "clips": 90,
-    "pct": 35.7
+    "cycles": 347,
+    "clips": 132,
+    "pct": 38.0
    },
    {
-    "line_id": 11,
-    "line": "YHB-SS",
-    "zone": "SEAT SLIDER",
-    "cycles": 96,
-    "clips": 35,
-    "pct": 36.5
-   },
-   {
-    "line_id": 40,
-    "line": "LOCATION PIN STACKING - LPS-3",
+    "line_id": 34,
+    "line": "YSD-SA-4WAY",
     "zone": "Sub-Assembly",
-    "cycles": 200,
-    "clips": 81,
-    "pct": 40.5
+    "cycles": 237,
+    "clips": 99,
+    "pct": 41.8
+   },
+   {
+    "line_id": 37,
+    "line": "YRA-SA-6WAY",
+    "zone": "Sub-Assembly",
+    "cycles": 171,
+    "clips": 72,
+    "pct": 42.1
    },
    {
     "line_id": 21,
     "line": "Loop Pipe-Line 2",
     "zone": "Loop Pipe",
-    "cycles": 215,
-    "clips": 93,
+    "cycles": 305,
+    "clips": 132,
     "pct": 43.3
    },
    {
     "line_id": 31,
     "line": "Loop Pipe-Line 3",
     "zone": "Loop Pipe",
-    "cycles": 200,
-    "clips": 88,
-    "pct": 44.0
+    "cycles": 298,
+    "clips": 130,
+    "pct": 43.6
    },
    {
-    "line_id": 33,
-    "line": "YRA-SA-4WAY",
-    "zone": "Sub-Assembly",
-    "cycles": 195,
-    "clips": 87,
-    "pct": 44.6
-   },
-   {
-    "line_id": 4,
-    "line": "YSD-SS",
-    "zone": "SEAT SLIDER",
-    "cycles": 76,
-    "clips": 34,
-    "pct": 44.7
-   },
-   {
-    "line_id": 35,
-    "line": "YHB-SA-4WAY",
-    "zone": "Sub-Assembly",
-    "cycles": 183,
-    "clips": 84,
-    "pct": 45.9
-   },
-   {
-    "line_id": 20,
-    "line": "YMC Recliner",
-    "zone": "Recliner",
-    "cycles": 82,
-    "clips": 38,
-    "pct": 46.3
-   },
-   {
-    "line_id": 13,
-    "line": "YJC-SS",
-    "zone": "SEAT SLIDER",
-    "cycles": 84,
-    "clips": 39,
-    "pct": 46.4
-   },
-   {
-    "line_id": 34,
-    "line": "YSD-SA-4WAY",
-    "zone": "Sub-Assembly",
-    "cycles": 178,
-    "clips": 83,
-    "pct": 46.6
-   },
-   {
-    "line_id": 30,
-    "line": "Loop Pipe-Line 1",
-    "zone": "Loop Pipe",
-    "cycles": 166,
-    "clips": 78,
-    "pct": 47.0
-   },
-   {
-    "line_id": 12,
-    "line": "YCA-SS",
-    "zone": "SEAT SLIDER",
-    "cycles": 78,
-    "clips": 37,
-    "pct": 47.4
+    "line_id": 7,
+    "line": "GEAR LIFTER",
+    "zone": "YWD/2UA",
+    "cycles": 293,
+    "clips": 128,
+    "pct": 43.7
    },
    {
     "line_id": 36,
     "line": "YNC-SA-4WAY",
     "zone": "Sub-Assembly",
-    "cycles": 141,
-    "clips": 67,
-    "pct": 47.5
+    "cycles": 246,
+    "clips": 114,
+    "pct": 46.3
    },
    {
-    "line_id": 2,
-    "line": "YNC-SS",
-    "zone": "SEAT SLIDER",
-    "cycles": 90,
-    "clips": 43,
-    "pct": 47.8
+    "line_id": 33,
+    "line": "YRA-SA-4WAY",
+    "zone": "Sub-Assembly",
+    "cycles": 274,
+    "clips": 127,
+    "pct": 46.4
    },
    {
     "line_id": 39,
     "line": "Y17-SA-4WAY",
     "zone": "Sub-Assembly",
-    "cycles": 165,
-    "clips": 80,
-    "pct": 48.5
+    "cycles": 252,
+    "clips": 120,
+    "pct": 47.6
+   },
+   {
+    "line_id": 11,
+    "line": "YHB-SS",
+    "zone": "SEAT SLIDER",
+    "cycles": 213,
+    "clips": 105,
+    "pct": 49.3
+   },
+   {
+    "line_id": 35,
+    "line": "YHB-SA-4WAY",
+    "zone": "Sub-Assembly",
+    "cycles": 213,
+    "clips": 107,
+    "pct": 50.2
+   },
+   {
+    "line_id": 2,
+    "line": "YNC-SS",
+    "zone": "SEAT SLIDER",
+    "cycles": 213,
+    "clips": 112,
+    "pct": 52.6
    },
    {
     "line_id": 15,
     "line": "Y17-SS",
     "zone": "SEAT SLIDER",
-    "cycles": 83,
-    "clips": 41,
-    "pct": 49.4
+    "cycles": 202,
+    "clips": 107,
+    "pct": 53.0
    },
    {
-    "line_id": 19,
-    "line": "YMC-SS",
+    "line_id": 12,
+    "line": "YCA-SS",
     "zone": "SEAT SLIDER",
-    "cycles": 81,
-    "clips": 40,
-    "pct": 49.4
+    "cycles": 198,
+    "clips": 105,
+    "pct": 53.0
+   },
+   {
+    "line_id": 20,
+    "line": "YMC Recliner",
+    "zone": "Recliner",
+    "cycles": 192,
+    "clips": 102,
+    "pct": 53.1
    },
    {
     "line_id": 14,
     "line": "YFG-SS",
     "zone": "SEAT SLIDER",
-    "cycles": 72,
-    "clips": 37,
-    "pct": 51.4
+    "cycles": 184,
+    "clips": 102,
+    "pct": 55.4
    },
    {
     "line_id": 18,
     "line": "YRA-SS",
     "zone": "SEAT SLIDER",
-    "cycles": 63,
-    "clips": 35,
-    "pct": 55.6
+    "cycles": 186,
+    "clips": 104,
+    "pct": 55.9
+   },
+   {
+    "line_id": 30,
+    "line": "Loop Pipe-Line 1",
+    "zone": "Loop Pipe",
+    "cycles": 184,
+    "clips": 103,
+    "pct": 56.0
+   },
+   {
+    "line_id": 4,
+    "line": "YSD-SS",
+    "zone": "SEAT SLIDER",
+    "cycles": 167,
+    "clips": 94,
+    "pct": 56.3
    },
    {
     "line_id": 6,
     "line": "YWD-SS",
     "zone": "YWD/2UA",
-    "cycles": 45,
-    "clips": 28,
-    "pct": 62.2
+    "cycles": 155,
+    "clips": 88,
+    "pct": 56.8
    },
    {
-    "line_id": 38,
-    "line": "YNC-SA-6WAY",
-    "zone": "Sub-Assembly",
-    "cycles": 105,
-    "clips": 68,
-    "pct": 64.8
+    "line_id": 19,
+    "line": "YMC-SS",
+    "zone": "SEAT SLIDER",
+    "cycles": 179,
+    "clips": 106,
+    "pct": 59.2
    },
    {
-    "line_id": 8,
-    "line": "2UA RECLINER",
-    "zone": "YWD/2UA",
-    "cycles": 60,
-    "clips": 41,
-    "pct": 68.3
+    "line_id": 13,
+    "line": "YJC-SS",
+    "zone": "SEAT SLIDER",
+    "cycles": 164,
+    "clips": 98,
+    "pct": 59.8
    },
    {
     "line_id": 10,
     "line": "YWD RECLINER",
     "zone": "YWD/2UA",
-    "cycles": 29,
-    "clips": 29,
-    "pct": 100.0
+    "cycles": 131,
+    "clips": 80,
+    "pct": 61.1
+   },
+   {
+    "line_id": 38,
+    "line": "YNC-SA-6WAY",
+    "zone": "Sub-Assembly",
+    "cycles": 135,
+    "clips": 88,
+    "pct": 65.2
    }
   ],
-  "fi_pct": 44.3,
-  "sub_pct": 10.7,
+  "fi_pct": 48.7,
+  "sub_pct": 9.4,
   "totals": {
-   "fi_cycles": 3271,
-   "fi_clips": 1450,
-   "sub_cycles": 10622,
-   "sub_clips": 1137
+   "fi_cycles": 5528,
+   "fi_clips": 2692,
+   "sub_cycles": 19529,
+   "sub_clips": 1839
   },
   "zones": [
    {
-    "zone": "Sub-Assembly",
-    "cycles": 3907,
-    "clips": 176,
-    "pct": 4.5,
-    "baseline": 0.1,
-    "samples": 513
-   },
-   {
     "zone": "SEAT SLIDER",
-    "cycles": 3869,
-    "clips": 793,
-    "pct": 20.5,
-    "baseline": 21.6,
-    "samples": 476
+    "cycles": 9033,
+    "clips": 1636,
+    "pct": 18.1,
+    "baseline": 24.6,
+    "samples": 460
    },
    {
-    "zone": "Loop Pipe",
-    "cycles": 1548,
-    "clips": 168,
-    "pct": 10.9,
-    "baseline": 6.3,
-    "samples": 495
+    "zone": "Sub-Assembly",
+    "cycles": 5109,
+    "clips": 3,
+    "pct": 0.1,
+    "baseline": 0.0,
+    "samples": 487
    },
    {
     "zone": "Recliner",
-    "cycles": 1298,
+    "cycles": 3112,
     "clips": 0,
     "pct": 0.0,
     "baseline": 0.0,
-    "samples": 462
+    "samples": 452
+   },
+   {
+    "zone": "Loop Pipe",
+    "cycles": 2275,
+    "clips": 200,
+    "pct": 8.8,
+    "baseline": 0.3,
+    "samples": 480
    }
   ],
   "cameras": {
-   "recording": 130,
-   "camera_offline": 3,
+   "recording": 131,
+   "camera_offline": 2,
    "camera_wrong_ip": 1,
    "camera_hung": 1
   },
   "recorders": {
-   "cameras": 129,
+   "cameras": 131,
    "duplicates": 0,
    "stuck": 0,
    "deleted_file": 0
   },
   "reasons": {
-   "clip_failed": 10362,
-   "no_camera": 389,
-   "camera_offline": 323,
-   "camera_hung": 5
+   "clip_failed": 19574,
+   "no_camera": 451,
+   "camera_offline": 147,
+   "camera_hung": 41
   },
-  "disk_free_tb": 4.15,
+  "disk_free_tb": 3.06,
   "shift": null
  },
- "video_ran_at": "2026-10-22 11:18:02",
+ "video_ran_at": "2026-10-23 15:45:07",
  "dry_run": false,
  "collectors": {
   "total": 31,
@@ -1648,7 +1673,7 @@
     "running": true,
     "log_silent_s": 0,
     "db_age_s": 0,
-    "parts_15m": 47,
+    "parts_15m": 18,
     "sub_parts_15m": 0,
     "plc_off_pct": 0,
     "problems": []
@@ -1657,9 +1682,9 @@
     "collector": "collector_gear_lifter",
     "line": "GEAR LIFTER",
     "running": true,
-    "log_silent_s": 0,
+    "log_silent_s": 1,
     "db_age_s": 0,
-    "parts_15m": 108,
+    "parts_15m": 94,
     "sub_parts_15m": 0,
     "plc_off_pct": 0,
     "problems": []
@@ -1670,8 +1695,8 @@
     "running": true,
     "log_silent_s": 0,
     "db_age_s": 0,
-    "parts_15m": 42,
-    "sub_parts_15m": 44,
+    "parts_15m": 101,
+    "sub_parts_15m": 100,
     "plc_off_pct": 0,
     "problems": []
    },
@@ -1681,8 +1706,8 @@
     "running": true,
     "log_silent_s": 0,
     "db_age_s": 0,
-    "parts_15m": 62,
-    "sub_parts_15m": 70,
+    "parts_15m": 93,
+    "sub_parts_15m": 94,
     "plc_off_pct": 0,
     "problems": []
    },
@@ -1690,10 +1715,10 @@
     "collector": "collector_l_3",
     "line": "YHB-SA-4WAY",
     "running": true,
-    "log_silent_s": 0,
+    "log_silent_s": 1,
     "db_age_s": 0,
-    "parts_15m": 55,
-    "sub_parts_15m": 62,
+    "parts_15m": 76,
+    "sub_parts_15m": 87,
     "plc_off_pct": 0,
     "problems": []
    },
@@ -1703,8 +1728,8 @@
     "running": true,
     "log_silent_s": 0,
     "db_age_s": 0,
-    "parts_15m": 62,
-    "sub_parts_15m": 66,
+    "parts_15m": 94,
+    "sub_parts_15m": 96,
     "plc_off_pct": 0,
     "problems": []
    },
@@ -1714,8 +1739,8 @@
     "running": true,
     "log_silent_s": 0,
     "db_age_s": 0,
-    "parts_15m": 20,
-    "sub_parts_15m": 40,
+    "parts_15m": 66,
+    "sub_parts_15m": 66,
     "plc_off_pct": 100,
     "problems": [
      "plc_offline",
@@ -1726,10 +1751,10 @@
     "collector": "collector_l_6",
     "line": "YNC-SA-6WAY",
     "running": true,
-    "log_silent_s": 0,
+    "log_silent_s": 1,
     "db_age_s": 0,
-    "parts_15m": 36,
-    "sub_parts_15m": 36,
+    "parts_15m": 44,
+    "sub_parts_15m": 45,
     "plc_off_pct": 0,
     "problems": []
    },
@@ -1739,8 +1764,8 @@
     "running": true,
     "log_silent_s": 1,
     "db_age_s": 0,
-    "parts_15m": 75,
-    "sub_parts_15m": 76,
+    "parts_15m": 78,
+    "sub_parts_15m": 80,
     "plc_off_pct": 0,
     "problems": []
    },
@@ -1749,10 +1774,10 @@
     "line": "Loop Pipe-Line 1",
     "running": true,
     "log_silent_s": 0,
-    "db_age_s": 2,
-    "parts_15m": 73,
-    "sub_parts_15m": 78,
-    "plc_off_pct": 0,
+    "db_age_s": 1,
+    "parts_15m": 72,
+    "sub_parts_15m": 74,
+    "plc_off_pct": 1,
     "problems": [
      "sub_offline"
     ]
@@ -1761,10 +1786,10 @@
     "collector": "collector_lp_02",
     "line": "Loop Pipe-Line 2",
     "running": true,
-    "log_silent_s": 1,
+    "log_silent_s": 3,
     "db_age_s": 1,
-    "parts_15m": 103,
-    "sub_parts_15m": 102,
+    "parts_15m": 101,
+    "sub_parts_15m": 104,
     "plc_off_pct": 0,
     "problems": []
    },
@@ -1773,9 +1798,9 @@
     "line": "Loop Pipe-Line 3",
     "running": true,
     "log_silent_s": 1,
-    "db_age_s": 2,
-    "parts_15m": 96,
-    "sub_parts_15m": 98,
+    "db_age_s": 1,
+    "parts_15m": 104,
+    "sub_parts_15m": 99,
     "plc_off_pct": 0,
     "problems": [
      "sub_offline",
@@ -1788,7 +1813,7 @@
     "running": true,
     "log_silent_s": 0,
     "db_age_s": 0,
-    "parts_15m": 144,
+    "parts_15m": 130,
     "sub_parts_15m": 0,
     "plc_off_pct": 0,
     "problems": []
@@ -1797,7 +1822,7 @@
     "collector": "collector_nut_lifting",
     "line": "NUT LIFTING",
     "running": true,
-    "log_silent_s": 1,
+    "log_silent_s": 0,
     "db_age_s": 0,
     "parts_15m": 0,
     "sub_parts_15m": 0,
@@ -1812,7 +1837,7 @@
     "running": true,
     "log_silent_s": 1,
     "db_age_s": 0,
-    "parts_15m": 79,
+    "parts_15m": 64,
     "sub_parts_15m": 0,
     "plc_off_pct": 0,
     "problems": []
@@ -1821,10 +1846,10 @@
     "collector": "collector_y17_l7",
     "line": "Y17-SS",
     "running": true,
-    "log_silent_s": 0,
+    "log_silent_s": 2,
     "db_age_s": 1,
-    "parts_15m": 57,
-    "sub_parts_15m": 58,
+    "parts_15m": 69,
+    "sub_parts_15m": 67,
     "plc_off_pct": 0,
     "problems": []
    },
@@ -1832,11 +1857,11 @@
     "collector": "collector_yca_l5",
     "line": "YCA-SS",
     "running": true,
-    "log_silent_s": 1,
+    "log_silent_s": 0,
     "db_age_s": 0,
     "parts_15m": 64,
-    "sub_parts_15m": 64,
-    "plc_off_pct": 0,
+    "sub_parts_15m": 66,
+    "plc_off_pct": 1,
     "problems": []
    },
    {
@@ -1844,9 +1869,9 @@
     "line": "YFG-SS",
     "running": true,
     "log_silent_s": 1,
-    "db_age_s": 0,
-    "parts_15m": 61,
-    "sub_parts_15m": 63,
+    "db_age_s": 1,
+    "parts_15m": 68,
+    "sub_parts_15m": 68,
     "plc_off_pct": 0,
     "problems": []
    },
@@ -1856,7 +1881,7 @@
     "running": true,
     "log_silent_s": 1,
     "db_age_s": 1,
-    "parts_15m": 67,
+    "parts_15m": 73,
     "sub_parts_15m": 71,
     "plc_off_pct": 0,
     "problems": []
@@ -1868,7 +1893,7 @@
     "log_silent_s": 1,
     "db_age_s": 1,
     "parts_15m": 0,
-    "sub_parts_15m": 57,
+    "sub_parts_15m": 65,
     "plc_off_pct": 100,
     "problems": [
      "not_counting",
@@ -1881,10 +1906,10 @@
     "collector": "collector_yjc_l2",
     "line": "YJC-SS",
     "running": true,
-    "log_silent_s": 0,
+    "log_silent_s": 2,
     "db_age_s": 0,
-    "parts_15m": 46,
-    "sub_parts_15m": 47,
+    "parts_15m": 47,
+    "sub_parts_15m": 46,
     "plc_off_pct": 0,
     "problems": []
    },
@@ -1892,9 +1917,9 @@
     "collector": "collector_ymc_l5",
     "line": "YMC Recliner",
     "running": true,
-    "log_silent_s": 1,
+    "log_silent_s": 0,
     "db_age_s": 0,
-    "parts_15m": 55,
+    "parts_15m": 52,
     "sub_parts_15m": 58,
     "plc_off_pct": 0,
     "problems": []
@@ -1905,9 +1930,9 @@
     "running": true,
     "log_silent_s": 0,
     "db_age_s": 0,
-    "parts_15m": 59,
-    "sub_parts_15m": 60,
-    "plc_off_pct": 1,
+    "parts_15m": 52,
+    "sub_parts_15m": 54,
+    "plc_off_pct": 0,
     "problems": [
      "sub_offline"
     ]
@@ -1916,12 +1941,13 @@
     "collector": "collector_ync_l4",
     "line": "YNC Recliner",
     "running": true,
-    "log_silent_s": 0,
-    "db_age_s": 0,
+    "log_silent_s": 1,
+    "db_age_s": 9606,
     "parts_15m": null,
-    "sub_parts_15m": 57,
+    "sub_parts_15m": 46,
     "plc_off_pct": 100,
     "problems": [
+     "db_stale",
      "db_errors",
      "plc_offline",
      "sub_offline",
@@ -1933,9 +1959,9 @@
     "line": "YNC-SS",
     "running": true,
     "log_silent_s": 1,
-    "db_age_s": 0,
-    "parts_15m": 66,
-    "sub_parts_15m": 67,
+    "db_age_s": 1,
+    "parts_15m": 61,
+    "sub_parts_15m": 64,
     "plc_off_pct": 0,
     "problems": []
    },
@@ -1943,10 +1969,10 @@
     "collector": "collector_yra_l1",
     "line": "YRA Recliner",
     "running": true,
-    "log_silent_s": 0,
-    "db_age_s": 2,
+    "log_silent_s": 1,
+    "db_age_s": 1,
     "parts_15m": 0,
-    "sub_parts_15m": 55,
+    "sub_parts_15m": 67,
     "plc_off_pct": 100,
     "problems": [
      "not_counting",
@@ -1960,8 +1986,8 @@
     "running": true,
     "log_silent_s": 1,
     "db_age_s": 0,
-    "parts_15m": 61,
-    "sub_parts_15m": 62,
+    "parts_15m": 69,
+    "sub_parts_15m": 65,
     "plc_off_pct": 0,
     "problems": []
    },
@@ -1969,10 +1995,10 @@
     "collector": "collector_ysd_l2",
     "line": "YSD-SS",
     "running": true,
-    "log_silent_s": 1,
-    "db_age_s": 0,
-    "parts_15m": 56,
-    "sub_parts_15m": 55,
+    "log_silent_s": 0,
+    "db_age_s": 1,
+    "parts_15m": 62,
+    "sub_parts_15m": 67,
     "plc_off_pct": 0,
     "problems": []
    },
@@ -1981,11 +2007,12 @@
     "line": "YSD Recliner",
     "running": true,
     "log_silent_s": 2,
-    "db_age_s": 0,
+    "db_age_s": 9606,
     "parts_15m": null,
-    "sub_parts_15m": 48,
+    "sub_parts_15m": 61,
     "plc_off_pct": 100,
     "problems": [
+     "db_stale",
      "db_errors",
      "plc_offline",
      "sub_offline"
@@ -1995,9 +2022,9 @@
     "collector": "collector_ywd_rec",
     "line": "YWD RECLINER",
     "running": true,
-    "log_silent_s": 0,
+    "log_silent_s": 1,
     "db_age_s": 0,
-    "parts_15m": 46,
+    "parts_15m": 53,
     "sub_parts_15m": 0,
     "plc_off_pct": 0,
     "problems": []
@@ -2006,84 +2033,223 @@
     "collector": "collector_ywd_ss",
     "line": "YWD-SS",
     "running": true,
-    "log_silent_s": 0,
+    "log_silent_s": 1,
     "db_age_s": 0,
-    "parts_15m": 36,
+    "parts_15m": 40,
     "sub_parts_15m": 0,
     "plc_off_pct": 0,
     "problems": []
    }
   ]
  },
- "collectors_ran_at": "2026-10-22 11:15:06",
+ "collectors_ran_at": "2026-10-23 15:45:07",
  "collector_report": {
-  "problems": 20,
+  "problems": 22,
   "alerts_sent": 2,
   "would_send": null
  },
  "binfill": {
   "days": [
-   "20261022"
+   "20261023"
   ],
-  "bins": 56,
+  "bins": 134,
   "short": [
    {
-    "day": "20261022",
-    "bin": 1,
-    "start": "08:50:52",
-    "end": "08:54:19",
-    "live": 9,
-    "recount": 10,
-    "age_s": 8446,
+    "day": "20261023",
+    "bin": 89,
+    "start": "13:47:20",
+    "end": "13:51:18",
+    "live": 6,
+    "recount": 9,
+    "age_s": 6827,
     "operator": null,
-    "clip": "bin_001_9of10_085419.mp4",
+    "clip": "bin_089_6of10_135118.mp4",
+    "clip_ok": true
+   },
+   {
+    "day": "20261023",
+    "bin": 134,
+    "start": "15:41:34",
+    "end": "15:43:32",
+    "live": 5,
+    "recount": null,
+    "age_s": 93,
+    "operator": null,
+    "clip": "bin_134_5of10_154332.mp4",
     "clip_ok": true
    }
   ],
-  "not_counted": [],
+  "not_counted": [
+   {
+    "day": "20261023",
+    "bin": 3,
+    "start": "09:00:01",
+    "end": "09:04:49",
+    "live": null,
+    "recount": null,
+    "age_s": 24016,
+    "operator": "10",
+    "clip": "bin_003_nocount_090449.mp4",
+    "clip_ok": true
+   },
+   {
+    "day": "20261023",
+    "bin": 14,
+    "start": "09:29:48",
+    "end": "09:40:12",
+    "live": null,
+    "recount": 10,
+    "age_s": 21893,
+    "operator": null,
+    "clip": "bin_014_nocount_094012.mp4",
+    "clip_ok": true
+   },
+   {
+    "day": "20261023",
+    "bin": 19,
+    "start": "09:52:21",
+    "end": "10:13:21",
+    "live": null,
+    "recount": null,
+    "age_s": 19904,
+    "operator": "10",
+    "clip": "bin_019_nocount_101321.mp4",
+    "clip_ok": true
+   },
+   {
+    "day": "20261023",
+    "bin": 27,
+    "start": "10:32:48",
+    "end": "10:40:56",
+    "live": null,
+    "recount": null,
+    "age_s": 18249,
+    "operator": "10",
+    "clip": "bin_027_nocount_104056.mp4",
+    "clip_ok": true
+   },
+   {
+    "day": "20261023",
+    "bin": 46,
+    "start": "11:25:59",
+    "end": "11:30:12",
+    "live": null,
+    "recount": null,
+    "age_s": 15293,
+    "operator": "10",
+    "clip": "bin_046_nocount_113012.mp4",
+    "clip_ok": true
+   },
+   {
+    "day": "20261023",
+    "bin": 58,
+    "start": "11:54:26",
+    "end": "11:56:20",
+    "live": null,
+    "recount": 10,
+    "age_s": 13725,
+    "operator": null,
+    "clip": "bin_058_nocount_115620.mp4",
+    "clip_ok": true
+   }
+  ],
   "auto_updates": [
    {
-    "day": "20261022",
-    "bin": "1",
-    "start": "08:50:52",
-    "live": "9",
+    "day": "20261023",
+    "bin": "3",
+    "start": "09:00:01",
+    "live": "",
+    "recount": "",
+    "result": "no_clean_count",
+    "at": "2026-10-23T09:19:51"
+   },
+   {
+    "day": "20261023",
+    "bin": "14",
+    "start": "09:29:48",
+    "live": "",
     "recount": "10",
-    "result": "false_short_cleared",
-    "at": "2026-10-22T08:58:38"
+    "result": "counted_from_recording",
+    "at": "2026-10-23T09:45:47"
+   },
+   {
+    "day": "20261023",
+    "bin": "19",
+    "start": "09:52:21",
+    "live": "",
+    "recount": "",
+    "result": "no_clean_count",
+    "at": "2026-10-23T10:52:45"
+   },
+   {
+    "day": "20261023",
+    "bin": "27",
+    "start": "10:32:48",
+    "live": "",
+    "recount": "",
+    "result": "no_clean_count",
+    "at": "2026-10-23T10:57:02"
+   },
+   {
+    "day": "20261023",
+    "bin": "46",
+    "start": "11:25:59",
+    "live": "",
+    "recount": "",
+    "result": "no_clean_count",
+    "at": "2026-10-23T11:47:04"
+   },
+   {
+    "day": "20261023",
+    "bin": "58",
+    "start": "11:54:26",
+    "live": "",
+    "recount": "10",
+    "result": "counted_from_recording",
+    "at": "2026-10-23T12:00:18"
+   },
+   {
+    "day": "20261023",
+    "bin": "89",
+    "start": "13:47:20",
+    "live": "6",
+    "recount": "9",
+    "result": "short_confirmed",
+    "at": "2026-10-23T13:56:07"
    }
   ],
   "videos": {
-   "checked": 1,
-   "ok": 1,
+   "checked": 6,
+   "ok": 6,
    "slow": 0,
    "failed": 0,
-   "avg_s": 0.01
+   "avg_s": 0.03
   },
   "jobs": {
-   "live5m5": 4,
+   "live5m5": 0,
    "binclips": 9,
-   "recover": 24,
+   "recover": 58,
    "recorder": 0
   },
   "counting": "LIVE",
   "short_summary": {
-   "total": 1,
-   "false_cleared": 1,
-   "confirmed": 0,
+   "total": 2,
+   "false_cleared": 0,
+   "confirmed": 1,
    "operator_decided": 0
   },
   "not_counted_summary": {
-   "total": 0,
-   "counted_from_recording": 0,
-   "operator_counted": 0,
+   "total": 6,
+   "counted_from_recording": 2,
+   "operator_counted": 4,
    "need_manual": 0
   }
  },
- "binfill_ran_at": "2026-10-22 11:15:06",
+ "binfill_ran_at": "2026-10-23 15:45:07",
  "binfill_report": {
-  "problems": 0,
+  "problems": 1,
   "auto_new": 0,
-  "alerts_sent": 0,
+  "alerts_sent": 2,
   "would_send": null
  },
  "clip_priority": {
@@ -2100,96 +2266,103 @@
    "SEAT SLIDER"
   ],
   "saved_at": "2026-09-21 22:31:48",
-  "window": "10:30\u201311:12",
+  "window": "15:00\u201315:42",
   "rows": [
    {
-    "cycles": 764,
-    "clip": 313,
-    "no_camera": 0,
+    "cycles": 734,
+    "clip": 272,
+    "no_camera": 10,
     "no_footage": 0,
-    "not_cut": 451,
+    "not_cut": 452,
     "cls": "P1",
     "zone": "Loop Pipe",
-    "pct": 41.0
+    "pct": 37.1
    },
    {
-    "cycles": 156,
-    "clip": 84,
+    "cycles": 159,
+    "clip": 78,
     "no_camera": 0,
     "no_footage": 0,
-    "not_cut": 72,
+    "not_cut": 81,
     "cls": "P1",
     "zone": "Recliner",
-    "pct": 53.8
+    "pct": 49.1
    },
    {
-    "cycles": 1549,
-    "clip": 781,
+    "cycles": 1552,
+    "clip": 708,
     "no_camera": 0,
     "no_footage": 0,
-    "not_cut": 768,
+    "not_cut": 844,
     "cls": "P1",
     "zone": "SEAT SLIDER",
-    "pct": 50.4
+    "pct": 45.6
    },
    {
-    "cycles": 2265,
-    "clip": 867,
-    "no_camera": 233,
-    "no_footage": 0,
-    "not_cut": 1165,
+    "cycles": 2144,
+    "clip": 740,
+    "no_camera": 132,
+    "no_footage": 64,
+    "not_cut": 1208,
     "cls": "P1",
     "zone": "Sub-Assembly",
-    "pct": 38.3
+    "pct": 34.5
    },
    {
-    "cycles": 614,
-    "clip": 293,
+    "cycles": 491,
+    "clip": 221,
     "no_camera": 0,
     "no_footage": 0,
-    "not_cut": 321,
+    "not_cut": 270,
     "cls": "P1",
     "zone": "YWD/2UA",
-    "pct": 47.7
+    "pct": 45.0
    },
    {
-    "cycles": 2034,
+    "cycles": 1869,
     "clip": 0,
-    "no_camera": 278,
-    "no_footage": 136,
-    "not_cut": 1620,
+    "no_camera": 246,
+    "no_footage": 139,
+    "not_cut": 1484,
     "cls": "P2",
     "zone": "Loop Pipe",
     "pct": 0.0
    },
    {
-    "cycles": 8094,
-    "clip": 1682,
+    "cycles": 8284,
+    "clip": 1247,
     "no_camera": 0,
     "no_footage": 0,
-    "not_cut": 6412,
+    "not_cut": 7037,
     "cls": "P2",
     "zone": "SEAT SLIDER",
-    "pct": 20.8
+    "pct": 15.1
    }
   ],
-  "p3_skipped": 7127,
+  "p3_skipped": 7795,
   "P1": {
-   "cycles": 5348,
-   "clip": 2338,
-   "pct": 43.7,
-   "not_cut": 2777,
-   "no_footage": 233
+   "cycles": 5080,
+   "clip": 2019,
+   "pct": 39.7,
+   "not_cut": 2855,
+   "no_footage": 206
   },
   "P2": {
-   "cycles": 10128,
-   "clip": 1682,
-   "pct": 16.6,
-   "not_cut": 8032,
-   "no_footage": 414
+   "cycles": 10153,
+   "clip": 1247,
+   "pct": 12.3,
+   "not_cut": 8521,
+   "no_footage": 385
   }
  },
  "clip_priority_report": {
   "sent": 2
+ },
+ "video_took_s": 5.4,
+ "video_alerts": {
+  "new": 0,
+  "cleared": 1,
+  "alerts_sent": 2,
+  "would_send": null
  }
 }

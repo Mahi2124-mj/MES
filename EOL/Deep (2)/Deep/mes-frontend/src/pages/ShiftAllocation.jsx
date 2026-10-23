@@ -227,6 +227,9 @@ export default function ShiftAllocation() {
   const [shift,     setShift]     = useState("A");
   const [processes, setProcesses] = useState([]);
   const [pool,      setPool]      = useState([]);
+  // 2026-10-23 — pool edits are staged and only written by Save Allocation.
+  const [poolAdds,    setPoolAdds]    = useState(new Set());  // operator ids added on screen
+  const [poolRemoves, setPoolRemoves] = useState(new Set());  // operator ids removed on screen
   const [history,   setHistory]   = useState([]);
   const [config,    setConfig]    = useState(null);
   const [locked,    setLocked]    = useState(false);
@@ -350,11 +353,13 @@ export default function ShiftAllocation() {
       });
 
       // Carry-forward: a day with no allocation yet gets the crew from the most
-      // recent same-shift day earlier THIS week ("same person until changed").
-      // For TODAY it's AUTO-SAVED (no daily manual save); for other empty days
-      // this week it's a pre-filled suggestion (Save to commit). Carried
-      // operators are merged into the pool so their chips render.
-      let carried = null;          // set only when NOT auto-committed (suggestion)
+      // recent same-shift day earlier THIS week ("same person until changed"),
+      // pre-filled as a suggestion. Carried operators are merged into the pool
+      // so their chips render. 2026-10-23 — never auto-saved any more (it was
+      // auto-committed for TODAY, so every refresh — including the one after a
+      // pool edit — wrote allocations the user had not saved). Only the Save
+      // Allocation button writes.
+      let carried = null;          // date the suggestion was carried from
       let poolNext = punches || [];
       let savedAt = null, savedBy = null;
       (allocs || []).forEach(a => {
@@ -372,26 +377,13 @@ export default function ShiftAllocation() {
             c.items.forEach(it => { if (!have.has(it.id)) { have.add(it.id); merged.push(it); } });
             poolNext = merged;
             c.items.forEach(a => { const slot = next[a.process_id]; if (slot) { const i = slot.findIndex(x => x === null); if (i >= 0) slot[i] = a.id; } });
-
-            const rows = [];
-            Object.entries(next).forEach(([pid, ops]) => ops.forEach(opId => { if (opId) rows.push({ process_id: Number(pid), operator_id: opId }); }));
-            if (writable && date === today && rows.length) {
-              // Auto-commit today's standing crew so no daily save is needed.
-              try {
-                await api.post("/api/manpower/allocations", {
-                  line_id: Number(lineId), shift_date: date, shift_name: shift,
-                  rows, allocated_by: (user?.username || "auto-carry"),
-                }, token);
-                showToast(`Same crew auto-carried from ${c.carried_from} ✓`);
-                savedAt = new Date().toISOString(); savedBy = user?.username || "auto-carry";
-              } catch (e2) { carried = c.carried_from || null; }  // failed → show as suggestion
-            } else {
-              carried = c.carried_from || null;                  // future day → suggestion
-            }
+            carried = c.carried_from || null;                    // suggestion — Save to commit
           }
         } catch (e) { /* carry is best-effort */ }
       }
       setPool(poolNext);
+      setPoolAdds(new Set());
+      setPoolRemoves(new Set());
       setCarriedFrom(carried);
       setSaveInfo({ saved: !!savedAt, at: savedAt, by: savedBy, sig: savedAt ? crewSig(next) : null });
       setPending(next);
@@ -537,6 +529,16 @@ export default function ShiftAllocation() {
         line_id: Number(lineId), shift_date: date, shift_name: shift,
         rows, allocated_by: user?.username || "supervisor",
       }, token);
+      // Pool edits made on screen are written only now, after the crew saved.
+      const pq = `line_id=${Number(lineId)}&date=${date}&shift=${encodeURIComponent(shift)}`;
+      for (const opId of poolRemoves) {
+        await api.delete(`/api/manpower/punches?operator_id=${opId}&${pq}`, token);
+      }
+      for (const opId of poolAdds) {
+        await api.post("/api/manpower/punches", {
+          operator_id: opId, line_id: Number(lineId), shift_name: shift, shift_date: date,
+        }, token);
+      }
       const mismatches = res?.mismatches ?? 0;
       if (mismatches > 0) {
         showToast(`Saved · ${mismatches} skill mismatch${mismatches>1?"es":""} — Quality + Section Incharge notified`, "err");
@@ -564,34 +566,49 @@ export default function ShiftAllocation() {
     } catch (e) { showToast(`Failed to load operators: ${e.message}`, "err"); }
   };
 
-  const manualPunch = async () => {
+  // 2026-10-23 — add / remove only change the screen; Save Allocation writes
+  // the punches.  Removing used to delete the punch at once and then refresh,
+  // and that refresh auto-saved the carried crew — data saved without Save.
+  const manualPunch = () => {
     if (!pickOpId) { showToast("Pick an operator", "err"); return; }
-    try {
-      await api.post("/api/manpower/punches", {
-        operator_id: Number(pickOpId),
-        line_id: Number(lineId),
-        shift_name: shift,
-        shift_date: date,
-      }, token);
-      const op = allOperators.find(o => o.id === Number(pickOpId));
-      showToast(`${op?.full_name || "Operator"} added to pool ✓`);
-      // Keep the modal OPEN so several operators can be added in a row;
-      // just clear the picker and refresh the pool. Use "Done" to close.
-      setPickOpId(""); setPickSearch("");
-      refresh();
-    } catch (e) { showToast(e.message, "err"); }
+    const op = allOperators.find(o => o.id === Number(pickOpId));
+    if (!op) return;
+    setPool(prev => prev.some(x => x.id === op.id) ? prev : [...prev, {
+      id: op.id, badge_code: op.badge_code, full_name: op.full_name,
+      employee_id: op.employee_id, department: op.department, skill_level: op.skill_level,
+    }]);
+    if (poolRemoves.has(op.id)) {
+      const s = new Set(poolRemoves); s.delete(op.id); setPoolRemoves(s);
+    } else {
+      const s = new Set(poolAdds); s.add(op.id); setPoolAdds(s);
+    }
+    showToast(`${op.full_name || "Operator"} added — click Save Allocation to confirm`);
+    // Keep the modal OPEN so several operators can be added in a row.
+    setPickOpId(""); setPickSearch("");
   };
 
-  // Remove an operator from the pool (delete their punch).
-  const removeFromPool = async (opId) => {
+  // Remove an operator from the pool and from any process slot (on screen only).
+  const removeFromPool = (opId) => {
     const op = pool.find(x => x.id === opId);
-    try {
-      await api.delete(
-        `/api/manpower/punches?operator_id=${opId}&line_id=${Number(lineId)}&date=${date}&shift=${encodeURIComponent(shift)}`,
-        token);
-      showToast(`${op?.full_name || "Operator"} removed from pool`);
-      refresh();
-    } catch (e) { showToast(e.message, "err"); }
+    setPool(prev => prev.filter(x => x.id !== opId));
+    setPending(prev => {
+      const next = {};
+      Object.entries(prev).forEach(([pid, ops]) => { next[pid] = ops.map(id => (id === opId ? null : id)); });
+      return next;
+    });
+    if (poolAdds.has(opId)) {
+      const s = new Set(poolAdds); s.delete(opId); setPoolAdds(s);
+    } else {
+      const s = new Set(poolRemoves); s.add(opId); setPoolRemoves(s);
+    }
+    showToast(`${op?.full_name || "Operator"} removed — click Save Allocation to confirm`);
+  };
+
+  const poolDirty = poolAdds.size > 0 || poolRemoves.size > 0;
+  const refreshClick = () => {
+    if ((poolDirty || (saveInfo.saved && crewSig(pending) !== saveInfo.sig))
+        && !window.confirm("Discard the unsaved changes on this page?")) return;
+    refresh();
   };
 
   const poolIds = useMemo(() => new Set(pool.map(p => p.id)), [pool]);
@@ -730,7 +747,7 @@ export default function ShiftAllocation() {
                   })()}
                 </FilterCell>
               )}
-              <button onClick={refresh} disabled={loading} style={glassBtn}>↻ {loading ? "…" : "Refresh"}</button>
+              <button onClick={refreshClick} disabled={loading} style={glassBtn}>↻ {loading ? "…" : "Refresh"}</button>
               {!locked && writable && (
                 <button onClick={save}
                         disabled={saving || needLeader}
@@ -741,7 +758,7 @@ export default function ShiftAllocation() {
                 </button>
               )}
               {!loading && lineId && (
-                <SaveStatus info={saveInfo} dirty={saveInfo.saved && crewSig(pending) !== saveInfo.sig}
+                <SaveStatus info={saveInfo} dirty={saveInfo.saved && (poolDirty || crewSig(pending) !== saveInfo.sig)}
                             justSavedAt={justSavedAt} saving={saving} />
               )}
             </div>

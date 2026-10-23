@@ -92,6 +92,45 @@ _snapshot = {"devices": [], "cables": _cables, "generated_at": None, "demo": Fal
 _lock = threading.Lock()
 
 
+# 2026-10-23 — the API runs several workers and each kept the registry it
+# loaded at import.  A save lands in ONE worker (and the file); the poller
+# worker kept polling its old list, so an edited IP (YWD Switch 30.240 →
+# 30.230) stayed "offline" on the map, and a GET served by another worker
+# returned the old list — an edit made on that would overwrite the new one.
+# Every reader now re-reads the file when its mtime changes.  Call it while
+# NOT holding _lock (it takes _lock itself).
+def _mtime(path):
+    try:
+        return os.stat(path).st_mtime_ns
+    except OSError:
+        return None
+
+
+_disk_mtime = {"dev": _mtime(_DEV_FILE), "cab": _mtime(_CAB_FILE)}
+
+
+def _refresh_from_disk():
+    global _devices, _cables
+    for key, path in (("dev", _DEV_FILE), ("cab", _CAB_FILE)):
+        m = _mtime(path)
+        if m is None or m == _disk_mtime[key]:
+            continue
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+        except Exception:
+            continue                       # keep what we have; retry on the next call
+        if not isinstance(data, list):
+            continue
+        with _lock:
+            if key == "dev":
+                _devices = data
+            else:
+                _cables = data
+                _snapshot["cables"] = data
+        _disk_mtime[key] = m
+
+
 # ── ARP auto-discovery (what IP sits where) ────────────────────────────
 # Reads the server's OS ARP table (like Ubuntu `arp -a`) → {mac: ip}, then
 # joins it per switch with the switch FDB (mac → port) so each port shows
@@ -304,16 +343,19 @@ async def _discover():
     return out
 
 
-def _rebuild_snapshot_quick():
-    """Refresh the snapshot WITHOUT doing SNMP — used right after an edit so
-    the UI reflects added/moved/renamed nodes instantly.  Keeps the last
-    known live status for unchanged switches; new / IP-changed switches show
-    neutral ('unconfigured') until the next 20s poll fills real status in.
-    Area nodes are never polled."""
+_LIVE_KEYS = ("status", "live", "portsUp", "portsTotal", "ports", "poe", "uptime", "snmp")
+
+
+def _compose(live_by_id: dict) -> list:
+    """2026-10-23 — the map is ALWAYS the registry as saved right now.  Live
+    fields come from `live_by_id` only for a device whose IP is unchanged; a
+    new or re-addressed device is pinged at once (no more 'unconfigured' or the
+    old IP's status until the next multi-minute SNMP round).  Area nodes are
+    never polled.  Do not call while holding _lock."""
+    _refresh_from_disk()
     with _lock:
-        old = {d.get("id"): d for d in _snapshot.get("devices", [])}
         src = [dict(d) for d in _devices]
-    devs = []
+    devs, pend = [], []
     for d in src:
         rec = dict(d)
         rec.pop("community", None)
@@ -321,19 +363,47 @@ def _rebuild_snapshot_quick():
             rec["status"] = "area"
             rec["live"] = None
         else:
-            prev = old.get(d.get("id"))
+            prev = live_by_id.get(d.get("id"))
             if prev and prev.get("ip") == d.get("ip") and prev.get("status") in ("up", "warn", "down"):
-                for k in ("status", "live", "portsUp", "portsTotal", "ports", "poe", "uptime", "snmp"):
+                for k in _LIVE_KEYS:
                     if k in prev:
                         rec[k] = prev[k]
+            elif (d.get("ip") or "").strip():
+                pend.append(len(devs))
             else:
                 rec["status"] = "unconfigured"
                 rec["live"] = None
         devs.append(rec)
+    if pend:
+        from concurrent.futures import ThreadPoolExecutor
+        with ThreadPoolExecutor(max_workers=min(32, len(pend))) as ex:
+            alive = list(ex.map(lambda i: _ping(str(devs[i]["ip"]).strip()), pend))
+        for i, ok in zip(pend, alive):
+            devs[i]["status"] = "up" if ok else "down"
+            devs[i]["live"] = {"reachable": ok}
+    return devs
+
+
+def _rebuild_snapshot_quick(publish: bool = False):
+    """Refresh the snapshot WITHOUT doing SNMP — right after an edit (and at
+    boot) so the map shows the saved registry instantly.  Live state is taken
+    from the NEWER of this worker's snapshot and the one the poller published
+    (a non-poller worker's own snapshot is usually empty, which used to turn
+    every switch 'unconfigured' after an edit).  publish=True writes it for
+    every worker at once, so no worker keeps serving the pre-edit map."""
+    shared = _read_published_snapshot(max_age=None)
+    with _lock:
+        local = dict(_snapshot) if _snapshot.get("devices") else None
+    base = local
+    if shared and (not local or str(shared.get("generated_at") or "") >= str(local.get("generated_at") or "")):
+        base = shared
+    devs = _compose({d.get("id"): d for d in ((base or {}).get("devices") or [])})
     with _lock:
         _snapshot["devices"] = devs
         _snapshot["cables"] = _cables
         _snapshot["generated_at"] = time.strftime("%Y-%m-%d %H:%M:%S")
+        if publish:
+            _publish_snapshot(dict(_snapshot))
 
 
 async def _poll_one(ip: str, community: str) -> dict:
@@ -473,6 +543,7 @@ async def _poll_one(ip: str, community: str) -> dict:
 
 async def _poll_all() -> list:
     out = []
+    _refresh_from_disk()          # pick up edits saved by another worker
     with _lock:
         src = [dict(d) for d in _devices]   # copy under lock; awaits below never touch the live list
     for d in src:
@@ -570,6 +641,8 @@ def _poller():
     while True:
         try:
             devs = loop.run_until_complete(_poll_all())
+            # an edit saved while this round ran must not be reverted by it
+            devs = _compose({d.get("id"): d for d in devs})
             with _lock:
                 _snapshot["devices"] = devs
                 _snapshot["cables"] = _cables
@@ -578,6 +651,30 @@ def _poller():
         except Exception as exc:
             print(f"[NET-POLL] error: {exc}", flush=True)
         time.sleep(_POLL_EVERY)
+
+
+def _quick_ping_status() -> None:
+    """2026-10-23 — right after an API restart the map showed whatever the
+    previous process published last, and that process — killed mid-round
+    during the restart — had published every switch DOWN.  The first full
+    SNMP round of the new process takes ~7 min, so for that long all 22
+    switches sat red while they pinged fine.  Ping every node once (in
+    parallel, ~1-2 s) before the boot publish; the full round fills in ports,
+    PoE and SNMP state as before."""
+    with _lock:
+        devs = [dict(d) for d in _snapshot.get("devices", [])]
+    targets = [(i, (d.get("ip") or "").strip()) for i, d in enumerate(devs)
+               if d.get("kind") != "area" and (d.get("ip") or "").strip()]
+    if not targets:
+        return
+    from concurrent.futures import ThreadPoolExecutor
+    with ThreadPoolExecutor(max_workers=min(32, len(targets))) as ex:
+        alive = list(ex.map(lambda t: _ping(t[1]), targets))
+    for (i, _ip), ok in zip(targets, alive):
+        st = devs[i].get("status")
+        devs[i]["status"] = (st if st in ("up", "warn") else "up") if ok else "down"
+    with _lock:
+        _snapshot["devices"] = devs
 
 
 def start_network_poller():
@@ -589,6 +686,10 @@ def start_network_poller():
         with _lock:
             _snapshot["devices"] = prev["devices"]
     _rebuild_snapshot_quick()      # show the saved map immediately on boot
+    try:
+        _quick_ping_status()       # correct up/down by ping before publishing
+    except Exception as exc:
+        print(f"[NET-POLL] boot ping skipped: {exc}", flush=True)
     with _lock:
         _publish_snapshot(dict(_snapshot))
     _refresh_arp()                 # seed ARP table for auto-discovery
@@ -599,11 +700,18 @@ def start_network_poller():
 # ── endpoints ────────────────────────────────────────────────────────
 @router.get("/status")
 def network_status(user=Depends(get_current_user)):
-    with _lock:
-        if _snapshot["devices"]:
-            return dict(_snapshot)
-    # This worker does not run the poller — serve what the leader published.
+    # This worker may not run the poller — compare with what the leader
+    # published.  2026-10-23: a worker that only handled an edit keeps the
+    # quick snapshot it built then, which never gets live status again; it
+    # used to be served forever.  Serve whichever is newer.
     shared = _read_published_snapshot()
+    with _lock:
+        local = dict(_snapshot) if _snapshot["devices"] else None
+    if local and shared:
+        newer_local = str(local.get("generated_at") or "") > str(shared.get("generated_at") or "")
+        return local if newer_local else shared
+    if local:
+        return local
     if shared:
         return shared
     # 2026-10-13 — never fall back to the DEMO map while a real plan exists
@@ -699,6 +807,7 @@ def network_ip_conflicts(user=Depends(get_current_user)):
                 print(f"[NET-CONFLICT] cameras.json read failed: {exc}", flush=True)
             break
     # (c) the network-builder's own registry.
+    _refresh_from_disk()
     for d in _devices:
         _own(d.get("ip"), f"NET:{d.get('name') or d.get('id')}")
     for ip, owners in ip_owners.items():
@@ -745,6 +854,7 @@ def network_ip_conflicts(user=Depends(get_current_user)):
 
 @router.get("/devices")
 def list_network_devices(user=Depends(get_current_user)):
+    _refresh_from_disk()
     # strip community
     return [{k: v for k, v in d.items() if k != "community"} for d in _devices]
 
@@ -756,6 +866,7 @@ def save_network_devices(body: DeviceUpsert, admin=Depends(require_admin)):
     """Replace the device registry (admin).  Keeps existing community if the
     incoming row omits it (so the UI never has to handle the secret)."""
     global _devices
+    _refresh_from_disk()
     with _lock:
         old = {d.get("id"): d for d in _devices if d.get("id")}   # .get: never KeyError on a legacy id-less row
     merged, seen = [], set()
@@ -773,11 +884,13 @@ def save_network_devices(body: DeviceUpsert, admin=Depends(require_admin)):
     with _lock:
         _devices = merged
     _save(_DEV_FILE, merged)
-    _rebuild_snapshot_quick()      # reflect the edit instantly (no 20s wait)
+    _disk_mtime["dev"] = _mtime(_DEV_FILE)
+    _rebuild_snapshot_quick(publish=True)   # every worker shows the edit at once
     return {"ok": True, "count": len(merged), "dropped": dropped}
 
 @router.get("/cables")
 def list_network_cables(user=Depends(get_current_user)):
+    _refresh_from_disk()
     return _cables
 
 class CableUpsert(BaseModel):
@@ -792,4 +905,6 @@ def save_network_cables(body: CableUpsert, admin=Depends(require_admin)):
         _cables = new_cables
         _snapshot["cables"] = new_cables
     _save(_CAB_FILE, new_cables)
+    _disk_mtime["cab"] = _mtime(_CAB_FILE)
+    _rebuild_snapshot_quick(publish=True)   # every worker shows the new cables at once
     return {"ok": True, "count": len(new_cables)}
