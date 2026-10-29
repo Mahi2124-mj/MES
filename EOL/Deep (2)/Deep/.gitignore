@@ -12,6 +12,8 @@ secret*
 *secret*
 credentials*
 *credentials*
+# auto-provisioned JWT secret (auth.py _load_jwt_secret fallback) — A1
+.secrets/
 
 # ── Python ──────────────────────────────────────────────────────────
 .venv/

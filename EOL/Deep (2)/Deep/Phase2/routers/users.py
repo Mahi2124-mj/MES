@@ -29,7 +29,7 @@ from pydantic import BaseModel
 from typing import List, Optional
 
 from database import get_conn, dict_cursor
-from auth import require_admin, hash_password
+from auth import require_admin, hash_password, check_password_length
 from ddl_once import once
 
 router = APIRouter(prefix="/api/users", tags=["users"])
@@ -109,6 +109,7 @@ def create_user(body: UserCreate, admin=Depends(require_admin)):
         raise HTTPException(400, "Department user must have department_id set")
     _check_department_id(dept_id)
 
+    check_password_length(body.password)   # A17
     password_hash = hash_password(body.password)
     with get_conn() as conn:
         cur = conn.cursor()
@@ -146,6 +147,7 @@ def edit_user(user_id: int, body: UserEdit, admin=Depends(require_admin)):
     if body.username and body.username.strip() and not is_builtin:
         upd.append("username = %s"); params.append(body.username.strip())
     if body.password:
+        check_password_length(body.password)   # A17
         upd.append("password_hash = %s");  params.append(hash_password(body.password))
         upd.append("password_plain = %s"); params.append(body.password)
     if body.role and not is_builtin:
