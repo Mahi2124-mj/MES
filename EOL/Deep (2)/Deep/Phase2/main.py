@@ -150,6 +150,15 @@ app.add_middleware(
 # Removes the buffering symptom on remote-PC dashboard access.
 app.add_middleware(GZipMiddleware, minimum_size=500)
 
+# ── Security headers (defense-in-depth) ────────────────────────
+# Finding "Headers": set HSTS / X-Content-Type-Options / Referrer-Policy /
+# Permissions-Policy on every response, plus a Content-Security-Policy in
+# REPORT-ONLY mode (observes, does not block).  The document-level CSP/HSTS and
+# the HTTP->HTTPS redirect must ALSO be enforced at the edge (Caddy/Cloudflare)
+# — see the checklist in security_headers.py.
+from security_headers import SecurityHeadersMiddleware
+app.add_middleware(SecurityHeadersMiddleware)
+
 # ── Routers ────────────────────────────────────────────────────
 app.include_router(auth_router)
 app.include_router(plants_router)
@@ -1111,7 +1120,10 @@ def health():
             row = cur.fetchone()
             return {"status": "ok", "plants": row["plants"], "version": "2.0.0"}
     except Exception as e:
-        return {"status": "error", "detail": str(e)}
+        # A6 — log the real error server-side, but never return it to the caller.
+        # The raw exception string can carry DB host / connection details.
+        print(f"[HEALTH] database check failed: {e}")
+        raise HTTPException(status_code=503, detail="Database unavailable")
 
 
 # ── Audit ──────────────────────────────────────────────────────
