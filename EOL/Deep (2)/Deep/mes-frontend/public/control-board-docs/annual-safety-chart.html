@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>ANNUAL SAFETY CHART - TOYOTA BOSHOKU DEVICE INDIA PVT. LTD.</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: "Calibri", "Arial", sans-serif;
+        }
+
+        body {
+            background: #e9ecef;
+            margin: 0;
+            padding: 15px;
+        }
+
+        .toolbar {
+            width: 1392px;
+            margin: 0 auto 10px auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #fff;
+            padding: 8px 15px;
+            border: 1px solid #bbb;
+            font-size: 13px;
+        }
+
+        .toolbar button {
+            padding: 6px 14px;
+            font-size: 13px;
+            font-weight: bold;
+            cursor: pointer;
+            border: 1px solid #333;
+            background: #f8f9fa;
+            margin-left: 8px;
+        }
+
+        .toolbar button.primary {
+            background: #0056b3;
+            color: #fff;
+            border-color: #004085;
+        }
+
+        .sheet-wrapper {
+            width: 1392px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        table.safety-sheet {
+            border-collapse: collapse;
+            table-layout: fixed;
+            width: 1368px;
+            background: #fff;
+        }
+
+        table.safety-sheet td {
+            padding: 0;
+            margin: 0;
+            vertical-align: middle;
+            text-align: center;
+            font-size: 12px;
+            color: #000;
+            position: relative;
+            user-select: none;
+        }
+
+        /* Exact Excel Borders */
+        .bt-m {
+            border-top: 2px solid #000 !important;
+        }
+
+        .bb-m {
+            border-bottom: 2px solid #000 !important;
+        }
+
+        .bl-m {
+            border-left: 2px solid #000 !important;
+        }
+
+        .br-m {
+            border-right: 2px solid #000 !important;
+        }
+
+        .bt-t {
+            border-top: 1px solid #000 !important;
+        }
+
+        .bb-t {
+            border-bottom: 1px solid #000 !important;
+        }
+
+        .bl-t {
+            border-left: 1px solid #000 !important;
+        }
+
+        .br-t {
+            border-right: 1px solid #000 !important;
+        }
+
+        /* Fills matching Excel Theme & RGB */
+        .bg-unused {
+            background-color: #c4bd97 !important;
+        }
+
+        .bg-green-legend {
+            background-color: #008000 !important;
+            color: #000;
+            font-weight: bold;
+        }
+
+        .bg-red-legend {
+            background-color: #ff0000 !important;
+            color: #000;
+            font-weight: bold;
+        }
+
+        /* Interactive Day Cells (1..31) - Fully filled without white gaps */
+        .day-cell {
+            position: relative;
+            padding: 0 !important;
+            margin: 0 !important;
+            cursor: pointer;
+        }
+
+        .day-box {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            margin: 0;
+            padding: 0;
+            position: absolute;
+            top: 0;
+            left: 0;
+            transition: background-color 0.08s;
+        }
+
+        .day-box:hover {
+            outline: 1.5px solid #0056b3;
+            z-index: 2;
+        }
+
+        .day-box[data-state="green"] {
+            background-color: #008000 !important;
+            color: #fff !important;
+            font-weight: bold;
+        }
+
+        .day-box[data-state="red"] {
+            background-color: #ff0000 !important;
+            color: #fff !important;
+            font-weight: bold;
+        }
+
+        /* Vertical Rotated Month Labels */
+        .vert-month {
+            writing-mode: vertical-rl;
+            transform: rotate(180deg);
+            font-size: 12px;
+            letter-spacing: 0.5px;
+            margin: 0 auto;
+            white-space: nowrap;
+        }
+
+        .rot45-text {
+            transform: rotate(-45deg);
+            font-weight: bold;
+            font-size: 11px;
+            white-space: nowrap;
+        }
+
+        .inline-input {
+            border: none;
+            outline: none;
+            background: transparent;
+            font-family: inherit;
+            padding: 2px 4px;
+        }
+
+        .inline-input:focus,
+        .cell-edit:focus {
+            background: #fff9c4;
+        }
+
+        .cell-edit {
+            width: 100%;
+            height: 100%;
+            border: none;
+            outline: none;
+            background: transparent;
+            text-align: center;
+            font-size: 12px;
+            font-family: inherit;
+        }
+
+        /* Center Green Safety Cross Shape Overlay */
+        .center-cross-overlay {
+            position: absolute;
+            left: 15px;
+            top: 2px;
+            width: 175px;
+            height: 110px;
+            z-index: 5;
+            pointer-events: auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .green-cross-shape {
+            position: relative;
+            width: 165px;
+            height: 104px;
+            filter: drop-shadow(3px 3px 5px rgba(118, 146, 60, 0.75));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .cross-vert {
+            position: absolute;
+            width: 82px;
+            height: 104px;
+            background: #008000;
+            border: 1.5px solid #003300;
+        }
+
+        .cross-horiz {
+            position: absolute;
+            width: 150px;
+            height: 52px;
+            background: #008000;
+            border: 1.5px solid #003300;
+        }
+
+        .green-cross-shape::after {
+            content: "";
+            position: absolute;
+            width: 80px;
+            height: 50px;
+            background: #008000;
+            z-index: 1;
+        }
+
+        .cross-text {
+            position: relative;
+            z-index: 2;
+            font-family: "Monotype Corsiva", "Georgia", cursive, serif;
+            font-style: italic;
+            font-size: 13.5px;
+            color: #000;
+            text-align: left;
+            line-height: 1.25;
+            padding: 2px 6px;
+            outline: none;
+            cursor: text;
+        }
+
+        @media print {
+            body {
+                background: #fff;
+                padding: 0;
+            }
+
+            .toolbar {
+                display: none;
+            }
+
+            .sheet-wrapper {
+                box-shadow: none;
+                padding: 0;
+                width: 100%;
+            }
+
+            * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="toolbar">
+        <div>
+            <strong>TOYOTA BOSHOKU - ANNUAL SAFETY CHART (2026)</strong>
+            <span style="margin-left:15px; color:#333;">(Dates: <b>1st Click = Green</b> | <b>2nd = Red</b> | <b>3rd =
+                    Blank</b>)</span>
+        </div>
+        <div>
+            <button onclick="markAllSafe()">Mark All Safe (Green)</button>
+            <button onclick="resetSafetyChart()">Reset All</button>
+            <button class="primary" onclick="window.print()">Print / Save PDF</button>
+        </div>
+    </div>
+
+    <div class="sheet-wrapper">
+        <table class="safety-sheet" id="safetyTable">
+            <colgroup id="safetyCols"></colgroup>
+            <tbody id="safetyBody"></tbody>
+        </table>
+    </div>
+
+    <script>
+        (function buildSafetyChart() {
+            var cg = document.getElementById('safetyCols');
+            var cHtml = '';
+            for (var i = 0; i < 36; i++) cHtml += '<col style="width:38px;">';
+            cg.innerHTML = cHtml;
+
+            function dCell(num, extraCls) {
+                return '<td class="day-cell ' + (extraCls || 'bt-t bb-t bl-t br-t') + '"><div class="day-box" data-state="blank" onclick="toggleDaySafety(this)">' + num + '</div></td>';
+            }
+            function uCell(extraCls) {
+                return '<td class="bg-unused ' + (extraCls || 'bt-t bb-t bl-t br-t') + '"></td>';
+            }
+            function eCells(count) {
+                var s = '';
+                for (var i = 0; i < count; i++) s += '<td></td>';
+                return s;
+            }
+
+            var h = '';
+
+            h += '<tr style="height:43px;">' +
+                '<td colspan="3" rowspan="2" class="bt-m bb-m bl-m br-m" style="text-align:center; padding:3px;">' +
+                '<div style="border:2px solid #d00; padding:4px 2px; color:#d00; font-weight:bold; font-size:12px; line-height:1.15;">TOYOTA<br>BOSHOKU</div>' +
+                '</td>' +
+                '<td colspan="28" class="bt-m bb-m br-m" style="font-family:Arial,sans-serif; font-size:24px; font-weight:bold; text-align:center;">TOYOTA BOSHOKU DEVICE INDIA PVT. LTD.</td>' +
+                '<td colspan="5" rowspan="2" class="bt-m bb-m bl-m br-m" style="font-family:Arial,sans-serif; font-size:15px; font-weight:bold; padding-left:6px;">' +
+                '<div style="display:flex; align-items:center; width:100%; height:100%;"><span>YEAR:-</span><input type="text" class="inline-input" value="2026" style="font-size:15px; font-weight:bold; width:75px;"></div>' +
+                '</td>' +
+                '</tr>';
+
+            h += '<tr style="height:30px;">' +
+                '<td colspan="28" class="bt-m bb-m bl-m br-m" style="font-family:Arial,sans-serif; font-size:18px; text-align:center;">ANNUAL SAFETY CHART</td>' +
+                '</tr>';
+
+            h += '<tr style="height:6px;"><td class="bl-m"></td>' + eCells(34) + '<td class="br-m"></td></tr>';
+
+            h += '<tr style="height:24px;">' +
+                '<td class="bl-m"></td>' + eCells(11) +
+                '<td colspan="4" class="bt-m bb-t bl-m br-t" style="font-weight:bold; font-size:12px; text-align:center;">JAN</td>' +
+                '<td colspan="4" class="bt-m bb-t bl-t br-t" style="font-weight:bold; font-size:12px; text-align:center;">FEB</td>' +
+                '<td colspan="4" class="bt-m bb-t bl-t br-m" style="font-weight:bold; font-size:12px; text-align:center;">MAR</td>' +
+                eCells(11) + '<td class="br-m"></td>' +
+                '</tr>';
+
+            for (var r = 1; r <= 7; r++) {
+                h += '<tr style="height:24px;"><td class="bl-m"></td>' + eCells(11) +
+                    dCell(r, 'bt-t bb-t bl-m br-t') + dCell(r + 10) + dCell(r + 20) + (r === 1 ? dCell(31) : uCell()) +
+                    dCell(r) + dCell(r + 10) + dCell(r + 20) + uCell() +
+                    dCell(r) + dCell(r + 10) + dCell(r + 20) + (r === 1 ? dCell(31, 'bt-t bb-t bl-t br-m') : uCell('bt-t bb-t bl-t br-m')) +
+                    eCells(11) + '<td class="br-m"></td></tr>';
+            }
+
+            for (var step = 0; step < 4; step++) {
+                var dNum = 8 + step;
+                h += '<tr style="height:24px;"><td class="bl-m"></td>';
+
+                if (step === 0) {
+                    h += '<td rowspan="4" class="bt-m bb-t bl-m br-t"><div class="vert-month">DEC.</div></td>';
+                }
+
+                for (var c = 1; c <= 10; c++) {
+                    var topB = (step === 0) ? 'bt-m' : 'bt-t';
+                    if (step < 3) {
+                        h += dCell(step * 10 + c, topB + ' bb-t bl-t br-t');
+                    } else {
+                        h += (c === 1) ? dCell(31) : uCell();
+                    }
+                }
+
+                if (step < 3) {
+                    h += dCell(dNum) + dCell(dNum + 10) + dCell(dNum + 20) + uCell();
+                    h += dCell(dNum) + dCell(dNum + 10) + (dNum === 8 ? dCell(28) : uCell()) + uCell();
+                    h += dCell(dNum) + dCell(dNum + 10) + dCell(dNum + 20) + uCell();
+                } else {
+                    h += eCells(12);
+                }
+
+                for (var c2 = 1; c2 <= 10; c2++) {
+                    var topB2 = (step === 0) ? 'bt-m' : 'bt-t';
+                    if (step < 3) {
+                        h += dCell(step * 10 + c2, topB2 + ' bb-t bl-t br-t');
+                    } else {
+                        h += uCell();
+                    }
+                }
+
+                if (step === 0) {
+                    h += '<td rowspan="4" class="bt-m bb-t bl-t br-m"><div class="vert-month">APR</div></td>';
+                }
+
+                h += '<td class="br-m"></td></tr>';
+            }
+
+            for (var step2 = 0; step2 < 4; step2++) {
+                h += '<tr style="height:24px;"><td class="bl-m"></td>';
+
+                if (step2 === 0) {
+                    h += '<td rowspan="4" class="bt-t bb-t bl-m br-t"><div class="vert-month">NOV.</div></td>';
+                }
+
+                for (var c = 1; c <= 10; c++) {
+                    if (step2 < 3) {
+                        h += dCell(step2 * 10 + c);
+                    } else {
+                        h += uCell();
+                    }
+                }
+
+                for (var mCol = 1; mCol <= 12; mCol++) {
+                    if (step2 === 0 && mCol === 4) {
+                        h += '<td><div class="center-cross-overlay">' +
+                            '<div class="green-cross-shape">' +
+                            '<div class="cross-vert"></div>' +
+                            '<div class="cross-horiz"></div>' +
+                            '<div class="cross-text" contenteditable="true" spellcheck="false">~SAFETY IS<br>OUR FIRST PRIORITY~</div>' +
+                            '</div>' +
+                            '</div></td>';
+                    } else {
+                        h += '<td></td>';
+                    }
+                }
+
+                for (var c2 = 1; c2 <= 10; c2++) {
+                    if (step2 < 3) {
+                        h += dCell(step2 * 10 + c2);
+                    } else {
+                        h += (c2 === 1) ? dCell(31) : uCell();
+                    }
+                }
+
+                if (step2 === 0) {
+                    h += '<td rowspan="4" class="bt-t bb-t bl-t br-m"><div class="vert-month">MAY</div></td>';
+                }
+
+                h += '<td class="br-m"></td></tr>';
+            }
+
+            for (var step3 = 0; step3 < 4; step3++) {
+                h += '<tr style="height:24px;"><td class="bl-m"></td>';
+
+                if (step3 === 0) {
+                    h += '<td rowspan="4" class="bt-t bb-m bl-m br-t"><div class="vert-month">OCT.</div></td>';
+                }
+
+                for (var c = 1; c <= 10; c++) {
+                    if (step3 < 3) {
+                        h += dCell(step3 * 10 + c);
+                    } else {
+                        h += (c === 1) ? dCell(31, 'bt-t bb-m bl-t br-t') : uCell('bt-t bb-m bl-t br-t');
+                    }
+                }
+
+                if (step3 === 0) {
+                    h += eCells(12);
+                } else {
+                    var bDay = step3;
+                    h += dCell(bDay) + dCell(bDay + 10) + dCell(bDay + 20) + uCell();
+                    h += dCell(bDay) + dCell(bDay + 10) + dCell(bDay + 20) + (bDay === 1 ? dCell(31) : uCell());
+                    h += dCell(bDay) + dCell(bDay + 10) + dCell(bDay + 20) + (bDay === 1 ? dCell(31) : uCell());
+                }
+
+                for (var c2 = 1; c2 <= 10; c2++) {
+                    if (step3 < 3) {
+                        h += dCell(step3 * 10 + c2);
+                    } else {
+                        h += uCell('bt-t bb-m bl-t br-t');
+                    }
+                }
+
+                if (step3 === 0) {
+                    h += '<td rowspan="4" class="bt-t bb-m bl-t br-m"><div class="vert-month">JUN</div></td>';
+                }
+
+                h += '<td class="br-m"></td></tr>';
+            }
+
+            for (var bRow = 4; bRow <= 10; bRow++) {
+                h += '<tr style="height:24px;"><td class="bl-m"></td>' + eCells(11) +
+                    dCell(bRow, 'bt-t bb-t bl-m br-t') + dCell(bRow + 10) + dCell(bRow + 20) + uCell() +
+                    dCell(bRow) + dCell(bRow + 10) + dCell(bRow + 20) + uCell() +
+                    dCell(bRow) + dCell(bRow + 10) + dCell(bRow + 20) + uCell('bt-t bb-t bl-t br-m');
+
+                if (bRow === 4) {
+                    h += eCells(11) + '<td class="br-m"></td>';
+                } else if (bRow === 5) {
+                    h += eCells(6) + '<td colspan="5" rowspan="2" class="bt-m bb-t bl-m br-m" style="font-weight:bold; font-size:12px;">Legends:</td><td class="br-m"></td>';
+                } else if (bRow === 6) {
+                    h += eCells(6) + '<td class="br-m"></td>';
+                } else if (bRow === 7) {
+                    h += eCells(6) + '<td colspan="2" rowspan="2" class="bg-green-legend bt-t bb-t bl-m br-t"><div class="rot45-text">Green</div></td><td colspan="3" rowspan="2" class="bt-t bb-t bl-t br-m"><input type="text" class="cell-edit" value="Safe" style="font-weight:bold;"></td><td class="br-m"></td>';
+                } else if (bRow === 8) {
+                    h += eCells(6) + '<td class="br-m"></td>';
+                } else if (bRow === 9) {
+                    h += eCells(6) + '<td colspan="2" rowspan="2" class="bg-red-legend bt-t bb-m bl-m br-t"><div class="rot45-text">Red</div></td><td colspan="3" rowspan="2" class="bt-t bb-m bl-t br-m"><input type="text" class="cell-edit" value="Accedent" style="font-weight:bold;"></td><td class="br-m"></td>';
+                } else if (bRow === 10) {
+                    h += eCells(6) + '<td class="br-m"></td>';
+                }
+
+                h += '</tr>';
+            }
+
+            h += '<tr style="height:24px;">' +
+                '<td class="bl-m"></td>' + eCells(11) +
+                '<td colspan="4" class="bt-t bb-m bl-m br-t" style="font-weight:bold; font-size:12px; text-align:center;">SEP.</td>' +
+                '<td colspan="4" class="bt-t bb-m bl-t br-t" style="font-weight:bold; font-size:12px; text-align:center;">AUG</td>' +
+                '<td colspan="4" class="bt-t bb-m bl-t br-m" style="font-weight:bold; font-size:12px; text-align:center;">JULY</td>' +
+                eCells(11) + '<td class="br-m"></td>' +
+                '</tr>';
+
+            h += '<tr style="height:7px;"><td class="bl-m"></td>' + eCells(34) + '<td class="br-m"></td></tr>';
+
+            h += '<tr style="height:24px;"><td class="bt-m bl-m"></td><td colspan="34" class="bt-m"></td><td class="bt-m br-m"></td></tr>';
+
+            h += '<tr style="height:26px;">' +
+                '<td class="bb-m bl-m"></td>' +
+                '<td colspan="4" class="bb-m"></td>' +
+                '<td colspan="11" class="bb-m"><div style="display:flex; align-items:center; width:100%; height:100%; font-size:12px; font-weight:bold;"><span>PREPARED BY :&nbsp;</span><input type="text" class="inline-input" style="flex:1; border-bottom:1px dotted #555;"></div></td>' +
+                '<td colspan="10" class="bb-m"></td>' +
+                '<td colspan="9" class="bb-m"><div style="display:flex; align-items:center; width:100%; height:100%; font-size:12px; font-weight:bold;"><span>APPROVED BY:-&nbsp;</span><input type="text" class="inline-input" style="flex:1; border-bottom:1px dotted #555;"></div></td>' +
+                '<td class="bb-m br-m"></td>' +
+                '</tr>';
+
+            document.getElementById('safetyBody').innerHTML = h;
+        })();
+
+        function toggleDaySafety(el) {
+            var curr = el.getAttribute('data-state');
+            if (curr === 'blank') {
+                el.setAttribute('data-state', 'green');
+            } else if (curr === 'green') {
+                el.setAttribute('data-state', 'red');
+            } else {
+                el.setAttribute('data-state', 'blank');
+            }
+        }
+
+        function markAllSafe() {
+            var boxes = document.querySelectorAll('.day-box');
+            for (var i = 0; i < boxes.length; i++) {
+                boxes[i].setAttribute('data-state', 'green');
+            }
+        }
+
+        function resetSafetyChart() {
+            if (confirm("Kya aap saari dates ka colour reset karna chahte hain?")) {
+                var boxes = document.querySelectorAll('.day-box');
+                for (var i = 0; i < boxes.length; i++) {
+                    boxes[i].setAttribute('data-state', 'blank');
+                }
+            }
+        }
+    </script>
+
+
+<script>
+/* MES Control Board: fit-to-width zoom requested by the page around this frame. */
+(function () {
+  var ok = window.CSS && CSS.supports && CSS.supports("zoom", "0.5");
+  window.addEventListener("message", function (e) {
+    if (e.source !== window.parent || !e.data || e.data.type !== "cb-zoom" || !ok) return;
+    var z = Number(e.data.zoom) || 1;
+    document.documentElement.style.zoom = (z === 1) ? "" : String(z);
+    try { window.parent.postMessage({ type: "cb-zoom-ok", zoom: z }, "*"); } catch (x) {}
+  });
+})();
+</script>
+</body>
+
+</html>

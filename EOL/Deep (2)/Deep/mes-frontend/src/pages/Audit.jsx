@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, Fragment } from "react";
 import { useAuth } from "../context/AuthContext";
 import { api } from "../api/client";
 import AIAssistant from "../components/AIAssistant";
+import { LanRefreshSlot } from "../components/LanRefresh";
 
 const ACTION_COLORS = {
   CREATED:      { bg: "rgba(22,163,74,.1)",    border: "rgba(22,163,74,.25)",   text: "#16a34a" },
@@ -336,6 +337,10 @@ export default function Audit() {
             pointerEvents:"none",
             }}>
             Audit <span style={{ color: theme.accent }}>Log</span>
+          </div>
+          {/* LAN app: Refresh at the right of the bar (nothing on the website) */}
+          <div style={{ marginLeft:"auto", display:"flex", alignItems:"center", position:"relative", zIndex:1 }}>
+            <LanRefreshSlot />
           </div>
         </div>
 

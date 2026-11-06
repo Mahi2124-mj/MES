@@ -421,7 +421,8 @@ def _slip_pdf_bytes(d: dict) -> bytes:
     text(W - M - 12, y + 3.5, "TICK (✓)", size=6, bold=True, ha="center")
     y += 7
     for code, desc in (("A", "MACHINE OR LINE HAS STOPPED AND PRODUCTION LOSS DIRECTLY"),
-                       ("B", "MACHINE RUNNING WITH PRODUCTION LOSS ( PRODUCTION EFFECTED ) ( ADJUSTMENT )")):
+                       ("B", "MACHINE RUNNING WITH PRODUCTION LOSS ( PRODUCTION EFFECTED )"),
+                       ("C", "ADJUSTMENT")):
         box(M, y, 36, 8, fill="#f8fafc"); box(M + 36, y, W - 2 * M - 36 - 24, 8); box(W - M - 24, y, 24, 8)
         text(M + 2, y + 4, f"{code} CATEGORY B/D :-", size=7, bold=True)
         wrapped(M + 36, y, W - 2 * M - 60, 8, desc, size=7)

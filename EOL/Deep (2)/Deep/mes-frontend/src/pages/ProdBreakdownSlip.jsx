@@ -232,8 +232,8 @@ export default function ProdBreakdownSlip() {
                     "bd_attended_by"];
   const missing = slip ? REQUIRED.filter(k => !String(slip[k] ?? "").trim())
                          : [];   // frequency is read-only (saved as the slip's value, else 1) — no gate
-  // 30-minute rule: past its shift end + 30 min only the Shift Incharge may
-  // fill a slip (the server refuses everyone else too).
+  // Fill window: 3 h after its shift ends the slip is locked for everyone but
+  // admin (2026-10-31; the server refuses it too).
   const lockedOut = !!slip && slip.can_fill === false;
   const complete = !!slip && missing.length === 0 && !lockedOut;
   const LBL = { machine_no: "MACHINE NO.", line_leader_name: "LINE LEADER NAME",
@@ -303,7 +303,7 @@ export default function ProdBreakdownSlip() {
                 <span title={`Fill window closed ${String(r.fill_deadline || "").replace("T", " ")}`}
                   style={{ background: "#fef2f2", color: "#b91c1c", border: "1px solid #fecaca",
                     borderRadius: 999, padding: "1px 9px", fontWeight: 700 }}>
-                  🔒 Shift Incharge only
+                  🔒 Locked
                 </span>
               )}
             </div>
@@ -312,8 +312,10 @@ export default function ProdBreakdownSlip() {
       </div>
 
       {/* ── SLIP MODAL — exact Toyota Boshoku BREAK DOWN SLIP format ── */}
+      {/* 2026-11-03 — closes only with × or Cancel: a stray tap outside the slip
+          used to close it and lose what was typed (app + website). */}
       {slip && (
-        <div onClick={() => setSlip(null)} style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,.55)",
+        <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,.55)",
           backdropFilter: "blur(2px)", zIndex: 9000, display: "flex", alignItems: "flex-start",
           justifyContent: "center", overflowY: "auto", padding: "24px 12px" }}>
           <div className="bds-modal" onClick={e => e.stopPropagation()} style={{ width: "100%", maxWidth: 980,
@@ -396,8 +398,11 @@ export default function ProdBreakdownSlip() {
                 <div>BREAK DOWN TYPE ( CATEGORY ) :-</div>
                 <div className="bds-cat-tickdown">TICK DOWN<br />(✓)</div>
               </div>
+              {/* 2026-10-27 — third category C = Adjustment (operator); B no longer
+                  carries "( ADJUSTMENT )". */}
               {[{ code: "A", desc: "MACHINE OR LINE HAS STOPPED AND PRODUCTION LOSS DIRECTLY" },
-                { code: "B", desc: "MACHINE RUNNING WITH PRODUCTION LOSS ( PRODUCTION EFFECTED ) ( ADJUSTMENT )" }].map(c => (
+                { code: "B", desc: "MACHINE RUNNING WITH PRODUCTION LOSS ( PRODUCTION EFFECTED )" },
+                { code: "C", desc: "ADJUSTMENT" }].map(c => (
                 <div key={c.code} className="bds-cat-row">
                   <div className="bds-cat-cell-code">{c.code} CATEGORY B/D :-</div>
                   <div className="bds-cat-cell-desc">{c.desc}</div>
@@ -439,8 +444,8 @@ export default function ProdBreakdownSlip() {
               <div style={{ padding: "10px 16px", borderTop: "1.5px solid #0f172a",
                 background: lockedOut ? "#fef2f2" : "#fffbeb",
                 color: lockedOut ? "#b91c1c" : "#92400e", fontSize: 13, fontWeight: 700 }}>
-                🔒 Shift ended more than 30 min ago (window closed {String(slip.fill_deadline || "").replace("T", " ")}).
-                {lockedOut ? " Only the Shift Incharge can fill this slip now." : " You are filling it as Shift Incharge."}
+                🔒 Fill window closed {String(slip.fill_deadline || "").replace("T", " ")} (3 h after the shift ended).
+                {lockedOut ? " This slip is locked." : " You are filling it as admin."}
               </div>
             )}
             {/* actions — Submit disabled till EVERY field filled (like 9965) */}

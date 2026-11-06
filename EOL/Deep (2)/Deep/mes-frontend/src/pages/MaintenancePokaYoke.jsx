@@ -30,6 +30,7 @@
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "../context/AuthContext";
+import { LanRefreshSlot } from "../components/LanRefresh";
 
 const API = "";
 const api = {
@@ -1047,9 +1048,13 @@ export default function MaintenancePokaYoke() {
           <div className="mp-title">
             {isAdmin ? "Maintenance " : ""}<span>Poka Yoke</span>
           </div>
-          {user?.username && (
-            <div className="mp-pill">Signed in as <b>{user.username}</b></div>
-          )}
+          {/* LAN app: Refresh beside the user pill (nothing on the website) */}
+          <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+            {user?.username && (
+              <div className="mp-pill">Signed in as <b>{user.username}</b></div>
+            )}
+            <LanRefreshSlot />
+          </div>
         </div>
 
         <div className="mp-body">

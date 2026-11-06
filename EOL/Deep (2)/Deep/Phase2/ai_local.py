@@ -57,7 +57,7 @@ PAGES = {
     "comments-history":  ("/comments-history",   "Comments History",     ["comment", "comments", "remarks"]),
     "andon-history":     ("/andon-history",      "Andon History",        ["andon"]),
     "prod-breakdown-slip": ("/prod-breakdown-slip", "Breakdown Slip",    ["breakdown slip", "slip"]),
-    "my-escalations":    ("/my-escalations",     "Inbox",                ["inbox", "alerts", "notification"]),
+    "my-escalations":    ("/my-escalations",     "Inbox",                ["inbox", "alerts", "notification", "notifications", "my escalations", "escalations"]),
     "weld-monitor":      ("/weld-monitor",       "Weld Monitor",         ["weld", "welding", "gas flow"]),
     "bin-filling":       ("/bin-filling",        "Bin Filling",          ["bin filling", "bin"]),
     "shift-allocation":  ("/shift-allocation",   "Shift Allocation",     ["allocation", "manpower"]),
@@ -70,7 +70,9 @@ PAGES = {
 }
 
 _OPEN_WORDS = re.compile(r"\b(kholo|khol|kholna|khol\s*do|open|le\s*chalo|le\s*chal|chalo|jao|go\s*to|navigate|"
-                         r"dikhao\s+page|page\s+dikhao|wala\s+page|page\s+pe|page\s+par|jana\s+hai|take\s+me|le\s+jao)\b", re.I)
+                         r"dikhao\s+page|page\s+dikhao|wala\s+page|page\s+pe|page\s+par|jana\s+hai|take\s+me|le\s+jao|"
+                         r"screen\s+dikhao|dikhao\s+screen|wala\s+screen|wali\s+screen|bring\s+up|pull\s+up|"
+                         r"(show|display)\s+(me\s+)?(the\s+)?[\w\s-]{0,30}?\b(page|screen))\b", re.I)
 
 # "open bypass kitne hain" is a data question, not "open the page".
 _DATA_WORDS = re.compile(r"\b(kitne|kitna|kitni|kaun|kaunsa|kaunse|kya|kis|how\s+many|how\s+much|"
@@ -169,13 +171,17 @@ def _live_rows(lines):
 # waits on it; until the first build those rows keep the stored values.
 _PAST_COLS = {"overall_oee": "d_oee", "availability": "d_av", "performance": "d_pf",
               **{c: f"d_l{i}" for i, (c, _a) in enumerate(_LOSS)}}
-_PAST_DISP = {}           # line_id -> (built_at, {(record_date, shift): {col: value}})
+_PAST_DISP = {}           # line_id -> (built_at, {(record_date, shift): {col: value}}, full_at)
 _PAST_BUSY = set()
 _PAST_LOCK = __import__("threading").Lock()
 _PAST_TTL_S = 600.0
+_PAST_DAYS = 62            # 2026-10-29: was 7 -- "is mahine" / "21 tarikh" got the stored OEE + losses
+_PAST_RECENT_DAYS = 3      # every 10 min only these days are built again (older shifts hardly change)
+_PAST_FULL_S = 6 * 3600.0  # all _PAST_DAYS again every 6 h
+_PAST_POOL = __import__("concurrent.futures").futures.ThreadPoolExecutor(max_workers=1)
 
 
-def _past_build(lid, tbl):
+def _past_build(lid, tbl, days):
     try:
         from routers.lines import display_loss_oee
         m = {}
@@ -183,11 +189,13 @@ def _past_build(lid, tbl):
             cur = dict_cursor(c)
             cur.execute(psql.SQL(
                 "SELECT DISTINCT ON (record_date, shift_name) * FROM {} "
-                "WHERE record_date >= current_date - 7 AND shift_name IN ('A','B') "
+                "WHERE record_date >= current_date - %s AND shift_name IN ('A','B') "
                 "AND COALESCE(ok_count,0) + COALESCE(ng_count,0) > 0 "
-                "ORDER BY record_date, shift_name, timestamp DESC").format(psql.Identifier(tbl)))
+                "ORDER BY record_date, shift_name, timestamp DESC").format(psql.Identifier(tbl)), (days,))
             for r in cur.fetchall():
                 d = display_loss_oee(cur, lid, r, r["record_date"], r["shift_name"])
+                if days > _PAST_RECENT_DAYS:
+                    time.sleep(0.01)        # the long build gives way to the API's requests
                 if d.get("overall_oee") is None:
                     continue
                 v = {k: d.get(k) for k in ("overall_oee", "availability", "performance")}
@@ -195,7 +203,16 @@ def _past_build(lid, tbl):
                     v[f"loss_{k}_seconds"] = s
                 m[(r["record_date"], r["shift_name"])] = v
             c.rollback()
-        _PAST_DISP[lid] = (time.time(), m)
+        now = time.time()
+        old = _PAST_DISP.get(lid)
+        if days >= _PAST_DAYS or not old:
+            _PAST_DISP[lid] = (now, m, now)
+        else:                               # keep the older days, replace the recent ones
+            cut = date.today() - timedelta(days=days)
+            low = date.today() - timedelta(days=_PAST_DAYS)
+            keep = {k: v for k, v in old[1].items() if low <= k[0] < cut}
+            keep.update(m)
+            _PAST_DISP[lid] = (now, keep, old[2])
     except Exception as exc:
         print(f"[AI-LOCAL] past display oee skipped line {lid}: {exc}")
     finally:
@@ -205,21 +222,24 @@ def _past_build(lid, tbl):
 
 def _past_display(lines):
     out = {}
+    now = time.time()
     for l in lines:
         hit = _PAST_DISP.get(l["id"])
         if hit:
             out[l["id"]] = hit[1]
-        if not hit or time.time() - hit[0] > _PAST_TTL_S:
-            with _PAST_LOCK:
-                start = l["id"] not in _PAST_BUSY
-                if start:
-                    _PAST_BUSY.add(l["id"])
+        if hit and now - hit[0] <= _PAST_TTL_S:
+            continue
+        days = _PAST_DAYS if not hit or now - hit[2] > _PAST_FULL_S else _PAST_RECENT_DAYS
+        with _PAST_LOCK:
+            start = l["id"] not in _PAST_BUSY
             if start:
-                _LIVE_POOL.submit(_past_build, l["id"], l["db_table_name"])
+                _PAST_BUSY.add(l["id"])
+        if start:
+            _PAST_POOL.submit(_past_build, l["id"], l["db_table_name"], days)
     return out
 
 
-def _views_sql(conn, lines, live=None):
+def _views_sql(conn, lines, live=None, since=None):
     """WITH prefix defining the curated views over this user's lines.
     The running shift's row takes the live values (live = _live_rows());
     recent finished shifts take the Dashboard's OEE + losses (_past_display)."""
@@ -239,6 +259,8 @@ def _views_sql(conn, lines, live=None):
     for l in lines:
         r = live.get(l["id"])
         pm = past.get(l["id"]) or {}
+        if since is not None:      # only the days the question can touch: the SQL stays small
+            pm = {k: v for k, v in pm.items() if k[0] >= since}
         join = ""
         if pm:
             vals = ",".join(
@@ -645,182 +667,566 @@ def _nav_reply(key):
 
 # ── line / zone names and dates, resolved in code ──────────────────────
 # The model mistyped names ("YRA-Recliner"), missed "ync ss" and "5 oct".
+# 2026-10-29 -- 1000 questions written the way the floor writes them ("ymc rec",
+# "yhb 4way", "loop pipe l2", "lps3", "kl", "yday", "this wk", "mtd", "25/10",
+# "26 tarikh", "dusri shift") were 78 % right; 180 of the 221 wrong answers came
+# from a name, date or shift this code did not read.  They are read here now.
 _MON = {m: i + 1 for i, m in enumerate(
     ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"])}
+_MON_RX = "jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec"
+_MON_FULL = ["january", "february", "march", "april", "may", "june", "july", "august",
+             "september", "october", "november", "december"]
 
 
 def _norm_tokens(s):
     return [t for t in re.split(r"[^a-z0-9]+", (s or "").lower()) if t]
 
 
-def _find_lines(msg, line_names):
-    """Line names the message mentions, longest first; tolerant of case,
-    dashes and spaces ("ync ss", "YNC-SS", "yncss", "loop pipe line 2")."""
-    toks = _norm_tokens(msg)
-    joined = " " + " ".join(toks) + " "
-    hits = []
-    for name in sorted(line_names, key=lambda n: -len(n)):
-        nt = _norm_tokens(name)
-        if not nt:
-            continue
-        if " " + " ".join(nt) + " " in joined:
-            hits.append(name)
-            continue
-        compact = "".join(nt)
-        if len(compact) >= 5 and compact in toks:     # "yncss" typed as one word
-            hits.append(name)
-    out = []
-    for h in hits:          # drop "ysd" inside an already-found "ysd recliner"
-        if not any(h != o and " ".join(_norm_tokens(h)) in " ".join(_norm_tokens(o)) for o in out):
-            out.append(h)
+_TOK_ALIAS = {"rec": "recliner", "recl": "recliner", "reclnr": "recliner", "reclinr": "recliner",
+              "reclinar": "recliner", "reclainer": "recliner", "recliners": "recliner", "reclner": "recliner",
+              "assy": "assy", "asy": "assy", "weld": "welding", "welding": "welding"}
+
+
+_HI_NUM = {}
+for _n, _ws in enumerate((
+        "ek", "do", "teen tin", "char chaar", "paanch panch", "chhe chhah che chah chhai chhe", "saat", "aath ath",
+        "nau", "das dus", "gyarah gyara gyaarah gyaara", "barah bara baarah baara", "terah tera", "chaudah chaudha choudah chodah",
+        "pandrah pandra pundrah pandhra", "solah sola", "satrah satra sattrah", "atharah athara attharah athaara",
+        "unnis unees unis", "bees bis", "ikkis ikees ikis", "baais bais baees", "teis teyis teish", "chaubis chobis chaubees",
+        "pachchis pachis pacchis pachees", "chhabbis chabbis chhabees chabbees", "sattais sataees sattaees sattais",
+        "atthais athais atthaees athaees", "untees untis", "tees tis", "ikattis iktees ikattees ikatis"), 1):
+    for _w in _ws.split():
+        _HI_NUM.setdefault(_w, _n)
+_HI_NUM_RX = re.compile(r"\b(" + "|".join(sorted(_HI_NUM, key=len, reverse=True)) + r")\s+(?=(tarikh|tareekh|tarik|tareek|tarekh|"
+                        r"taarikh|tarakh|oct\w*|nov\w*|sep\w*)\b)", re.I)      # not "date": "bata do date wise"
+_SPELL = [(re.compile(r"\b(shft|shif|sft|shfit|shitf)\b", re.I), "shift"),
+          (re.compile(r"\b(mnth|mth|mnt|monh)\b", re.I), "month"),
+          (re.compile(r"\b(prdn|prodn|prdctn|prdction|prodction|prduction)\b", re.I), "production"),
+          (re.compile(r"(\w)['’]s\b"), r"\1")]                  # "loop pipe-line 2's" -> "loop pipe-line 2"
+
+
+def _spell_fold(msg):
+    """Voice typing and short forms -> plain words: "baais tarikh" -> "22 tarikh",
+    "shft" -> shift, "mnth" -> month, "prdn" -> production."""
+    t = _HI_NUM_RX.sub(lambda m: f"{_HI_NUM[m.group(1).lower()]} ", msg)
+    for rx, w in _SPELL:
+        t = rx.sub(w, t)
+    return t
+
+
+_LINE_NUM = {"ek": "1", "one": "1", "do": "2", "two": "2", "teen": "3", "tin": "3", "three": "3"}
+_WAY_NUM = {"six": "6", "chhe": "6", "che": "6", "chhah": "6", "chah": "6", "char": "4", "chaar": "4", "four": "4"}
+
+
+def _join_spelled(toks):
+    """Voice typing spells line names out: "y h b s s" -> yhbss, "l p s 3" -> lps3,
+    "2 u a" -> 2ua, "y 17" -> y17.  A run of "a" / "b" alone (the shifts) is kept."""
+    out, i = [], 0
+    while i < len(toks):
+        j = i
+        while j < len(toks) and len(toks[j]) == 1 and toks[j].isalnum():
+            j += 1
+        run = toks[i:j]
+        letters = [c for c in run if c.isalpha()]
+        if len(run) >= 2 and len(letters) >= 2 and not set(letters) <= {"a", "b"}:
+            out.append("".join(run)); i = j; continue
+        if toks[i] == "y" and i + 1 < len(toks) and re.fullmatch(r"\d\d", toks[i + 1]):
+            out.append("y" + toks[i + 1]); i += 2; continue
+        out.append(toks[i]); i += 1
     return out
 
 
+def _canon_tokens(s):
+    """Tokens with the floor's spellings folded: "4 way" -> 4way, "rec" -> recliner,
+    "looppipe" -> loop pipe, "l2"/"line2" -> line 2, "lps3" -> lps 3, "yhbss" -> yhb ss."""
+    toks, out, i = _join_spelled(_norm_tokens(s)), [], 0
+    while i < len(toks):
+        t = toks[i]
+        nxt = toks[i + 1] if i + 1 < len(toks) else None
+        if t in _WAY_NUM and nxt in ("way", "ways"):              # "six way", "char way"
+            out.append(_WAY_NUM[t] + "way"); i += 2; continue
+        if t in ("line", "pipe") and nxt in _LINE_NUM:            # "loop pipe line do"
+            out += [t, _LINE_NUM[nxt]]; i += 2; continue
+        if re.fullmatch(r"y\d\d|y[a-z]{2}", t) and toks[i + 1:i + 3] == ["seat", "slider"]:
+            out += [t, "ss"]; i += 3; continue                     # "y17 seat slider" = Y17-SS
+        if t in ("4", "6") and nxt in ("way", "ways"):
+            out.append(t + "way"); i += 2; continue
+        if t in ("4ways", "6ways"):
+            out.append(t[:4]); i += 1; continue
+        if t == "looppipe":
+            out += ["loop", "pipe"]; i += 1; continue
+        m = re.fullmatch(r"(?:l|line|ln)(\d)", t)
+        if m:
+            out += ["line", m.group(1)]; i += 1; continue
+        m = re.fullmatch(r"lps(\d)", t)
+        if m:
+            out += ["lps", m.group(1)]; i += 1; continue
+        m = re.fullmatch(r"(y\d\d|y[a-z]{2})(ss|sa)", t)
+        if m and t not in ("yesss",):
+            out += [m.group(1), m.group(2)]; i += 1; continue
+        out.append(_TOK_ALIAS.get(t, t)); i += 1
+    return out
+
+
+def _line_patterns(name):
+    """Token sequences that name one line: its own name, the name without "sa"
+    ("yhb 4way"), "loop pipe 2", "lps 3" / "location pin", "nut welding", "2ua"."""
+    nt = _canon_tokens(name)
+    pats = [nt]
+    if "sa" in nt:
+        pats.append([t for t in nt if t != "sa"])
+    if nt[:2] == ["loop", "pipe"] and nt[-1].isdigit():
+        pats += [["loop", "pipe", nt[-1]], ["loop", "pipe", "line", nt[-1]]]
+    if "lps" in nt:
+        pats += [["lps"] + [t for t in nt if t.isdigit()], ["lps"], ["location", "pin"]]
+    if name.upper() == "2UA RECLINER":
+        pats.append(["2ua"])
+    return [p for p in pats if p]
+
+
+def _find_lines(msg, line_names):
+    """Line names the message mentions; tolerant of case, dashes, spaces and the
+    floor's short forms.  A name inside a longer matched name is dropped."""
+    toks = _canon_tokens(msg)
+    raw = set(_norm_tokens(msg))
+    n = len(toks)
+    found = []
+    for name in line_names:
+        best = None
+        for p in _line_patterns(name):
+            k = len(p)
+            for i in range(n - k + 1):
+                if toks[i:i + k] != p:
+                    continue
+                if p == ["2ua"] and ((i > 0 and toks[i - 1] == "ywd") or
+                                     (i + 1 < n and toks[i + 1] in ("zone", "area", "section", "side")) or
+                                     (i > 1 and toks[i - 1] in ("aur", "and", "&") and toks[i - 2] == "ywd") or
+                                     (i + 2 < n and toks[i + 1] in ("wale", "wala", "vale", "vala", "wali")
+                                      and toks[i + 2] in ("zone", "area", "section", "side"))):
+                    continue                    # "ywd 2ua" / "2ua zone" is the zone
+                if best is None or k > best[1] - best[0]:
+                    best = (i, i + k)
+        compact = "".join(_norm_tokens(name))
+        if best is None and len(compact) >= 5 and compact in raw:      # "yncss"
+            best = (0, 0)
+        if best:
+            found.append((best[0], best[1], name))
+    out = []
+    for s, e, nm in sorted(found, key=lambda x: -(x[1] - x[0])):
+        if e > s and any(s >= s2 and e <= e2 and (s, e) != (s2, e2) for s2, e2, _ in out):
+            continue
+        out.append((s, e, nm))
+    return [nm for _s, _e, nm in sorted(out)]
+
+
+_ZONE_PATS = [
+    (("ywd", "2ua"), "ywd/2ua"), (("2ua", "zone"), "ywd/2ua"), (("ywd", "zone"), "ywd/2ua"),
+    (("ywd", "aur", "2ua"), "ywd/2ua"), (("ywd", "and", "2ua"), "ywd/2ua"), (("2ua", "wale", "zone"), "ywd/2ua"),
+    (("2ua", "area"), "ywd/2ua"), (("ywd", "area"), "ywd/2ua"),
+    (("seat", "slider"), "seat slider"), (("ss", "zone"), "seat slider"), (("ss", "area"), "seat slider"),
+    (("ss", "section"), "seat slider"), (("ss", "side"), "seat slider"), (("slider", "zone"), "seat slider"),
+    (("sub", "assembly"), "sub-assembly"), (("subassembly",), "sub-assembly"), (("sub", "assy"), "sub-assembly"),
+    (("subassy",), "sub-assembly"), (("sa", "zone"), "sub-assembly"), (("sa", "area"), "sub-assembly"),
+    (("sa", "section"), "sub-assembly"),
+    (("loop", "pipe"), "loop pipe"),
+    (("recliner",), "recliner"),
+]
+
+
 def _find_zones(msg, zone_names):
-    toks = " " + " ".join(_norm_tokens(msg)) + " "
-    return [z for z in zone_names if " " + " ".join(_norm_tokens(z)) + " " in toks]
+    toks = _canon_tokens(msg)
+    n = len(toks)
+    zl = {z.lower(): z for z in zone_names}
+    for pat, key in _ZONE_PATS:
+        k = len(pat)
+        if key in zl and any(tuple(toks[i:i + k]) == pat for i in range(n - k + 1)):
+            return [zl[key]]
+    joined = " " + " ".join(toks) + " "
+    return [z for z in zone_names if " " + " ".join(_canon_tokens(z)) + " " in joined]
+
+
+_NUM_WORD = {"do": 2, "two": 2, "teen": 3, "tin": 3, "three": 3, "char": 4, "chaar": 4, "four": 4,
+             "paanch": 5, "panch": 5, "five": 5}
 
 
 def _explicit_date(msg, d0):
+    """A day written out: 25/10/2026, 25-10-26, 24.10.26, 25/10, 27 oct, oct 27,
+    27th October, 26 tarikh, 3 din pehle / two days ago."""
     t = msg.lower()
-    m = re.search(r"\b(\d{1,2})[-/.](\d{1,2})[-/.](20\d\d)\b", t)
-    if m:
+    for m in re.finditer(r"(?<![\w/.:-])(\d{1,2})([/.-])(\d{1,2})(?:\2(\d{4}|\d{2}))?(?![\w/:-]|\.\d)", t):
+        dd, sep, mm, yy = int(m.group(1)), m.group(2), int(m.group(3)), m.group(4)
+        if sep == "." and not yy:
+            continue                                   # "92.5" is not a date
+        if not (1 <= mm <= 12 and 1 <= dd <= 31):
+            continue
+        y = (2000 + int(yy) if len(yy) == 2 else int(yy)) if yy else \
+            (d0.year if (mm, dd) <= (d0.month, d0.day) else d0.year - 1)
         try:
-            return date(int(m.group(3)), int(m.group(2)), int(m.group(1)))
+            return date(y, mm, dd)
         except ValueError:
-            return None
-    m = re.search(r"\b(\d{1,2})\s*(?:st|nd|rd|th)?\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\b", t) \
-        or re.search(r"\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+(\d{1,2})\b", t)
+            continue
+    m = re.search(rf"\b(\d{{1,2}})\s*(?:st|nd|rd|th)?[\s/-]*(?:of\s+)?({_MON_RX})[a-z]*\b(?:[\s,/-]+(20\d\d)\b)?", t) \
+        or re.search(rf"\b({_MON_RX})[a-z]*\.?[\s/-]+(\d{{1,2}})(?:st|nd|rd|th)?\b(?:[\s,/-]+(20\d\d)\b)?", t)
     if m:
         g = m.groups()
         day, mon = (int(g[0]), _MON[g[1]]) if g[0].isdigit() else (int(g[1]), _MON[g[0]])
-        y = d0.year if (mon, day) <= (d0.month, d0.day) else d0.year - 1
+        y = int(g[2]) if g[2] else (d0.year if (mon, day) <= (d0.month, d0.day) else d0.year - 1)
         try:
             return date(y, mon, day)
         except ValueError:
             return None
-    # "3 din pehle" / "2 days ago" — not the "1" of "Loop Pipe-Line 1 day before yesterday"
-    m = re.search(r"(?<![-\w])(?<!line )(\d{1,2})\s*(din|days?)\s*(pehle|pahle|ago|before)\b(?!\s+yesterday)", t)
+    m = re.search(r"\b(\d{1,2})\s*(?:st|nd|rd|th)?\s*(?:tarikh|tareekh|tarik|tareek|tarekh|taarikh|tarakh|date)\b", t) \
+        or re.search(r"\b(?:on|dated)\s+(?:the\s+)?(\d{1,2})(?:st|nd|rd|th)\b(?!\s*(?:shift|line))", t)
     if m:
-        return d0 - timedelta(days=int(m.group(1)))
+        dd = int(m.group(1))
+        y, mo = d0.year, d0.month
+        if dd > d0.day:
+            y, mo = (y, mo - 1) if mo > 1 else (y - 1, 12)
+        try:
+            return date(y, mo, dd)
+        except ValueError:
+            return None
+    # "3 din pehle" / "two days ago" — not the "1" of "Loop Pipe-Line 1 day before yesterday"
+    m = re.search(r"(?<![-\w])(?<!line )(\d{1,2}|do|two|teen|tin|three|char|chaar|four|paanch|panch|five)\s*"
+                  r"(din|days?)\s*(pehle|pahle|pehele|ago|back|before)\b(?!\s+(yesterday|yday|yest))", t)
+    if m:
+        n = int(m.group(1)) if m.group(1).isdigit() else _NUM_WORD[m.group(1)]
+        return d0 - timedelta(days=n)
     return None
 
 
-# ── date / shift words -> an exact filter for the model ──────────────────
-# A 3B model kept falling back to "today" for "is mahine" and dropped "kal"
-# on some views.  The words are read here, in code, and handed to the model as
-# the exact condition to use, so it never has to work the date out itself.
-def _hints(msg, d0, shift_now, line_names=(), zone_names=()):
-    t = " " + msg.lower() + " "
-    d1 = d0 - timedelta(days=1)
+_RX_LASTMONTH = re.compile(r"\b(pichhle|pichle|pichhla|pichla|last|prev|previous)\s+(mahine|mahina|month)\b")
+_RX_MONTH = re.compile(r"\b(is|iss|this|current|chalu)\s+(mahine|mahina|month)\b|\bmtd\b|\bmonth[\s-]*(to|till)[\s-]*date\b|\bmonthly\b|\bthis\s+month\s+so\s+far\b")
+_RX_LASTWEEK = re.compile(r"\b(pichhle|pichle|pichhla|pichla|picchle|last|prev|previous)\s+"
+                          r"(pure\s+|poore\s+|pura\s+|poora\s+)?(hafte|hafta|week|wk)\b")
+_RX_WEEK = re.compile(r"\b(is|iss|this|current|chalu)\s+(pure\s+|poore\s+|pura\s+|poora\s+)?(hafte|hafta|week|wk)\b"
+                      r"|\bwtd\b|\bweek[\s-]*(to|till)[\s-]*date\b|\bweekly\b")
+_RX_DBY = re.compile(r"\b(parso|parson|parsoo|parsu|parsho)\b|\bday\s+before\s+(yesterday|yday|yest|yesterdy)\b"
+                     r"|\bd\s*-\s*2\b")
+_RX_YDAY = re.compile(r"\b(kal|kl|kall|yesterday|yesterdy|yesterda|yday|yest|ystrdy|yesteday|yestarday|yesterdays)\b"
+                      r"|\bd\s*-\s*1\b|\b(prev|previous)\s+day\b")
+_RX_TODAY = re.compile(r"\b(aaj|aj|aajj|today|todays|tday|tdy)\b|\b(abhi|ab)\s+tak\b|\btill\s+now\b|\bso\s+far\b"
+                       r"|\bas\s+of\s+now\b")
+
+
+def _month_by_name(t, d0):
+    """"october" / "oct mtd" / "in october" with no day number -> that month."""
+    m = re.search(r"\b(" + "|".join(n for n in _MON_FULL if n != "may") + r")\b", t) or \
+        re.search(r"\b(jan|feb|mar|apr|jun|jul|aug|sep|sept|oct|nov|dec)\b(?=\s*(mtd|month|mahine|me|mein|so\s+far|till|tak|ka|ki|ke|\?|$))", t) or \
+        re.search(r"\bin\s+(may)\b", t)
+    if not m:
+        return None
+    mon = _MON[m.group(1)[:3]]
+    y = d0.year if mon <= d0.month else d0.year - 1
+    start = date(y, mon, 1)
+    if (y, mon) == (d0.year, d0.month):
+        return f"record_date >= '{start}'"
+    end = (date(y + (mon == 12), mon % 12 + 1, 1) - timedelta(days=1))
+    return f"record_date >= '{start}' AND record_date <= '{end}'"
+
+
+def _date_cond(msg, d0):
+    t = " " + re.sub(r"\s+", " ", msg.lower()) + " "
     wk = d0 - timedelta(days=d0.weekday())
     mo = d0.replace(day=1)
-    date_cond = None
-    if re.search(r"\b(is|iss|this)\s+(mahine|month)\b|\bmonthly\b", t):
-        date_cond = f"record_date >= '{mo}'"
-    elif re.search(r"\b(pichhle|pichle|last)\s+(mahine|month)\b", t):
-        pm_end = mo - timedelta(days=1)
-        date_cond = f"record_date >= '{pm_end.replace(day=1)}' AND record_date <= '{pm_end}'"
-    elif re.search(r"\b(is|iss|this)\s+(hafte|hafta|week)\b|\bweekly\b", t):
-        date_cond = f"record_date >= '{wk}'"
-    elif re.search(r"\b(pichhle|pichle|last)\s+(hafte|hafta|week)\b", t):
-        date_cond = f"record_date >= '{wk - timedelta(days=7)}' AND record_date < '{wk}'"
-    elif re.search(r"\b(parso|day before yesterday)\b", t):
-        date_cond = f"record_date = '{d0 - timedelta(days=2)}'"
-    elif re.search(r"\b(kal|yesterday)\b", t):
-        date_cond = f"record_date = '{d1}'"
-    elif re.search(r"\b(aaj|today|todays|today's)\b", t):
-        date_cond = f"record_date = '{d0}'"
     ex = _explicit_date(msg, d0)
     if ex:
-        date_cond = f"record_date = '{ex}'"
-    shift_cond = None
-    has_a = re.search(r"\bshift\s*a\b|\ba[\s-]*shift\b|\bday\s*shift\b|\bdin\s*(ki|wali)?\s*shift\b|\bmorning\s*shift\b", t)
-    has_b = re.search(r"\bshift\s*b\b|\bb[\s-]*shift\b|\bnight\s*shift\b|\braat\s*(ki|wali)?\s*shift\b", t)
-    if re.search(r"\ba\s*(?:-|/|&|vs\.?|v/s|aur|and)\s*b\b|\b(which|kis|kaunsi|konsi)\s+shift\b|\bdono\s+shift|\bboth\s+shift"
-                 r"|\ba\s+b\s+shift|\bshift\s+a\s+b\b|\bcompare\s+a\s+(?:and\s+|aur\s+)?b\b", t):
-        has_a = has_b = True
-    if has_a and has_b:
-        shift_cond = "both shifts — GROUP BY shift_name"
-    elif has_a:
-        shift_cond = "shift_name = 'A'"
-    elif has_b:
-        shift_cond = "shift_name = 'B'"
-    elif re.search(r"\b(is|iss|this|abhi\s+ki|current)\s+shift\b", t) and shift_now in ("A", "B"):
-        shift_cond = f"shift_name = '{shift_now}'"
-    if shift_cond and not date_cond:
-        date_cond = f"record_date = '{d0}'"      # "is shift" = the shift of TODAY's production date
-    out = []
-    found = _find_lines(msg, line_names)
-    if len(found) == 1:
-        out.append(f"line: line_name = '{found[0]}'")
-    elif found:
-        out.append("lines: line_name IN (" + ", ".join(f"'{n}'" for n in found[:6]) + ")")
-    elif zone_names:
+        return f"record_date = '{ex}'"
+    if _RX_LASTMONTH.search(t):
+        pm_end = mo - timedelta(days=1)
+        return f"record_date >= '{pm_end.replace(day=1)}' AND record_date <= '{pm_end}'"
+    if _RX_MONTH.search(t):
+        return f"record_date >= '{mo}'"
+    if _RX_LASTWEEK.search(t):
+        return f"record_date >= '{wk - timedelta(days=7)}' AND record_date < '{wk}'"
+    if _RX_WEEK.search(t):
+        return f"record_date >= '{wk}'"
+    mn = _month_by_name(t, d0)
+    if mn:
+        return mn
+    if _RX_DBY.search(t):
+        return f"record_date = '{d0 - timedelta(days=2)}'"
+    if _RX_YDAY.search(t):
+        return f"record_date = '{d0 - timedelta(days=1)}'"
+    if _RX_TODAY.search(t):
+        return f"record_date = '{d0}'"
+    return None
+
+
+_RX_SHIFT_A = re.compile(r"\bshift\s*-?\s*a\b|\ba\s*-?\s*shift\b|\b(pehli|pehla|pahli|pahla|first|1st|morning|subah|din|day|general)"
+                         r"\s*(ki|wali|vali|ka|wala)?\s*shift\b")
+_RX_SHIFT_B = re.compile(r"\bshift\s*-?\s*b\b|\bb\s*-?\s*shift\b|\b(dusri|doosri|dusra|doosra|second|2nd|raat|night|evening|shaam)"
+                         r"\s*(ki|wali|vali|ka|wala)?\s*shift\b")
+_RX_SHIFT_BOTH = re.compile(r"\ba\s*(?:-|/|&|vs\.?|v/s|aur|and|ya|or)\s*b\b|\b(which|kis|kaunsi|konsi|kounsi|kaun\s*si|kaun\s*sa)\s+shift\b"
+                            r"|\bdono\s+shift|\bboth\s+(the\s+)?shifts?\b|\btwo\s+shifts\b|\bshift\s*-?\s*wise\b"
+                            r"|\ba\s+b\s+shift|\bshift\s+a\s+b\b|\bcompare\s+a\s+(?:and\s+|aur\s+|with\s+)?b\b"
+                            r"|\bshifts?\s+compar\w*|\bcompar\w*\s+(?:of\s+|the\s+)?(?:both\s+|two\s+)?shifts?\b")
+
+
+def _shift_cond(t, shift_now):
+    has_a, has_b = _RX_SHIFT_A.search(t), _RX_SHIFT_B.search(t)
+    if _RX_SHIFT_BOTH.search(t) or (has_a and has_b):
+        return "both"
+    if has_a:
+        return "A"
+    if has_b:
+        return "B"
+    if re.search(r"\b(is|iss|this|abhi\s+ki|current|chalu)\s+shift\b", t) and shift_now in ("A", "B"):
+        return shift_now
+    return None
+
+
+# ── what the question asks for ───────────────────────────────────────
+_RX_FAULT = re.compile(r"\b(fault\w*|fualt\w*|falut\w*|faut\w*|alarm\w*|alram\w*|alaram\w*)\b")
+_RX_BYPASS = re.compile(r"bypass|by\s*pass|\bpy\b|poka[\s-]*yoke|pokayoke")
+_RX_COMMENT = re.compile(r"\b(comment\w*|cmnt\w*|remark\w*)\b")
+_RX_CAMERA = re.compile(r"\b(camera\w*|cam|cams|cctv)\b")
+_RX_OPEN_BP = re.compile(r"\b(khul\w*|open|pending|waiting|await\w*|active|unresolved|unapproved|baaki|baki|outstanding|chalu|chaalu|unclosed|un-closed|"
+                         r"lagi\s+hu\w*|lage\s+hu\w*|running|ruke|ruka|ruki|atke|atka|atki|"
+                         r"approval\s+(ke\s+liye|pending|baaki|baki|me|mein|par|pe)|for\s+approval|not\s+(yet\s+)?approved)\b"
+                         r"|\b(clear|close|closed|band|resolve)\w*\s+(nahi|nhi|na)\b|\bnot\s+(closed|cleared|resolved)\b")
+_RX_STOP = re.compile(r"\b(ruk\w*|band|bandh|stop\w*|idle|off|down|khadi|khada)\b|\bchal\s*(nahi|nhi)\b|\bnot\s+running\b")
+_RX_RUN = re.compile(r"\b(chal\s*rah\w*|chal\s*ri\w*|chal\s*rh\w*|running|chalu|live\s*status|status)\b|\bon\s+hai\b"
+                     r"|\b(currently|right\s+now|abhi)\s+(in\s+production|producing|working)\b|\bproduction\s+(happening|going\s+on)\b|\blive\s+(right\s+now|now|abhi|currently)\b|\b(is|are)\s+\S+(\s+\S+){0,3}\s+in\s+production\s*\??\s*$")
+_RX_MODEL = re.compile(r"\bmodel\w*\b")
+_RX_COUNTW = re.compile(r"\b(kitna|kitne|kitni|kitney|kitnaa|ketna|how\s+many|how\s+much|total|count|qty|quantity|kul)\b")
+_RX_LONG = re.compile(r"\b(der|time|minutes?|mins?|ghante|hours?|duration|how\s+long)\b")
+_RX_LISTW = re.compile(r"\b(kaunsi|konsi|kounsi|kaun\s*si|which|list|naam|names?)\b")
+
+
+def _measures(t):
+    """line_shift measures the question names, in the order asked."""
+    found = []
+    def add(m, pat):
+        mm = re.search(pat, t)
+        if mm:
+            found.append((mm.start(), m))
+    add("breakdown", r"\b(bd|breakdown\w*|break\s+down|brkdown)\b")
+    add("setup", r"\bsetup\b")
+    add("speed", r"\bspeed\s*loss\b")
+    add("loss", r"\b(dt|downtime|down\s*time|loss|losses|lost|lose|stoppage)\b|kitni\s+der|kitna\s+(time|der)\s+(band|ruk)"
+                r"|\b(band|ruki|ruka|stop)\s+(rahi|raha|rhi|rha)\b|\bhow\s+long\b.*\b(stop|down|band)")
+    add("ng", r"\b(ng|nok|reject\w*|rej|rejction|rejecton|rejection\w*|defect\w*|scrap)\b")
+    add("ok", r"\bok\s*(count|qty|quantity|parts?|pcs|pieces?|cnt|production|maal|nos|output)\b|\bgood\s*(parts?|count|qty|pcs|pieces?|quantity|output|nos|maal)\b"
+              r"|\bkitne\s+ok\b|\bok\s+(kitne|kitna)\b")
+    add("oee", r"\b(oee|efficiency|effcy)\b")
+    if not any(m in ("ok",) for _p, m in found):
+        add("produced", r"\b(output|production|producton|prodution|prod|o/p|bane|bana|banaye|banaya|"
+                        r"produce\w*|maal|made|make)\b|\bo\s*/\s*p\b")
+        if not found:      # "parts / pcs / qty" alone mean production only when nothing else is named
+            add("produced", r"\b(parts|qty|quantity|pcs|pieces|count)\b")
+    if len({m for _p, m in found}) > 1 and "produced" in [m for _p, m in found] and not re.search(
+            r"\b(output|production|producton|prodution|prod|o/p|aur|and|or|plus|tatha|sath|saath)\b|\bo\s*/\s*p\b|[,&+]", t):
+        found = [(p, m) for p, m in found if m != "produced"]       # "produced the most NG", "kitne NG bane"
+    if "loss" in [m for _p, m in found] and "breakdown" in [m for _p, m in found]:
+        #  "lost most time to breakdown", "loss due to breakdown" = the breakdown time;
+        #  both only when asked as two things ("loss aur breakdown", "total loss")
+        if not re.search(r"\b(total|overall|sab|saare|all)\s+(time\s+)?loss|\b(loss|losses|downtime)\s+(and|aur|or|&|,|\+)\s+(bd|breakdown)"
+                         r"|\b(bd|breakdown)\s+(and|aur|or|&|,|\+)\s+(total\s+)?(loss|losses|downtime)", t):
+            found = [(p, m) for p, m in found if m != "loss"]
+    out, seen = [], set()
+    for _p, m in sorted(found):
+        if m not in seen:
+            seen.add(m); out.append(m)
+    return out
+
+
+_GOOD = {"produced", "ok", "oee"}
+
+
+def _parse(msg, d0, shift_now, line_names=(), zone_names=()):
+    """Everything code can read from the question, for the hint and for
+    building the SELECT without the model."""
+    msg = _spell_fold(msg)
+    t = " " + re.sub(r"\s+", " ", msg.lower()) + " "
+    tr = re.sub(r"\b(last|pichhle|pichle|prev|previous|this|is|iss|current)\s+(pure\s+|poore\s+)?(week|wk|hafte|hafta|month|mahine|shift)\b", " ", t)
+    p = {"date": _date_cond(msg, d0), "shift": _shift_cond(t, shift_now), "lines": _find_lines(msg, line_names),
+         "zone": None, "measures": _measures(t), "subject": None, "rank": None, "group": None,
+         "open": False}
+    if not p["lines"] and zone_names:
         zs = _find_zones(msg, zone_names)
-        if zs:
-            out.append(f"zone: zone_name = '{zs[0]}'")
-    if date_cond:
-        out.append(f"date filter: {date_cond}")
-    # what KIND of answer — the phrasings the 3B model misread most in the eval
-    stop_w = re.search(r"\b(ruk\w*|band|stop\w*|idle|bandh|chal\s*nahi|not\s*running|off)\b", t)
-    run_w = re.search(r"\b(chal\s*rah\w*|running|chalu|on\s*hai|live\s*status|status)\b", t)
-    if (stop_w or run_w) and not date_cond and not re.search(r"\b(kitna|kitne|kitni|how\s+much|how\s+many|total|how\s+long)\b", t):
-        out.append("use view line_now" + (": status <> 'RUNNING'" if stop_w and not found else ""))
-    # rank words are read with the date phrases taken out ("last week" is a date, not "last place")
-    tr = re.sub(r"\b(last|pichhle|pichle|this|is|iss)\s+(week|hafte|hafta|month|mahine|shift)\b", " ", t)
-    rank_w = re.search(r"\b(most|sabse|top|max\w*|zyada|jyada|highest|common|frequent|baar\s*baar|number\s*1)\b", tr)
-    if re.search(r"fault", t):
-        # a machine word NOT used as an adjective of "fault": "most common machine
-        # fault" is about fault types; "max fault wali machine", "top fault m/c",
-        # "what machine had the most" are about machines
-        mach = re.search(r"\b(machine|machines|m/c|mc)\b(?!\s*faults?\b)", t)
-        if mach and (rank_w or re.search(r"\b(kis|kaunsi|konsi|kaun\s*si|which|what)\s+(machine|m/c|mc)\b", t)):
-            out.append("group by machine_name")
-        elif rank_w:
-            out.append("group by fault_name")
-    bad_metric = re.search(r"\b(ng|reject\w*|defect\w*|loss|breakdown|bd|dt|downtime|fault\w*|stop\w*)\b", t)
-    asc_w = re.search(r"\b(sabse\s*kam|lowest|least|minimum|min|kam\s*se\s*kam|last|aakhri|akhri|bottom|neeche)\b", tr) or \
-        (re.search(r"\b(worst|kharab)\b", t) and not bad_metric)
-    desc_w = re.search(r"\b(number\s*1|no\.?\s*1|top|sabse\s*zyada|sabse\s*jyada|most|highest|max\w*|best)\b", tr) or \
-        (re.search(r"\b(worst|kharab)\b", t) and bad_metric)
-    line_q = re.search(r"\b(kis|kaunsi|konsi|kaun\s*si|which)\s+line|line\s+(kaunsi|konsi|kaun\s*si)|line\s+ne\b", t) \
-        or (re.search(r"\b(best|top|worst|number\s*1|no\.?\s*1)\s+\w*\s*line\b", t) and not found)
-    if line_q and desc_w and not found:
-        out.append("rank lines: GROUP BY line_name ORDER BY the value DESC")
-    elif line_q and asc_w and not found:
-        out.append("rank lines: GROUP BY line_name ORDER BY the value ASC")
-    # which number shop-floor shorthand means
-    measure = None
-    if re.search(r"\b(bd|breakdown\w*)\b", t): measure = "breakdown_s"
-    elif re.search(r"\bsetup\b", t): measure = "setup_s"
-    elif re.search(r"\bspeed\b", t): measure = "speed_loss_s"
-    elif re.search(r"\b(dt|downtime|down\s*time|loss|stoppage)\b|how\s+long.*stop|kitni\s+der|kitna\s+(time|der)\s+(band|ruk)", t):
-        measure = "total_loss_s"
-    if not measure:
-        if re.search(r"\b(ng|reject\w*|defect\w*|rejection)\b", t): measure = "ng"
-        elif re.search(r"\bok\s*(count|qty|quantity|parts?|cnt)\b|\bgood\s*(parts?|count|qty)\b", t): measure = "ok"
-        elif re.search(r"\b(oee|efficiency)\b", t): measure = "AVG:oee"
-        elif re.search(r"\b(output|production|producton|prod|parts|qty|quantity|bane|banaye|banaya|produce\w*)\b", t):
-            measure = "produced"
-    if measure:
-        out.append(f"measure: ROUND(AVG({measure[4:]}),1)" if measure.startswith("AVG:") else f"measure: SUM({measure})")
-        if not date_cond and not re.search(r"\b(ever|all\s*time|since|tak\s+ka\s+total|lifetime|history)\b", t):
-            out.append(f"date filter: record_date = '{d0}'")
-    per_line = re.search(r"\b(har\s+line|line\s*wise|per\s+line|each\s+line|every\s+line|kis\s+line|which\s+line|"
-                         r"sabse|top|most|highest|lowest|best|worst|last|rank\w*)\b", tr)
-    total_w = re.search(r"\b(kitne|kitna|kitni|total|kul|overall|mila\s*ke|milake|combined|together|sum|how\s+many|how\s+much)\b", t)
-    if total_w and not per_line and not found:
-        out.append("one total for all of them: no GROUP BY")
-    if re.search(r"bypass|\bpy\b", t) and re.search(
-            r"\b(khul\w*|open|pending|waiting|active|unresolved|baaki|clear\s+nahi|band\s+nahi)\b", t):
+        p["zone"] = zs[0] if zs else None
+    if _RX_CAMERA.search(t):
+        p["subject"] = "cameras"
+    elif _RX_BYPASS.search(t):
+        p["subject"] = "bypass"
+        p["open"] = bool(_RX_OPEN_BP.search(t))
+    elif _RX_COMMENT.search(t):
+        p["subject"] = "comments"
+    elif _RX_FAULT.search(t) and not re.search(r"\b(bd|breakdown)\b", t):
+        p["subject"] = "faults"
+    elif _RX_MODEL.search(t) and not p["measures"]:
+        p["subject"] = "model"
+    elif (_RX_STOP.search(t) or _RX_RUN.search(t)) and not p["date"] and not (
+            p["measures"] and (_RX_COUNTW.search(t) or _RX_LONG.search(t))):
+        p["subject"] = "status"
+    elif p["measures"]:
+        p["subject"] = "line_shift"
+    elif p["shift"] == "both" and (p["lines"] or p["zone"]):
+        p["subject"] = "line_shift"      # "kis shift ka performance accha tha"
+    # ranking
+    bad = bool(p["measures"]) and p["measures"][0] in ("ng", "loss", "breakdown", "setup", "speed")
+    desc = re.search(r"\b(number\s*(1|one|ek)|no\.?\s*1|top|sabse\s*(zyada|jyada|jada|zada|jyda|zyda|adhik|upar|uppar|aage|aagey|lamba|lambi|lambe)|zyada|jyada|zada|jyda|most|highest|max\w*|best|"
+                     r"peak|maximum|lead\w*|topp\w*|longest|biggest|largest|heaviest)\b", tr) or (re.search(r"\b(worst|kharab|bekar)\b", tr) and bad)
+    asc = re.search(r"\b(sabse\s*kam|lowest|least|minimum|kam\s*se\s*kam|bottom\w*|neeche|ghatiya|poor|poorest|poorly|weakest|low|sabse\s+(peeche|piche|pichhe|peechhe|neeche)|min\s+(oee|output|production|prod)|last(?!\s+(week|wk|month|mahine|mahina|hafte|hafta|shift|year|saal|day|din|\d)))\b", tr) \
+        or (re.search(r"\b(worst|kharab|bekar)\b", tr) and not bad)
+    line_q = re.search(r"\b(kis|kaunsi|konsi|kounsi|kaun\s*si|which|what)\s+line|\bline\s+(kaun|kaunsi|konsi)\b|\bline\s+(kaunsi|konsi|kounsi|kaun\s*si|ne)\b"
+                       r"|\b(best|top|worst|bottom\w*|lowest|least|highest|min|max|number\s*1|no\.?\s*1)\s+(\w+\s+){0,2}lines?\b"
+                       r"|\blines?\s+(with|having)\s+(the\s+)?(max\w*|highest|most|min\w*|lowest|least)\b"
+                       r"|\btop\s+(producing|prod)\b|\bline\s+(ka|ki|ke)\b.*\bsabse\b|\bsabse\b.*\bline\b", t)
+    if p["subject"] == "line_shift" and not p["lines"] and (line_q or (desc or asc) and not _RX_COUNTW.search(t)):
+        if asc and not (desc and not asc):
+            p["rank"] = "asc" if not (desc and desc.start() < asc.start()) else "desc"
+        elif desc:
+            p["rank"] = "desc"
+    if p["subject"] == "faults":
+        mach_q = re.search(r"\b(kis|kaunsi|konsi|kounsi|kaun\s*si|which|what)\s+(single\s+|one\s+|ek\s+)?(machine|m/c|mc)\b|\bmachine\s+(with|having)\b"
+                           r"|\b(top|max\w*|most|worst|highest|sabse\s+(zyada|jyada|jada|zada|jyda|adhik))\s+(fault\w*\s+|alarm\w*\s+)?(wali\s+|wala\s+|vali\s+|vala\s+)?(machine|machin|m/c|mc)\b"
+                           r"|\b(machine|m/c|mc)\s+(pe|par|me|mein)\s+sabse\b"
+                           r"|\b(problem|dikkat|kharab|issue|trouble)\w*\s+(wali\s+|wala\s+|vali\s+)?(machine|m/c|mc)\b"
+                           r"|\b(number\s*(1|one|ek)|no\.?\s*1)\s+(machine|m/c|mc)\b|\bfaults?\s+(by|per)\s+(machine|m/c|mc)\b"
+                           r"|\bfault[\s-]*prone\s+(machine|m/c|mc)\b|\b(machine|m/c|mc)[\s-]*wise\b"
+                           r"|\b(max\w*|most|top|highest)\s+(fault\w*|alarm\w*)\s+(cnt\s+|count\s+|wali\s+|wala\s+)?(machine|m/c|mc)\b|\b(machine|machin|m/c|mc)s?\s+(by|with\s+(the\s+)?most)\s+(fault|alarm)", t)
+        name_q = re.search(r"\b(kaunsa|konsa|kounsa|kaun\s*sa|which|what|kis)\s+(fault|alarm)\b|\bfault\s+(ka\s+)?(naam|name)\b"
+                           r"|\b(fault|alarm)\s+(kaunsa|konsa|kounsa)\b", t)
+        if mach_q and not name_q:
+            p["group"] = "machine_name"
+        elif desc or name_q or re.search(r"\b(common|frequent|baar\s*baar|repeat\w*|number\s*one)\b", t):
+            p["group"] = "fault_name"
+    return p
+
+
+def _hints(msg, d0, shift_now, line_names=(), zone_names=()):
+    """The parse as a hint after the question, for the model."""
+    p = _parse(msg, d0, shift_now, line_names, zone_names)
+    out = []
+    if len(p["lines"]) == 1:
+        out.append(f"line: line_name = '{p['lines'][0]}'")
+    elif p["lines"]:
+        out.append("lines: line_name IN (" + ", ".join(f"'{n}'" for n in p["lines"][:6]) + ")")
+    elif p["zone"]:
+        out.append(f"zone: zone_name = '{p['zone']}'")
+    date_c = p["date"]
+    if p["shift"] and not date_c:
+        date_c = f"record_date = '{d0}'"
+    if not date_c and p["subject"] in ("line_shift", "faults", "comments") or \
+            (not date_c and p["subject"] == "bypass" and not p["open"]):
+        date_c = f"record_date = '{d0}'"
+    if date_c:
+        out.append(f"date filter: {date_c}")
+    if p["subject"] == "status":
+        out.append("use view line_now" + (": status <> 'RUNNING'" if _RX_STOP.search(msg.lower()) and not p["lines"] else ""))
+    if p["subject"] == "model":
+        out.append("use view line_now")
+    if p["group"]:
+        out.append(f"group by {p['group']}")
+    if p["rank"]:
+        out.append(f"rank lines: GROUP BY line_name ORDER BY the value {p['rank'].upper()}")
+    if p["measures"] and p["subject"] == "line_shift":
+        m = p["measures"][0]
+        col = {"produced": "produced", "ok": "ok", "ng": "ng", "loss": "total_loss_s", "breakdown": "breakdown_s",
+               "setup": "setup_s", "speed": "speed_loss_s"}.get(m)
+        out.append("measure: ROUND(AVG(oee),1)" if m == "oee" else f"measure: SUM({col})")
+    if p["subject"] == "bypass" and p["open"]:
         out.append("open bypass: status = 'WAITING'")
-    if re.search(r"\b(comment\w*|cmnt\w*|remark\w*)\b", t) and not re.search(
-            r"\b(dikhao|show|list|kya\s+likha|padh\w*|latest|last|recent)\b", t):
+    if p["subject"] == "comments":
         out.append("answer with COUNT(*) AS comments")
-    if shift_cond:
-        out.append(f"shift filter: {shift_cond}")
+    if p["shift"] == "both":
+        out.append("shift filter: both shifts — GROUP BY shift_name")
+    elif p["shift"]:
+        out.append(f"shift filter: shift_name = '{p['shift']}'")
+    if not p["lines"] and not p["zone"] and not p["rank"] and not p["group"] and p["subject"] in ("line_shift", "faults", "bypass", "comments"):
+        out.append("one total for all of them: no GROUP BY")
     return ("  [" + "; ".join(out) + "]") if out else ""
+
+
+# ── the SELECT built in code when the question is plainly understood ───
+_AGG = {"produced": "SUM(produced) AS produced", "ok": "SUM(ok) AS ok", "ng": "SUM(ng) AS ng",
+        "oee": "ROUND(AVG(oee),1) AS oee", "loss": "SUM(total_loss_s) AS total_loss_s",
+        "breakdown": "SUM(breakdown_s) AS breakdown_s", "setup": "SUM(setup_s) AS setup_s",
+        "speed": "SUM(speed_loss_s) AS speed_loss_s"}
+
+
+def _plan_sql(msg, p, d0):
+    """One SELECT for a question whose subject, scope, date and shift were all read
+    in code, or None (then the model writes it).  The model got these wrong
+    often enough on its own: plan_till_now for "production", DESC for "sabse kam",
+    status = 'WAITING' on a plain bypass count, cameras for "alarm"."""
+    if len(p["lines"]) > 1:
+        return None
+    lit = lambda s: "'" + str(s).replace("'", "''") + "'"
+    scope = []
+    if p["lines"]:
+        scope.append(f"line_name = {lit(p['lines'][0])}")
+    elif p["zone"]:
+        scope.append(f"zone_name = {lit(p['zone'])}")
+    date_c = p["date"] or f"record_date = '{d0}'"
+    subj = p["subject"]
+    def where(conds):
+        conds = [c for c in conds if c]
+        return (" WHERE " + " AND ".join(conds)) if conds else ""
+    if subj == "cameras":
+        if p["zone"]:
+            return None
+        return (f"SELECT COALESCE(SUM(hung),0) AS hung, COALESCE(SUM(cameras),0) AS cameras FROM cameras"
+                + where(scope))
+    if subj == "bypass":
+        if p["zone"] or p["rank"]:
+            return None
+        if p["open"]:
+            return "SELECT COUNT(*) AS bypasses FROM py_bypass" + where(scope + ["status = 'WAITING'"])
+        if re.search(r"\b(kis|kaunsi|konsi|which)\s+line\b|\bline\s*wise\b|\bper\s+line\b", msg.lower()):
+            return None
+        return "SELECT COUNT(*) AS bypasses FROM py_bypass" + where(scope + [date_c])
+    if subj == "comments":
+        if p["zone"] or re.search(r"\b(dikhao|show|list|kya\s+likha|padh\w*|latest|recent|read)\b", msg.lower()):
+            return None
+        return "SELECT COUNT(*) AS comments FROM comments" + where(scope + [date_c])
+    if subj == "faults":
+        if p["zone"]:
+            return None
+        sh = [f"shift_name = '{p['shift']}'"] if p["shift"] in ("A", "B") else []
+        if p["shift"] == "both":
+            return None
+        if p["group"]:
+            g = p["group"]
+            return (f"SELECT {g}, COUNT(*) AS faults FROM faults" + where(scope + [date_c] + sh)
+                    + f" GROUP BY {g} ORDER BY faults DESC LIMIT 10")
+        if re.search(r"\b(kis|kaunsi|konsi|which)\s+line\b|\bline\s*wise\b", msg.lower()) and not p["lines"]:
+            return None
+        return "SELECT COUNT(*) AS faults FROM faults" + where(scope + [date_c] + sh)
+    if subj in ("status", "model"):
+        if p["lines"]:
+            return f"SELECT status, model, updated_at FROM line_now WHERE line_name = {lit(p['lines'][0])}"
+        if subj == "status" and _RX_STOP.search(msg.lower()):
+            return "SELECT line_name, status, updated_at FROM line_now" + where(
+                ([f"zone_name = {lit(p['zone'])}"] if p["zone"] else []) + ["status <> 'RUNNING'"]) + " ORDER BY line_name"
+        return None
+    if subj != "line_shift" or _RX_MODEL.search(msg.lower()):
+        return None
+    ms = [m for m in p["measures"] if m in _AGG]
+    if not ms and p["shift"] == "both" and (p["lines"] or p["zone"]) and not p["rank"]:
+        ms = ["produced"]          # "kis shift ka performance accha tha": produced, NG and OEE per shift
+    if not ms:
+        return None
+    sh = [f"shift_name = '{p['shift']}'"] if p["shift"] in ("A", "B") else []
+    if p["shift"] == "both":
+        if p["rank"] or not (p["lines"] or p["zone"]):
+            return None
+        cols = ", ".join(dict.fromkeys([_AGG["produced"], _AGG["ng"], _AGG["oee"]] + [_AGG[m] for m in ms]))
+        return (f"SELECT shift_name, {cols} FROM line_shift" + where(scope + [date_c])
+                + " GROUP BY shift_name ORDER BY shift_name")
+    if p["rank"]:
+        if p["lines"]:
+            return None
+        m = ms[0]
+        alias = _AGG[m].split(" AS ")[1]
+        expr = _AGG[m].split(" AS ")[0]
+        return (f"SELECT line_name, {_AGG[m]} FROM line_shift" + where(scope + [date_c] + sh)
+                + f" GROUP BY line_name HAVING {expr} IS NOT NULL ORDER BY {alias} {p['rank'].upper()} LIMIT 10")
+    if len(ms) > 3:
+        return None
+    return f"SELECT {', '.join(_AGG[m] for m in ms)} FROM line_shift" + where(scope + [date_c] + sh)
 
 
 def _violations(sql, hint, line_names):
@@ -860,11 +1266,48 @@ _SUBJECT_WORDS = re.compile(r"\b(prod\w*|output|parts|ng|reject\w*|oee|efficien\
                             r"fault\w*|bypass|py|camera\w*|cam|comment\w*|remark\w*|model|status|band|chal\w*|running)\b", re.I)
 
 
-_PRIVATE = re.compile(r"\b(password\w*|passwd|pwd|otp|phone|mobile\s*(no|number)|contact\s*(no|number|details?)|"
+_PRIVATE = re.compile(r"\b(password\w*|passwd|pwd|otp|phone\s*(no|number|nmbr|num)|(ka|ki|ke|uska|unka|his|her|their)\s+phone|"
+                      r"phone\s+(do|de|dena|batao|bhejo|share|send|chahiye)|mobile\s*(no|number)|contact\s*(no|number|details?)|"
                       r"e-?mail|whatsapp|salary|aadhaa?r|pan\s*card|ghar\s+ka\s+pata|home\s+address)\b", re.I)
 _PERSON_NO = re.compile(r"\b(ka|ki|ke|kaa|uska|unka|his|her)\s+(number|no\.?|nmbr|num)\b|"
                         r"\bnumber\s+(do|de|dena|batao|bhejo|chahiye|send|share|give)\b|\bcontact\b", re.I)
 _THING_NO = re.compile(r"\b(line|machine|part|fault|model|bin|py|cycle|serial|station|camera|cam|shift|slip|lot|batch)\b", re.I)
+
+
+_NAV_VERB = re.compile(r"\b(kholo|khol|kholna|khol\s*do|le\s*chalo|le\s*chal|chalo|jao|go\s*to|navigate|take\s+me|page|screen|tab|module)\b", re.I)
+_NAV_FILLER = {"page", "pls", "plz", "please", "open", "kholo", "khol", "the", "screen", "dikhao", "show", "do", "karo", "zara"}
+
+
+_FOLLOW = re.compile(r"^\s*(aur|and|or|what\s+about|how\s+about|uska|iska|uske|iske|unka|inka|same|wahi|vahi|also|phir|fir|ab|toh?)\b", re.I)
+_PLANT_WORDS = re.compile(r"\b(plant|all\s+lines|sab\s+lines|saari\s+lines|poore\s+plant|whole\s+plant|overall)\b", re.I)
+
+
+def _follow_up(p, msg, pp):
+    """ "aur NG?", "aur kal?", "and YCA-SS?" after a question: what this one leaves
+    out (line/zone, date, shift, what is asked) comes from the earlier question."""
+    has_scope = bool(p["lines"] or p["zone"] or _PLANT_WORDS.search(msg))
+    if not (_FOLLOW.search(msg) or (len(_norm_tokens(msg)) <= 3 and (not has_scope or not p["subject"]))):
+        return p
+    p = dict(p)
+    if p["subject"] is None and pp["subject"]:
+        for k in ("subject", "measures", "rank", "group", "open"):
+            p[k] = pp[k]
+    if not has_scope and not p["rank"]:
+        p["lines"], p["zone"] = pp["lines"], pp["zone"]
+    if not p["date"] and pp["date"] and p["subject"] in ("line_shift", "faults", "comments") \
+            or (not p["date"] and pp["date"] and p["subject"] == "bypass" and not p["open"]):
+        p["date"] = pp["date"]
+    if not p["shift"] and pp["shift"] and p["subject"] in ("line_shift", "faults"):
+        p["shift"] = pp["shift"]
+    return p
+
+
+def _since(cond, d0):
+    """The earliest day a date condition reaches (None = no lower bound)."""
+    ds = re.findall(r"record_date\s*(?:=|>=|>)\s*'(\d{4}-\d{2}-\d{2})'", cond or "")
+    if ds:
+        return min(date.fromisoformat(x) for x in ds)
+    return None if cond else d0 - timedelta(days=7)
 
 
 def answer(message, user, history=None, context=None):
@@ -875,9 +1318,16 @@ def answer(message, user, history=None, context=None):
         return {"reply": "I can't share passwords or anyone's personal details (phone number, "
                          "email, address). I can answer questions about production, OEE, NG, "
                          "losses, faults, PY bypass, cameras and comments.", "provider": "local"}
-    if _OPEN_WORDS.search(msg) and not _DATA_WORDS.search(msg):
+    if _OPEN_WORDS.search(msg) and not _DATA_WORDS.search(msg) and not (
+            _RX_BYPASS.search(msg.lower()) and re.search(r"\bopen\b", msg, re.I) and not _NAV_VERB.search(msg)):
         key = _page_from_words(msg)
         if key:
+            return _nav_reply(key)
+    bare = [w for w in _norm_tokens(msg) if w not in _NAV_FILLER]
+    if 1 <= len(bare) <= 3 and not (_RX_BYPASS.search(msg.lower()) and re.search(r"\bopen\b", msg, re.I)
+                                    and not _NAV_VERB.search(msg)):          # just a page name: "video coverage", "shift compile pls"
+        key = _page_from_words(" ".join(bare))
+        if key and " ".join(bare) in set(PAGES[key][2]) | {PAGES[key][1].lower(), key.replace("-", " ")}:
             return _nav_reply(key)
 
     prod_day, shift = _prod_day_and_shift()
@@ -915,6 +1365,28 @@ def answer(message, user, history=None, context=None):
         msgs.append({"role": "user", "content": msg + hint})
 
         t0 = time.time()
+        parse = _parse(msg, prod_day, shift, line_names, sorted({l["zone_name"] for l in lines if l["zone_name"]}))
+        pm = (prev[0].get("content") or "").strip() if prev else ""
+        if pm and pm != msg:
+            parse = _follow_up(parse, msg, _parse(pm, prod_day, shift, line_names,
+                                                  sorted({l["zone_name"] for l in lines if l["zone_name"]})))
+        planned = None if (subj and not _SUBJECT_WORDS.search(msg)) else _plan_sql(msg, parse, prod_day)
+        if planned:
+            try:
+                live = live_f.result(timeout=10)
+            except Exception:
+                live = {}
+            prefix, allowed = _views_sql(conn, lines, live, _since(parse["date"] or f"record_date = '{prod_day}'", prod_day))
+            rows, err = _check_and_run(conn, prefix, allowed, planned)
+            if not err:
+                print(f"[AI-LOCAL] {time.time() - t0:.1f}s user={user.get('username')} q={msg[:60]!r} "
+                      f"{len(rows)} rows (built in code)", flush=True)
+                reply = _header(planned) + "\n" + _format_rows(rows)
+                extra = _by_shift(conn, prefix, allowed, planned, rows)
+                if extra:
+                    reply += "\n" + extra
+                return {"reply": reply, "provider": "local", "sql": planned, "route": "code"}
+            print(f"[AI-LOCAL] built query failed, asking the model: {err}", flush=True)
         try:
             out = _ask_llm(msgs)
         except Exception as e:
@@ -926,7 +1398,8 @@ def answer(message, user, history=None, context=None):
             live = live_f.result(timeout=10)
         except Exception:
             live = {}
-        prefix, allowed = _views_sql(conn, lines, live)
+        hd = re.search(r"date filter: ([^;\]]+)", hint)
+        prefix, allowed = _views_sql(conn, lines, live, _since(hd.group(1) if hd else None, prod_day))
 
         if text.upper().startswith("NAVIGATE"):
             key = _page_from_words(msg)

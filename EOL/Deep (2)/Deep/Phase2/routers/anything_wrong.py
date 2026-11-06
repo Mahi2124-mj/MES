@@ -205,7 +205,7 @@ def items(line_id: Optional[int] = Query(None),
                 "id":       r["id"],
                 "severity": "medium",
                 "title":    f"Skill mismatch — {r['process_name']}",
-                "detail":   f"{r['full_name']} (L{r['op_skill']}) on L{r['required_skill_level']}+ process",
+                "detail":   f"{r['full_name']} ({'OJT' if r['op_skill'] == 0 else 'L' + str(r['op_skill'])}) on L{r['required_skill_level']}+ process",
                 "fired_at": r["allocated_at"],
                 "line_id":  r["line_id"],
             })

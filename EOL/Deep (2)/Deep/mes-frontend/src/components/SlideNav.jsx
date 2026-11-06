@@ -49,6 +49,7 @@ export const NAV_ITEMS = [
       //  2026-09-27 — operator: Fault History belongs to PRODUCTION, not Admin.
       { key: "fault-history",    label: "Fault History",    icon: "⚠",                       path: "/fault-history" },
       { key: "prod-breakdown-slip", label: "Breakdown Slip", icon: "🧯",                   path: "/prod-breakdown-slip" },
+      { key: "control-board",    label: "Control Board",    icon: "🗒",                       path: "/control-board" },
       { key: "my-escalations",   label: "Inbox",            icon: "🔔",                      path: "/my-escalations" },
       { key: "my-team",          label: "My Team",          icon: "👤",                      path: "/my-team" },
       // 2026-08-24 — standalone Import/Export page removed; the EXPORT moved
@@ -86,6 +87,8 @@ export const NAV_ITEMS = [
       { key: "admin",             label: "Admin Panel",       icon: "/admin-icon.png", iconImg: true, path: "/admin" },
       { key: "network",           label: "Network Panel",     icon: "🖧", path: "/network" },
       { key: "logs",              label: "Log Viewer",        icon: "📜", path: "/logs" },
+      { key: "db-structure",      label: "DB Structure",      icon: "🗄", path: "/db-structure" },
+      { key: "machine-map",       label: "Machine Map",       icon: "🗺", path: "/machine-map" },
       { key: "cms-portal",        label: "CMS (Cameras)",     icon: "🎥", path: "/cms-portal" },
       { key: "video-coverage",    label: "Video Coverage",    icon: "🎞", path: "/video-coverage" },
       { key: "py-bypass",         label: "PY Bypass",         icon: "🛡", path: "/py-bypass" },
@@ -410,7 +413,7 @@ export default function SlideNav({ hideTrigger = false, raise = false }) {
           position: "fixed",
           // + var(--cap-sat) so the trigger clears the Android status bar on the
           // installed app (the bar overlays the WebView there); 0 on web.
-          top: "calc(13px + var(--cap-sat, 0px))",
+          top: "calc(13px + var(--cap-sat, 0px) * var(--mes-zinv, 1))",
           left: 30,
           width: 45,
           height: 45,
@@ -474,7 +477,7 @@ export default function SlideNav({ hideTrigger = false, raise = false }) {
         <div style={{
           // + var(--cap-sat) so the drawer header (logo + org name) sits below
           // the Android status bar on the installed app; 0 on web.
-          padding: "calc(24px + var(--cap-sat, 0px)) 20px 16px",
+          padding: "calc(24px + var(--cap-sat, 0px) * var(--mes-zinv, 1)) 20px 16px",
           borderBottom: "1px solid var(--border, #e2e8f0)",
           background: `linear-gradient(135deg, ${theme.accentDark}, ${theme.accent})`,
           flexShrink: 0,

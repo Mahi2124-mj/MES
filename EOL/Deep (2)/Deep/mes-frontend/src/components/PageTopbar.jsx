@@ -1,4 +1,6 @@
+import { useLayoutEffect, useRef } from "react";
 import { useAuth } from "../context/AuthContext";
+import { LanRefreshSlot } from "./LanRefresh";
 
 /**
  * Shared sticky topbar used at the top of every TPS / production page.
@@ -20,8 +22,18 @@ import { useAuth } from "../context/AuthContext";
  */
 export default function PageTopbar({ leading, accent }) {
   const { theme } = useAuth();
+  // 2026-11-03 — the colour of the page around the bar, for the LAN app's
+  // gutter cover when the bar is stuck (index.html, html.mes-lan .page-topbar).
+  const barRef = useRef(null);
+  useLayoutEffect(() => {
+    const el = barRef.current;
+    for (let p = el && el.parentElement; p; p = p.parentElement) {
+      const c = getComputedStyle(p).backgroundColor;
+      if (c && c !== "transparent" && c !== "rgba(0, 0, 0, 0)") { el.style.setProperty("--pt-gutter", c); break; }
+    }
+  }, []);
   return (
-    <div style={{
+    <div ref={barRef} className="page-topbar" style={{
       background:"#fff",
       borderBottom:"1px solid #e2e8f0",
       padding:"0 40px 0 88px",
@@ -48,6 +60,11 @@ export default function PageTopbar({ leading, accent }) {
         pointerEvents:"none",
       }}>
         {leading} <span style={{ color: theme?.accent || "#2563eb" }}>{accent}</span>
+      </div>
+      {/* LAN app: the Refresh button sits here, right-aligned in the bar
+          (renders nothing on the website). */}
+      <div style={{ marginLeft:"auto", display:"flex", alignItems:"center", position:"relative", zIndex:1 }}>
+        <LanRefreshSlot />
       </div>
     </div>
   );

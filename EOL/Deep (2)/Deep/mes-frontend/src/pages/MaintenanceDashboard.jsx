@@ -27,6 +27,7 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "../context/AuthContext";
+import { LanRefreshSlot } from "../components/LanRefresh";
 
 const API = "";
 
@@ -1138,7 +1139,7 @@ export function ClosureFormModal({ ticket, mode, phase = "maintenance", onClose,
           {[
             { code: "A", desc: "MACHINE OR LINE HAS STOPPED AND PRODUCTION LOSS DIRECTLY" },
             { code: "B", desc: "MACHINE RUNNING WITH PRODUCTION LOSS ( PRODUCTION EFFECTED )" },
-            { code: "C", desc: "WORK DONE WHEN MACHINE IDEAL I.E - DURING LUNCH & AFTER SHIFT END TIME." },
+            { code: "C", desc: "ADJUSTMENT" },   // 2026-10-27 — same text as the production slip (operator)
           ].map(c => (
             <div key={c.code} className="bds-cat-row">
               <div className="bds-cat-cell-code">{c.code} CATEGORY B/D :-</div>
@@ -1815,11 +1816,15 @@ export default function MaintenanceDashboard() {
           <div className="md-title">
             {titleLeft}<span>{titleRight}</span>
           </div>
-          {user?.username && (
-            <div className="md-user-pill">
-              Signed in as <b>{user.username}</b>
-            </div>
-          )}
+          {/* LAN app: Refresh beside the user pill (nothing on the website) */}
+          <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+            {user?.username && (
+              <div className="md-user-pill">
+                Signed in as <b>{user.username}</b>
+              </div>
+            )}
+            <LanRefreshSlot />
+          </div>
         </div>
 
         <div className="md-body">

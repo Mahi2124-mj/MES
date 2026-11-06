@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>DEFECT RECORDING SHEET - TOYOTA BOSHOKU</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: "Calibri", "Arial", sans-serif;
+        }
+
+        body {
+            background: #e9ecef;
+            margin: 0;
+            padding: 15px;
+        }
+
+        .toolbar {
+            width: 1650px;
+            margin: 0 auto 10px auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #fff;
+            padding: 8px 15px;
+            border: 1px solid #bbb;
+            font-size: 13px;
+        }
+
+        .toolbar button {
+            padding: 6px 14px;
+            font-size: 13px;
+            font-weight: bold;
+            cursor: pointer;
+            border: 1px solid #333;
+            background: #f8f9fa;
+            margin-left: 8px;
+        }
+
+        .toolbar button.primary {
+            background: #0056b3;
+            color: #fff;
+            border-color: #004085;
+        }
+
+        .sheet-wrapper {
+            width: 1674px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        table.excel-sheet {
+            border-collapse: collapse;
+            table-layout: fixed;
+            width: 1650px;
+            background: #fff;
+            border: 2px solid #000;
+        }
+
+        table.excel-sheet td,
+        table.excel-sheet th {
+            padding: 0;
+            margin: 0;
+            vertical-align: middle;
+            text-align: center;
+            font-size: 11px;
+            color: #000;
+            position: relative;
+            border: 1px solid #000;
+        }
+
+        .bt-m {
+            border-top: 2px solid #000 !important;
+        }
+
+        .bb-m {
+            border-bottom: 2px solid #000 !important;
+        }
+
+        .bl-m {
+            border-left: 2px solid #000 !important;
+        }
+
+        .br-m {
+            border-right: 2px solid #000 !important;
+        }
+
+        .cell-input {
+            width: 100%;
+            height: 100%;
+            min-height: 28px;
+            border: none;
+            outline: none;
+            background: transparent;
+            text-align: center;
+            font-size: 11px;
+            font-family: inherit;
+            padding: 2px 4px;
+            display: block;
+        }
+
+        .cell-input:focus {
+            background: rgba(255, 249, 196, 0.7);
+        }
+
+        .left-input {
+            text-align: left;
+            padding-left: 6px;
+        }
+
+        .header-input {
+            border: none;
+            border-bottom: 1px solid #000;
+            outline: none;
+            background: transparent;
+            font-weight: bold;
+            font-size: 12px;
+            width: 95px;
+        }
+
+        @media print {
+            body {
+                background: #fff;
+                padding: 0;
+            }
+
+            .toolbar {
+                display: none;
+            }
+
+            .sheet-wrapper {
+                box-shadow: none;
+                padding: 0;
+                width: 100%;
+            }
+
+            * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="toolbar">
+        <div>
+            <strong>TOYOTA BOSHOKU - DEFECT RECORDING SHEET (EXACT FORMAT)</strong>
+        </div>
+        <div>
+            <button onclick="clearSheet()">Clear All</button>
+            <button class="primary" onclick="window.print()">Print / Save PDF</button>
+        </div>
+    </div>
+
+    <div class="sheet-wrapper">
+        <table class="excel-sheet" id="mainDefectSheet">
+            <colgroup>
+                <col style="width: 45px;"> <!-- A: S.NO. -->
+                <col style="width: 135px;"> <!-- B: DEFECT NAME -->
+                <col style="width: 155px;"> <!-- C: SUB PROCESS -->
+                <col style="width: 75px;"> <!-- D: LAST MONTH REJECTION -->
+                <col style="width: 75px;"> <!-- E: DUE TO -->
+                <script>
+                    for (let i = 1; i <= 31; i++) {
+                        document.write('<col style="width: 33px;">');
+                    }
+                </script>
+                <col style="width: 55px;"> <!-- AK: TOTAL -->
+            </colgroup>
+            <tbody>
+
+
+                <!-- Header Row 1 -->
+                <tr style="height: 44px;">
+                    <td colspan="2" rowspan="2" class="bt-m bb-m bl-m br-m" style="padding: 2px;">
+                        <div
+                            style="border: 2px solid #b30000; color: #b30000; font-weight: bold; font-size: 11px; padding: 4px 2px; text-align: center;">
+                            TOYOTA<br>BOSHOKU
+                        </div>
+                    </td>
+                    <td colspan="29" class="bt-m bb-m bl-m br-m"
+                        style="font-family: Arial, sans-serif; font-size: 22px; font-weight: bold; text-align: center;">
+                        TOYOTA BOSHOKU DEVICE INDIA PVT. LTD.
+                    </td>
+                    <td colspan="2" class="bt-m bb-m bl-m br-m text-left"
+                        style="font-size: 12px; font-weight: bold; padding-left: 6px;">MONTH:-</td>
+                    <td colspan="4" class="bt-m bb-m bl-m br-m text-left"
+                        style="font-size: 12px; font-weight: bold; padding-left: 6px;">
+                        <input type="text" class="header-input">
+                    </td>
+                </tr>
+
+                <!-- Header Row 2 -->
+                <tr style="height: 32px;">
+                    <td colspan="29" class="bt-m bb-m bl-m br-m"
+                        style="font-family: Arial, sans-serif; font-size: 16px; font-weight: bold; text-align: center;">
+                        DEFECT RECORDING SHEET
+                    </td>
+                    <td colspan="2" class="bt-m bb-m bl-m br-m text-left"
+                        style="font-size: 12px; font-weight: bold; padding-left: 6px;">LINE NAME:-</td>
+                    <td colspan="4" class="bt-m bb-m bl-m br-m text-left"
+                        style="font-size: 12px; font-weight: bold; padding-left: 6px;">
+                        <input type="text" class="header-input">
+                    </td>
+                </tr>
+
+                <tr style="height:28px;">
+                    <td colspan="31" class="bt-m bb-m bl-m" style="border:none;"></td>
+                    <td colspan="2" class="bt-m bb-m bl-m br-t" style="font-weight:bold;">SHIFT:-</td>
+                    <td colspan="4" class="bt-m bb-m bl-t br-m" style="font-weight:bold;"><input
+                            style="text-align: center;" type="text" class="header-input" value="A"></td>
+                </tr>
+
+                <!-- Table Header Row 5 & 6 -->
+                <tr style="height: 36px; font-weight: bold; font-size: 12px; background: #f0f4f8;">
+                    <td rowspan="2" class="bt-m bb-m bl-m">S.NO.</td>
+                    <td rowspan="2" colspan="2" class="bt-m bb-m">DEFECT NAME</td>
+                    <td rowspan="2" class="bt-m bb-m">LAST MONTH<br>REJECTION</td>
+                    <td rowspan="2" class="bt-m bb-m">DUE TO</td>
+                    <td colspan="31" class="bt-m bb-t br-m">DATES</td>
+                    <td rowspan="2" class="bt-m bb-m br-m">TOTAL</td>
+                </tr>
+                <tr style="height: 26px; font-weight: bold; font-size: 11px; background: #f0f4f8;">
+                    <script>
+                        for (let d = 1; d <= 31; d++) {
+                            document.write('<td class="bt-t bb-m">' + d + '</td>');
+                        }
+                    </script>
+                </tr>
+
+
+                <tr style="height: 32px;">
+                    <td rowspan="2" class="bl-m">1</td>
+                    <td rowspan="2" colspan="2"><input type="text" class="cell-input left-input"
+                            placeholder="Defect Name"></td>
+                    <td rowspan="2"><input type="text" class="cell-input"></td>
+                    <td>PROCESS</td>
+                    <script>for (let i = 0; i < 31; i++)document.write('<td><input type="text" class="cell-input"></td>');</script>
+                    <td class="br-m"><input type="text" class="cell-input"
+                            style="font-weight:bold; background:#f7fafc;"></td>
+                </tr>
+                <tr style="height: 32px;">
+                    <td>CHILD PART</td>
+                    <script>for (let i = 0; i < 31; i++)document.write('<td><input type="text" class="cell-input"></td>');</script>
+                    <td class="br-m"><input type="text" class="cell-input"
+                            style="font-weight:bold; background:#f7fafc;"></td>
+                </tr>
+
+                <tr style="height: 32px;">
+                    <td rowspan="2" class="bl-m">2</td>
+                    <td rowspan="2" colspan="2"><input type="text" class="cell-input left-input"
+                            placeholder="Defect Name"></td>
+                    <td rowspan="2"><input type="text" class="cell-input"></td>
+                    <td>PROCESS</td>
+                    <script>for (let i = 0; i < 31; i++)document.write('<td><input type="text" class="cell-input"></td>');</script>
+                    <td class="br-m"><input type="text" class="cell-input"
+                            style="font-weight:bold; background:#f7fafc;"></td>
+                </tr>
+                <tr style="height: 32px;">
+                    <td>CHILD PART</td>
+                    <script>for (let i = 0; i < 31; i++)document.write('<td><input type="text" class="cell-input"></td>');</script>
+                    <td class="br-m"><input type="text" class="cell-input"
+                            style="font-weight:bold; background:#f7fafc;"></td>
+                </tr>
+
+                <tr style="height: 32px;">
+                    <td rowspan="2" class="bl-m">3</td>
+                    <td rowspan="2" colspan="2"><input type="text" class="cell-input left-input"
+                            placeholder="Defect Name"></td>
+                    <td rowspan="2"><input type="text" class="cell-input"></td>
+                    <td>PROCESS</td>
+                    <script>for (let i = 0; i < 31; i++)document.write('<td><input type="text" class="cell-input"></td>');</script>
+                    <td class="br-m"><input type="text" class="cell-input"
+                            style="font-weight:bold; background:#f7fafc;"></td>
+                </tr>
+                <tr style="height: 32px;">
+                    <td>CHILD PART</td>
+                    <script>for (let i = 0; i < 31; i++)document.write('<td><input type="text" class="cell-input"></td>');</script>
+                    <td class="br-m"><input type="text" class="cell-input"
+                            style="font-weight:bold; background:#f7fafc;"></td>
+                </tr>
+
+                <tr style="height: 32px;">
+                    <td rowspan="2" class="bl-m">4</td>
+                    <td rowspan="2" colspan="2"><input type="text" class="cell-input left-input"
+                            placeholder="Defect Name"></td>
+                    <td rowspan="2"><input type="text" class="cell-input"></td>
+                    <td>PROCESS</td>
+                    <script>for (let i = 0; i < 31; i++)document.write('<td><input type="text" class="cell-input"></td>');</script>
+                    <td class="br-m"><input type="text" class="cell-input"
+                            style="font-weight:bold; background:#f7fafc;"></td>
+                </tr>
+                <tr style="height: 32px;">
+                    <td>CHILD PART</td>
+                    <script>for (let i = 0; i < 31; i++)document.write('<td><input type="text" class="cell-input"></td>');</script>
+                    <td class="br-m"><input type="text" class="cell-input"
+                            style="font-weight:bold; background:#f7fafc;"></td>
+                </tr>
+
+                <tr style="height: 32px;">
+                    <td rowspan="2" class="bl-m">5</td>
+                    <td rowspan="2" colspan="2"><input type="text" class="cell-input left-input"
+                            placeholder="Defect Name"></td>
+                    <td rowspan="2"><input type="text" class="cell-input"></td>
+                    <td>PROCESS</td>
+                    <script>for (let i = 0; i < 31; i++)document.write('<td><input type="text" class="cell-input"></td>');</script>
+                    <td class="br-m"><input type="text" class="cell-input"
+                            style="font-weight:bold; background:#f7fafc;"></td>
+                </tr>
+                <tr style="height: 32px;">
+                    <td>CHILD PART</td>
+                    <script>for (let i = 0; i < 31; i++)document.write('<td><input type="text" class="cell-input"></td>');</script>
+                    <td class="br-m"><input type="text" class="cell-input"
+                            style="font-weight:bold; background:#f7fafc;"></td>
+                </tr>
+
+                <tr style="height: 32px;">
+                    <td rowspan="2" class="bl-m">6</td>
+                    <td rowspan="2" colspan="2"><input type="text" class="cell-input left-input"
+                            placeholder="Defect Name"></td>
+                    <td rowspan="2"><input type="text" class="cell-input"></td>
+                    <td>PROCESS</td>
+                    <script>for (let i = 0; i < 31; i++)document.write('<td><input type="text" class="cell-input"></td>');</script>
+                    <td class="br-m"><input type="text" class="cell-input"
+                            style="font-weight:bold; background:#f7fafc;"></td>
+                </tr>
+                <tr style="height: 32px;">
+                    <td>CHILD PART</td>
+                    <script>for (let i = 0; i < 31; i++)document.write('<td><input type="text" class="cell-input"></td>');</script>
+                    <td class="br-m"><input type="text" class="cell-input"
+                            style="font-weight:bold; background:#f7fafc;"></td>
+                </tr>
+
+                <tr style="height: 32px;">
+                    <td rowspan="2" class="bl-m">7</td>
+                    <td rowspan="2" colspan="2"><input type="text" class="cell-input left-input"
+                            placeholder="Defect Name"></td>
+                    <td rowspan="2"><input type="text" class="cell-input"></td>
+                    <td>PROCESS</td>
+                    <script>for (let i = 0; i < 31; i++)document.write('<td><input type="text" class="cell-input"></td>');</script>
+                    <td class="br-m"><input type="text" class="cell-input"
+                            style="font-weight:bold; background:#f7fafc;"></td>
+                </tr>
+                <tr style="height: 32px;">
+                    <td>CHILD PART</td>
+                    <script>for (let i = 0; i < 31; i++)document.write('<td><input type="text" class="cell-input"></td>');</script>
+                    <td class="br-m"><input type="text" class="cell-input"
+                            style="font-weight:bold; background:#f7fafc;"></td>
+                </tr>
+
+
+
+                <!-- Abnormal Handling -->
+                <tr style="height: 32px;">
+                    <td class="bl-m"></td>
+                    <td colspan="4" style="font-weight:bold; font-size:11px; text-align:left; padding-left:6px;">DEFECT
+                        DUE TO ABNORMAL HANDLING</td>
+                    <script>for (let i = 0; i < 31; i++)document.write('<td><input type="text" class="cell-input"></td>');</script>
+                    <td class="br-m"><input type="text" class="cell-input"
+                            style="font-weight:bold; background:#f7fafc;"></td>
+                </tr>
+
+                <tr style="height: 30px;">
+                    <td colspan="37" class="bl-m br-m"
+                        style="font-weight: bold; font-size: 12px; background: #f8f9fa; text-align: left; padding-left: 8px;">
+                        FINAL INSPECTION DEFECT</td>
+                </tr>
+
+                <tr style="height: 32px;">
+                    <td rowspan="2" class="bl-m">1</td>
+                    <td rowspan="2" colspan="2"><input type="text" class="cell-input left-input"
+                            placeholder="Defect Name"></td>
+                    <td rowspan="2"><input type="text" class="cell-input"></td>
+                    <td>PROCESS</td>
+                    <script>for (let i = 0; i < 31; i++)document.write('<td><input type="text" class="cell-input"></td>');</script>
+                    <td class="br-m"><input type="text" class="cell-input"
+                            style="font-weight:bold; background:#f7fafc;"></td>
+                </tr>
+                <tr style="height: 32px;">
+                    <td>CHILD PART</td>
+                    <script>for (let i = 0; i < 31; i++)document.write('<td><input type="text" class="cell-input"></td>');</script>
+                    <td class="br-m"><input type="text" class="cell-input"
+                            style="font-weight:bold; background:#f7fafc;"></td>
+                </tr>
+
+                <tr style="height: 32px;">
+                    <td rowspan="2" class="bl-m">2</td>
+                    <td rowspan="2" colspan="2"><input type="text" class="cell-input left-input"
+                            placeholder="Defect Name"></td>
+                    <td rowspan="2"><input type="text" class="cell-input"></td>
+                    <td>PROCESS</td>
+                    <script>for (let i = 0; i < 31; i++)document.write('<td><input type="text" class="cell-input"></td>');</script>
+                    <td class="br-m"><input type="text" class="cell-input"
+                            style="font-weight:bold; background:#f7fafc;"></td>
+                </tr>
+                <tr style="height: 32px;">
+                    <td>CHILD PART</td>
+                    <script>for (let i = 0; i < 31; i++)document.write('<td><input type="text" class="cell-input"></td>');</script>
+                    <td class="br-m"><input type="text" class="cell-input"
+                            style="font-weight:bold; background:#f7fafc;"></td>
+                </tr>
+
+                <tr style="height: 32px;">
+                    <td rowspan="2" class="bl-m">3</td>
+                    <td rowspan="2" colspan="2"><input type="text" class="cell-input left-input"
+                            placeholder="Defect Name"></td>
+                    <td rowspan="2"><input type="text" class="cell-input"></td>
+                    <td>PROCESS</td>
+                    <script>for (let i = 0; i < 31; i++)document.write('<td><input type="text" class="cell-input"></td>');</script>
+                    <td class="br-m"><input type="text" class="cell-input"
+                            style="font-weight:bold; background:#f7fafc;"></td>
+                </tr>
+                <tr style="height: 32px;">
+                    <td>CHILD PART</td>
+                    <script>for (let i = 0; i < 31; i++)document.write('<td><input type="text" class="cell-input"></td>');</script>
+                    <td class="br-m"><input type="text" class="cell-input"
+                            style="font-weight:bold; background:#f7fafc;"></td>
+                </tr>
+
+                <tr style="height: 32px;">
+                    <td rowspan="2" class="bl-m">4</td>
+                    <td rowspan="2" colspan="2"><input type="text" class="cell-input left-input"
+                            placeholder="Defect Name"></td>
+                    <td rowspan="2"><input type="text" class="cell-input"></td>
+                    <td>PROCESS</td>
+                    <script>for (let i = 0; i < 31; i++)document.write('<td><input type="text" class="cell-input"></td>');</script>
+                    <td class="br-m"><input type="text" class="cell-input"
+                            style="font-weight:bold; background:#f7fafc;"></td>
+                </tr>
+                <tr style="height: 32px;">
+                    <td>CHILD PART</td>
+                    <script>for (let i = 0; i < 31; i++)document.write('<td><input type="text" class="cell-input"></td>');</script>
+                    <td class="br-m"><input type="text" class="cell-input"
+                            style="font-weight:bold; background:#f7fafc;"></td>
+                </tr>
+
+                <tr style="height: 34px;">
+                    <td colspan="3" class="bt-m bb-m bl-m"
+                        style="font-weight: bold; font-size: 12px; text-align: left; padding-left: 8px;">TOTAL REJECTION
+                        QTY.</td>
+                    <td colspan="2" class="bt-m bb-m"></td>
+                    <script>
+                        for (let d = 1; d <= 31; d++) {
+                            document.write('<td class="bt-m bb-m"><input type="text" class="cell-input" style="font-weight:bold;"></td>');
+                        }
+                    </script>
+                    <td class="bt-m bb-m br-m"><input type="text" class="cell-input"
+                            style="font-weight:bold; background:#e2e8f0;"></td>
+                </tr>
+
+                <tr style="height: 30px;">
+                    <td colspan="5" class="bl-m text-left"
+                        style="font-weight: bold; font-size: 11px; padding-left: 8px;">1/DAY (SIGNATURE BY LINE LEADER /
+                        SUPERVISOR)</td>
+                    <script>for (let i = 0; i < 31; i++)document.write('<td><input type="text" class="cell-input" style="font-size:10px;"></td>');</script>
+                    <td class="br-m"></td>
+                </tr>
+                <tr style="height: 30px;">
+                    <td colspan="5" class="bb-m bl-m text-left"
+                        style="font-weight: bold; font-size: 11px; padding-left: 8px;">1/WEEK (SIGNATURE BY MANAGER)
+                    </td>
+                    <script>for (let i = 0; i < 31; i++)document.write('<td class="bb-m"></td>');</script>
+                    <td class="bb-m br-m"></td>
+                </tr>
+
+
+
+                <tr style="height:28px;">
+                    <td colspan="31" class="bt-m bb-m bl-m" style="border:none;"></td>
+                    <td colspan="2" class="bt-m bb-m bl-m br-t" style="font-weight:bold;">SHIFT:-</td>
+                    <td colspan="4" class="bt-m bb-m bl-t br-m" style="font-weight:bold;"><input
+                            style="text-align: center;" type="text" class="header-input" value="B"></td>
+                </tr>
+
+                <!-- Table Header Row 5 & 6 -->
+                <tr style="height: 36px; font-weight: bold; font-size: 12px; background: #f0f4f8;">
+                    <td rowspan="2" class="bt-m bb-m bl-m">S.NO.</td>
+                    <td rowspan="2" colspan="2" class="bt-m bb-m">DEFECT NAME</td>
+                    <td rowspan="2" class="bt-m bb-m">LAST MONTH<br>REJECTION</td>
+                    <td rowspan="2" class="bt-m bb-m">DUE TO</td>
+                    <td colspan="31" class="bt-m bb-t br-m">DATES</td>
+                    <td rowspan="2" class="bt-m bb-m br-m">TOTAL</td>
+                </tr>
+                <tr style="height: 26px; font-weight: bold; font-size: 11px; background: #f0f4f8;">
+                    <script>
+                        for (let d = 1; d <= 31; d++) {
+                            document.write('<td class="bt-t bb-m">' + d + '</td>');
+                        }
+                    </script>
+                </tr>
+
+                <tr style="height: 32px;">
+                    <td rowspan="2" class="bl-m">1</td>
+                    <td rowspan="2" colspan="2"><input type="text" class="cell-input left-input"
+                            placeholder="Defect Name"></td>
+                    <td rowspan="2"><input type="text" class="cell-input"></td>
+                    <td>PROCESS</td>
+                    <script>for (let i = 0; i < 31; i++)document.write('<td><input type="text" class="cell-input"></td>');</script>
+                    <td class="br-m"><input type="text" class="cell-input"
+                            style="font-weight:bold; background:#f7fafc;"></td>
+                </tr>
+                <tr style="height: 32px;">
+                    <td>CHILD PART</td>
+                    <script>for (let i = 0; i < 31; i++)document.write('<td><input type="text" class="cell-input"></td>');</script>
+                    <td class="br-m"><input type="text" class="cell-input"
+                            style="font-weight:bold; background:#f7fafc;"></td>
+                </tr>
+
+                <tr style="height: 32px;">
+                    <td rowspan="2" class="bl-m">2</td>
+                    <td rowspan="2" colspan="2"><input type="text" class="cell-input left-input"
+                            placeholder="Defect Name"></td>
+                    <td rowspan="2"><input type="text" class="cell-input"></td>
+                    <td>PROCESS</td>
+                    <script>for (let i = 0; i < 31; i++)document.write('<td><input type="text" class="cell-input"></td>');</script>
+                    <td class="br-m"><input type="text" class="cell-input"
+                            style="font-weight:bold; background:#f7fafc;"></td>
+                </tr>
+                <tr style="height: 32px;">
+                    <td>CHILD PART</td>
+                    <script>for (let i = 0; i < 31; i++)document.write('<td><input type="text" class="cell-input"></td>');</script>
+                    <td class="br-m"><input type="text" class="cell-input"
+                            style="font-weight:bold; background:#f7fafc;"></td>
+                </tr>
+
+                <tr style="height: 32px;">
+                    <td rowspan="2" class="bl-m">3</td>
+                    <td rowspan="2" colspan="2"><input type="text" class="cell-input left-input"
+                            placeholder="Defect Name"></td>
+                    <td rowspan="2"><input type="text" class="cell-input"></td>
+                    <td>PROCESS</td>
+                    <script>for (let i = 0; i < 31; i++)document.write('<td><input type="text" class="cell-input"></td>');</script>
+                    <td class="br-m"><input type="text" class="cell-input"
+                            style="font-weight:bold; background:#f7fafc;"></td>
+                </tr>
+                <tr style="height: 32px;">
+                    <td>CHILD PART</td>
+                    <script>for (let i = 0; i < 31; i++)document.write('<td><input type="text" class="cell-input"></td>');</script>
+                    <td class="br-m"><input type="text" class="cell-input"
+                            style="font-weight:bold; background:#f7fafc;"></td>
+                </tr>
+
+                <tr style="height: 32px;">
+                    <td rowspan="2" class="bl-m">4</td>
+                    <td rowspan="2" colspan="2"><input type="text" class="cell-input left-input"
+                            placeholder="Defect Name"></td>
+                    <td rowspan="2"><input type="text" class="cell-input"></td>
+                    <td>PROCESS</td>
+                    <script>for (let i = 0; i < 31; i++)document.write('<td><input type="text" class="cell-input"></td>');</script>
+                    <td class="br-m"><input type="text" class="cell-input"
+                            style="font-weight:bold; background:#f7fafc;"></td>
+                </tr>
+                <tr style="height: 32px;">
+                    <td>CHILD PART</td>
+                    <script>for (let i = 0; i < 31; i++)document.write('<td><input type="text" class="cell-input"></td>');</script>
+                    <td class="br-m"><input type="text" class="cell-input"
+                            style="font-weight:bold; background:#f7fafc;"></td>
+                </tr>
+
+                <tr style="height: 32px;">
+                    <td rowspan="2" class="bl-m">5</td>
+                    <td rowspan="2" colspan="2"><input type="text" class="cell-input left-input"
+                            placeholder="Defect Name"></td>
+                    <td rowspan="2"><input type="text" class="cell-input"></td>
+                    <td>PROCESS</td>
+                    <script>for (let i = 0; i < 31; i++)document.write('<td><input type="text" class="cell-input"></td>');</script>
+                    <td class="br-m"><input type="text" class="cell-input"
+                            style="font-weight:bold; background:#f7fafc;"></td>
+                </tr>
+                <tr style="height: 32px;">
+                    <td>CHILD PART</td>
+                    <script>for (let i = 0; i < 31; i++)document.write('<td><input type="text" class="cell-input"></td>');</script>
+                    <td class="br-m"><input type="text" class="cell-input"
+                            style="font-weight:bold; background:#f7fafc;"></td>
+                </tr>
+
+                <tr style="height: 32px;">
+                    <td rowspan="2" class="bl-m">6</td>
+                    <td rowspan="2" colspan="2"><input type="text" class="cell-input left-input"
+                            placeholder="Defect Name"></td>
+                    <td rowspan="2"><input type="text" class="cell-input"></td>
+                    <td>PROCESS</td>
+                    <script>for (let i = 0; i < 31; i++)document.write('<td><input type="text" class="cell-input"></td>');</script>
+                    <td class="br-m"><input type="text" class="cell-input"
+                            style="font-weight:bold; background:#f7fafc;"></td>
+                </tr>
+                <tr style="height: 32px;">
+                    <td>CHILD PART</td>
+                    <script>for (let i = 0; i < 31; i++)document.write('<td><input type="text" class="cell-input"></td>');</script>
+                    <td class="br-m"><input type="text" class="cell-input"
+                            style="font-weight:bold; background:#f7fafc;"></td>
+                </tr>
+
+                <tr style="height: 32px;">
+                    <td rowspan="2" class="bl-m">7</td>
+                    <td rowspan="2" colspan="2"><input type="text" class="cell-input left-input"
+                            placeholder="Defect Name"></td>
+                    <td rowspan="2"><input type="text" class="cell-input"></td>
+                    <td>PROCESS</td>
+                    <script>for (let i = 0; i < 31; i++)document.write('<td><input type="text" class="cell-input"></td>');</script>
+                    <td class="br-m"><input type="text" class="cell-input"
+                            style="font-weight:bold; background:#f7fafc;"></td>
+                </tr>
+                <tr style="height: 32px;">
+                    <td>CHILD PART</td>
+                    <script>for (let i = 0; i < 31; i++)document.write('<td><input type="text" class="cell-input"></td>');</script>
+                    <td class="br-m"><input type="text" class="cell-input"
+                            style="font-weight:bold; background:#f7fafc;"></td>
+                </tr>
+
+
+
+                <!-- Abnormal Handling -->
+                <tr style="height: 32px;">
+                    <td class="bl-m"></td>
+                    <td colspan="4" style="font-weight:bold; font-size:11px; text-align:left; padding-left:6px;">DEFECT
+                        DUE TO ABNORMAL HANDLING</td>
+                    <script>for (let i = 0; i < 31; i++)document.write('<td><input type="text" class="cell-input"></td>');</script>
+                    <td class="br-m"><input type="text" class="cell-input"
+                            style="font-weight:bold; background:#f7fafc;"></td>
+                </tr>
+
+                <tr style="height: 30px;">
+                    <td colspan="37" class="bl-m br-m"
+                        style="font-weight: bold; font-size: 12px; background: #f8f9fa; text-align: left; padding-left: 8px;">
+                        FINAL INSPECTION DEFECT</td>
+                </tr>
+
+                <script>
+                    for (let f = 1; f <= 4; f++) {
+                        document.write('<tr style="height: 32px;"><td rowspan="2" class="bl-m">' + (f + 1) + '</td><td rowspan="2" colspan="2"><input type="text" class="cell-input left-input" placeholder="Defect Name"></td><td rowspan="2"><input type="text" class="cell-input"></td><td>PROCESS</td>');
+                        for (let d = 0; d < 31; d++) document.write('<td><input type="text" class="cell-input"></td>');
+                        document.write('<td class="br-m"><input type="text" class="cell-input" style="font-weight:bold; background:#f7fafc;"></td></tr>');
+
+                        document.write('<tr style="height: 32px;"><td>CHILD PART</td>');
+                        for (let d = 0; d < 31; d++) document.write('<td><input type="text" class="cell-input"></td>');
+                        document.write('<td class="br-m"><input type="text" class="cell-input" style="font-weight:bold; background:#f7fafc;"></td></tr>');
+                    }
+                </script>
+
+                <tr style="height: 34px;">
+                    <td colspan="3" class="bt-m bb-m bl-m"
+                        style="font-weight: bold; font-size: 12px; text-align: left; padding-left: 8px;">TOTAL REJECTION
+                        QTY.</td>
+                    <td colspan="2" class="bt-m bb-m"></td>
+                    <script>
+                        for (let d = 1; d <= 31; d++) {
+                            document.write('<td class="bt-m bb-m"><input type="text" class="cell-input" style="font-weight:bold;"></td>');
+                        }
+                    </script>
+                    <td class="bt-m bb-m br-m"><input type="text" class="cell-input"
+                            style="font-weight:bold; background:#e2e8f0;"></td>
+                </tr>
+
+                <tr style="height: 30px;">
+                    <td colspan="5" class="bl-m text-left"
+                        style="font-weight: bold; font-size: 11px; padding-left: 8px;">1/DAY (SIGNATURE BY LINE LEADER /
+                        SUPERVISOR)</td>
+                    <script>for (let i = 0; i < 31; i++)document.write('<td><input type="text" class="cell-input" style="font-size:10px;"></td>');</script>
+                    <td class="br-m"></td>
+                </tr>
+                <tr style="height: 30px;">
+                    <td colspan="5" class="bb-m bl-m text-left"
+                        style="font-weight: bold; font-size: 11px; padding-left: 8px;">1/WEEK (SIGNATURE BY MANAGER)
+                    </td>
+                    <script>for (let i = 0; i < 31; i++)document.write('<td class="bb-m"></td>');</script>
+                    <td class="bb-m br-m"></td>
+                </tr>
+
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        function clearSheet() {
+            if (confirm("Kya aap saara data clear karna chahte hain?")) {
+                document.querySelectorAll('#mainDefectSheet input').forEach(input => {
+                    if (input.value !== 'MAR.26' && input.value !== 'A' && input.value !== 'B') input.value = '';
+                });
+            }
+        }
+    </script>
+
+
+<script>
+/* MES Control Board: fit-to-width zoom requested by the page around this frame. */
+(function () {
+  var ok = window.CSS && CSS.supports && CSS.supports("zoom", "0.5");
+  window.addEventListener("message", function (e) {
+    if (e.source !== window.parent || !e.data || e.data.type !== "cb-zoom" || !ok) return;
+    var z = Number(e.data.zoom) || 1;
+    document.documentElement.style.zoom = (z === 1) ? "" : String(z);
+    try { window.parent.postMessage({ type: "cb-zoom-ok", zoom: z }, "*"); } catch (x) {}
+  });
+})();
+</script>
+</body>
+
+</html>

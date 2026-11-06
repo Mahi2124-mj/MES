@@ -984,6 +984,7 @@ def _ensure_call_remarks_table(mconn):
                 filled_by   TEXT,
                 attended_by TEXT,
                 bd_machine  TEXT,
+                andon_history_id INTEGER,
                 entered_by  TEXT,
                 audit_trail JSONB     NOT NULL DEFAULT '[]'::jsonb,
                 created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -1010,6 +1011,14 @@ def _ensure_call_remarks_table(mconn):
     if cur.fetchone()[0] < 1:
         cur.execute("SET LOCAL lock_timeout = '3s'")
         cur.execute(f"ALTER TABLE {REMARKS_TABLE} ADD COLUMN IF NOT EXISTS sub_dept TEXT")
+        mconn.commit()
+    # 2026-10-27 — the andon_history row the remark belongs to (operator: "andon
+    # history ki id bhi saath me save karo, column andon_history_id").
+    cur.execute("""SELECT COUNT(*) FROM information_schema.columns
+                    WHERE table_name=%s AND column_name='andon_history_id'""", (REMARKS_TABLE,))
+    if cur.fetchone()[0] < 1:
+        cur.execute("SET LOCAL lock_timeout = '3s'")
+        cur.execute(f"ALTER TABLE {REMARKS_TABLE} ADD COLUMN IF NOT EXISTS andon_history_id INTEGER")
         mconn.commit()
     _call_remarks_ready = True
 
@@ -1121,13 +1130,13 @@ def _slot_calls(line_id, lname, st, en):
             c2 = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
             c2.execute(f"""
                 SELECT display_name, priority, machine_no, fault, started_at,
-                       ended_at, FALSE AS ongoing, line
+                       ended_at, FALSE AS ongoing, line, id AS andon_history_id
                   FROM andon_history
                  WHERE {_NORM_SQL} = ANY(%s)
                    AND started_at < %s AND COALESCE(ended_at, LOCALTIMESTAMP) > %s
                 UNION ALL
                 SELECT display_name, priority, machine_no, fault, started_at,
-                       NULL, TRUE, line
+                       NULL, TRUE, line, NULL::integer
                   FROM andon_system
                  WHERE state = 'OPEN' AND {_NORM_SQL} = ANY(%s) AND started_at < %s
                  ORDER BY started_at
@@ -1159,6 +1168,8 @@ def _slot_calls(line_id, lname, st, en):
             "start":    r["started_at"].isoformat(),
             "end":      r["ended_at"].isoformat() if r["ended_at"] else None,
             "ongoing":  bool(r["ongoing"]),
+            # andon_history.id (None while the call is still open in andon_system)
+            "andon_history_id": r.get("andon_history_id"),
             "open_s":   int(round((b - a).total_seconds())),
             # a call is remarked only in the hour it STARTED (operator, 16-Oct)
             "starts_here": r["started_at"] >= st,
@@ -1173,7 +1184,8 @@ def _slot_calls(line_id, lname, st, en):
                 _ensure_call_remarks_table(mconn)
                 cur = mconn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
                 cur.execute(f"""SELECT call_type, machine_no, started_at, remark,
-                                       filled_by, attended_by, bd_machine, sub_dept, entered_by, updated_at
+                                       filled_by, attended_by, bd_machine, sub_dept, entered_by, updated_at,
+                                       action, action_by
                                   FROM {REMARKS_TABLE}
                                  WHERE line_id=%s AND started_at = ANY(%s)""",
                             (line_id, [_dt.fromisoformat(c["start"]) for c in calls]))
@@ -1187,6 +1199,10 @@ def _slot_calls(line_id, lname, st, en):
                 c["attended_by"] = (r or {}).get("attended_by") or ""
                 c["bd_machine"]  = (r or {}).get("bd_machine") or ""
                 c["sub_dept"]    = (r or {}).get("sub_dept") or ""
+                # 2026-10-28 — production's own action on a breakdown call whose
+                # Sub Department is Production (maintenance writes `action` on
+                # its own rows from the maintenance app — not shown here).
+                c["action"]      = ((r or {}).get("action") or "") if c["sub_dept"] == "Production" else ""
                 c["remark_by"]   = (r or {}).get("entered_by")
                 c["remark_at"]   = r["updated_at"].isoformat() if r and r.get("updated_at") else None
         except Exception as exc:
@@ -1376,7 +1392,8 @@ def save_andon_call_remarks(body: dict, user=Depends(get_current_user)):
                "filled_by": str(it.get("filled_by") or "").strip()[:60],
                "attended_by": str(it.get("attended_by") or "").strip()[:160],
                "bd_machine": str(it.get("bd_machine") or "").strip()[:80],
-               "sub_dept": str(it.get("sub_dept") or "").strip()[:40]}
+               "sub_dept": str(it.get("sub_dept") or "").strip()[:40],
+               "action": str(it.get("action") or "").strip()[:2000]}
         if not row["type"]:
             continue
         # 2026-10-21 — Department is fixed: a breakdown call is its own button's
@@ -1384,13 +1401,20 @@ def save_andon_call_remarks(body: dict, user=Depends(get_current_user)):
         # an optional Sub Department (operator).
         if lt == "breakdown":
             row["filled_by"] = "Tool Room" if "tool" in row["type"].lower() else "Maintenance"
-            row["sub_dept"] = ""
+            # 2026-10-28 — optional Sub Department "Production" (operator): the
+            # line's own people attended, and they write the Action they took.
+            if row["sub_dept"] not in ("", "Production"):
+                raise HTTPException(400, "Sub Department must be Production or empty")
+            if row["sub_dept"] == "Production" and not row["action"]:
+                raise HTTPException(400, "Fill Action for every call with Sub Department Production")
         elif lt == "others":
             row["filled_by"] = "Production"
             if row["sub_dept"] not in ("", "Maintenance", "Tool Room"):
                 raise HTTPException(400, "Sub Department must be Maintenance or Tool Room")
         else:
             row["sub_dept"] = ""
+        if row["sub_dept"] != "Production" or lt != "breakdown":
+            row["action"] = ""                     # action is only production's, on breakdown
         if need_all and not (row["remark"] and row["attended_by"] and row["bd_machine"]):
             raise HTTPException(400, "Fill Machine No., Attended by and Remarks for every call")
         if row["remark"]:
@@ -1402,39 +1426,46 @@ def save_andon_call_remarks(body: dict, user=Depends(get_current_user)):
         for c in _slot_calls(line_id, lname, st, en):
             e = _dt.fromisoformat(c["end"]) if c.get("end") else None
             tot = int(round((e - _dt.fromisoformat(c["start"])).total_seconds())) if e else None
-            ends[(c["type"], c["machine"], c["start"])] = (e, tot)
+            ends[(c["type"], c["machine"], c["start"])] = (e, tot, c.get("andon_history_id"))
     saved = 0
     with _maint_conn() as conn:                    # maintenance_db.andon_remarks_history
         _ensure_call_remarks_table(conn)
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
         for it in clean:
             ctype, mach, started, txt = it["type"], it["machine"], it["started"], it["remark"]
-            end_at, total_s = ends.get((ctype, mach, started.isoformat()), (None, None))
+            end_at, total_s, hist_id = ends.get((ctype, mach, started.isoformat()), (None, None, None))
             cur.execute(f"""SELECT remark, filled_by, attended_by, bd_machine, sub_dept, entered_by, audit_trail,
-                                   ended_at
+                                   ended_at, andon_history_id, action
                               FROM {REMARKS_TABLE}
                              WHERE line_id=%s AND call_type=%s AND machine_no=%s AND started_at=%s""",
                         (line_id, ctype, mach, started))
             ex = cur.fetchone()
             if ex and ((ex.get("remark") or ""), (ex.get("filled_by") or ""), (ex.get("attended_by") or ""),
-                       (ex.get("bd_machine") or ""), (ex.get("sub_dept") or "")) \
-                    == (txt, it["filled_by"], it["attended_by"], it["bd_machine"], it["sub_dept"]):
-                if end_at and ex.get("ended_at") is None:      # call closed since: times only
-                    cur.execute(f"""UPDATE {REMARKS_TABLE} SET ended_at=%s, total_seconds=%s
+                       (ex.get("bd_machine") or ""), (ex.get("sub_dept") or ""),
+                       ((ex.get("action") or "") if it["action"] else "")) \
+                    == (txt, it["filled_by"], it["attended_by"], it["bd_machine"], it["sub_dept"], it["action"]):
+                if (end_at and ex.get("ended_at") is None) or (hist_id and ex.get("andon_history_id") is None):
+                    # call closed since: times + andon_history id only, no audit entry
+                    cur.execute(f"""UPDATE {REMARKS_TABLE}
+                                       SET ended_at = COALESCE(ended_at, %s),
+                                           total_seconds = COALESCE(total_seconds, %s),
+                                           andon_history_id = COALESCE(andon_history_id, %s)
                                      WHERE line_id=%s AND call_type=%s AND machine_no=%s AND started_at=%s""",
-                                (end_at, total_s, line_id, ctype, mach, started))
+                                (end_at, total_s, hist_id, line_id, ctype, mach, started))
                 continue
             trail = list(ex["audit_trail"]) if ex and ex.get("audit_trail") else []
             if ex and ex.get("remark"):
                 trail.append({"remark": ex["remark"], "filled_by": ex.get("filled_by"),
                               "attended_by": ex.get("attended_by"), "bd_machine": ex.get("bd_machine"),
                               "sub_dept": ex.get("sub_dept"), "entered_by": ex.get("entered_by"),
+                              "action": ex.get("action"),
                               "replaced_at": _dt.utcnow().isoformat() + "Z"})
             cur.execute(f"""
                 INSERT INTO {REMARKS_TABLE}
                        (line_id, line_name, call_type, machine_no, started_at, ended_at, total_seconds,
-                        remark, filled_by, attended_by, bd_machine, sub_dept, entered_by, audit_trail, updated_at)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
+                        remark, filled_by, attended_by, bd_machine, sub_dept, entered_by, audit_trail,
+                        andon_history_id, updated_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
                 ON CONFLICT (line_id, call_type, machine_no, started_at) DO UPDATE SET
                        line_name = EXCLUDED.line_name,
                        ended_at = COALESCE(EXCLUDED.ended_at, {REMARKS_TABLE}.ended_at),
@@ -1442,10 +1473,20 @@ def save_andon_call_remarks(body: dict, user=Depends(get_current_user)):
                        remark = EXCLUDED.remark, filled_by = EXCLUDED.filled_by,
                        attended_by = EXCLUDED.attended_by, bd_machine = EXCLUDED.bd_machine,
                        sub_dept = EXCLUDED.sub_dept, entered_by = EXCLUDED.entered_by,
-                       audit_trail = EXCLUDED.audit_trail, updated_at = NOW()
+                       audit_trail = EXCLUDED.audit_trail,
+                       andon_history_id = COALESCE(EXCLUDED.andon_history_id, {REMARKS_TABLE}.andon_history_id),
+                       updated_at = NOW()
             """, (line_id, lname, ctype, mach, started, end_at, total_s, txt, it["filled_by"] or None,
                   it["attended_by"] or None, it["bd_machine"] or None, it["sub_dept"] or None, author,
-                  psycopg2.extras.Json(trail)))
+                  psycopg2.extras.Json(trail), hist_id))
+            # 2026-10-28 — production's Action (Sub Department = Production).  Only
+            # written when given, so a maintenance-app action is never blanked.
+            if it["action"]:
+                cur.execute(f"""UPDATE {REMARKS_TABLE}
+                                   SET action = %s, action_by = %s, action_at = NOW()
+                                 WHERE line_id=%s AND call_type=%s AND machine_no=%s AND started_at=%s
+                                   AND action IS DISTINCT FROM %s""",
+                            (it["action"], author, line_id, ctype, mach, started, it["action"]))
             saved += 1
         conn.commit()
 
@@ -1459,7 +1500,8 @@ def save_andon_call_remarks(body: dict, user=Depends(get_current_user)):
         if c.get("remark"):
             who = f" (attended by {c['attended_by']})" if c.get("attended_by") else ""
             sub = f" [{c['sub_dept']}]" if c.get("sub_dept") else ""
-            return head + c["remark"] + sub + who
+            act = f" · Action: {c['action']}" if c.get("action") else ""
+            return head + c["remark"] + sub + who + act
         s = c.get("slip")
         if s:
             return head + f"Slip #{s['id']}" + (f" {s['problem']}" if s.get("problem") else "")

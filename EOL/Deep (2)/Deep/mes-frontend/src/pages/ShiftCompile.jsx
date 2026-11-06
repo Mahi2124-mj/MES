@@ -637,7 +637,7 @@ export default function ShiftCompile() {
                     <td style={td}>{m.process_name}{m.machines_covered ? <span style={{ color: "#94a3b8" }}> · {m.machines_covered}</span> : null}</td>
                     <td style={td}>{m.required ?? "—"}</td>
                     <td style={td}>{m.operators.map(o => o.name).join(", ") || <span style={{ color: "#cbd5e1" }}>—</span>}</td>
-                    <td style={td}>{m.operators.map((o, j) => <span key={j} style={{ color: o.skill_ok === false ? "#dc2626" : "#16a34a", marginRight: 6, fontWeight: 600 }}>L{o.skill ?? "?"}</span>)}</td>
+                    <td style={td}>{m.operators.map((o, j) => <span key={j} style={{ color: o.skill_ok === false ? "#dc2626" : "#16a34a", marginRight: 6, fontWeight: 600 }}>{o.skill === 0 ? "OJT" : `L${o.skill ?? "?"}`}</span>)}</td>
                   </tr>
                 ))}
                 {(!detail.manpower || detail.manpower.length === 0) &&

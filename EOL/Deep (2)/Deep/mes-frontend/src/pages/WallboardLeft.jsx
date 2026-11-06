@@ -30,6 +30,24 @@ import axios                                        from "axios";
 
 axios.defaults.baseURL = "";  // same-origin
 
+// 2026-10-26 — server clock minus this device's clock, from the Date header of
+// /wallboard-cycles.  Panel clocks drift (SA panels ran on a wrong date), so
+// "the last hour" is measured on server time.  Cycle ts carry +05:30.
+let _srvSkewMs = 0;
+const AVG_CT_MAX_S = 60;   // same population as the AVG CT tab (wallboard.py)
+// 2026-10-29 — operator: "ywd/2ua zone me hr supervisor dashboard me pure zone
+// ki sari machine aani chahiye … sirf ek zone me".  Every YWD/2UA line has one
+// machine, so each supervisor wall of THIS zone also shows the other lines'
+// machines, each from its own line (video, comments and Over Target stay on that
+// machine's line).  Ids, not names, so a renamed line keeps working; zone order:
+// YWD-SS, YWD Recliner, Gear Lifter, 2UA Recliner, Nut Lifting.
+const ZONE_WALL_LINES = ["6", "10", "7", "8", "9"];
+function _noteServerClock(hdr) {
+  const m = String(hdr || "").match(/[A-Z][a-z]{2}, \d{2} [A-Z][a-z]{2} \d{4} \d{2}:\d{2}:\d{2} GMT/);
+  const t = m ? Date.parse(m[0]) : NaN;
+  if (!Number.isNaN(t)) _srvSkewMs = t - Date.now();
+}
+
 // ── Load Chart.js once (air-gapped LAN safe — local /public/chart.umd.min.js)
 function useChartJS(cb, deps = []) {
   useEffect(() => {
@@ -152,9 +170,9 @@ function OtBars({ title, rows, metric, color = "#f59e0b", onToday }) {
             const isToday = (i === data.length - 1) && typeof onToday === "function";
             return (
               <div key={i}
-                   onClick={isToday ? onToday : undefined}
+                   onClick={isToday ? () => onToday(d.date) : undefined}
                    title={isToday
-                     ? `${d.date} — click for today's over-target cycle videos`
+                     ? `${d.date} — click for this shift's over-target cycle videos`
                      : `${d.date}\nover ${d.over} / ${d.total} = ${d.pct}%`}
                    style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column",
                             alignItems: "center", justifyContent: "flex-end", height: "100%",
@@ -500,9 +518,40 @@ function OtTable({ cycles, ideal, onVideo, onBack, D, lineId, isMain, machineId,
   );
 }
 
-function OtModal({ data, metric, setMetric, machineName, onClose, D, otCycles, otIdeal, onVideo, lineId, isMain, lossAll, machineId, subId, lossSeconds, shiftName }) {
+function OtModal({ data, metric, setMetric, machineName, onClose, D, otCycles, otIdeal, onVideo, lineId, isMain, lossAll, machineId, subId, lossSeconds, shiftName, recordDate }) {
   const rows = (data && data.rows) || [];
-  const [showTbl, setShowTbl] = useState(false);
+  // 2026-10-27 — each shift's latest bar opens THAT date + shift (operator:
+  // "A 10-27 aur B 10-26, dono me aaj ki video aa rahi hai").  The board's own
+  // running shift uses its live cycles; any other shift is read from
+  // ct-history for its date + shift, and its clips carry that date + shift.
+  const [tblSel, setTblSel] = useState(null);       // { date, shift } | null
+  const [histCy, setHistCy] = useState(null);       // null = n/a, undefined = loading
+  const showTbl = !!tblSel;
+  const setShowTbl = (v) => { if (!v) setTblSel(null); };
+  const isLive = !!tblSel && tblSel.shift === shiftName
+                 && String(tblSel.date || "") === String(recordDate || "").slice(0, 10);
+  useEffect(() => {
+    if (!tblSel || isLive) { setHistCy(null); return undefined; }
+    let stop = false;
+    setHistCy(undefined);
+    const tok = sessionStorage.getItem("mes_token") || "";
+    const q = `date=${encodeURIComponent(tblSel.date)}&shift=${encodeURIComponent(tblSel.shift)}`;
+    const url = isMain ? `/api/lines/${lineId}/ct-history?${q}`
+                       : `/api/submachines/${subId}/ct-history?${q}&limit=5000`;
+    fetch(url, { headers: tok ? { Authorization: `Bearer ${tok}` } : {} })
+      .then(r => (r.ok ? r.json() : Promise.reject(r.status)))
+      .then(list => {
+        if (stop) return;
+        setHistCy((Array.isArray(list) ? list : []).map(r => ({
+          ct: r.ct_value != null ? Number(r.ct_value) : (r.ct_seconds != null ? Number(r.ct_seconds) : null),
+          ts: r.ts || r.ts_end, is_ng: !!r.is_ng, cycle_seq: r.cycle_seq, part_code: r.part_code,
+          shift_name: r.shift_name || tblSel.shift, ideal: r.ideal,
+          _date: tblSel.date, _shift: tblSel.shift,
+        })).filter(c => c.ct != null && c.ct > 0.1));
+      })
+      .catch(() => { if (!stop) setHistCy([]); });
+    return () => { stop = true; };
+  }, [tblSel && tblSel.date, tblSel && tblSel.shift, isLive, isMain, lineId, subId]);   // eslint-disable-line
   const tBtn = (m, label) => (
     <button onClick={() => setMetric(m)} style={{
       padding: "4px 14px", fontSize: 11, fontWeight: 800, letterSpacing: ".06em",
@@ -610,15 +659,22 @@ function OtModal({ data, metric, setMetric, machineName, onClose, D, otCycles, o
                    color: "#94a3b8", fontSize: 22, cursor: "pointer", lineHeight: 1 }}>×</button>
         </div>
         {showTbl ? (
-          <OtTable cycles={otCycles} ideal={otIdeal} onVideo={onVideo} shiftName={shiftName}
+          <>
+          <div style={{ fontSize: 11, fontWeight: 800, color: "#f59e0b", letterSpacing: ".06em", marginBottom: 6 }}>
+            {tblSel.shift} SHIFT · {tblSel.date}{isLive ? " · live" : ""}
+            {histCy === undefined && <span style={{ color: "#64748b", fontWeight: 600 }}>{"  "}loading…</span>}
+          </div>
+          <OtTable cycles={isLive ? otCycles : (histCy || [])} ideal={otIdeal} onVideo={onVideo}
+                   shiftName={isLive ? shiftName : tblSel.shift}
                    onBack={() => setShowTbl(false)} D={D}
                    lineId={lineId} isMain={isMain} machineId={machineId} />
+          </>
         ) : (
           <>
             <div style={{ fontSize: 10, color: "#64748b", margin: "2px 0 10px" }}>
               {metric === "avg"
                 ? "Average cycle time per hour = the hour's planned working time (breaks excluded) ÷ parts made in it — an hour at plan reads exactly the ideal CT. Pick a date and shift. Red = slower than ideal, green = at or under ideal. Hover a bar for details."
-                : <>Cycles slower than ideal{data && data.ideal_ct ? ` (${data.ideal_ct}s)` : ""} — A &amp; B shift, toggle % / cycle count. Tap today's bar for its over-target videos.</>}
+                : <>Cycles slower than ideal{data && data.ideal_ct ? ` (${data.ideal_ct}s)` : ""} — A &amp; B shift, toggle % / cycle count. Tap a shift's latest bar for its over-target videos.</>}
             </div>
             <div style={{ display: "flex", gap: 8, marginBottom: 4 }}>
               {tBtn("pct", "% OVER")}
@@ -630,8 +686,8 @@ function OtModal({ data, metric, setMetric, machineName, onClose, D, otCycles, o
                            ideal={data && data.ideal_ct} D={D} />
             ) : (
               <>
-                <OtBars title="A SHIFT" rows={rows.filter(r => r.shift === "A")} metric={metric} onToday={() => setShowTbl(true)} />
-                <OtBars title="B SHIFT" rows={rows.filter(r => r.shift === "B")} metric={metric} onToday={() => setShowTbl(true)} />
+                <OtBars title="A SHIFT" rows={rows.filter(r => r.shift === "A")} metric={metric} onToday={(d) => setTblSel({ date: d, shift: "A" })} />
+                <OtBars title="B SHIFT" rows={rows.filter(r => r.shift === "B")} metric={metric} onToday={(d) => setTblSel({ date: d, shift: "B" })} />
               </>
             )}
           </>
@@ -641,7 +697,7 @@ function OtModal({ data, metric, setMetric, machineName, onClose, D, otCycles, o
   );
 }
 
-function MachineRow({ machine, idealCt, onPick, onCycleVideo, isMain = false, lossAll, chartReady, lineId, okOverride, ngOverride, shiftName }) {
+function MachineRow({ machine, idealCt, onPick, onCycleVideo, isMain = false, lossAll, chartReady, lineId, okOverride, ngOverride, shiftName, recordDate }) {
   const _rawCycles = machine.cycles || [];
   // 2026-06-04 — Upper-Rail anti-swap DISPLAY safeguard.  A cycle flagged NG
   // with ~0s CT is a register-mirror PHANTOM (the collector OK<->NG swap
@@ -1095,7 +1151,7 @@ function MachineRow({ machine, idealCt, onPick, onCycleVideo, isMain = false, lo
         display: "flex", alignItems: "center", justifyContent: "center",
         color: textMut, fontSize: 14,
       }}>
-        {machine.machine_name} — no cycles this shift yet
+        {machine._label || machine.machine_name} — no cycles this shift yet
       </div>
     );
   }
@@ -1110,7 +1166,16 @@ function MachineRow({ machine, idealCt, onPick, onCycleVideo, isMain = false, lo
   // can drill in via Historical when needed.
   // Latest CT (big number on right) — color follows 3-tier rule
   const last      = cycles[cycles.length - 1];
-  const lastColor = ctColor(last.ct, idealOf(last));
+  // 2026-10-26 — operator: the big number shows the average CT of the last
+  // hour, not the last part's CT.  OK + Alarm cycles with 0 < ct <= 60 s made
+  // in the last 60 min of server time (the AVG CT tab's rule).
+  const _hourAgo = Date.now() + _srvSkewMs - 3600 * 1000;
+  const _hourCts = allCycles
+    .filter(c => c.ts && Date.parse(c.ts) >= _hourAgo
+                 && Number(c.ct) > 0 && Number(c.ct) <= AVG_CT_MAX_S)
+    .map(c => Number(c.ct));
+  const avgHour  = _hourCts.length ? _hourCts.reduce((a, b) => a + b, 0) / _hourCts.length : null;
+  const avgColor = avgHour == null ? textMut : ctColor(avgHour, idealOf(last));
 
   return (
     <div
@@ -1147,7 +1212,7 @@ function MachineRow({ machine, idealCt, onPick, onCycleVideo, isMain = false, lo
           letterSpacing: ".02em",
         }}>
           {isMain
-            ? `★ ${machine.machine_name}`
+            ? `★ ${machine._label || machine.machine_name}`
             : `M-${machine.machine_seq || "?"} · ${machine.machine_name}`}
           <span style={{ marginLeft: 8, fontSize: 9, fontWeight: 700,
                           color: textMut, letterSpacing: ".05em" }}>
@@ -1201,11 +1266,20 @@ function MachineRow({ machine, idealCt, onPick, onCycleVideo, isMain = false, lo
               </span>
             );
           })()}
-          <span style={{ fontSize: 16, fontWeight: 900,
-                          color: lastColor,
-                          fontFamily: "monospace",
-                          minWidth: 60, textAlign: "right" }}>
-            {last.ct.toFixed(2)}s
+          <span title={avgHour == null
+                         ? "No parts in the last hour"
+                         : `Average of ${_hourCts.length} parts in the last hour (up to ${AVG_CT_MAX_S}s each)`}
+                style={{ display: "inline-flex", alignItems: "baseline", gap: 6 }}>
+            <span style={{ fontSize: 9, fontWeight: 700, color: textMut,
+                            letterSpacing: ".04em", whiteSpace: "nowrap" }}>
+              Avg. CT(Last 1 hour)
+            </span>
+            <span style={{ fontSize: 16, fontWeight: 900,
+                            color: avgColor,
+                            fontFamily: "monospace",
+                            minWidth: 60, textAlign: "right" }}>
+              {avgHour != null ? `${avgHour.toFixed(2)}s` : "—"}
+            </span>
           </span>
         </div>
       </div>
@@ -1254,9 +1328,9 @@ function MachineRow({ machine, idealCt, onPick, onCycleVideo, isMain = false, lo
         {otModal && createPortal(
           <OtModal
             data={otModal} metric={otMetric} setMetric={setOtMetric}
-            machineName={machine.machine_name || (isMain ? "Final Inspection" : "Machine")}
+            machineName={machine._label || machine.machine_name || (isMain ? "Final Inspection" : "Machine")}
             onClose={() => setOtModal(null)} D={D}
-            otCycles={allCycles} otIdeal={idealCt} shiftName={shiftName}
+            otCycles={allCycles} otIdeal={idealCt} shiftName={shiftName} recordDate={recordDate}
             lossSeconds={lossSec}
             lossAll={lossAll}
             lineId={lineId} isMain={isMain}
@@ -1597,10 +1671,14 @@ export default function WallboardLeft() {
     // one and the wrong clip could play.  For an Alarm the server also extends
     // the clip through the NEXT cycle, returning one continuous video.  The
     // cache-buster gets an "n" for Alarms so the two never share a cached URL.
-    const _ngQ = `&ng=${cy.is_ng ? 1 : 0}`;
-    const _r   = `${cy.cycle_seq}${cy.is_ng ? "n" : ""}`;
+    // 2026-10-27 — a cycle from another shift (OVER TARGET bar) names its own
+    // date + shift: cycle_seq repeats every shift.  Also part of the cache key.
+    const _dsQ = cy._date ? `&date=${encodeURIComponent(cy._date)}&shift=${encodeURIComponent(cy._shift || "")}` : "";
+    const _ngQ = `&ng=${cy.is_ng ? 1 : 0}` + _dsQ;
+    const _r   = `${cy.cycle_seq}${cy.is_ng ? "n" : ""}${cy._date ? `-${cy._date}${cy._shift || ""}` : ""}`;
+    const vLine = machine._line_id || lineId;   // YWD/2UA: the machine's own line
     const url = isMain
-      ? `/api/lines/${lineId}/cycle-video?cycle_seq=${cy.cycle_seq}`
+      ? `/api/lines/${vLine}/cycle-video?cycle_seq=${cy.cycle_seq}`
         + _ngQ + `&token=${encodeURIComponent(token)}&r=${_r}`
       : `/api/submachines/${machine.sub_id}/cycle-video?cycle_seq=${cy.cycle_seq}`
         + _ngQ + `&token=${encodeURIComponent(token)}&r=${_r}`;
@@ -1608,8 +1686,8 @@ export default function WallboardLeft() {
     vidWaitStart.current = performance.now();
     vidTimerRef.current = startTimer("video",
       String(machine.machine_name || (isMain ? "Final Inspection" : `M-${machine.machine_seq}`)),
-      { lineId });
-    setVideoCycle({ machine, cy, url, isMain });
+      { lineId: vLine });
+    setVideoCycle({ machine, cy, url, isMain, lineId: vLine });
   }, [lineId]);
   const [now, setNow]   = useState(new Date());
 
@@ -1665,7 +1743,7 @@ export default function WallboardLeft() {
     // lineId is null until a NAMED url resolves — don't fire /api/lines/null/…
     if (!lineId) return;
     axios.get(`/api/lines/${lineId}/wallboard-cycles`)
-         .then(r => setData(r.data))
+         .then(r => { _noteServerClock(r.headers && r.headers.date); setData(r.data); })
          .catch(() => {});
   }, [lineId]);
   const fetchSummary = useCallback(() => {
@@ -1687,6 +1765,33 @@ export default function WallboardLeft() {
     const nm = summary?.kpi?.line_name;
     document.title = nm ? `${nm}.SUPERVISOR` : `SUPERVISOR · Line ${lineId || lineRef}`;
   }, [summary?.kpi?.line_name, lineId]);
+
+  // Other lines of the zone (YWD/2UA only — empty list everywhere else).
+  const zoneIds = useMemo(() => (ZONE_WALL_LINES.includes(String(lineId || ""))
+    ? ZONE_WALL_LINES.filter(i => i !== String(lineId)) : []), [lineId]);
+  const [zoneCyc, setZoneCyc] = useState({});
+  const [zoneSum, setZoneSum] = useState({});
+  useEffect(() => {
+    setZoneCyc({}); setZoneSum({});
+    if (!zoneIds.length) return;
+    let alive = true;
+    const pull = (path, set) => Promise.all(zoneIds.map(id =>
+      axios.get(`/api/lines/${id}/${path}`).then(r => [id, r.data]).catch(() => [id, null])))
+      .then(list => {
+        if (!alive) return;
+        set(prev => {
+          const next = { ...prev };
+          list.forEach(([id, v]) => { if (v) next[id] = v; });   // keep last good on a failed poll
+          return next;
+        });
+      });
+    const cyc = () => pull("wallboard-cycles", setZoneCyc);
+    const sum = () => pull("wallboard-summary", setZoneSum);
+    cyc(); sum();
+    const c = setInterval(cyc, 8000);
+    const s = setInterval(sum, 30000);
+    return () => { alive = false; clearInterval(c); clearInterval(s); };
+  }, [zoneIds]);
 
   useEffect(() => {
     fetchCycles(); fetchSummary();
@@ -1739,9 +1844,21 @@ export default function WallboardLeft() {
   const subs       = (data?.machines || []).slice().sort((a, b) =>
     (b.machine_seq || 0) - (a.machine_seq || 0)
   );
-  const mainRow    = data?.main || null;
+  const _ownLabel  = zoneIds.length ? (summary?.kpi?.line_name || "") : "";
+  const mainRow    = useMemo(() => (data?.main
+    ? (_ownLabel ? { ...data.main, _label: _ownLabel } : data.main) : null), [data, _ownLabel]);
   // Combined list: main row FIRST, then sub-machines
   const allRows    = mainRow ? [mainRow, ...subs] : subs;
+  // YWD/2UA: the zone's other machines after this line's own rows.
+  const zoneRows   = useMemo(() => zoneIds.map(id => {
+    const zd = zoneCyc[id];
+    if (!zd || !zd.main) return null;
+    const k = zoneSum[id]?.kpi || {};
+    return { ...zd.main, _line_id: id, _label: k.line_name || `Line ${id}`,
+             _record_date: zd.record_date || "", _shift: zd.shift_name || "",
+             _ok: k.ok_count, _ng: k.ng_count };
+  }).filter(Boolean), [zoneIds, zoneCyc, zoneSum]);
+  const shownRows  = zoneRows.length ? [...allRows, ...zoneRows] : allRows;
 
   // 2026-08-11 — per-machine gain/loss for the Final Inspection popup, which
   // lists every machine separately instead of one combined figure.  Built from
@@ -1832,7 +1949,7 @@ export default function WallboardLeft() {
                 <strong style={{ fontSize: 15 }}>Pending breakdown slips</strong>
                 <span style={{ fontSize: 12, color: textMut }}>{summary?.kpi?.line_name || ""} · {slips.length}</span>
                 <span style={{ marginLeft: "auto", fontSize: 11, color: textMut }}>
-                  After shift end + {bdPend?.grace_min ?? 30} min only the Shift Incharge can fill
+                  Locks {(() => { const g = bdPend?.grace_min ?? 180; return g % 60 === 0 ? `${g / 60} h` : `${g} min`; })()} after the shift ends
                 </span>
                 <button onClick={() => setBdOpen(false)}
                   style={{ border: "none", background: "transparent", color: textMut, fontSize: 20,
@@ -1864,7 +1981,7 @@ export default function WallboardLeft() {
                         <span title={`Window closed ${hhmm(s.fill_deadline)}`}
                               style={{ fontSize: 11, fontWeight: 800, color: badClr,
                                        border: `1px solid ${badClr}55`, borderRadius: 99, padding: "1px 8px" }}>
-                          🔒 Shift Incharge only
+                          🔒 Locked
                         </span>
                       )}
                     </div>
@@ -2178,30 +2295,34 @@ export default function WallboardLeft() {
         {/* CT rows — main line on top (taller), then sub-machines (equal share below) */}
         <div style={{ height: "100%", display: "flex", flexDirection: "column",
                       gap: 6 }}>
-          {allRows.length === 0 && (
+          {shownRows.length === 0 && (
             <div style={{ flex: 1, display: "flex", alignItems: "center",
                           justifyContent: "center", color: textMut,
                           fontSize: 16 }}>
               No machines configured (or no cycles yet today)
             </div>
           )}
-          {allRows.map((m) => (
-            <div key={m.sub_id || "main"}
+          {shownRows.map((m) => (
+            <div key={`${m._line_id || "own"}-${m.sub_id || "main"}`}
                   style={{
                     // Main line gets ~1.6x the height of each sub row so
-                    // it visibly stands out as the line aggregate.
-                    flex: m.is_main ? "1.6 1 0" : "1 1 0",
+                    // it visibly stands out as the line aggregate.  The other
+                    // YWD/2UA lines' machines get an ordinary row.
+                    flex: m.is_main && !m._line_id ? "1.6 1 0" : "1 1 0",
                     minHeight: 0,
                   }}>
               <MachineRow machine={m}
-                          lossAll={lossBreakdown}
+                          lossAll={m._line_id
+                            ? [{ name: m._label, loss: Number(m.loss_seconds) || 0, isMain: true }]
+                            : lossBreakdown}
                           idealCt={m.ideal_ct || 15}
                           isMain={!!m.is_main}
                           chartReady={chartReady}
-                          lineId={lineId}
-                          okOverride={m.is_main ? summary?.kpi?.ok_count : undefined}
-                          ngOverride={m.is_main ? summary?.kpi?.ng_count : undefined}
-                          shiftName={shiftName}
+                          lineId={m._line_id || lineId}
+                          okOverride={m._line_id ? m._ok : (m.is_main ? summary?.kpi?.ok_count : undefined)}
+                          ngOverride={m._line_id ? m._ng : (m.is_main ? summary?.kpi?.ng_count : undefined)}
+                          shiftName={m._line_id ? (m._shift || shiftName) : shiftName}
+                          recordDate={m._line_id ? m._record_date : (data?.record_date || "")}
                           onCycleVideo={openCycleVideo} />
             </div>
           ))}
@@ -2264,7 +2385,9 @@ export default function WallboardLeft() {
               <div style={{ fontSize: 13, fontWeight: 800, color: text,
                             letterSpacing: ".02em" }}>
                 <span style={{ color: videoCycle.isMain ? "#60a5fa" : "#fbbf24" }}>
-                  {videoCycle.isMain ? "★ Final Inspection" : `M-${videoCycle.machine.machine_seq||"?"}`}
+                  {videoCycle.isMain
+                    ? `★ ${videoCycle.machine._label || "Final Inspection"}`
+                    : `M-${videoCycle.machine.machine_seq||"?"}`}
                 </span>
                 <span style={{ color: textMut, margin: "0 8px" }}>·</span>
                 {videoCycle.machine.machine_name}
@@ -2585,7 +2708,7 @@ export default function WallboardLeft() {
                 the same comment history. */}
             {videoCycle.isMain && (
               <CycleCommentsPanel
-                lineId={lineId}
+                lineId={videoCycle.lineId || lineId}
                 machineName="Final Inspection"
                 /* 2026-06-05 — Key = cycle_seq + the cycle's DATE to MATCH
                    Fullscreen exactly AND stop a PAST day's cycle #N notes from
@@ -2595,7 +2718,7 @@ export default function WallboardLeft() {
                 /* 2026-09-16 — the date alone is not enough: cycle_seq ALSO
                    restarts every shift, so A-shift #10 and B-shift #10 of the
                    SAME day collided.  Scope the thread to the cycle's shift. */
-                shift={videoCycle.cy.shift_name || shiftName}
+                shift={videoCycle.cy.shift_name || videoCycle.machine._shift || shiftName}
                 border={border}
                 text={text}
                 textSub={textSub}
@@ -2633,7 +2756,7 @@ export default function WallboardLeft() {
                        : new Date().toISOString().slice(0, 10));
               return (
                 <WbCycleRemarkPanel
-                  lineId={lineId}
+                  lineId={videoCycle.lineId || lineId}
                   partCode={synthPC}
                   machineId={machineId}
                   machineName={videoCycle.machine.machine_name}

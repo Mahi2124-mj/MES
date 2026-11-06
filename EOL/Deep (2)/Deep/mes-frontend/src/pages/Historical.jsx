@@ -9,6 +9,7 @@ import CycleTimeStudy from "../components/CycleTimeStudy";
 import BreakdownSlipView from "../components/BreakdownSlipPaper";
 import { downloadSlipPdf, MAINT_SRC } from "../components/breakdownSlipPdf";
 import { useAuth } from "../context/AuthContext";
+import { LanRefreshSlot } from "../components/LanRefresh";
 
 const api = axios.create({ baseURL: "" });
 api.interceptors.request.use(cfg => {
@@ -2337,6 +2338,10 @@ export default function Historical() {
             pointerEvents:"none",
           }}>
             Production <span style={{ color: theme.accent }}>Historical Data</span>
+          </div>
+          {/* LAN app: Refresh at the right of the bar (nothing on the website) */}
+          <div style={{ marginLeft:"auto", display:"flex", alignItems:"center", position:"relative", zIndex:1 }}>
+            <LanRefreshSlot />
           </div>
         </div>
 

@@ -16,6 +16,7 @@
  */
 import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
+import { LanRefreshSlot } from "../components/LanRefresh";
 
 const API = "";
 const api = {
@@ -206,9 +207,13 @@ export default function MaintenanceDeviations() {
           <div className="md-title">
             {isAdmin ? "Maintenance " : ""}<span>Deviations</span>
           </div>
-          {user?.username && (
-            <div className="md-pill">Signed in as <b>{user.username}</b></div>
-          )}
+          {/* LAN app: Refresh beside the user pill (nothing on the website) */}
+          <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+            {user?.username && (
+              <div className="md-pill">Signed in as <b>{user.username}</b></div>
+            )}
+            <LanRefreshSlot />
+          </div>
         </div>
 
         <div className="md-body">

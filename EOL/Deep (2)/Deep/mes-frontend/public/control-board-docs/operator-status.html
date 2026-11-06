@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>VISUALIZATION SHEET OF OPERATOR STATUS</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: "Calibri", Arial, sans-serif;
+        }
+
+        body {
+            background-color: #e9ecef;
+            margin: 0;
+            padding: 15px;
+        }
+
+        .toolbar {
+            max-width: 1740px;
+            margin: 0 auto 12px auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #ffffff;
+            padding: 10px 18px;
+            border: 1px solid #bbb;
+            font-size: 13px;
+        }
+
+        .toolbar button {
+            padding: 6px 14px;
+            font-size: 13px;
+            font-weight: bold;
+            cursor: pointer;
+            border: 1px solid #333;
+            background: #f8f9fa;
+            border-radius: 3px;
+            margin-left: 8px;
+        }
+
+        .toolbar button.primary {
+            background: #0056b3;
+            color: #ffffff;
+            border-color: #004085;
+        }
+
+        .sheet-container {
+            max-width: 1740px;
+            margin: 0 auto;
+            background: #ffffff;
+            padding: 15px;
+            overflow-x: auto;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        table.sheet-table {
+            border-collapse: collapse;
+            table-layout: fixed;
+            width: 1710px;
+            background: #ffffff;
+            border: 2px solid #000000;
+        }
+
+        table.sheet-table td,
+        table.sheet-table th {
+            padding: 0;
+            margin: 0;
+            vertical-align: middle;
+            text-align: center;
+            font-size: 11px;
+            color: #000000;
+            border: 1px solid #000000;
+        }
+
+        /* Borders */
+        .bt-m {
+            border-top: 2px solid #000000 !important;
+        }
+
+        .bb-m {
+            border-bottom: 2px solid #000000 !important;
+        }
+
+        .bl-m {
+            border-left: 2px solid #000000 !important;
+        }
+
+        .br-m {
+            border-right: 2px solid #000000 !important;
+        }
+
+        .bt-none {
+            border-top: none !important;
+        }
+
+        .bb-none {
+            border-bottom: none !important;
+        }
+
+        .bl-none {
+            border-left: none !important;
+        }
+
+        .br-none {
+            border-right: none !important;
+        }
+
+        /* Input fields */
+        .cell-input {
+            width: 100%;
+            height: 100%;
+            min-height: 28px;
+            border: none;
+            outline: none;
+            background: transparent;
+            text-align: center;
+            font-size: 11px;
+            font-family: inherit;
+            padding: 2px 4px;
+            display: block;
+        }
+
+        .cell-input:focus {
+            background: #fff9c4;
+        }
+
+        .text-left {
+            text-align: left;
+            padding-left: 6px;
+        }
+
+        .header-input {
+            border: none;
+            border-bottom: 1px solid #000000;
+            outline: none;
+            background: transparent;
+            font-weight: bold;
+            font-size: 13px;
+            width: 110px;
+        }
+
+        /* Interactive Status Cells */
+        .status-cell {
+            cursor: pointer;
+            user-select: none;
+            font-size: 14px;
+            font-weight: bold;
+            padding: 0 !important;
+        }
+
+        .status-cell:hover {
+            background-color: #e8f0fe;
+        }
+
+        @media print {
+            body {
+                background: #ffffff;
+                padding: 0;
+            }
+
+            .toolbar {
+                display: none;
+            }
+
+            .sheet-container {
+                box-shadow: none;
+                padding: 0;
+                max-width: 100%;
+            }
+
+            * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="toolbar">
+        <div>
+            <strong>TOYOTA BOSHOKU - VISUALIZATION SHEET OF OPERATOR STATUS</strong>
+            <span style="margin-left: 15px; color: #444;">
+                (Dates par click karein: <b>Blank &rarr; ● (First Day) &rarr; □ (Training Done) &rarr; ○ (After
+                    Training) &rarr; △ (Vacation) &rarr; P (Unplanned Leave)</b>)
+            </span>
+        </div>
+        <div>
+            <button onclick="resetSheet()">Clear All</button>
+            <button class="primary" onclick="window.print()">Print / Save PDF</button>
+        </div>
+    </div>
+
+    <div class="sheet-container">
+        <table class="sheet-table" id="operatorTable">
+            <colgroup>
+                <col style="width: 65px;"> <!-- A: S.NO. -->
+                <col style="width: 95px;"> <!-- B: EMP. CODE -->
+                <col style="width: 160px;"> <!-- C: NAME -->
+                <col style="width: 115px;"> <!-- D: PROCESS -->
+                <col style="width: 75px;"> <!-- E: START DAY -->
+                <!-- F to AJ: 31 Days Columns -->
+                <script>
+                    for (let i = 1; i <= 31; i++) {
+                        document.write('<col style="width: 38px;">');
+                    }
+                </script>
+            </colgroup>
+            <tbody>
+                <!-- Row 1: Company Title & Month -->
+                <tr style="height: 44px;">
+                    <td colspan="2" rowspan="2" class="bt-m bb-m bl-m br-m" style="padding: 2px;">
+                        <div
+                            style="border: 2px solid #b30000; color: #b30000; font-weight: bold; font-size: 12px; padding: 4px 2px; line-height: 1.15; text-align: center;">
+                            TOYOTA<br>BOSHOKU
+                        </div>
+                    </td>
+                    <td colspan="28" class="bt-m bb-m bl-m br-m"
+                        style="font-family: Arial, sans-serif; font-size: 22px; font-weight: bold; text-align: center;">
+                        TOYOTA BOSHOKU DEVICE INDIA PVT. LTD.
+                    </td>
+                    <td colspan="6" class="bt-m bb-m bl-m br-m text-left" style="font-size: 13px; font-weight: bold;">
+                        MONTH :- <input type="text" class="header-input" value="MAR.26">
+                    </td>
+                </tr>
+
+                <!-- Row 2: Sheet Title & Line -->
+                <tr style="height: 30px;">
+                    <td colspan="28" class="bt-m bb-m bl-m br-m"
+                        style="font-family: Arial, sans-serif; font-size: 16px; font-weight: bold; text-align: center;">
+                        VISUALIZATION SHEET OF OPERATOR STATUS
+                    </td>
+                    <td colspan="6" class="bt-m bb-m bl-m br-m text-left" style="font-size: 13px; font-weight: bold;">
+                        LINE:- <input type="text" class="header-input" placeholder="Line Name">
+                    </td>
+                </tr>
+
+                <!-- Row 3: Legends Line 1 -->
+                <tr style="height: 24px; font-size: 11px; font-weight: bold; background: #fafafa;">
+                    <td colspan="5" class="bt-m bb-none bl-m br-none text-left"
+                        style="padding-left: 10px; font-size: 12px;">
+                        [ STATUS ]
+                    </td>
+                    <td colspan="8" class="bt-m bb-none bl-none br-none text-left" style="padding-left: 6px;">
+                        ●：FIRST DAY
+                    </td>
+                    <td colspan="11" class="bt-m bb-none bl-none br-none text-left" style="padding-left: 6px;">
+                        □：TRAINING DONE
+                    </td>
+                    <td colspan="12" class="bt-m bb-none bl-none br-m text-left" style="padding-left: 6px;">
+                        ○：AFTER TRAINING DONE (2 DAYS)
+                    </td>
+                </tr>
+
+                <!-- Row 4: Legends Line 2 -->
+                <tr style="height: 24px; font-size: 11px; font-weight: bold; background: #fafafa;">
+                    <td colspan="5" class="bt-none bb-m bl-m br-none"></td>
+                    <td colspan="8" class="bt-none bb-m bl-none br-none text-left"
+                        style="padding-left: 6px; font-size: 10px; color: #444;">
+                        ( More than 3 days )
+                    </td>
+                    <td colspan="11" class="bt-none bb-m bl-none br-none text-left" style="padding-left: 6px;">
+                        △：VACATION
+                    </td>
+                    <td colspan="12" class="bt-none bb-m bl-none br-m text-left" style="padding-left: 6px;">
+                        ▲ ：VACATION WITHOUT INFORMATION
+                    </td>
+                </tr>
+
+                <!-- Row 5: Header Row (S.NO., EMP. CODE, NAME, PROCESS, START DAY, 1..31) -->
+                <tr style="height: 38px; font-weight: bold; font-size: 12px; background: #f1f4f8;">
+                    <th class="bt-m bb-m bl-m">S.NO.</th>
+                    <th class="bt-m bb-m">EMP. CODE</th>
+                    <th class="bt-m bb-m">NAME</th>
+                    <th class="bt-m bb-m">PROCESS<br>( STANDARD WORK )</th>
+                    <th class="bt-m bb-m">START DAY</th>
+                    <script>
+                        for (let d = 1; d <= 31; d++) {
+                            const rightBorder = (d === 31) ? ' br-m' : '';
+                            document.write('<th class="bt-m bb-m' + rightBorder + '">' + d + '</th>');
+                        }
+                    </script>
+                </tr>
+
+                <!-- Rows 6 to 19: Operator Roster (14 Operators) -->
+                <script>
+                    for (let r = 1; r <= 14; r++) {
+                        const bottomClass = (r === 14) ? 'bb-m' : '';
+                        document.write('<tr style="height: 32px;">');
+                        document.write('<td class="bl-m ' + bottomClass + '">' + r + '</td>');
+                        document.write('<td class="' + bottomClass + '"><input type="text" class="cell-input"></td>');
+                        document.write('<td class="' + bottomClass + '"><input type="text" class="cell-input text-left"></td>');
+                        document.write('<td class="' + bottomClass + '"><input type="text" class="cell-input text-left"></td>');
+                        document.write('<td class="' + bottomClass + '"><input type="text" class="cell-input"></td>');
+                        for (let d = 1; d <= 31; d++) {
+                            const rightBorder = (d === 31) ? ' br-m' : '';
+                            document.write('<td class="status-cell ' + bottomClass + rightBorder + '" onclick="cycleStatus(this)"></td>');
+                        }
+                        document.write('</tr>');
+                    }
+                </script>
+
+                <!-- Row 20: SKILL MATRIX DEPLOYMENT (A20:D20 merged, E20 separate, F20..AJ20 day columns) -->
+                <tr style="height: 36px;">
+                    <td colspan="4" class="bl-m text-left"
+                        style="font-weight: bold; font-size: 11px; line-height: 1.25; padding: 2px 6px;">
+                        DEPLOYED ALL OPERATOR AS PER SKILL MATRIX<br>
+                        <span style="font-weight: normal; font-size: 10px;">(YES &nbsp;&nbsp;&nbsp;&nbsp; / &nbsp;&nbsp;
+                            NO X &nbsp;&nbsp; / &nbsp;&nbsp; FOR MULTI SKILL)</span>
+                    </td>
+                    <td><input type="text" class="cell-input"></td>
+                    <script>
+                        for (let d = 1; d <= 31; d++) {
+                            const rightBorder = (d === 31) ? ' br-m' : '';
+                            document.write('<td class="status-cell' + rightBorder + '" onclick="cycleYN(this)"></td>');
+                        }
+                    </script>
+                </tr>
+
+                <!-- Row 21: 4M CHANGE CONTROL SHEET UPDATE (A21:D21 merged, E21 separate, F21..AJ21 day columns) -->
+                <tr style="height: 34px;">
+                    <td colspan="4" class="bl-m text-left"
+                        style="font-weight: bold; font-size: 11px; padding: 2px 6px;">
+                        4 M CHANGE CONTROL SHEET UPDATED YES OR NO &nbsp;&nbsp; ( IF X OR &nbsp;&nbsp;&nbsp;&nbsp; )
+                    </td>
+                    <td><input type="text" class="cell-input"></td>
+                    <script>
+                        for (let d = 1; d <= 31; d++) {
+                            const rightBorder = (d === 31) ? ' br-m' : '';
+                            document.write('<td class="status-cell' + rightBorder + '" onclick="cycleYN(this)"></td>');
+                        }
+                    </script>
+                </tr>
+
+                <!-- Row 22: SUPERVISOR SIGNATURE DAILY (A22:D22 merged, E22 separate, F22..AJ22 day columns) -->
+                <tr style="height: 42px;">
+                    <td colspan="4" class="bl-m text-left"
+                        style="font-weight: bold; font-size: 11px; padding: 2px 6px;">
+                        NAME / SIGNATURE OF SUPERVISOR ( DAILY )
+                    </td>
+                    <td><input type="text" class="cell-input"></td>
+                    <script>
+                        for (let d = 1; d <= 31; d++) {
+                            const rightBorder = (d === 31) ? ' br-m' : '';
+                            document.write('<td class="' + rightBorder + '"><input type="text" class="cell-input" style="font-size:10px;"></td>');
+                        }
+                    </script>
+                </tr>
+
+                <!-- Row 23: MANAGER SIGN WEEKLY (A23:D23 merged, E23 separate, F23:K23, L23:Q23, R23:W23, X23:AC23, AD23:AJ23 weekly merged sign boxes) -->
+                <tr style="height: 40px;">
+                    <td colspan="4" class="bb-m bl-m text-left"
+                        style="font-weight: bold; font-size: 11px; padding: 2px 6px;">
+                        NAME / SIGN OF MANAGER ( WEEKLY )
+                    </td>
+                    <td class="bb-m"><input type="text" class="cell-input"></td>
+                    <!-- Week 1: Day 1-6 (Cols F-K) -->
+                    <td colspan="6" class="bb-m"><input type="text" class="cell-input" placeholder="Week 1 Sign"></td>
+                    <!-- Week 2: Day 7-12 (Cols L-Q) -->
+                    <td colspan="6" class="bb-m"><input type="text" class="cell-input" placeholder="Week 2 Sign"></td>
+                    <!-- Week 3: Day 13-18 (Cols R-W) -->
+                    <td colspan="6" class="bb-m"><input type="text" class="cell-input" placeholder="Week 3 Sign"></td>
+                    <!-- Week 4: Day 19-24 (Cols X-AC) -->
+                    <td colspan="6" class="bb-m"><input type="text" class="cell-input" placeholder="Week 4 Sign"></td>
+                    <!-- Week 5: Day 25-31 (Cols AD-AJ) -->
+                    <td colspan="7" class="bb-m br-m"><input type="text" class="cell-input" placeholder="Week 5 Sign">
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        // Operator Status Symbols: Blank -> ● -> □ -> ○ -> △ -> P -> Blank
+        function cycleStatus(td) {
+            const symbols = ['', '●', '□', '○', '△', 'P'];
+            const current = td.innerText.trim();
+            const idx = symbols.indexOf(current);
+            const nextIdx = (idx + 1) % symbols.length;
+            td.innerText = symbols[nextIdx];
+        }
+
+        // Yes / No / Blank toggle for verification rows
+        function cycleYN(td) {
+            const symbols = ['', 'YES', 'X'];
+            const current = td.innerText.trim();
+            const idx = symbols.indexOf(current);
+            const nextIdx = (idx + 1) % symbols.length;
+            td.innerText = symbols[nextIdx];
+            td.style.color = (symbols[nextIdx] === 'X') ? '#d00' : ((symbols[nextIdx] === 'YES') ? '#080' : '#000');
+        }
+
+        function resetSheet() {
+            if (confirm("Kya aap saara entered data aur status marks reset karna chahte hain?")) {
+                document.querySelectorAll('#operatorTable input.cell-input').forEach(input => input.value = '');
+                document.querySelectorAll('#operatorTable .status-cell').forEach(cell => {
+                    cell.innerText = '';
+                    cell.style.color = '#000';
+                });
+            }
+        }
+    </script>
+
+
+<script>
+/* MES Control Board: fit-to-width zoom requested by the page around this frame. */
+(function () {
+  var ok = window.CSS && CSS.supports && CSS.supports("zoom", "0.5");
+  window.addEventListener("message", function (e) {
+    if (e.source !== window.parent || !e.data || e.data.type !== "cb-zoom" || !ok) return;
+    var z = Number(e.data.zoom) || 1;
+    document.documentElement.style.zoom = (z === 1) ? "" : String(z);
+    try { window.parent.postMessage({ type: "cb-zoom-ok", zoom: z }, "*"); } catch (x) {}
+  });
+})();
+</script>
+</body>
+
+</html>

@@ -21,6 +21,11 @@ import { api } from "../api/client";
 const GREEN = "#22c55e", RED = "#ef4444", BLUE = "#3b82f6", AMBER = "#fbbf24", ORANGE = "#f97316";
 const ROBOT_CLR = ["#3b82f6", "#a855f7", "#06b6d4", "#f59e0b"];
 const WINDOW = 30;
+// 2026-11-03 — robot CT runs ~23-27 s (ideal 32 s), so 0-40 s left the line
+// pressed against the top.  Both robot graphs (management dashboard and the
+// combined machine page) use 10-50 s; values outside are drawn on the edge.
+const Y_MIN = 10, Y_CAP = 50;
+const clampY = (v) => Math.max(Y_MIN, Math.min(v, Y_CAP));
 
 function toChart(rows) {
   const mx = rows.length ? Math.max(...rows.map(r => Number(r.cycle_seq) || 0)) : 0;
@@ -29,6 +34,7 @@ function toChart(rows) {
     no: perShift ? r.cycle_seq : i + 1,
     x:  perShift ? r.cycle_seq : i + 1,
     y:  Number(r.ct_seconds) || 0,
+    yc: clampY(Number(r.ct_seconds) || 0),
     ts_start: r.ts_start, ts_end: r.ts_end,
     model_name: r.model_name, cycle_seq: r.cycle_seq,
   }));
@@ -63,13 +69,302 @@ function Tip({ active, payload, ideal, th }) {
   );
 }
 
+// 2026-10-27 — on a narrow chart (the portrait panel puts the two robots side
+// by side in ~430 px each) 30 cycles crowd the CT labels.  Below 600 px the
+// window shrinks to ~28 px per cycle (min 10); wider charts keep 30.
+function useFitWindow(ref) {
+  const [n, setN] = useState(WINDOW);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof ResizeObserver === "undefined") return undefined;
+    const fit = () => {
+      const w = el.clientWidth || 0;
+      setN(w > 0 && w < 600 ? Math.max(10, Math.min(WINDOW, Math.floor(w / 28))) : WINDOW);
+    };
+    fit();
+    const ro = new ResizeObserver(fit);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [ref]);
+  return n;
+}
+
+// 2026-10-27 — operator: "CT graph ki theme same rakh, comment box full screen
+// pe; dashboard same rahega, bas 2 machine".  Each robot is drawn with the
+// Management CT graph's own Chart.js styling (green/red line against ideal,
+// green dots, CT labels, dashed ideal, 10-50 s, slot dividers, click anywhere in
+// a column) and a click hands the cycle to the dashboard's full-screen video +
+// comments modal through onCycleVideo.  Alarm rows (ct 0) are not plotted.
+const CLR_OK = "#22c55e", CLR_NG = "#ef4444";
+const _toMin = (t) => { const [h, m] = String(t || "0:0").split(":").map(Number); return (h || 0) * 60 + (m || 0); };
+const outY = (v) => v > Y_CAP || v < Y_MIN;
+const robotSeries = (vis, idealCT, dark) => ({
+  labels:    vis.map(c => c.cycle_seq),
+  ct:        vis.map(c => clampY(c.ct_value)),
+  ptBg:      vis.map(() => CLR_OK),
+  ptBorder:  vis.map(c => outY(c.ct_value) ? "#ffffff" : (dark ? "#060912" : "#ffffff")),
+  ptBorderW: vis.map(c => outY(c.ct_value) ? 2.5 : 1),
+  ideal:     vis.map(() => idealCT),
+});
+
+function RobotCtChartJs({ title, color, rows, ideal, dark, slots, ready, onCycleVideo, th }) {
+  const boxRef = useRef(null);
+  const canvasRef = useRef(null);
+  const instRef = useRef(null);
+  const win = useFitWindow(boxRef);
+  const [viewStart, setViewStart] = useState(null);
+  const all = useMemo(() => (rows || [])
+    .filter(r => Number(r.ct_seconds) > 0.1)
+    .map(r => ({ cycle_seq: r.cycle_seq, ct_value: Math.round(Number(r.ct_seconds) * 100) / 100,
+                 ts: r.ts_end, part_code: r.part_code, shift_name: r.shift_name }))
+    .sort((a, b) => Date.parse(a.ts) - Date.parse(b.ts)), [rows]);
+  const maxStart = Math.max(0, all.length - win);
+  const ws = viewStart !== null ? Math.min(viewStart, maxStart) : maxStart;
+  const vis = useMemo(() => all.slice(ws, ws + win), [all, ws, win]);
+  const visKey = vis.map(c => `${c.cycle_seq}:${c.ct_value}`).join(",");
+  const cbRef = useRef(onCycleVideo);
+  cbRef.current = onCycleVideo;
+  // 2026-11-03 — the management dashboard re-renders every second (its clock)
+  // and passes a new `slots` array each time.  With `slots` in the deps both
+  // robot charts were destroyed and rebuilt every second, and under the LAN
+  // panel zoom each new chart first drew at the zoomed size, so both graphs
+  // blinked (panel 30.20, YRA-SA-6WAY).  Now the chart is rebuilt only when
+  // the slot list, theme or ideal really change; new cycles update it in place.
+  const visRef = useRef(vis);
+  visRef.current = vis;
+  const slotsRef = useRef(slots);
+  slotsRef.current = slots;
+  const slotsKey = (slots || []).map(s => `${s.slot_label}|${s.start_time}|${s.end_time}`).join(";");
+  const idealCT = Number(ideal) || 15;
+  const hasData = vis.length > 0;
+
+  useEffect(() => {
+    const Chart = window.Chart;
+    const cv = canvasRef.current;
+    if (!Chart || !cv || !visRef.current.length) return undefined;
+    const D2 = dark;
+    const hourlySlotPlugin = {
+      id: "robotHourlySlots",
+      afterDraw(chart) {
+        const { ctx: c, scales } = chart;
+        const xScale = scales.x, yScale = scales.y;
+        const vis = visRef.current, slotList = slotsRef.current || [];
+        let prevLabel = null, slotStartX = xScale.left, slotLabel = "";
+        const put = (x, label, startX, divider) => {
+          c.save();
+          if (divider) {
+            c.strokeStyle = D2 ? "rgba(255,255,255,0.18)" : "rgba(0,0,0,0.12)";
+            c.lineWidth = 1.5; c.setLineDash([4, 3]);
+            c.beginPath(); c.moveTo(x, yScale.top + 18); c.lineTo(x, yScale.bottom); c.stroke();
+            c.setLineDash([]);
+          }
+          c.font = "800 9px 'Segoe UI',sans-serif";
+          c.fillStyle = D2 ? "rgba(150,180,220,0.85)" : "rgba(40,70,130,0.75)";
+          c.textAlign = "center";
+          c.fillText(label, (startX + x) / 2, yScale.top + 11);
+          c.restore();
+        };
+        vis.forEach((cy, i) => {
+          if (!cy.ts) return;
+          const x = xScale.getPixelForValue(i);
+          const dt = new Date(cy.ts);
+          const m = dt.getHours() * 60 + dt.getMinutes();
+          const sl = slotList.find(s => m >= _toMin(s.start_time) && m < _toMin(s.end_time));
+          const lbl = sl ? sl.slot_label : `${String(dt.getHours()).padStart(2, "0")}:00`;
+          if (prevLabel === null) { prevLabel = lbl; slotLabel = lbl; }
+          else if (lbl !== prevLabel) { put(x, slotLabel, slotStartX, true); slotStartX = x; slotLabel = lbl; prevLabel = lbl; }
+        });
+        if (prevLabel) put(xScale.right, slotLabel, slotStartX, false);
+      },
+    };
+    const cycleLabelsPlugin = {
+      id: "robotCycleLabels",
+      afterDatasetsDraw(chart) {
+        const { ctx: c } = chart;
+        const vis = visRef.current;
+        chart.getDatasetMeta(0).data.forEach((pt, i) => {
+          const cy = vis[i];
+          if (!cy) return;
+          c.save();
+          c.font = "500 8px 'Segoe UI',sans-serif";
+          c.fillStyle = D2 ? "rgba(100,200,130,0.7)" : "rgba(20,120,60,0.65)";
+          c.textAlign = "center"; c.textBaseline = "bottom";
+          c.fillText(cy.ct_value + "s", pt.x, pt.y - 4);
+          c.restore();
+        });
+      },
+    };
+    const seg = (s) => {
+      const vis = visRef.current;
+      const a = vis[s.p0DataIndex]?.ct_value, b = vis[s.p1DataIndex]?.ct_value;
+      if (a == null || b == null) return "transparent";
+      const aUp = a > idealCT, bUp = b > idealCT;
+      if (aUp && bUp) return `${CLR_NG}cc`;
+      if (!aUp && !bUp) return `${CLR_OK}cc`;
+      const c2 = cv.getContext("2d");
+      if (!c2 || s.p0.x === s.p1.x) return aUp ? `${CLR_NG}cc` : `${CLR_OK}cc`;
+      const ratio = Math.max(0.01, Math.min(0.99, Math.abs(a - idealCT) / Math.abs(a - b)));
+      const g = c2.createLinearGradient(s.p0.x, 0, s.p1.x, 0);
+      const [c0, c1] = aUp ? [CLR_NG, CLR_OK] : [CLR_OK, CLR_NG];
+      g.addColorStop(0, `${c0}cc`); g.addColorStop(Math.max(0, ratio - 0.01), `${c0}cc`);
+      g.addColorStop(Math.min(1, ratio + 0.01), `${c1}cc`); g.addColorStop(1, `${c1}cc`);
+      return g;
+    };
+    const pick = (evt, chart) => {
+      let idx = -1;
+      const els = chart.getElementsAtEventForMode(evt.native, "index", { intersect: false, axis: "x" }, false);
+      const hit = els && els.find ? els.find(e => e.datasetIndex === 0) : null;
+      if (hit) idx = hit.index;
+      else if (evt.native && chart.scales?.x) {
+        const rect = chart.canvas.getBoundingClientRect();
+        const px = evt.native.clientX != null ? evt.native.clientX - rect.left : (evt.native.offsetX || 0);
+        const v = chart.scales.x.getValueForPixel(px);
+        if (v != null) idx = Math.round(v);
+      }
+      const vis = visRef.current;
+      if (idx >= 0 && idx < vis.length && cbRef.current) cbRef.current(vis[idx]);
+    };
+    const sr = robotSeries(visRef.current, idealCT, D2);
+    if (instRef.current) { instRef.current.destroy(); instRef.current = null; }
+    instRef.current = new Chart(cv.getContext("2d"), {
+      type: "line",
+      data: {
+        labels: sr.labels,
+        datasets: [
+          { label: "Cycle Time", data: sr.ct,
+            borderWidth: 2, tension: 0, fill: false, spanGaps: false,
+            pointBackgroundColor: sr.ptBg,
+            pointBorderColor: sr.ptBorder,
+            pointBorderWidth: sr.ptBorderW,
+            pointRadius: 3, pointHoverRadius: 6, segment: { borderColor: seg } },
+          { type: "line", label: `Ideal ${idealCT}s`, data: sr.ideal, stepped: "middle",
+            borderColor: "rgba(251,191,36,0.7)", borderWidth: 1.5, borderDash: [5, 4],
+            pointRadius: 0, fill: false, tension: 0 },
+        ],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false, animation: false,
+        layout: { padding: { top: 30, bottom: 2 } },
+        interaction: { intersect: false, mode: "index", axis: "x" },
+        onClick: (evt, _els, chart) => pick(evt, chart),
+        onHover: (evt) => { if (evt?.native?.target) evt.native.target.style.cursor = "pointer"; },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: D2 ? "#0d1420" : "#fff",
+            titleColor: D2 ? "#e8edf5" : "#0f172a",
+            bodyColor: D2 ? "#8092af" : "#374151",
+            borderColor: D2 ? "#141e2e" : "#b8c8dc",
+            borderWidth: 1, padding: 10,
+            callbacks: {
+              title: items => `Cycle #${items[0].label}`,
+              label: c => {
+                if (c.datasetIndex === 1) return ` Ideal: ${idealCT}s`;
+                const cy = visRef.current[c.dataIndex];
+                if (!cy) return " —";
+                const t = cy.ts ? new Date(cy.ts).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "";
+                const clip = cy.ct_value > Y_CAP ? `  (>${Y_CAP}s clamped)` : cy.ct_value < Y_MIN ? `  (<${Y_MIN}s clamped)` : "";
+                const out = [` CT: ${cy.ct_value}s${clip}  ✓ OK`];
+                if (cy.part_code) out.push(` Part: ${cy.part_code}`);
+                if (t) out.push(` Time: ${t}`);
+                out.push(" 🎥 Click for video");
+                return out;
+              },
+            },
+          },
+        },
+        scales: {
+          y: { beginAtZero: false, min: Y_MIN, max: Y_CAP,
+               grid: { color: D2 ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.04)", drawBorder: false },
+               border: { display: false },
+               ticks: { color: D2 ? "#8092af" : "#374151", font: { size: 11 }, callback: v => `${Math.round(v)}s`, stepSize: 10 } },
+          x: { grid: { display: false }, border: { display: false }, ticks: { display: false } },
+        },
+      },
+      plugins: [hourlySlotPlugin, cycleLabelsPlugin],
+    });
+    // Same as the main CT graph (Fullscreen, 31-Oct): under CSS zoom a new
+    // chart sizes itself from the zoomed rect and its ResizeObserver corrects
+    // it ~100 ms later; give it the layout size straight away.
+    try {
+      const box = cv.parentElement;
+      if (Math.abs(box.getBoundingClientRect().width - box.offsetWidth) > 0.5
+          && box.clientWidth > 0 && box.clientHeight > 0) {
+        instRef.current.resize(box.clientWidth, box.clientHeight);
+      }
+    } catch (_) {}
+    return () => { if (instRef.current) { instRef.current.destroy(); instRef.current = null; } };
+  }, [hasData, dark, idealCT, slotsKey, ready]);   // eslint-disable-line
+
+  // New cycles: swap the data in place, no rebuild.
+  useEffect(() => {
+    const ch = instRef.current;
+    if (!ch) return;
+    const sr = robotSeries(visRef.current, idealCT, dark);
+    const [d0, d1] = ch.data.datasets;
+    ch.data.labels = sr.labels;
+    d0.data = sr.ct; d0.pointBackgroundColor = sr.ptBg;
+    d0.pointBorderColor = sr.ptBorder; d0.pointBorderWidth = sr.ptBorderW;
+    d1.data = sr.ideal;
+    ch.update("none");
+  }, [visKey]);   // eslint-disable-line
+
+  const last = all[all.length - 1];
+  return (
+    <div ref={boxRef} style={{ ...th.card, padding: "6px 8px 4px", height: "100%", display: "flex",
+                               flexDirection: "column", minWidth: 0, minHeight: 0, overflow: "hidden",
+                               boxSizing: "border-box" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6, marginBottom: 2 }}>
+        <span style={{ fontSize: 10, fontWeight: 900, color, letterSpacing: ".1em", textTransform: "uppercase",
+                       whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+          {title} · CT Graph · tap dot for video
+        </span>
+        <span style={{ fontSize: 10, color: th.textMut, fontFamily: "monospace", whiteSpace: "nowrap" }}>
+          {all.length ? `${all.length} cycles · last #${last?.cycle_seq} · ideal ${Number(ideal) || 15}s` : ""}
+        </span>
+      </div>
+      {/* 2026-10-27 — the canvas is absolute (as on the main CT graph): in flow
+          it fed its own height back into the card and grew several times taller
+          than the card, so only the 30-40 s band showed and the line looked
+          like it jumped (operator photo, 13:57). */}
+      <div style={{ flex: 1, position: "relative", minHeight: 0, overflow: "hidden" }}>
+        {all.length === 0
+          ? <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center",
+                          color: th.textMut, fontSize: 13 }}>Waiting for cycle data…</div>
+          : <canvas ref={canvasRef} style={{ position: "absolute", inset: 0, display: "block" }} />}
+      </div>
+      {all.length > win && (
+        <div style={{ padding: "4px 4px 0" }}>
+          <input type="range" min={0} max={maxStart} value={ws}
+                 onChange={(e) => setViewStart(Number(e.target.value))}
+                 style={{ width: "100%", cursor: "pointer", height: 3, display: "block", accentColor: CLR_OK }} />
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: th.textSub, marginTop: 2 }}>
+            <span>#{all[0]?.cycle_seq}</span>
+            <span style={{ color: th.textMut }}>
+              {ws + 1}–{Math.min(ws + win, all.length)} of {all.length}
+              {viewStart !== null && (
+                <button onClick={() => setViewStart(null)}
+                  style={{ marginLeft: 8, padding: "1px 6px", borderRadius: 4, border: `1px solid ${th.border}`,
+                           background: "transparent", color: th.textSub, cursor: "pointer", fontSize: 9 }}>latest ▶</button>
+              )}
+            </span>
+            <span>#{last?.cycle_seq}</span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function RobotChart({ title, color, data, ideal, picked, onPick, th, height = 330 }) {
   const [viewStart, setViewStart] = useState(null);
-  const maxStart = Math.max(0, data.length - WINDOW);
+  const boxRef = useRef(null);
+  const win = useFitWindow(boxRef);
+  const maxStart = Math.max(0, data.length - win);
   const ws = viewStart !== null ? Math.min(viewStart, maxStart) : maxStart;
-  const view = data.slice(ws, ws + WINDOW);
+  const view = data.slice(ws, ws + win);
   return (
-    <div style={{ ...th.card, padding: 12, height, display: "flex", flexDirection: "column", minWidth: 0, boxSizing: "border-box" }}>
+    <div ref={boxRef} style={{ ...th.card, padding: 12, height, display: "flex", flexDirection: "column", minWidth: 0, boxSizing: "border-box" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
         <div style={{ fontSize: 11, fontWeight: 900, color, letterSpacing: ".1em", textTransform: "uppercase" }}>
           {title} · Cycle time
@@ -88,12 +383,13 @@ function RobotChart({ title, color, data, ideal, picked, onPick, th, height = 33
               onClick={(e) => { const p = e?.activePayload?.[0]?.payload; if (p) onPick({ ...p, _ts: Date.now() }); }}>
               <CartesianGrid stroke={th.D ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.06)"} strokeDasharray="2 4" />
               <XAxis dataKey="x" tick={{ fill: th.textSub, fontSize: 10 }} />
-              <YAxis tick={{ fill: th.textSub, fontSize: 10 }} width={36} />
+              <YAxis tick={{ fill: th.textSub, fontSize: 10 }} width={36} domain={[Y_MIN, Y_CAP]}
+                     ticks={[10, 20, 30, 40, 50]} allowDataOverflow />
               <Tooltip content={<Tip ideal={ideal} th={th} />} />
               <ReferenceLine y={ideal} stroke={AMBER} strokeWidth={2} strokeDasharray="6 3" ifOverflow="extendDomain"
                              label={{ value: `Target ${ideal}s`, fill: AMBER, fontSize: 10, fontWeight: 800,
                                       position: "insideTopLeft", offset: 4 }} />
-              <Line type="monotone" dataKey="y" stroke={color} strokeWidth={2} isAnimationActive={false}
+              <Line type="monotone" dataKey="yc" stroke={color} strokeWidth={2} isAnimationActive={false}
                     dot={(p) => <Dot key={`${p.index}-${p.payload?.cycle_seq}`} {...p} ideal={ideal} th={th}
                                      picked={picked} onPick={onPick} />}>
                 <LabelList dataKey="y" content={({ x, y, value }) => (value == null || !isFinite(value)) ? null : (
@@ -105,7 +401,7 @@ function RobotChart({ title, color, data, ideal, picked, onPick, th, height = 33
           </ResponsiveContainer>
         </div>
       )}
-      {data.length > WINDOW && (
+      {data.length > win && (
         <div style={{ padding: "4px 4px 0" }}>
           <input type="range" min={0} max={maxStart} value={ws}
                  onChange={(e) => setViewStart(Number(e.target.value))}
@@ -113,7 +409,7 @@ function RobotChart({ title, color, data, ideal, picked, onPick, th, height = 33
           <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: th.textSub, marginTop: 2 }}>
             <span>#{data[0]?.no}</span>
             <span style={{ color: th.textMut }}>
-              {ws + 1}–{Math.min(ws + WINDOW, data.length)} of {data.length}
+              {ws + 1}–{Math.min(ws + win, data.length)} of {data.length}
               {viewStart !== null && (
                 <button onClick={() => setViewStart(null)}
                   style={{ marginLeft: 8, padding: "1px 6px", borderRadius: 4, border: `1px solid ${th.border}`,
@@ -199,56 +495,58 @@ function useMemberData(members, shift, token) {
 }
 
 // clicked cycle on one robot + the other robots' cycles closest in time
-function usePairs(pick, charts, members) {
-  return useMemo(() => {
-    if (!pick) return null;
-    const t0 = new Date(pick.point.ts_end).getTime();
-    return members.map((m, i) => {
-      if (i === pick.idx) return pick.point;
-      let best = null, bestD = Infinity;
-      for (const c of charts[i]) {
-        const d = Math.abs(new Date(c.ts_end).getTime() - t0);
-        if (d < bestD) { best = c; bestD = d; }
-      }
-      return best && bestD <= 10 * 60 * 1000 ? best : null;
-    });
-  }, [pick, charts, members]);
-}
 
 /** Management-dashboard chart card body for a line whose final is a combined
- *  machine: one CT chart per robot side by side, and a click on any cycle
- *  shows both robots' clips together over the charts. */
-export function CombinedRobotCharts({ members, shift, token, th }) {
+ *  machine: one CT chart per robot side by side.  A click on a cycle plays
+ *  THAT robot's clip only (27-Oct, operator), on its own side of the card. */
+export function CombinedRobotCharts({ members, shift, token, th, onCycleVideo, dark, slots, chartReady }) {
   const data = useMemberData(members, shift, token);
   const [pick, setPick] = useState(null);
   useEffect(() => { setPick(null); }, [shift]);
   const charts = useMemo(() => members.map(m => toChart(data[m.id]?.ct || [])), [members, data]);
-  const pairs = usePairs(pick, charts, members);
+  if (onCycleVideo) {
+    // Management dashboard: same CT-graph look + its own full-screen video modal
+    return (
+      <div style={{ position: "relative", width: "100%", height: "100%", display: "grid",
+                    gridTemplateColumns: `repeat(${members.length}, minmax(0, 1fr))`,
+                    gridTemplateRows: "minmax(0, 1fr)", gap: 8 }}>
+        {members.map((m, i) => (
+          <RobotCtChartJs key={m.id} title={`Robot ${i + 1}`} color={ROBOT_CLR[i % ROBOT_CLR.length]}
+                          rows={data[m.id]?.ct || []} ideal={Number(m.ideal_ct || 0)} dark={dark}
+                          slots={slots} ready={chartReady} th={th}
+                          onCycleVideo={(cy) => onCycleVideo(m, i, cy)} />
+        ))}
+      </div>
+    );
+  }
   return (
     <div style={{ position: "relative", width: "100%", height: "100%", display: "grid",
                   gridTemplateColumns: `repeat(${members.length}, minmax(0, 1fr))`, gap: 8 }}>
       {members.map((m, i) => (
         <RobotChart key={m.id} title={`Robot ${i + 1}`} color={ROBOT_CLR[i % ROBOT_CLR.length]}
                     data={charts[i]} ideal={Number(m.ideal_ct || 0)} th={th} height="100%"
-                    picked={pick && pick.idx === i ? pick.point : (pairs ? pairs[i] : null)}
+                    picked={pick && pick.idx === i ? pick.point : null}
                     onPick={(p) => setPick({ idx: i, point: p, _ts: Date.now() })} />
       ))}
-      {pairs && (
-        <div style={{ position: "absolute", inset: 0, zIndex: 5, ...th.card, padding: 10,
+      {pick && (
+        // covers only the clicked robot's chart, so the other robot stays
+        // visible and a click there switches the video to that robot
+        <div style={{ position: "absolute", top: 0, bottom: 0, zIndex: 5, ...th.card, padding: 10,
+                      left: `calc(${pick.idx} * (100% + 8px) / ${members.length})`,
+                      width: `calc((100% - ${(members.length - 1) * 8}px) / ${members.length})`,
                       display: "flex", flexDirection: "column", boxSizing: "border-box" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
             <div style={{ fontSize: 11, fontWeight: 900, color: th.textSub, letterSpacing: ".1em", textTransform: "uppercase" }}>
-              Cycle video · both robots
+              Cycle video · Robot {pick.idx + 1}
             </div>
             <button onClick={() => setPick(null)} title="Close"
               style={{ padding: "3px 8px", borderRadius: 6, border: `1px solid ${th.border}`,
                        background: th.bgDeep, color: th.text, cursor: "pointer", fontSize: 12 }}>✕</button>
           </div>
-          <div style={{ flex: 1, minHeight: 0, overflow: "auto", display: "grid",
-                        gridTemplateColumns: `repeat(${members.length}, minmax(0, 1fr))`, gap: 10 }}>
-            {members.map((m, i) => (
+          <div style={{ flex: 1, minHeight: 0, overflow: "auto" }}>
+            {members.map((m, i) => i !== pick.idx ? null : (
               <RobotVideo key={m.id} title={`Robot ${i + 1}`} color={ROBOT_CLR[i % ROBOT_CLR.length]}
-                          memberId={m.id} cycle={pairs[i]} ideal={Number(m.ideal_ct || 0)}
+                          memberId={m.id} cycle={pick.point} ideal={Number(m.ideal_ct || 0)}
                           token={token} stamp={pick._ts} th={th} />
             ))}
           </div>
@@ -263,7 +561,6 @@ export default function CombinedMachineView({ members, hourly, shift, ideal, tok
   const [pick, setPick] = useState(null);         // {idx, point, _ts}
   useEffect(() => { setPick(null); }, [shift]);
   const charts = useMemo(() => members.map(m => toChart(data[m.id]?.ct || [])), [members, data]);
-  const pairs = usePairs(pick, charts, members);
 
   const shiftBuckets = (hourly?.buckets || []).filter(b => !shift || b.shift_name === shift);
   const memberBuckets = members.map(m =>
@@ -308,27 +605,29 @@ export default function CombinedMachineView({ members, hourly, shift, ideal, tok
         {members.map((m, i) => (
           <RobotChart key={m.id} title={robotLabel(i)} color={ROBOT_CLR[i % ROBOT_CLR.length]}
                       data={charts[i]} ideal={Number(m.ideal_ct || ideal || 0)} th={th}
-                      picked={pick && pick.idx === i ? pick.point : (pairs ? pairs[i] : null)}
+                      picked={pick && pick.idx === i ? pick.point : null}
                       onPick={(p) => setPick({ idx: i, point: p, _ts: Date.now() })} />
         ))}
       </div>
 
-      {/* Both robots' clips side by side */}
-      {pairs && (
+      {/* The clicked robot's clip (only that robot, 27-Oct) */}
+      {pick && (
         <div style={{ ...th.card, padding: 12, marginBottom: 10 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
             <div style={{ fontSize: 11, fontWeight: 900, color: th.textSub, letterSpacing: ".1em", textTransform: "uppercase" }}>
-              Cycle video · both robots
+              Cycle video · Robot {pick.idx + 1}
             </div>
             <button onClick={() => setPick(null)} title="Close"
               style={{ padding: "3px 8px", borderRadius: 6, border: `1px solid ${th.border}`,
                        background: th.bgDeep, color: th.text, cursor: "pointer", fontSize: 12 }}>✕</button>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: `repeat(${members.length}, minmax(0, 1fr))`, gap: 12 }}>
-            {members.map((m, i) => (
-              <RobotVideo key={m.id} title={robotLabel(i)} color={ROBOT_CLR[i % ROBOT_CLR.length]}
-                          memberId={m.id} cycle={pairs[i]} ideal={Number(m.ideal_ct || ideal || 0)}
-                          token={token} stamp={pick._ts} th={th} />
+            {members.map((m, i) => i !== pick.idx ? null : (
+              <div key={m.id} style={{ gridColumn: i + 1, minWidth: 0 }}>
+                <RobotVideo title={robotLabel(i)} color={ROBOT_CLR[i % ROBOT_CLR.length]}
+                            memberId={m.id} cycle={pick.point} ideal={Number(m.ideal_ct || ideal || 0)}
+                            token={token} stamp={pick._ts} th={th} />
+              </div>
             ))}
           </div>
         </div>

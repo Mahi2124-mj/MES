@@ -66,6 +66,16 @@ _NG_OK_SUSPECT_LINES = {int(x) for x in
                         _os.getenv("NG_OK_SUSPECT_LINES", "15").split(",")
                         if x.strip()}
 NG_OK_SUSPECT_HOLD_S = 10.0
+# 2026-10-30 — RECONNECT NG guard (operator: "ab aise false alarm nahi dikhne
+# chahiye hourly slot me").  On 30-Oct two plant network drops (~150 s each,
+# 10:20 and 13:13) left 8 lines with the same thing: the first read after the
+# PLC came back showed D102 +1, never a real reject (YRA-SS twice, Y17, YCA x2,
+# YFG, YMC-SS, YMC-REC x2, YNC x2, YSD).  So a +1..+ng_sane_step NG step seen
+# within RECONNECT_NG_WINDOW_S of the first good read after a gap of at least
+# RECONNECT_NG_GAP_S is NOT an alarm: no NG event (hourly slot, ct_log, popup)
+# and ng_count leaves it out via _ng_suppressed (reset when D102 resets).
+RECONNECT_NG_GAP_S    = float(_os.getenv("RECONNECT_NG_GAP_S", "30") or 30)
+RECONNECT_NG_WINDOW_S = float(_os.getenv("RECONNECT_NG_WINDOW_S", "8") or 8)
 
 # 2026-10-09 — TRIAL CYCLES at shift start (YCA-SS first, operator-scoped).
 # The Final Inspection PLC is reset several times in the first minutes of a
@@ -3342,6 +3352,37 @@ class CollectorEngine:
         except Exception:
             return False
 
+    def _arm_carry_trial_move(self, reg, last, now_val) -> None:
+        """Rows counted on the STALE register before a late start-of-shift reset.
+
+        2026-10-31 — Y17-SS hourly sheet 3-4 parts above the dashboard.  The
+        shift starts with the previous run's count carried over (B 30-Oct: 3,
+        A 31-Oct: 12) until the L110 reset lands, minutes later.  Just before
+        it, a desynced frame read D101 = 16 (the known junk value); after the
+        long GAP "blind" REG-MULTI took it as a catch-up and logged rows
+        carry+1..16 at the ideal CT and into the hourly bucket, then the reset
+        dropped 16 -> 0 and the PLC's shift count started from there.  Those
+        rows are not this shift's parts: move rows (carry, last] like a
+        RESNAP-wiped trial run (same lines, same first-30-min window), which
+        also takes them out of the hourly bucket.  No carry, no climb above
+        it, or outside the window -> nothing is armed."""
+        carry = getattr(self, "_shift_carry", None)
+        try:
+            last, carried = int(last), int(carry[1]) if carry else 0
+        except (TypeError, ValueError):
+            return
+        if not (carry and carry[0] == self._shift_id and last > carried
+                and self._resnap_in_shift_start()
+                and (_TRIAL_RESET_ALL
+                     or int(self.cfg.get("line_id") or 0) in _TRIAL_RESET_LINES)):
+            return
+        self._trial_move_peak = last
+        self._trial_move_live = carried
+        self._trial_move_at = datetime.now()
+        print(f"[TRIAL-MOVE] armed: {reg} reset {last}->{now_val} landed after the "
+              f"shift began with {carried} carried over -- rows {carried + 1}..{last} "
+              f"were counted on the stale register", flush=True)
+
     def _allow_zero_after_seed(self, reg, last=None):
         """A validated reset right after a start-of-shift seed in the SAME
         shift: the row's count came only from the carried-over seed, so the
@@ -3764,6 +3805,30 @@ class CollectorEngine:
             self._safe_rollback()
             print(f"[FINAL-FROM-SUBS] backfill skipped: {str(e)[:120]}", flush=True)
 
+    def _ng_mirror(self, reg_value: int) -> int:
+        """ng_shift from the NG register, minus NGs left out by the reconnect
+        guard.  A register below the left-out count has been reset (new shift,
+        PLC reset), so the offset goes with it."""
+        sup = int(getattr(self, "_ng_suppressed", 0) or 0)
+        if reg_value < sup:
+            self._ng_suppressed = sup = 0
+        return max(0, int(reg_value) - sup)
+
+    def _ng_reconnect_skip(self, reg, last, now_val, delta, data) -> None:
+        """An NG step read right after the PLC came back from a comms gap:
+        not an alarm (see RECONNECT_NG_GAP_S).  The register is followed so
+        the next real reject counts normally."""
+        self._ng_suppressed = int(getattr(self, "_ng_suppressed", 0) or 0) + int(delta)
+        self._last_ng_reg_value = now_val
+        self.ng_shift = self._ng_mirror(now_val)
+        self._ng_jump_cand = None
+        data["ng_bit"] = 0
+        gap = time.time() - float(getattr(self, "_plc_ok_ts", 0.0) or 0.0)
+        print(f"[NG-RECONNECT-SKIP] {reg} {last}->{now_val} (+{delta}) read right after a "
+              f"PLC comms gap ({gap:.0f}s since the last good read) -- not counted as an "
+              f"alarm; ng_count={self.ng_shift} (left out this shift: "
+              f"{self._ng_suppressed})", flush=True)
+
     def _read_plc(self) -> dict:
         """Resilient PLC read.
 
@@ -4052,6 +4117,7 @@ class CollectorEngine:
                                   f"{_last}->{_now_val} (L110 reset in "
                                   f"progress) -- ok_shift mirrors down",
                                   flush=True)
+                            self._arm_carry_trial_move(_ok_reg, _last, _now_val)
                             self._allow_zero_after_seed(_ok_reg, _last)
                             data["ok_bit"] = 0
                             self._ok_pending_high = None
@@ -4273,8 +4339,19 @@ class CollectorEngine:
                     # times it is a genuine new baseline -> synced, so a real change
                     # can never be held forever (the old drop-hold latch bug).
                     _NG_SANE = int(self.cfg.get("ng_sane_step") or 3)
+                    _t_ng = time.time()
+                    _prev_ok = getattr(self, "_plc_ok_ts", None)
+                    _reconnect_ng = bool(
+                        (_prev_ok is not None and _t_ng - _prev_ok >= RECONNECT_NG_GAP_S)
+                        or (_t_ng - float(getattr(self, "_reconnect_at", 0.0) or 0.0)
+                            <= RECONNECT_NG_WINDOW_S))
                     if _last is None:
-                        self.ng_shift = _now_val
+                        # Restart: keep an NG left out before the restart left
+                        # out (the DB row holds ng_count without it).
+                        _db_ng = int(self.ng_shift or 0)
+                        if 0 < _now_val - _db_ng <= _NG_SANE and _db_ng > 0:
+                            self._ng_suppressed = _now_val - _db_ng
+                        self.ng_shift = self._ng_mirror(_now_val)
                         self._last_ng_reg_value = _now_val
                         data["ng_bit"] = 0
                     elif self.cfg.get("line_id") in _NG_STRICT_LINES:
@@ -4300,6 +4377,8 @@ class CollectorEngine:
                         if _delta == 0:
                             data["ng_bit"] = 0
                             self._ng_jump_cand = None
+                        elif 0 < _delta <= _NG_SANE and _reconnect_ng:
+                            self._ng_reconnect_skip(_ng_reg, _last, _now_val, _delta, data)
                         elif (0 < _delta <= _NG_SANE
                               and self.cfg.get("line_id") in _NG_OK_SUSPECT_LINES
                               and (time.time() - getattr(self, "_ok_suspect_ts", 0.0))
@@ -4320,7 +4399,7 @@ class CollectorEngine:
                         elif 0 < _delta <= _NG_SANE:
                             data["ng_delta"] = _delta
                             data["ng_bit"]   = 1
-                            self.ng_shift = _now_val
+                            self.ng_shift = self._ng_mirror(_now_val)
                             self._last_ng_reg_value = _now_val
                             self._ng_jump_cand = None
                         elif _delta > _NG_SANE:
@@ -4340,7 +4419,7 @@ class CollectorEngine:
                                          if (_cand and _cand[0] == _now_val) else 1)
                                 self._ng_jump_cand = _cand
                                 if _cand[1] >= int(self.cfg.get("ng_confirm_polls") or 5):
-                                    self.ng_shift = _now_val
+                                    self.ng_shift = self._ng_mirror(_now_val)
                                     self._last_ng_reg_value = _now_val
                                     self._ng_jump_cand = None
                             else:
@@ -4348,13 +4427,15 @@ class CollectorEngine:
                                 self._note_reg_noise(_ng_reg, _now_val, _delta)
                     elif _now_val <= _last:
                         data["ng_bit"] = 0
-                        self.ng_shift = _now_val
+                        self.ng_shift = self._ng_mirror(_now_val)
                         self._last_ng_reg_value = _now_val
                         self._ng_jump_cand = None
+                    elif (_now_val - _last) <= _NG_SANE and _reconnect_ng:
+                        self._ng_reconnect_skip(_ng_reg, _last, _now_val, _now_val - _last, data)
                     elif (_now_val - _last) <= _NG_SANE:
                         data["ng_delta"] = _now_val - _last
                         data["ng_bit"]   = 1
-                        self.ng_shift = _now_val
+                        self.ng_shift = self._ng_mirror(_now_val)
                         self._last_ng_reg_value = _now_val
                         self._ng_jump_cand = None
                     else:
@@ -4363,7 +4444,7 @@ class CollectorEngine:
                         self._ng_jump_cand = _cand
                         data["ng_bit"] = 0
                         if _cand[1] >= int(self.cfg.get("ng_confirm_polls") or 5):
-                            self.ng_shift = _now_val
+                            self.ng_shift = self._ng_mirror(_now_val)
                             self._last_ng_reg_value = _now_val
                             self._ng_jump_cand = None
                         else:
@@ -4448,6 +4529,30 @@ class CollectorEngine:
         else:
             self._plc_fail_streak = 0
             self._plc_ok = True
+
+        # 2026-10-24 — blind-time tracker for REG-MULTI catch-up rows.  A poll
+        # "sees" the line when a read got through and the OK register was not
+        # returning rejected junk.  The longest unseen stretch since the last
+        # logged row tells REG-MULTI whether a multi-part jump was watched
+        # (real cadence, e.g. LPS-3's routine 2 parts per poll) or is a
+        # catch-up after the collector could not read the PLC (24-Oct: plant
+        # LAN disconnected 09:05-09:13, YRA-SS got 25 rows at 19.64 s).
+        if any_succeeded:
+            # 2026-10-30 — RECONNECT NG guard: when did a read last get through
+            # at all (junk or not).  A gap >= RECONNECT_NG_GAP_S marks the next
+            # RECONNECT_NG_WINDOW_S as "just reconnected".
+            _t_ok = time.time()
+            _p_ok = getattr(self, "_plc_ok_ts", None)
+            if _p_ok is not None and _t_ok - _p_ok >= RECONNECT_NG_GAP_S:
+                self._reconnect_at = _t_ok
+            self._plc_ok_ts = _t_ok
+        if any_succeeded and int(getattr(self, "_ok_drop_garbage_streak", 0)) == 0:
+            _t_seen = time.time()
+            _prev_seen = getattr(self, "_main_seen_ts", None)
+            if _prev_seen is not None and _t_seen - _prev_seen > getattr(
+                    self, "_blind_max_since_row", 0.0):
+                self._blind_max_since_row = _t_seen - _prev_seen
+            self._main_seen_ts = _t_seen
 
         # ════════════════════════════════════════════════════════════
         # 2026-06-01 — DESYNCED-SESSION AUTO-HEAL  (FI main line only)
@@ -6033,12 +6138,29 @@ class CollectorEngine:
                           flush=True)
                     _delta_rows = _ROWCAP
                 _ct_per = (float(_ct or 0.0) / _delta_rows) if _delta_rows > 1 else float(_ct or 0.0)
+                # 2026-10-24 — catch-up rows are recorded AT the ideal CT, the
+                # same rule REG-BACKFILL follows since 5-Oct.  When the jump
+                # follows a stretch the collector could not see the PLC
+                # (outage / reconnect), the per-part time is unknown and
+                # gap / parts painted every row red.  _ct_per still spreads
+                # the rows over the real gap; only the recorded CT changes.
+                # A watched multi-part poll keeps its real gap / parts.
+                _blind = float(getattr(self, "_blind_max_since_row", 0.0) or 0.0)
+                self._blind_max_since_row = 0.0
+                _catchup_ct = 0.0
+                if _delta_rows > 1:
+                    try:
+                        _ideal_now = float(self._eff_ideal_ct() or 0.0)
+                    except Exception:
+                        _ideal_now = float(self.cfg.get("ideal_ct") or 0.0)
+                    if _ideal_now > 0 and _blind >= max(_ideal_now, 10.0):
+                        _catchup_ct = _ideal_now
                 for _i in range(_delta_rows):
                     # Backdate row i so the i=last row lands at _now_dt
                     # and earlier rows step back by _ct_per each.
                     if _delta_rows > 1:
                         _row_ts = _now_dt - timedelta(seconds=_ct_per * (_delta_rows - 1 - _i))
-                        _row_ct = _ct_per
+                        _row_ct = _catchup_ct or _ct_per
                     else:
                         _row_ts = _now_dt
                         _row_ct = _ct
@@ -6073,7 +6195,10 @@ class CollectorEngine:
                 if _delta_rows > 1:
                     print(f"[REG-MULTI] expanded delta={_delta_rows} "
                           f"into {_delta_rows} separate rows "
-                          f"(ct_per={_ct_per:.2f}s)", flush=True)
+                          f"(ct_per={_ct_per:.2f}s"
+                          + (f", catch-up after {_blind:.0f}s blind -> "
+                             f"recorded at ideal {_catchup_ct:.2f}s"
+                             if _catchup_ct else "") + ")", flush=True)
                 self._raw_ok_already_logged_this_press = True
                 # 2026-08-22 — operator: the PY desired-vs-live compare must
                 # run when a CYCLE COMPLETES, not on a free-running timer.
@@ -10383,6 +10508,8 @@ class CollectorEngine:
         is_alive            = False     # last known healthy state
         offline_since       = None      # ts when we first noticed dead
         last_retry_log_ts   = 0.0       # throttle for failure spam
+        blind_since_row     = 0.0       # longest outage since the last OK row
+                                        # (2026-10-24, catch-up rows at ideal)
 
         def _mark_offline(reason: str):
             nonlocal is_alive, offline_since, last_retry_log_ts
@@ -10409,9 +10536,11 @@ class CollectorEngine:
                 pass
 
         def _mark_online():
-            nonlocal is_alive, offline_since
+            nonlocal is_alive, offline_since, blind_since_row
             if not is_alive:
                 _down = (time.time() - offline_since) if offline_since else 0
+                if _down > blind_since_row:
+                    blind_since_row = _down
                 if offline_since is not None:
                     print(f"{tag} *** RECONNECTED *** after {_down:.0f}s "
                           f"offline (Type3E)", flush=True)
@@ -11113,6 +11242,23 @@ class CollectorEngine:
                             # count is unaffected; only stored CT is corrected.
                             _ct_tot = self._ct_clock_guard(_ct_tot, tag=tag)
                             _ct_per = (_ct_tot / _delta) if _delta > 1 else _ct_tot
+                            # 2026-10-24 — a jump that follows an outage is a
+                            # catch-up: record it at the sub's ideal CT (the
+                            # REG-BACKFILL rule) instead of gap / parts, which
+                            # painted every row red.  Spread stays _ct_per.
+                            _blind_s, blind_since_row = blind_since_row, 0.0
+                            _row_ct = _ct_per
+                            try:
+                                _s_ideal = float(sub.get("ideal_ct") or 0.0)
+                            except Exception:
+                                _s_ideal = 0.0
+                            if (_delta > 1 and _s_ideal > 0
+                                    and _blind_s >= max(_s_ideal, 10.0)):
+                                _row_ct = _s_ideal
+                                print(f"{tag} [REG-MULTI] +{_delta} catch-up after "
+                                      f"{_blind_s:.0f}s offline -> recorded at ideal "
+                                      f"{_s_ideal:.1f}s (gap/parts {_ct_per:.1f}s)",
+                                      flush=True)
                             _ok_pc  = (self._cur_part_code or "").strip().rstrip(":") or None
                             _wrote  = 0
                             for _i in range(_delta):
@@ -11139,7 +11285,7 @@ class CollectorEngine:
                                             (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,NULL)
                                     """, (
                                         sub_id, line_id, today, _shift_r, _cand,
-                                        _row_start, _row_end, round(_ct_per, 3),
+                                        _row_start, _row_end, round(_row_ct, 3),
                                         self._cur_model, self._cur_model_name,
                                     ))
                                     c2.commit(); cur2.close(); c2.close()
@@ -11151,7 +11297,7 @@ class CollectorEngine:
                                             bit_type    = "OK",
                                             bit_address = sub_ok_reg,
                                             ts          = _row_end,
-                                            ct_seconds  = _ct_per,
+                                            ct_seconds  = _row_ct,
                                             part_code   = _ok_pc,
                                             counter_val_override = _cand,
                                         )

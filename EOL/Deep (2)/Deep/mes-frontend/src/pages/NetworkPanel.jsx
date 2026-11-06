@@ -16,6 +16,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { api } from "../api/client";
 import { useAuth } from "../context/AuthContext";
+import PageTopbar from "../components/PageTopbar";
 
 const POE_BUDGET = 193;
 
@@ -72,7 +73,7 @@ const CSS = `
 .nw-pill{font-size:10px;font-weight:800;padding:3px 9px;border-radius:999px;display:inline-flex;align-items:center;gap:5px;letter-spacing:.03em}
 `;
 
-export default function NetworkPanel({ mode = "view" }) {
+export default function NetworkPanel({ mode = "view", standalone = false }) {
   const { token } = useAuth();
   const editable = mode === "edit";
   const [view, setView] = useState("floor");
@@ -137,8 +138,11 @@ export default function NetworkPanel({ mode = "view" }) {
   return (
     <div className="nw-root">
       <style>{CSS}</style>
+      {/* 2026-11-05 — the /network page gets the shared page bar (same format as
+          the other pages); inside the Admin Panel tab the shell has its own. */}
+      {standalone && <div style={{ marginBottom: 14 }}><PageTopbar leading="Network" accent="Monitor" /></div>}
       <div style={{ textAlign: "center", marginBottom: 18 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12 }}>
+        <div style={{ display: standalone ? "none" : "flex", alignItems: "center", justifyContent: "center", gap: 12 }}>
           <div style={{ width: 40, height: 40, borderRadius: 11, background: "linear-gradient(135deg,#1d4ed8,#3b82f6)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, boxShadow: "0 4px 16px rgba(59,130,246,.45)" }}>🖧</div>
           <div style={{ fontSize: 24, fontWeight: 800, color: "#f8fafc", lineHeight: 1.1 }}>{editable ? "Network Builder" : "Network Monitor"}</div>
         </div>

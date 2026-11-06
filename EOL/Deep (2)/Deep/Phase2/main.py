@@ -83,6 +83,7 @@ from routers.pm               import router as pm_router
 from routers.pm_mail          import mail_router as pm_mail_router
 from routers.weld             import weld_router, weld_test_worker
 from routers.clip_priority    import router as clip_priority_router   # 48 h plan decisions (Admin)
+from routers.standard_data    import router as standard_data_router   # Admin → Standard Data (Track Record)
 from routers.cms_control      import router as cms_control_router
 from routers.network          import router as network_router, start_network_poller
 from routers.machine_master   import router as machine_master_router, start_machine_master_poller
@@ -94,12 +95,14 @@ from routers.binfilling       import router as binfilling_router
 from routers.comments_export  import router as comments_export_router
 from routers.faults           import router as faults_router
 from routers.logs           import router as logs_router
+from routers.db_structure    import db_router                         # 2026-10-29 Admin → DB Structure (read-only tree + live)
 from routers.video_coverage import router as video_coverage_router
 from routers.py_bypass import router as py_bypass_router
 from routers.working_calendar import router as working_calendar_router  # 2026-10-08 Annual Calendar (D-QMP import + MES edits)
 from routers.plant_overview import router as plant_overview_router      # 2026-10-08 Plant Overview (HOD / Plant Head, read-only)
 from routers.agents import router as agents_router                      # 2026-10-09 Admin → Agents (on/off + live report)
 from routers.live_read import router as live_read_router                # 2026-10-09 machine 'Read live' via the collector
+from routers.machine_map import router as machine_map_router            # 2026-10-29 Machine Map: MES vs Maintenance names/numbers (read-only)
 from routers.pm_status        import pm_status_router
 
 # ── App ────────────────────────────────────────────────────────
@@ -213,6 +216,7 @@ app.include_router(pm_router)                   # preventive maintenance check s
 app.include_router(pm_mail_router)              # PM reminder mail (server-side)
 app.include_router(weld_router)                 # Weld Monitor (Quality) — live weld current/voltage
 app.include_router(clip_priority_router)        # Admin → Clip Priority (48 h footage plan)
+app.include_router(standard_data_router)        # Admin → Standard Data (per-line Track Record values)
 app.include_router(cms_control_router)          # MES → CMS per-line Video ON/OFF proxy (loopback)
 app.include_router(network_router)              # Switch-network monitor (SNMP poller)
 app.include_router(machine_master_router)       # Machine Master (DB) + live IP/camera ping status
@@ -225,12 +229,14 @@ app.include_router(comments_export_router)       # Comments History → real .xl
 app.include_router(faults_router)               # Fault Config: per-machine fault list (bit/register), zone/line/machine wise
 app.include_router(pm_status_router)            # Per-line PM due/overdue status from the maintenance yearly plan (read-only)
 app.include_router(logs_router)                  # Log Viewer: filtered tail of every log, by text / level / HTTP code
+app.include_router(db_router)                     # DB Structure: read-only tree (groups→tables→columns) + live rows/activity
 app.include_router(video_coverage_router)        # Video Coverage: clip per cycle + reason, read-only Video Agent
 app.include_router(py_bypass_router)             # PY bypass: mail approve/reject, auto deviation, machine bit
 app.include_router(working_calendar_router)      # Annual Calendar: FY working days from D-QMP + MES day edits (PEFF, Plant Overview)
 app.include_router(plant_overview_router)        # Plant Overview: today live + last working day, read-only
 app.include_router(agents_router)                # Agents: password-guarded on/off + who is doing what
 app.include_router(live_read_router)             # Read live: queue -> collector reads on its own PLC session
+app.include_router(machine_map_router)           # Machine Map: one row per machine, MES next to Maintenance (read-only)
 
 
 # ══════════════════════════════════════════════════════════════════════

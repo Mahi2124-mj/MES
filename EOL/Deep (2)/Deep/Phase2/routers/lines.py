@@ -1914,7 +1914,9 @@ def get_cycle_video(
         if _robot:
             from routers.submachines import cycle_video as _robot_clip
             return _robot_clip(sub_id=_robot["sub_plc_id"], cycle_seq=_robot["cycle_seq"],
-                               ng=int(_robot["is_ng"]), token=token, request=request)
+                               ng=int(_robot["is_ng"]), token=token, request=request,
+                               date_str=str(hit["record_date"]) if hit and hit.get("record_date") else None,
+                               shift=None)
         # Use the row's OWN record_date from here on (archive lookup + clip
         # naming): across midnight it is the shift's date, not today's.
         if hit and hit.get("record_date"):
@@ -4345,6 +4347,24 @@ def _hourly_loss_core(cur, line_id: int, target_date: str, shift: str) -> dict:
             } for s in slots
         ], "totals": { f"loss_{k}": 0 for k in LOSS_KEYS } | {"total_loss": 0}}
 
+    # 2026-10-25 — a shift that starts in the afternoon/evening (B, 18:30-03:15)
+    # runs past midnight: its slots that start before noon (00:05-03:15, and an
+    # OT slot after the shift) belong to the NEXT day.  Dated on record_date
+    # they looked finished at 18:30 with 0 parts, so the card showed their whole
+    # plan as speed loss (3:00:00) and OEE 0 % until midnight.
+    _night_shift = False
+    try:
+        cur.execute("SELECT start_time FROM mes_shift_configs "
+                    "WHERE line_id = %s AND shift_name = %s", (line_id, shift))
+        _shr = cur.fetchone()
+        _sst = (_shr.get("start_time") if isinstance(_shr, dict)
+                else (_shr[0] if _shr else None))
+        if isinstance(_sst, str):
+            _sst = _dt.strptime(_sst[:8], "%H:%M:%S").time()
+        _night_shift = _sst is not None and _sst.hour >= 12
+    except Exception:
+        _night_shift = False
+
     # Helper: convert HH:MM:SS time + base date → datetime, handling
     # cross-midnight slots by adding 1 day to end if needed.
     def _slot_window(slot, base_date):
@@ -4352,6 +4372,8 @@ def _hourly_loss_core(cur, line_id: int, target_date: str, shift: str) -> dict:
         st = slot["start_time"]; en = slot["end_time"]
         if isinstance(st, str): st = _dt.strptime(st, "%H:%M:%S").time()
         if isinstance(en, str): en = _dt.strptime(en, "%H:%M:%S").time()
+        if _night_shift and st.hour < 12:
+            base += timedelta(days=1)
         slot_start = base + timedelta(hours=st.hour, minutes=st.minute, seconds=st.second)
         slot_end   = base + timedelta(hours=en.hour, minutes=en.minute, seconds=en.second)
         if slot["crosses_midnight"] or slot_end <= slot_start:

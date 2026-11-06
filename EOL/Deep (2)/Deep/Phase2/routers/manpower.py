@@ -6,7 +6,7 @@ Skill-based manpower planning + daily allocation + alert engine.
 End-to-end:
   1. Section Incharge defines processes per line (with required skill
      level + manpower count) — Admin → Processes UI.
-  2. Admin assigns skill_level (1-5) to each operator — already in
+  2. Admin assigns skill_level (0=OJT, 1-4) to each operator — already in
      mes_operators (extended below).
   3. At shift start, operators badge-punch (existing widget) → row
      lands in mes_operator_punches.
@@ -55,6 +55,15 @@ from database import get_conn, dict_cursor
 from auth import require_admin, get_current_user
 from ddl_once import once
 
+
+def _skill_tag(n) -> str:
+    """Operator skill label: 0 = OJT (below L1, added 30-Oct), else L1..L4."""
+    try:
+        n = int(n)
+    except (TypeError, ValueError):
+        return "—"
+    return "OJT" if n == 0 else f"L{n}"
+
 router = APIRouter(prefix="/api/manpower", tags=["manpower"])
 
 
@@ -93,7 +102,7 @@ def _ensure_tables() -> None:
                 line_id                  INTEGER NOT NULL,
                 machine_id               INTEGER,
                 process_name             VARCHAR(120) NOT NULL,
-                required_skill_level     INTEGER NOT NULL DEFAULT 3 CHECK (required_skill_level BETWEEN 1 AND 5),
+                required_skill_level     INTEGER NOT NULL DEFAULT 3 CHECK (required_skill_level BETWEEN 1 AND 4),
                 required_manpower_count  INTEGER NOT NULL DEFAULT 1 CHECK (required_manpower_count >= 1),
                 machines_covered         INTEGER NOT NULL DEFAULT 1,
                 display_order            INTEGER NOT NULL DEFAULT 0,
@@ -119,7 +128,7 @@ def _ensure_tables() -> None:
         cur.execute("""
             ALTER TABLE mes_operators
                 ADD COLUMN IF NOT EXISTS skill_level INTEGER NOT NULL DEFAULT 1
-                CHECK (skill_level BETWEEN 1 AND 5)
+                CHECK (skill_level BETWEEN 0 AND 4)
         """)
         # 3) Daily punches (badge scan-in)
         cur.execute("""
@@ -535,7 +544,7 @@ def update_process(process_id: int, body: ProcessUpdate, admin=Depends(require_a
                 is_active               = %s,
                 updated_at              = NOW()
             WHERE id = %s
-        """, (body.required_skill_level, body.required_manpower_count,
+        """, (max(1, min(4, body.required_skill_level)), body.required_manpower_count,
               body.machines_covered, body.display_order, body.is_active,
               process_id))
         conn.commit()
@@ -755,6 +764,77 @@ def _shift_leader_id(line_id: int, d, shift_name: str):
         return "lookup-failed"             # never turn a DB hiccup into a block
 
 
+# 2026-10-30 — operator: "agar galti se wrong operator assign ho jaaye aur data
+# save ho jaaye uske baad single time edit ka option … sirf ek baar hi edit ho
+# barbar nahi".  One row per (line, date, shift) counts the saves that CHANGED
+# the crew: save 1 = the allocation, save 2 = the one correction, then locked.
+# admin / plant_head may still correct after that (logged like any save).
+ALLOC_MAX_SAVES = 2
+_EDIT_TABLE_READY = False
+
+
+def _ensure_edit_table(cur) -> None:
+    global _EDIT_TABLE_READY
+    if _EDIT_TABLE_READY:
+        return
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS mes_manpower_alloc_edits (
+            line_id        INTEGER     NOT NULL,
+            shift_date     DATE        NOT NULL,
+            shift_name     VARCHAR(16) NOT NULL,
+            saves          INTEGER     NOT NULL DEFAULT 0,
+            first_saved_at TIMESTAMPTZ,
+            first_saved_by TEXT,
+            edited_at      TIMESTAMPTZ,
+            edited_by      TEXT,
+            PRIMARY KEY (line_id, shift_date, shift_name))""")
+    _EDIT_TABLE_READY = True
+
+
+def _is_admin(user) -> bool:
+    return isinstance(user, dict) and user.get("role") in ("admin", "plant_head")
+
+
+@router.get("/allocations/edit-status")
+def allocation_edit_status(line_id: int = Query(...),
+                           date: str   = Query(...),
+                           shift: str  = Query(...),
+                           user=Depends(get_current_user)):
+    """How many crew-changing saves this shift has had, and whether one more is
+    allowed.  A shift saved before this rule existed (no row, but active
+    allocations) counts as saved once, so it still gets its one correction."""
+    try:
+        d = datetime.strptime(date, "%Y-%m-%d").date()
+    except ValueError:
+        raise HTTPException(400, "date must be YYYY-MM-DD")
+    with get_conn() as conn:
+        cur = dict_cursor(conn)
+        _ensure_edit_table(cur)
+        cur.execute("""SELECT saves, first_saved_at, first_saved_by, edited_at, edited_by
+                         FROM mes_manpower_alloc_edits
+                        WHERE line_id=%s AND shift_date=%s AND shift_name=%s""",
+                    (line_id, d, shift))
+        row = cur.fetchone()
+        if row is None:
+            cur.execute("""SELECT 1 FROM mes_manpower_allocations
+                            WHERE line_id=%s AND shift_date=%s AND shift_name=%s
+                              AND removed_at IS NULL LIMIT 1""", (line_id, d, shift))
+            row = {"saves": 1 if cur.fetchone() else 0, "first_saved_at": None,
+                   "first_saved_by": None, "edited_at": None, "edited_by": None}
+        conn.commit()
+    saves = int(row["saves"] or 0)
+    return {
+        "saves":          saves,
+        "edits_left":     max(0, ALLOC_MAX_SAVES - saves) if saves else None,
+        "locked":         saves >= ALLOC_MAX_SAVES,
+        "admin_override": _is_admin(user),
+        "first_saved_at": row["first_saved_at"].isoformat() if row["first_saved_at"] else None,
+        "first_saved_by": row["first_saved_by"],
+        "edited_at":      row["edited_at"].isoformat() if row["edited_at"] else None,
+        "edited_by":      row["edited_by"],
+    }
+
+
 @router.post("/allocations")
 def save_allocations(body: AllocSaveBody,
                       user=Depends(get_current_user)):
@@ -812,6 +892,35 @@ def save_allocations(body: AllocSaveBody,
 
         # 1) Close removed rows
         to_close = [aid for k, aid in active.items() if k not in new_set]
+
+        # 2026-10-30 — one correction after the first save, then locked.  Only
+        # a save that changes the crew counts; the row lock serialises two
+        # people saving the same shift at once.
+        if to_close or (new_set - set(active.keys())):
+            _ensure_edit_table(cur)
+            cur.execute("""INSERT INTO mes_manpower_alloc_edits
+                               (line_id, shift_date, shift_name, saves)
+                           VALUES (%s, %s, %s, %s)
+                           ON CONFLICT DO NOTHING""",
+                        (body.line_id, d, body.shift_name, 1 if active else 0))
+            cur.execute("""SELECT saves FROM mes_manpower_alloc_edits
+                            WHERE line_id=%s AND shift_date=%s AND shift_name=%s
+                              FOR UPDATE""", (body.line_id, d, body.shift_name))
+            saves_before = int(cur.fetchone()["saves"] or 0)
+            if saves_before >= ALLOC_MAX_SAVES and not _is_admin(user):
+                raise HTTPException(
+                    423, "This shift's allocation was already corrected once and is "
+                         "locked. Ask an admin if it must change again.")
+            cur.execute("""UPDATE mes_manpower_alloc_edits
+                              SET saves = saves + 1,
+                                  first_saved_at = CASE WHEN %s = 0 THEN NOW() ELSE first_saved_at END,
+                                  first_saved_by = CASE WHEN %s = 0 THEN %s ELSE first_saved_by END,
+                                  edited_at = CASE WHEN %s >= 1 THEN NOW() ELSE edited_at END,
+                                  edited_by = CASE WHEN %s >= 1 THEN %s ELSE edited_by END
+                            WHERE line_id=%s AND shift_date=%s AND shift_name=%s""",
+                        (saves_before, saves_before, who, saves_before, saves_before, who,
+                         body.line_id, d, body.shift_name))
+
         cur2 = conn.cursor()
         for aid in to_close:
             cur2.execute("""UPDATE mes_manpower_allocations
@@ -827,7 +936,7 @@ def save_allocations(body: AllocSaveBody,
             if not proc or not op:
                 continue
             need  = int(proc["required_skill_level"] or 1)
-            has   = int(op["skill_level"] or 1)
+            has   = int(op["skill_level"] if op["skill_level"] is not None else 1)   # 0 = OJT, below L1
             match = has >= need
             cur2.execute("""
                 INSERT INTO mes_manpower_allocations
@@ -881,8 +990,8 @@ def _fire_skill_mismatch_alerts(line_id: int, shift_date: date, shift_name: str,
                 VALUES (%s, %s, %s, 'SKILL_MISMATCH', %s)
                 RETURNING id
             """, (line_id, shift_date, shift_name,
-                  f"{r['operator']} (L{r['has']}) allocated to "
-                  f"{r['process']} which needs L{r['need']}"))
+                  f"{r['operator']} ({_skill_tag(r['has'])}) allocated to "
+                  f"{r['process']} which needs {_skill_tag(r['need'])}"))
         conn.commit()
 
     to_list = _addr_list(cfg["quality_to_addresses"]) + \
@@ -892,8 +1001,8 @@ def _fire_skill_mismatch_alerts(line_id: int, shift_date: date, shift_name: str,
     rows_html = "".join(
         f"<tr><td style='padding:4px 12px;'>{r['process']}</td>"
         f"<td style='padding:4px 12px;'>{r['operator']}</td>"
-        f"<td style='padding:4px 12px;color:#dc2626;'>L{r['has']}</td>"
-        f"<td style='padding:4px 12px;color:#0f172a;'>L{r['need']}</td></tr>"
+        f"<td style='padding:4px 12px;color:#dc2626;'>{_skill_tag(r['has'])}</td>"
+        f"<td style='padding:4px 12px;color:#0f172a;'>{_skill_tag(r['need'])}</td></tr>"
         for r in rows
     )
     subject = f"[MES · Skill mismatch] {line_name} — Shift {shift_name} — {len(rows)} row(s)"

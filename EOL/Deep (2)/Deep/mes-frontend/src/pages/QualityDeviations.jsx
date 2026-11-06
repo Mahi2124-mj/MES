@@ -12,6 +12,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { api } from "../api/client";
+import { LanRefreshSlot } from "../components/LanRefresh";
 
 function fmtAgo(ts) {
   if (!ts) return "—";
@@ -288,9 +289,13 @@ export default function QualityDeviations() {
           <div className="qd-title">
             Quality <span>Centre</span>
           </div>
-          {user?.username && (
-            <div className="qd-pill">Signed in as <b>{user.username}</b></div>
-          )}
+          {/* LAN app: Refresh beside the user pill (nothing on the website) */}
+          <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+            {user?.username && (
+              <div className="qd-pill">Signed in as <b>{user.username}</b></div>
+            )}
+            <LanRefreshSlot />
+          </div>
         </div>
 
         <div className="qd-body">

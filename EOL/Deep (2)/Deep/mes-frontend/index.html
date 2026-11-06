@@ -40,8 +40,48 @@
          app content down by it. Desktop / iOS web never get .cap-android, so
          they are untouched. Sticky page headers (dashboard topbar) also get
          their `top` nudged so they clear the bar when the page is scrolled. */
-      html.cap-android #root { padding-top: var(--cap-sat, 28px) !important; }
-      html.cap-android .db-topbar { top: var(--cap-sat, 28px) !important; }
+      /* --mes-zinv = 1 / page zoom (LAN panel 90 % zoom, App.jsx PanelZoom) so the
+         offset still equals the real status bar under zoom; 1 everywhere else. */
+      html.cap-android #root { padding-top: calc(var(--cap-sat, 28px) * var(--mes-zinv, 1)) !important; }
+      html.cap-android .db-topbar { top: calc(var(--cap-sat, 28px) * var(--mes-zinv, 1)) !important; }
+      /* 2026-11-03 — LAN panel app (html.mes-lan + cap-android).  Android 15
+         draws the WebView edge-to-edge and ignores StatusBar.setBackgroundColor,
+         so the status bar was see-through: page content scrolled visibly behind
+         its white icons (hard to read on the light pages), and the sticky page
+         headers (top:0) slid up under it.  (1) paint the status-bar band dark
+         so the icons read; (2) every sticky page header stops right below the
+         band; (3) the PageTopbar sits inside the page gutter, so a shadow in the
+         page's own colour covers the gutter beside / above it — invisible at
+         rest, it hides the content scrolling past the header's sides. */
+      html.mes-lan.cap-android body::before {
+        content: ""; position: fixed; top: 0; left: 0; right: 0; z-index: 2147482000;
+        height: calc(var(--cap-sat, 28px) * var(--mes-zinv, 1));
+        background: #0f172a; pointer-events: none;
+      }
+      html.mes-lan.cap-android .page-topbar,
+      html.mes-lan.cap-android .hist-topbar, html.mes-lan.cap-android .audit-topbar,
+      html.mes-lan.cap-android .admin-topbar, html.mes-lan.cap-android .md-topbar,
+      html.mes-lan.cap-android .mh-topbar, html.mes-lan.cap-android .mp-topbar,
+      html.mes-lan.cap-android .qd-topbar, html.mes-lan.cap-android .ca-topbar,
+      html.mes-lan.cap-android .pg-topbar {
+        top: calc(var(--cap-sat, 28px) * var(--mes-zinv, 1)) !important;
+      }
+      html.mes-lan.cap-android .admin-sections { top: calc(60px + var(--cap-sat, 28px) * var(--mes-zinv, 1)) !important; }
+      html.mes-lan.cap-android .admin-tabs:not([style*="top"]) { top: calc(114px + var(--cap-sat, 28px) * var(--mes-zinv, 1)) !important; }
+      html.mes-lan.cap-android .admin-tabs[style*="top: 60px"] { top: calc(60px + var(--cap-sat, 28px) * var(--mes-zinv, 1)) !important; }
+      html.mes-lan .page-topbar {
+        box-shadow: 0 1px 3px rgba(0,0,0,.06), 0 -24px 0 24px var(--pt-gutter, #f8fafc) !important;
+      }
+      /* 2026-11-03 — LAN app only (html.mes-lan, set by PanelZoom): on the
+         portrait panel the centred 34-37 px page titles ("Production Breakdown
+         Slip", "Production Historical Data") broke onto two lines and ran out
+         of their 60 px bar.  One line, ellipsis if it ever gets too long. */
+      html.mes-lan [style*="position: sticky"] > div[style*="translateX(-50%)"],
+      html.mes-lan .hist-topbar > div[style*="translateX(-50%)"],
+      html.mes-lan .audit-topbar > div[style*="translateX(-50%)"],
+      html.mes-lan .admin-topbar > div[style*="translateX(-50%)"] {
+        white-space: nowrap; max-width: calc(100% - 250px); overflow: hidden; text-overflow: ellipsis;
+      }
 
       @media (max-width: 600px) {
         /* Phone gutters: many page content wrappers carry a desktop 32–48px

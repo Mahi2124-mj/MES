@@ -168,14 +168,19 @@ def _tokens(s) -> set:
 def load_cameras(mconn, econn):
     """machine_no -> {line, name, cams[]} and line -> cams[].
 
-    maintenance_machines.ip is the machine's PLC; the MES machine on that PLC
+    maintenance_machines.plc_ip (was `ip` until 29-Oct) is the machine's PLC; the MES machine on that PLC
     carries the camera (mes_plc_configs.nf2_camera_id).  When one PLC serves
     several MES machines with different cameras, only those whose name shares
     words with the maintenance machine name are kept (L1_LP_02 'YLM Pipe
     Bending' -> the two Bending machines, not the Karakuri shelf); the
     MAG-welding recliner stations keep both cameras (main + __cam2)."""
     mc = mconn.cursor()
-    mc.execute("SELECT machine_no, line_name, machine_name, ip FROM maintenance_machines "
+    # 2026-10-29 — the maintenance app renamed ip -> plc_ip at 20:13; every run
+    # failed ("column ip does not exist") until this accepted either name.
+    mc.execute("SELECT column_name FROM information_schema.columns "
+               "WHERE table_name = 'maintenance_machines' AND column_name IN ('plc_ip', 'ip')")
+    _ipc = "plc_ip" if "plc_ip" in {r[0] for r in mc.fetchall()} else "ip"
+    mc.execute(f"SELECT machine_no, line_name, machine_name, {_ipc} FROM maintenance_machines "
                "WHERE is_active IS NOT FALSE")
     machines = mc.fetchall()
     ec = econn.cursor()

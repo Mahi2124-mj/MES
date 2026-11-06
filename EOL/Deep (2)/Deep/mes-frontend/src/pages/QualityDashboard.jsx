@@ -33,6 +33,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import ManpowerAlertBanner from "../components/ManpowerAlertBanner";
+import { LanRefreshSlot } from "../components/LanRefresh";
 
 const API = "";
 const api = {
@@ -609,9 +610,13 @@ export default function QualityDashboard() {
           <div className="qd-title">
             {isAdmin ? "Quality " : ""}<span>Dashboard</span>
           </div>
-          {user?.username && (
-            <div className="qd-pill">Signed in as <b>{user.username}</b></div>
-          )}
+          {/* LAN app: Refresh beside the user pill (nothing on the website) */}
+          <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+            {user?.username && (
+              <div className="qd-pill">Signed in as <b>{user.username}</b></div>
+            )}
+            <LanRefreshSlot />
+          </div>
         </div>
 
         <div className="qd-body">

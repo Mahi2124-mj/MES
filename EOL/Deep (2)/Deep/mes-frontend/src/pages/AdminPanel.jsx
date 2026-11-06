@@ -8,13 +8,15 @@ import PyConfigEditor from "./PyConfigEditor";
 import FaultConfigPanel from "./FaultConfigPanel";
 import WeldMaster from "./WeldMaster";
 import ClipPriorityPage from "./ClipPriorityPage";
-import PeffDetailsPage from "./PeffDetailsPage";
+import StandardDataPage from "./StandardDataPage";
+// PeffDetailsPage (pages/PeffDetailsPage.jsx) no longer has a tab — replaced by Standard Data, 5-Nov.
 import WorkingCalendarPanel from "../components/WorkingCalendarPanel";
 import AgentsPanel from "../components/AgentsPanel";         // 2026-10-09 Admin → Agents
 import LiveReadButton from "../components/LiveReadButton";   // 2026-10-09 machine live values
 import { PAGE_MODULES, moduleKey, pageHasModules } from "../utils/pageModules";
 import TimerConfigPage from "./TimerConfigPage";
 import PanelMapPage from "./PanelMapPage";
+import { LanRefreshSlot } from "../components/LanRefresh";
 
 
 // ─── Shared UI helpers ────────────────────────────────────────
@@ -5859,6 +5861,7 @@ const PAGE_PERM_GROUPS = [
     { key: "six-sigma",         label: "6 Sigma (Ball Guide clip review)" },
     { key: "bin-filling",       label: "Bin Filling" },
     { key: "prod-breakdown-slip", label: "Breakdown Slip (Production)" },
+    { key: "control-board",     label: "Control Board" },
     { key: "my-escalations",    label: "My Escalations" },
     { key: "store",             label: "Store" },
     { key: "dispatch",          label: "Dispatch" },
@@ -5902,6 +5905,7 @@ const PAGE_PERM_GROUPS = [
     { key: "settings",           label: "Settings" },
     { key: "network",            label: "Network Panel" },
     { key: "logs",              label: "Log Viewer" },
+    { key: "machine-map",       label: "Machine Map (MES vs Maintenance)" },
     { key: "video-coverage",    label: "Video Coverage (clips per cycle + Video Agent)" },
     { key: "py-bypass",         label: "PY Bypass (quality approve/reject + machine bit)" },
     { key: "fault-history",     label: "Fault History (faults read from the assigned bits)" },
@@ -10620,7 +10624,8 @@ export const ADMIN_SECTIONS = [
       { key: "timercfg",    label: "Timer / Alerts",   icon: "⏲" },
       { key: "panelmap",    label: "Panel Displays",   icon: "🖥" },
       { key: "workcenter",  label: "Work Center (PEFF)", icon: "🎯" },
-      { key: "peffdetails", label: "PEFF Details",       icon: "📋" },
+      // 2026-11-05 — PEFF Details tab replaced by Standard Data (operator).
+      { key: "standarddata", label: "Standard Data",     icon: "📐" },
       { key: "calendar",    label: "Annual Calendar",    icon: "📅" },
       { key: "clippriority", label: "Clip Priority (48 h)", icon: "🎬" },
     ],
@@ -11173,7 +11178,7 @@ export function OperatorsPage({ toast, readOnly = false }) {
     setEditId(op.id);
     setForm({ badge_code: op.badge_code || "", full_name: op.full_name || "",
                employee_id: op.employee_id || "", department: op.department || "",
-               skill_level: op.skill_level || 1, is_active: !!op.is_active,
+               skill_level: op.skill_level ?? 1, is_active: !!op.is_active,
                zone_id: op.zone_id ?? "" });
     setModal(true);
   };
@@ -11211,7 +11216,8 @@ export function OperatorsPage({ toast, readOnly = false }) {
   const _q = q.trim().toLowerCase();
   const filtered = _q
     ? operators.filter(op =>
-        [op.badge_code, op.full_name, op.employee_id, op.zone_name, op.department]
+        [op.badge_code, op.full_name, op.employee_id, op.zone_name, op.department,
+         op.skill_level === 0 ? "OJT" : `L${op.skill_level ?? 1}`]
           .some(v => String(v || "").toLowerCase().includes(_q)))
     : operators;
 
@@ -11260,7 +11266,7 @@ export function OperatorsPage({ toast, readOnly = false }) {
               </thead>
               <tbody>
                 {filtered.map(op => {
-                  const skillColor = op.skill_level >= 4 ? "#16a34a" : op.skill_level >= 3 ? "#3b82f6" : op.skill_level >= 2 ? "#d97706" : "#94a3b8";
+                  const skillColor = op.skill_level >= 4 ? "#16a34a" : op.skill_level >= 3 ? "#3b82f6" : op.skill_level >= 2 ? "#d97706" : op.skill_level === 0 ? "#dc2626" : "#94a3b8";
                   return (
                   <tr key={op.id} style={{ borderTop: "1px solid #e2e8f0" }}>
                     <td style={{ padding: 8, fontFamily: "monospace" }}>{op.badge_code}</td>
@@ -11271,7 +11277,7 @@ export function OperatorsPage({ toast, readOnly = false }) {
                     <td style={{ padding: 8 }}>
                       <span style={{ display: "inline-block", padding: "2px 8px", borderRadius: 10, fontSize: 11, fontWeight: 700,
                                      background: `${skillColor}22`, color: skillColor }}>
-                        L{op.skill_level || 1}
+                        {op.skill_level === 0 ? "OJT" : `L${op.skill_level ?? 1}`}
                       </span>
                     </td>
                     <td style={{ padding: 8 }}>
@@ -11405,15 +11411,15 @@ export function OperatorsPage({ toast, readOnly = false }) {
             </select>
           </div>
           <div>
-            <label style={{ fontSize: 11, color: "#64748b" }}>Skill Level (1=Trainee … 5=Expert)</label>
+            <label style={{ fontSize: 11, color: "#64748b" }}>Skill Level (OJT … L4)</label>
             <select value={form.skill_level}
                     onChange={e => setForm({ ...form, skill_level: Number(e.target.value) })}
                     style={{ width: "100%", padding: "8px 10px", fontSize: 13, border: "1px solid #cbd5e1", borderRadius: 6 }}>
+              <option value={0}>OJT — On-job training</option>
               <option value={1}>L1 — Trainee</option>
               <option value={2}>L2 — Basic</option>
               <option value={3}>L3 — Skilled</option>
               <option value={4}>L4 — Multi-skilled</option>
-              <option value={5}>L5 — Expert / Trainer</option>
             </select>
           </div>
           <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "#475569" }}>
@@ -11442,7 +11448,7 @@ export function OperatorsPage({ toast, readOnly = false }) {
 // with default L3 / 1 slot / 1 machine-per-op.
 //
 // Section Incharge only edits, per machine:
-//   • Required skill level (L1-L5)
+//   • Required skill level (L1-L4)
 //   • Manpower count (slots)
 //   • Machines per operator
 //   • Display order
@@ -11609,7 +11615,6 @@ export function ProcessesPage({ toast, readOnly = false }) {
                           <option value={2}>L2 — Basic</option>
                           <option value={3}>L3 — Skilled</option>
                           <option value={4}>L4 — Multi-skilled</option>
-                          <option value={5}>L5 — Expert</option>
                         </select>
                       </td>
                       <td style={{ padding: 6 }}>
@@ -11817,7 +11822,7 @@ export function renderAdminTab(sectionKey, tabKey, props) {
                 style={{ width: "100%", height: "100%", border: "none" }} />
       </div>
     );
-    case "production/peffdetails": return <PeffDetailsPage {...t} />;
+    case "production/standarddata": return <StandardDataPage {...t} />;
     case "production/calendar":    return <WorkingCalendarPanel {...t} />;
     case "production/clippriority": return <ClipPriorityPage {...t} />;
     case "production/timercfg":    return <TimerConfigPage {...t} />;
@@ -12016,10 +12021,25 @@ export function AdminShell({
 
       <div className={`admin-root${readOnly ? " ap-readonly" : ""}`} style={cssVars}>
         <div className="admin-topbar" style={{ borderBottomColor:"#e2e8f0" }}>
-          <div className="admin-logo">
-            <span style={{ color: secColor }}>{title}</span>
+          {/* 2026-11-05 — centred two-tone title, same format as PageTopbar
+              (was the panel name left-aligned in the section colour). */}
+          <div className="admin-logo" />
+          {(() => {
+            const words = String(title || "").trim().split(/\s+/);
+            const acc = words.length > 1 ? words.pop() : "";
+            return (
+              <div style={{ position:"absolute", left:"50%", transform:"translateX(-50%)",
+                            fontFamily:"'Barlow Condensed',sans-serif", fontSize:37, fontWeight:800,
+                            color:"#0f172a", letterSpacing:"-.01em", pointerEvents:"none", whiteSpace:"nowrap" }}>
+                {words.join(" ")}{acc && <> <span style={{ color: secColor }}>{acc}</span></>}
+              </div>
+            );
+          })()}
+          {/* LAN app: Refresh after the page's own right-hand items (nothing on the website) */}
+          <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+            {rightTopbar}
+            <LanRefreshSlot />
           </div>
-          {rightTopbar}
           <div style={{
             position:"absolute", bottom:0, left:0, right:0, height:2,
             background:`linear-gradient(90deg, ${secColor}, ${secColor}aa, ${secColor}55)`

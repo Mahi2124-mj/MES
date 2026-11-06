@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>TRACK RECORD SHEET - TOYOTA BOSHOKU DEVICE INDIA PVT. LTD.</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: "Calibri", "MS PGothic", Arial, sans-serif;
+        }
+
+        body {
+            background: #e9ecef;
+            margin: 0;
+            padding: 12px;
+        }
+
+        .toolbar {
+            width: 1640px;
+            margin: 0 auto 10px auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #fff;
+            padding: 8px 15px;
+            border: 1px solid #bbb;
+        }
+
+        .toolbar button {
+            padding: 6px 14px;
+            font-size: 13px;
+            font-weight: bold;
+            cursor: pointer;
+            border: 1px solid #333;
+            background: #f8f9fa;
+            margin-left: 8px;
+        }
+
+        .toolbar button.primary {
+            background: #0056b3;
+            color: #fff;
+            border-color: #004085;
+        }
+
+        .sheet-wrapper {
+            width: 1664px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        table.excel-sheet {
+            border-collapse: collapse;
+            table-layout: fixed;
+            width: 1620px;
+            background: #fff;
+        }
+
+        table.excel-sheet td {
+            padding: 0;
+            margin: 0;
+            vertical-align: middle;
+            font-size: 11px;
+            color: #000;
+            position: relative;
+        }
+
+        .bt-m {
+            border-top: 2px solid #000 !important;
+        }
+
+        .bb-m {
+            border-bottom: 2px solid #000 !important;
+        }
+
+        .bl-m {
+            border-left: 2px solid #000 !important;
+        }
+
+        .br-m {
+            border-right: 2px solid #000 !important;
+        }
+
+        .bt-t {
+            border-top: 1px solid #000 !important;
+        }
+
+        .bb-t {
+            border-bottom: 1px solid #000 !important;
+        }
+
+        .bl-t {
+            border-left: 1px solid #000 !important;
+        }
+
+        .br-t {
+            border-right: 1px solid #000 !important;
+        }
+
+        .bt-h {
+            border-top: 1px dotted #888 !important;
+        }
+
+        .bb-h {
+            border-bottom: 1px dotted #888 !important;
+        }
+
+        .bl-h {
+            border-left: 1px dotted #888 !important;
+        }
+
+        .br-h {
+            border-right: 1px dotted #888 !important;
+        }
+
+        .cell-input {
+            width: 100%;
+            height: 100%;
+            min-height: 22px;
+            border: none;
+            outline: none;
+            background: transparent;
+            text-align: center;
+            font-size: 11px;
+            font-family: inherit;
+            padding: 2px;
+            display: block;
+        }
+
+        .cell-input:focus {
+            background: #fff9c4;
+        }
+
+        .left-input {
+            text-align: left;
+            padding-left: 6px;
+            font-size: 12px;
+        }
+
+        .param-label {
+            padding-left: 8px !important;
+            padding-right: 32px !important;
+            text-align: left;
+            line-height: 1.2;
+        }
+
+        .black-badge {
+            position: absolute;
+            right: 5px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 20px;
+            height: 20px;
+            background: #000;
+            color: #fff;
+            font-size: 11px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
+        }
+
+        .row-g-shade {
+            background-color: #ededed;
+        }
+
+        .shift-box {
+            border: 1px solid #000;
+            display: inline-block;
+            padding: 2px 10px;
+            font-size: 24px;
+            font-weight: bold;
+            background: #fff;
+            margin-top: 5px;
+            margin-left: 5px;
+        }
+
+        .target-callout {
+            position: absolute;
+            right: -14px;
+            background: #d9d9d9;
+            border: 1px solid #000;
+            font-size: 10px;
+            font-weight: bold;
+            padding: 0 3px;
+            z-index: 5;
+            pointer-events: none;
+        }
+
+        .graph-canvas {
+            position: absolute;
+            left: 0;
+            top: 0;
+            pointer-events: none;
+            z-index: 4;
+        }
+
+        @media print {
+            body {
+                background: #fff;
+                padding: 0;
+            }
+
+            .toolbar {
+                display: none;
+            }
+
+            .sheet-wrapper {
+                box-shadow: none;
+                padding: 0;
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="toolbar">
+        <div><strong>TOYOTA BOSHOKU DEVICE INDIA PVT. LTD. - TRACK RECORD SHEET</strong></div>
+        <div>
+            <button onclick="clearSheet()">Clear All Data</button>
+            <button class="primary" onclick="window.print()">Print / Save PDF</button>
+        </div>
+    </div>
+
+    <div class="sheet-wrapper">
+        <table class="excel-sheet" id="mainSheet">
+            <colgroup id="sheetCols"></colgroup>
+            <tbody id="sheetBody"></tbody>
+        </table>
+    </div>
+
+    <script>
+        // Build Colgroup cleanly via DOM
+        (function initSheet() {
+            var colgroup = document.getElementById('sheetCols');
+            var colHtml = '<col style="width:58px;"><col style="width:98px;"><col style="width:54px;"><col style="width:46px;">';
+            for (var c = 1; c <= 31; c++) {
+                colHtml += '<col style="width:44px;">';
+            }
+            colgroup.innerHTML = colHtml;
+
+            var tbody = document.getElementById('sheetBody');
+            var html = '';
+
+            // Header Rows 1 & 2
+            html += '<tr style="height:44px;">' +
+                '<td colspan="2" rowspan="2" class="bt-m bb-m bl-m br-m" style="text-align:center; padding:4px;">' +
+                '<div style="border:2px solid #c00; color:#c00; font-weight:bold; font-size:12px; padding:4px 2px; line-height:1.1;">TOYOTA BOSHOKU</div>' +
+                '</td>' +
+                '<td colspan="28" class="bt-m bb-m" style="text-align:center; font-size:24px; font-weight:bold; letter-spacing:1px;">TOYOTA BOSHOKU DEVICE INDIA PVT. LTD.</td>' +
+                '<td colspan="2" class="bt-m bb-m bl-m br-m" style="font-size:12px; font-weight:bold; padding-left:6px;">LINE NAME:-</td>' +
+                '<td colspan="3" class="bt-m bb-m bl-m br-m"><input type="text" class="cell-input left-input"></td>' +
+                '</tr>' +
+                '<tr style="height:35px;">' +
+                '<td colspan="28" class="bt-m bb-m" style="text-align:center; font-size:19px; font-weight:bold;">TRACK RECORD SHEET</td>' +
+                '<td colspan="2" class="bt-m bb-m bl-m br-m" style="font-size:12px; font-weight:bold; padding-left:6px;">MONTH:-</td>' +
+                '<td colspan="3" class="bt-m bb-m bl-m br-m"><input type="text" class="cell-input left-input"></td>' +
+                '</tr>';
+
+            html += buildShiftRows('A', 'A SHIFT');
+            html += buildShiftRows('B', 'B SHIFT');
+
+            tbody.innerHTML = html;
+        })();
+
+        function buildShiftRows(shiftId, shiftTitle) {
+            var scales = [170, 150, 130, 110, 100, 90, 80, 70, 60, 50];
+            var h = '';
+
+            // 20 Graph Scale Rows
+            for (var r = 0; r < 20; r++) {
+                var scaleIdx = Math.floor(r / 2);
+                var isTopHalf = (r % 2 === 0);
+                var scaleVal = scales[scaleIdx];
+
+                h += '<tr style="height:16px;">';
+
+                if (r === 0) {
+                    h += '<td colspan="3" rowspan="13" class="bt-m bb-m bl-m br-m" style="vertical-align:top; position:relative;">' +
+                        '<div class="shift-box">' + shiftTitle + '</div>' +
+                        '<div style="text-align:center; margin-top:28px; font-size:20px; font-weight:bold; line-height:1.35;">Man Hour Per<br>Piece / Sec.</div>' +
+                        '<svg width="65" height="75" style="position:absolute; right:-36px; bottom:-52px; z-index:6; pointer-events:none;">' +
+                        '<line x1="4" y1="70" x2="58" y2="8" stroke="#000" stroke-width="2.5" />' +
+                        '<polygon points="61,4 50,9 58,16" fill="#000" />' +
+                        '</svg>' +
+                        '</td>';
+                } else if (r === 13) {
+                    h += '<td colspan="3" class="bt-m bb-t bl-m br-m" style="font-size:8.5px; font-weight:bold; text-align:center;">Cycle Time / Effective Cycle Time( In Sec. )</td>';
+                } else if (r === 14) {
+                    h += '<td colspan="3" rowspan="2" class="bt-t bb-m bl-m br-m" style="text-align:center;"><input type="text" class="cell-input" value="16.36 sec." style="font-size:20px;"></td>';
+                } else if (r === 16) {
+                    h += '<td colspan="3" class="bt-m bb-t bl-m br-m" style="font-size:11px; font-weight:bold; text-align:center;">Target</td>';
+                } else if (r === 17) {
+                    h += '<td colspan="3" rowspan="3" class="bt-t bb-m bl-m br-m" style="text-align:center;"><input type="text" class="cell-input" value="82 sec." style="font-size:20px;"></td>';
+                }
+
+                if (isTopHalf) {
+                    var callout = '';
+                    if (scaleVal === 90) callout = '<div class="target-callout" style="bottom:-8px;">90</div>';
+                    if (scaleVal === 80) callout = '<div class="target-callout" style="bottom:2px;">82</div>';
+                    var bTop = (r === 0 || r === 16) ? 'bt-m' : '';
+                    var bBot = (r === 14 || r === 18) ? 'bb-m' : '';
+                    h += '<td rowspan="2" class="' + bTop + ' ' + bBot + ' bl-m br-m" style="text-align:center; font-size:13px; font-weight:bold;">' + scaleVal + callout + '</td>';
+                }
+
+                for (var d = 1; d <= 31; d++) {
+                    var cls = 'bl-h br-h ';
+                    if (r === 0) cls += 'bt-m ';
+                    if (isTopHalf) cls += 'bb-h ';
+                    if (r === 19) cls += 'bb-m ';
+                    if (d === 31) cls += 'br-m ';
+
+                    var st = '';
+                    if (r === 11) st = 'border-bottom: 2.5px dashed #ff0000 !important;';
+                    if (r === 12) st = 'border-bottom: 2.5px solid #ff0000 !important;';
+
+                    var canvasEl = (r === 0 && d === 1) ? '<canvas id="canvas-' + shiftId + '" class="graph-canvas" width="1364" height="320"></canvas>' : '';
+                    h += '<td class="' + cls + '" style="' + st + '">' + canvasEl + '</td>';
+                }
+
+                h += '</tr>';
+            }
+
+            // Date Row
+            h += '<tr style="height:20px;"><td colspan="4" class="bt-m bb-m bl-m br-m" style="text-align:center; font-size:11px; font-weight:bold;">日付(Data)</td>';
+            for (var day = 1; day <= 31; day++) {
+                h += '<td class="bt-m bb-m bl-t ' + (day === 31 ? 'br-m' : 'br-t') + '" style="text-align:center; font-size:11px; font-weight:bold;">' + day + '</td>';
+            }
+            h += '</tr>';
+
+            // 15 Parameter Rows
+            var rows = [
+                { code: 'A', label: 'Regular Production Man Hour ( Min. )', badge: 'A', h: 36, shade: false, btM: false, bbM: false },
+                { code: 'B', label: 'OT Production Man Hour ( Min. )', badge: 'B', h: 36, shade: false, btM: false, bbM: false },
+                { code: 'C', label: 'Total Production Man Hour( Min. )', badge: 'C', h: 36, shade: false, btM: false, bbM: false },
+                { code: 'D', label: 'Production Count ( Ok Pcs. )<br>&lt;Regular time&gt;', badge: 'D', h: 36, shade: false, btM: false, bbM: false },
+                { code: 'E', label: 'Production Count ( Ok Pcs. )<br>&lt;Over Time&gt;', badge: 'E', h: 36, shade: false, btM: false, bbM: false },
+                { code: 'F', label: 'Total Production Count ( Ok Pcs. )', badge: 'F', h: 36, shade: false, btM: false, bbM: false },
+                { code: 'G', label: 'Man Hours Per Piece ( Sec. )', badge: 'G', h: 38, shade: true, btM: true, bbM: true },
+                { code: 'M1', label: 'Machine Inspection ( Min. )', badge: null, h: 25, shade: false, btM: false, bbM: false },
+                { code: 'M2', label: 'Change Over Time ( Min. )', badge: null, h: 25, shade: false, btM: false, bbM: false },
+                { code: 'M3', label: 'Stop Time M/C ( Min. )', badge: null, h: 25, shade: false, btM: false, bbM: false },
+                { code: 'M4', label: 'Quality Issue ( Min. )', badge: null, h: 25, shade: false, btM: false, bbM: false },
+                { code: 'M5', label: 'No Parts ( Min. )', badge: null, h: 25, shade: false, btM: false, bbM: false },
+                { code: 'M6', label: 'Others ( Min. )', badge: null, h: 25, shade: false, btM: false, bbM: true },
+                { code: 'S1', label: 'Line Leader / Supervisor Sign 1/Day', badge: null, h: 32, shade: false, btM: true, bbM: true },
+                { code: 'S2', label: 'Manager Sign 1/Week', badge: null, h: 30, shade: false, btM: true, bbM: true }
+            ];
+
+            for (var i = 0; i < rows.length; i++) {
+                var item = rows[i];
+                var bt = item.btM ? 'bt-m' : 'bt-t';
+                var bb = item.bbM ? 'bb-m' : 'bb-t';
+                var sh = item.shade ? 'row-g-shade' : '';
+                var fw = item.code === 'G' ? 'font-weight:bold;' : '';
+                var badgeEl = item.badge ? '<div class="black-badge">' + item.badge + '</div>' : '';
+
+                h += '<tr style="height:' + item.h + 'px;">';
+                h += '<td colspan="4" class="param-label ' + bt + ' ' + bb + ' bl-m br-m ' + sh + '" style="' + fw + '">' + item.label + badgeEl + '</td>';
+
+                for (var c = 1; c <= 31; c++) {
+                    var br = (c === 31) ? 'br-m' : 'br-t';
+                    var id = shiftId + '-' + item.code + '-' + c;
+                    var evt = (['A', 'B', 'C', 'D', 'E', 'F', 'G'].indexOf(item.code) !== -1) ? 'oninput="updateShiftCalc(\'' + shiftId + '\',' + c + ')"' : '';
+                    h += '<td class="' + bt + ' ' + bb + ' bl-t ' + br + ' ' + sh + '"><input type="text" id="' + id + '" class="cell-input" ' + evt + '></td>';
+                }
+                h += '</tr>';
+            }
+
+            // Comment Row
+            h += '<tr style="height:30px;">' +
+                '<td colspan="4" class="bt-m bb-m bl-m br-m param-label">Comment</td>' +
+                '<td colspan="31" class="bt-m bb-m bl-m br-m"><input type="text" class="cell-input left-input"></td>' +
+                '</tr>';
+
+            return h;
+        }
+
+        function updateShiftCalc(shift, day) {
+            var valA = parseFloat(document.getElementById(shift + '-A-' + day).value);
+            var valB = parseFloat(document.getElementById(shift + '-B-' + day).value);
+            var cellC = document.getElementById(shift + '-C-' + day);
+
+            var totMh = NaN;
+            if (!isNaN(valA) || !isNaN(valB)) {
+                totMh = (isNaN(valA) ? 0 : valA) + (isNaN(valB) ? 0 : valB);
+                cellC.value = Number.isInteger(totMh) ? totMh : totMh.toFixed(2);
+            } else {
+                totMh = parseFloat(cellC.value);
+            }
+
+            var valD = parseFloat(document.getElementById(shift + '-D-' + day).value);
+            var valE = parseFloat(document.getElementById(shift + '-E-' + day).value);
+            var cellF = document.getElementById(shift + '-F-' + day);
+
+            var totProd = NaN;
+            if (!isNaN(valD) || !isNaN(valE)) {
+                totProd = (isNaN(valD) ? 0 : valD) + (isNaN(valE) ? 0 : valE);
+                cellF.value = Number.isInteger(totProd) ? totProd : totProd.toFixed(2);
+            } else {
+                totProd = parseFloat(cellF.value);
+            }
+
+            var cellG = document.getElementById(shift + '-G-' + day);
+            if (!isNaN(totMh) && !isNaN(totProd) && totProd > 0) {
+                var mhpp = (totMh * 60) / totProd;
+                cellG.value = mhpp.toFixed(2);
+            }
+
+            drawShiftGraph(shift);
+        }
+
+        function valToY(val) {
+            var scales = [170, 150, 130, 110, 100, 90, 80, 70, 60, 50];
+            if (val >= 170) return 16;
+            if (val <= 50) return 304;
+            for (var i = 0; i < scales.length - 1; i++) {
+                var hi = scales[i];
+                var lo = scales[i + 1];
+                if (val <= hi && val >= lo) {
+                    var yHi = i * 32 + 16;
+                    var yLo = (i + 1) * 32 + 16;
+                    var ratio = (hi - val) / (hi - lo);
+                    return yHi + ratio * (yLo - yHi);
+                }
+            }
+            return 160;
+        }
+
+        function drawShiftGraph(shift) {
+            var canvas = document.getElementById('canvas-' + shift);
+            if (!canvas) return;
+            var ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            var points = [];
+            for (var d = 1; d <= 31; d++) {
+                var gVal = parseFloat(document.getElementById(shift + '-G-' + d).value);
+                if (!isNaN(gVal) && gVal > 0) {
+                    var x = (d - 1) * 44 + 22;
+                    var y = valToY(gVal);
+                    points.push({ x: x, y: y });
+                }
+            }
+
+            if (points.length > 1) {
+                ctx.beginPath();
+                ctx.moveTo(points[0].x, points[0].y);
+                for (var i = 1; i < points.length; i++) {
+                    ctx.lineTo(points[i].x, points[i].y);
+                }
+                ctx.strokeStyle = '#0056b3';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            }
+
+            for (var j = 0; j < points.length; j++) {
+                ctx.beginPath();
+                ctx.arc(points[j].x, points[j].y, 4, 0, Math.PI * 2);
+                ctx.fillStyle = '#0056b3';
+                ctx.fill();
+            }
+        }
+
+        function clearSheet() {
+            if (confirm("Kya aap saara data clear karna chahte hain?")) {
+                var inputs = document.querySelectorAll('#mainSheet input.cell-input');
+                for (var i = 0; i < inputs.length; i++) {
+                    if (inputs[i].value !== '16.36 sec.' && inputs[i].value !== '82 sec.') {
+                        inputs[i].value = '';
+                    }
+                }
+                drawShiftGraph('A');
+                drawShiftGraph('B');
+            }
+        }
+    </script>
+
+<script>
+/* MES Control Board: fit-to-width zoom requested by the page around this frame. */
+(function () {
+  var ok = window.CSS && CSS.supports && CSS.supports("zoom", "0.5");
+  window.addEventListener("message", function (e) {
+    if (e.source !== window.parent || !e.data || e.data.type !== "cb-zoom" || !ok) return;
+    var z = Number(e.data.zoom) || 1;
+    document.documentElement.style.zoom = (z === 1) ? "" : String(z);
+    try { window.parent.postMessage({ type: "cb-zoom-ok", zoom: z }, "*"); } catch (x) {}
+  });
+})();
+</script>
+
+<script>
+/* MES Control Board: line / month dropdowns + standard cycle time and target. */
+(function () {
+  var sheet = document.getElementById("mainSheet");
+  if (!sheet) return;
+  var MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  function cellAfter(label) {
+    var tds = sheet.querySelectorAll("td");
+    for (var i = 0; i < tds.length; i++) {
+      if (tds[i].textContent.replace(/\s+/g, " ").trim() === label && tds[i].nextElementSibling)
+        return tds[i].nextElementSibling;
+    }
+    return null;
+  }
+  var ins = [].slice.call(sheet.querySelectorAll("input.cell-input"));
+  var ctIn = ins.filter(function (i) { return /^16\.36 sec\.$/.test(i.value); });
+  var tgIn = ins.filter(function (i) { return /^82 sec\.$/.test(i.value); });
+  var lineTd = cellAfter("LINE NAME:-"), monthTd = cellAfter("MONTH:-");
+  var lineSel = null, monthSel = null, data = [];
+  var css = document.createElement("style");
+  css.textContent = "select.cb-sel{width:100%;height:100%;min-height:24px;border:none;background:transparent;" +
+    "font:inherit;font-size:13px;font-weight:bold;padding:2px 6px;cursor:pointer;outline:none}" +
+    "select.cb-sel:focus{background:#fff9c4}@media print{select.cb-sel{-webkit-appearance:none;appearance:none}}";
+  document.head.appendChild(css);
+  function fmt(v) { return (v === null || v === undefined || v === "") ? "" : (Number(v) + " sec."); }
+  function fill() {
+    var id = lineSel ? lineSel.value : "", row = null;
+    for (var i = 0; i < data.length; i++) if (String(data[i].line_id) === id) row = data[i];
+    ctIn.forEach(function (el) { el.value = row ? fmt(row.cycle_time) : ""; el.placeholder = row ? "not set" : ""; });
+    tgIn.forEach(function (el) { el.value = row ? fmt(row.target) : ""; el.placeholder = row ? "not set" : ""; });
+  }
+  function buildLine(lines, pick) {
+    if (!lineTd) return;
+    if (!lineSel) {
+      lineSel = document.createElement("select"); lineSel.className = "cb-sel";
+      lineSel.addEventListener("change", fill);
+      lineTd.innerHTML = ""; lineTd.appendChild(lineSel);
+    }
+    var keep = pick != null ? String(pick) : lineSel.value;
+    var html = '<option value="">Select line</option>', zone = null;
+    lines.forEach(function (l) {
+      var z = l.zone_name || "No zone";
+      if (z !== zone) { html += (zone === null ? "" : "</optgroup>") + '<optgroup label="' + z.replace(/"/g, "&quot;") + '">'; zone = z; }
+      html += '<option value="' + l.line_id + '">' + String(l.line_name || "").replace(/</g, "&lt;") + "</option>";
+    });
+    lineSel.innerHTML = html + (zone === null ? "" : "</optgroup>");
+    lineSel.value = keep;
+    if (lineSel.value !== keep) lineSel.value = "";
+  }
+  function buildMonth(ym) {
+    if (!monthTd) return;
+    if (!monthSel) {
+      monthSel = document.createElement("select"); monthSel.className = "cb-sel";
+      monthTd.innerHTML = ""; monthTd.appendChild(monthSel);
+      var now = new Date(), y = now.getFullYear(), html = "";
+      for (var yy = y; yy >= y - 1; yy--) for (var m = 11; m >= 0; m--)
+        html += '<option value="' + yy + "-" + (m < 9 ? "0" : "") + (m + 1) + '">' + MONTHS[m] + " " + yy + "</option>";
+      monthSel.innerHTML = html;
+      monthSel.value = y + "-" + (now.getMonth() < 9 ? "0" : "") + (now.getMonth() + 1);
+    }
+    if (ym && /^\d{4}-\d{2}$/.test(ym)) monthSel.value = ym;
+  }
+  window.addEventListener("message", function (e) {
+    if (e.source !== window.parent || !e.data || e.data.type !== "cb-data") return;
+    data = Array.isArray(e.data.lines) ? e.data.lines : [];
+    buildLine(data, e.data.line_id);
+    buildMonth(e.data.month);
+    fill();
+  });
+  // Clear keeps the line, month, cycle time and target (the original kept the two defaults).
+  window.clearSheet = function () {
+    if (!confirm("Clear all entered data? Line, month, cycle time and target stay.")) return;
+    ins.forEach(function (el) { if (ctIn.indexOf(el) < 0 && tgIn.indexOf(el) < 0) el.value = ""; });
+    if (window.drawShiftGraph) { drawShiftGraph("A"); drawShiftGraph("B"); }
+  };
+})();
+</script>
+</body>
+
+</html>
