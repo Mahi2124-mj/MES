@@ -16,6 +16,7 @@ from typing import Optional
 
 import os
 import uuid
+import secrets as _secrets
 import time as _time
 import threading as _threading
 import bcrypt
@@ -28,7 +29,64 @@ from database import get_conn, dict_cursor
 import psycopg2
 
 # ── Config ─────────────────────────────────────────────────────
-SECRET_KEY          = os.environ.get("MES_JWT_SECRET", "mes-tbdi-bawal-2024-secret-key-change-in-production")
+# A1 (security-hardening) — the JWT signing secret is no longer a hardcoded
+# literal.  A hardcoded default meant anyone who had seen the source could forge
+# a valid admin token.  Source of the secret, in order:
+#   1. MES_JWT_SECRET env var  — the operator-controlled path.  Set this to
+#      rotate on a schedule you choose (changing it logs everyone out once, as
+#      every previously-issued token was signed with the old key).  Generate one
+#      with:  export MES_JWT_SECRET=$(openssl rand -hex 32)
+#   2. a persisted secret file (Phase2/.secrets/jwt_secret, mode 0600, git-ignored)
+#      — auto-created once if the env var is unset, so the box ALWAYS boots with a
+#      strong unique secret instead of a known default, and that secret is stable
+#      across restarts (no surprise logout on every bounce).
+# Boot is refused only if the secret is explicitly set to the known insecure
+# default — never for a merely-absent env var, so a forgotten export can never
+# take the plant's dashboards down.
+_INSECURE_DEFAULT = "mes-tbdi-bawal-2024-secret-key-change-in-production"
+
+
+def _load_jwt_secret() -> str:
+    env = (os.environ.get("MES_JWT_SECRET") or "").strip()
+    if env:
+        if env == _INSECURE_DEFAULT:
+            raise SystemExit(
+                "[AUTH] FATAL: MES_JWT_SECRET is set to the known insecure default. "
+                "Set it to a strong unique value, e.g.  "
+                "export MES_JWT_SECRET=$(openssl rand -hex 32)"
+            )
+        if len(env) < 32:
+            print("[AUTH] WARNING: MES_JWT_SECRET is shorter than 32 chars — "
+                  "use a longer random value (openssl rand -hex 32).")
+        return env
+    # No env var — use (or provision) the persisted secret file.
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".secrets", "jwt_secret")
+    try:
+        if os.path.exists(path):
+            with open(path, "r") as fh:
+                saved = fh.read().strip()
+            if saved and saved != _INSECURE_DEFAULT:
+                return saved
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        new_secret = _secrets.token_urlsafe(48)
+        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        with os.fdopen(fd, "w") as fh:
+            fh.write(new_secret)
+        try:
+            os.chmod(path, 0o600)
+        except OSError:
+            pass
+        print("[AUTH] Generated a new JWT secret at .secrets/jwt_secret (mode 0600). "
+              "Existing sessions are invalidated once. Set MES_JWT_SECRET to manage "
+              "the secret yourself.")
+        return new_secret
+    except SystemExit:
+        raise
+    except Exception as exc:
+        raise SystemExit(f"[AUTH] FATAL: could not load or create a JWT secret: {exc}")
+
+
+SECRET_KEY          = _load_jwt_secret()
 ALGORITHM           = "HS256"
 # 2026-07-03 — sessions no longer expire on a timer.  A token stays valid
 # until the user DELIBERATELY logs out (POST /api/auth/logout) or the API
@@ -225,6 +283,27 @@ def hash_password(plain: str) -> str:
     return bcrypt.hashpw(plain.encode("utf-8")[:72], bcrypt.gensalt()).decode("utf-8")
 
 
+# A7 — a fixed bcrypt hash used only to equalise login timing when the supplied
+# username does not exist.  Verifying a password against this burns the same
+# ~bcrypt time as a real check, so an attacker cannot tell valid usernames apart
+# by response latency.  Computed once at import.
+_DUMMY_PW_HASH = bcrypt.hashpw(b"timing-equaliser", bcrypt.gensalt()).decode("utf-8")
+
+
+# A17 — bcrypt silently truncates at 72 bytes, so a longer password would
+# authenticate on just its first 72 bytes.  Reject over-length passwords at the
+# point they are SET so truncation can never happen silently.
+MAX_PASSWORD_BYTES = 72
+
+
+def check_password_length(plain: str) -> None:
+    if plain is not None and len(plain.encode("utf-8")) > MAX_PASSWORD_BYTES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Password too long (max {MAX_PASSWORD_BYTES} bytes).",
+        )
+
+
 def create_token(username: str, role: str, user_id: int) -> str:
     # Unique session id — registered as active NOW; stays valid until the user
     # logs out (see _active_sessions; the registry is durable across restarts
@@ -389,7 +468,12 @@ def login(form: OAuth2PasswordRequestForm = Depends()):
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Server not connected — database unreachable.",
         )
-    if not user or not verify_password(form.password, user["password_hash"]):
+    # A7 — always run one bcrypt verify, against the real hash when the user
+    # exists and a fixed dummy hash when it does not, so login timing never
+    # reveals whether a username is valid.
+    pw_hash     = user["password_hash"] if user else _DUMMY_PW_HASH
+    password_ok = verify_password(form.password, pw_hash)
+    if not user or not password_ok:
         _login_note_fail(form.username)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -457,6 +541,7 @@ def change_password(
     if not verify_password(body.get("current_password", ""), user["password_hash"]):
         raise HTTPException(400, "Current password is incorrect")
 
+    check_password_length(body.get("new_password", ""))   # A17
     new_hash = hash_password(body["new_password"])
     with get_conn() as conn:
         conn.cursor().execute(

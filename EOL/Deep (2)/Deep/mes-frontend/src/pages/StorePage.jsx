@@ -17,6 +17,7 @@ import { useAuth } from "../context/AuthContext";
 import { api } from "../api/client";
 import AIAssistant from "../components/AIAssistant";
 import PageTopbar from "../components/PageTopbar";
+import LineSelect from "../components/LineSelect";
 
 const MAT_TYPES = [
   { v: "RM",   label: "Raw Material" },
@@ -461,10 +462,10 @@ function IssueTab({ token, user, showToast }) {
             </select>
           </Field>
           <Field label="Line *">
-            <select value={form.line_id} onChange={e => setForm({...form, line_id: e.target.value})} style={glassSelect}>
+            <LineSelect value={form.line_id} onChange={e => setForm({...form, line_id: e.target.value})} style={glassSelect}>
               <option value="">— select —</option>
               {lines.map(l => <option key={l.id} value={l.id}>{l.line_name}</option>)}
-            </select>
+            </LineSelect>
           </Field>
           <Field label="Quantity *">
             <input type="number" min={0} step="0.001" value={form.qty}
@@ -711,10 +712,10 @@ function MaterialModal({ editing, lines, token, onClose, onSaved, onError }) {
             <input value={f.uom} onChange={e => setF({...f, uom: e.target.value.toUpperCase()})} style={glassSelect} placeholder="PCS, KG, M..." />
           </Field>
           <Field label="Line (for FG)">
-            <select value={f.line_id || ""} onChange={e => setF({...f, line_id: e.target.value})} style={glassSelect}>
+            <LineSelect value={f.line_id || ""} onChange={e => setF({...f, line_id: e.target.value})} style={glassSelect}>
               <option value="">— none —</option>
               {lines.map(l => <option key={l.id} value={l.id}>{l.line_name}</option>)}
-            </select>
+            </LineSelect>
           </Field>
           <Field label="Min Stock">
             <input type="number" value={f.min_stock} onChange={e => setF({...f, min_stock: e.target.value})} style={glassSelect} />

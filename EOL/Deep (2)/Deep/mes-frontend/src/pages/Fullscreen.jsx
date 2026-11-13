@@ -424,6 +424,34 @@ function CtDistributionChart({ data, idealCt, bgDeep, border, text, textMut, tex
   );
 }
 
+// ─── Chart.js event position under CSS zoom (2026-10-31) ─────────
+// Under CSS zoom (the LAN panel zoom, PanelZoom in App.jsx) the browser
+// reports offsetX/Y in on-screen px while Chart.js expects chart px, so
+// a tap on the CT graph picked the wrong cycle (on the 0.958-zoom panel
+// the right-hand dots opened the previous cycle's video). Divide by the
+// zoom — the on-screen / chart area ratio, which also holds when the
+// dashboard is rotated 90°. No-op when there is no zoom.
+const zoomEventPlugin = {
+  id: "zoomEventFix",
+  beforeEvent(chart, args) {
+    const e = args.event, n = e && e.native;
+    if (!n || !chart.width || !chart.height) return;
+    const r = chart.canvas.getBoundingClientRect();
+    const z = Math.sqrt((r.width * r.height) / (chart.width * chart.height));
+    if (!z || Math.abs(z - 1) < 0.005) return;
+    if (n.offsetX != null && !(n.touches || n.changedTouches)) {
+      e.x = n.offsetX / z; e.y = n.offsetY / z;
+    } else {
+      // Touch events carry no offsetX; map from the screen box (not rotated).
+      const t = (n.changedTouches && n.changedTouches[0]) || (n.touches && n.touches[0]);
+      const k = r.width / chart.width;
+      if (!t || Math.abs(r.height / chart.height - k) > 0.02) return;
+      e.x = (t.clientX - r.left) / k; e.y = (t.clientY - r.top) / k;
+    }
+    args.inChartArea = chart.isPointInArea(e);
+  },
+};
+
 // ─── Mini production bar chart for the 9:16 quad grid (r9) ───────
 // One reusable Chart.js wrapper for Weekly + Monthly mini-views in
 // the portrait 2×2 chart panel.  `mode` controls aggregation:
@@ -1355,8 +1383,14 @@ export default function Fullscreen() {
       setZoneName((cur && cur.zone_name) || "");
       if (cur && cur.zone_name === "YWD/2UA") {
         setZoneLines(
+          // 2026-10-27 — operator order (same as the Dashboard): YWD-SS, YWD
+          // Recliner, Gear Lifter, 2UA Recliner, Nut Lifting; others after, by id.
           all.filter(l => l.zone_name === "YWD/2UA" && l.is_active)
-             .sort((a, b) => a.id - b.id)
+             .sort((a, b) => {
+               const ORD = ["YWD-SS", "YWD RECLINER", "GEAR LIFTER", "2UA RECLINER", "NUT LIFTING"];
+               const r = (l) => { const i = ORD.indexOf(String(l.line_name || "").trim().toUpperCase()); return i < 0 ? 999 : i; };
+               return (r(a) - r(b)) || (a.id - b.id);
+             })
         );
       } else {
         setZoneLines([]);
@@ -1514,6 +1548,41 @@ export default function Fullscreen() {
         .catch(() => { clearTimeout(_ngTmo); /* silent — video will still play from start */ });
     }
   }, [lineId, pipActive]);
+
+  // 2026-10-27 — a robot dot on a combined-machine line (YRA-SA-6WAY) opens
+  // THIS full-screen video + comments modal, with that robot's own clip.  The
+  // comment thread is keyed per robot (part code, else M<id>-C<seq>-<date>,
+  // the sub-machine key the Supervisor board uses).
+  const openRobotVideo = useCallback((m, idx, cy) => {
+    if (!m || !cy || cy.ct_value == null) return;
+    const tok = encodeURIComponent(sessionStorage.getItem("mes_token") || "");
+    const videoSrc = `/api/submachines/${m.id}/cycle-video?cycle_seq=${cy.cycle_seq}&ng=0`
+                   + `&token=${tok}&r=${cy.cycle_seq}`;
+    const tsMs = cy.ts ? Date.parse(cy.ts) : Date.now();
+    const day = new Date(tsMs).toISOString().slice(0, 10);
+    const realPc = String(cy.part_code || "").trim().replace(/:$/, "");
+    const robot = `Robot ${idx + 1}`;
+    setVidWait(0);
+    vidWaitStart.current = performance.now();
+    vidTimerRef.current = startTimer("video",
+      String(line?.line_name || `line ${lineId}`) + ` · ${robot}`, { lineId });
+    setVideoModal({
+      cycle_seq: cy.cycle_seq,
+      part_code: realPc,
+      ct_value:  cy.ct_value,
+      ts:        tsMs,
+      is_ng:     false,
+      shift_name: cy.shift_name,
+      loading:   false,
+      video_url: videoSrc,
+      _archive_url: null,
+      _seek_offset: 0,
+      _machine_name: `${robot} · ${m.machine_name || ""}`.trim(),
+      _comment_key: realPc || `M${m.id}-C${cy.cycle_seq}-${day}`,
+    });
+    setShowModalUI(!pipActive);
+  }, [lineId, pipActive, line?.line_name]);
+  const robotSlots = (line?.hourly_slots || []).filter(sl => sl.shift_name === rt?.shift_name);
 
   // 2026-05-28 — Apply seek when BOTH the offset has been fetched
   // (from X-Video-Offset header) AND the video metadata has loaded
@@ -2607,18 +2676,16 @@ export default function Fullscreen() {
           //      to the click's X position (forgiving on small dots).
           //   2. Manual xScale.getValueForPixel fallback for dead zones
           //      between bars or outside the dataset's interaction area.
+          // `evt` (not evt.native) so both paths use the chart-px x/y that
+          // zoomEventPlugin corrected; without zoom it equals the old values.
           let idx = -1;
           const els = chart.getElementsAtEventForMode(
-            evt.native, "index", { intersect: false, axis: "x" }, false);
+            evt, "index", { intersect: false, axis: "x" }, false);
           const hit = els && els.find ? els.find(e => e.datasetIndex === 0) : null;
           if (hit) {
             idx = hit.index;
-          } else if (evt.native && chart.scales?.x) {
-            const rect = chart.canvas.getBoundingClientRect();
-            const px = evt.native.clientX != null
-              ? evt.native.clientX - rect.left
-              : (evt.native.offsetX || 0);
-            const v = chart.scales.x.getValueForPixel(px);
+          } else if (evt.x != null && chart.scales?.x) {
+            const v = chart.scales.x.getValueForPixel(evt.x);
             if (v != null) idx = Math.round(v);
           }
           if (idx < 0 || idx >= visSlice.length) return;
@@ -2751,8 +2818,23 @@ export default function Fullscreen() {
           if (evt?.native?.target) evt.native.target.style.cursor = "pointer";
         },
       },
-      plugins: [hourlySlotPlugin, cycleLabelsPlugin],
+      plugins: [hourlySlotPlugin, cycleLabelsPlugin, zoomEventPlugin],
     });
+    // 2026-10-31 — Under CSS zoom (LAN panel zoom, PanelZoom in App.jsx)
+    // a new chart sizes itself from the zoomed getBoundingClientRect (516 px
+    // instead of 539), and its ResizeObserver fixes it ~100 ms later, so the
+    // graph shrank and snapped back on every rebuild (each data poll). When
+    // the box's on-screen width differs from its layout width, give the
+    // chart the layout size straight away; the observer then sees no change.
+    try {
+      const box = cmsChartRef.current.parentElement;
+      if (Math.abs(box.getBoundingClientRect().width - box.offsetWidth) > 0.5) {
+        const cs  = getComputedStyle(box);
+        const w = box.clientWidth  - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+        const h = box.clientHeight - parseFloat(cs.paddingTop)  - parseFloat(cs.paddingBottom);
+        if (w > 0 && h > 0) cmsChartInst.current.resize(w, h);
+      }
+    } catch (_) {}
     // 2026-05-18-r9 — `isPortrait` added so the chart instance is
     // destroyed + rebuilt when the operator toggles orientation.
     // The cmsChartRef canvas lives in DIFFERENT DOM positions for
@@ -4055,28 +4137,27 @@ export default function Fullscreen() {
           ),
         }}>
 
-          {/* Overall OEE — 9:16: row a, cols 1-3 (1/4 width) */}
+          {/* Overall OEE — 9:16: row a, cols 1-3 (1/4 width)
+              2026-10-31 — "OEE" sits inside the gauge like the other three
+              gauges, and the grade pill (EXCELLENT …) sits centred under the
+              gauge. It used to sit beside the gauge, where the narrow 9:16
+              card clipped it. */}
           <div style={{...card(),
                 width: isPortrait ? "auto" : 195,
-                flexShrink: 0, display:"flex", alignItems:"center",
-                gap: isPortrait ? 8 : 12,
-                padding: isPortrait ? "6px 10px" : "8px 12px",
+                flexShrink: 0, display:"flex", flexDirection:"column",
+                alignItems:"center", justifyContent:"center",
+                padding: "4px 0",
                 ...(isPortrait ? { gridColumn: "1 / 4", gridRow: 1 } : {}),
               }}>
-            <Gauge value={oee} color={oeeColor(oee)}
-                   size={isPortrait ? 58 : 98}
+            <Gauge value={oee} color={oeeColor(oee)} label="OEE"
+                   size={isPortrait ? 70 : 98}
                    textSub={textSub} isMain={true}/>
-            <div>
-              <div style={{fontSize: isPortrait ? 8 : 10,
-                            fontWeight:800,color:textMut,letterSpacing:".08em",textTransform:"uppercase",marginBottom:2}}>
-                OEE
-              </div>
-              <span style={{padding:"2px 6px",borderRadius:99,
-                fontSize: isPortrait ? 8 : 10,
-                fontWeight:900,
-                color:oeeColor(oee),background:`${oeeColor(oee)}18`,border:`1px solid ${oeeColor(oee)}33`,
-                marginTop:4,display:"inline-block"}}>{rt.oee_grade||"—"}</span>
-            </div>
+            <span style={{padding:"1px 7px",borderRadius:99,
+              fontSize: isPortrait ? 8 : 10,
+              fontWeight:900, letterSpacing:".04em", whiteSpace:"nowrap",
+              color:oeeColor(oee),background:`${oeeColor(oee)}18`,border:`1px solid ${oeeColor(oee)}33`,
+              // tuck into the empty band under the gauge arc
+              marginTop: isPortrait ? -8 : -12}}>{rt.oee_grade||"—"}</span>
           </div>
 
           {/* Availability / Performance / Quality gauges.
@@ -4400,8 +4481,14 @@ export default function Fullscreen() {
                                 { hour:"2-digit", minute:"2-digit", hour12:false });
                             } catch { return "—"; }
                           };
-                          const Chip = ({ row, color, label }) => (
-                            <span
+                          // Plain render function, not a component: a component
+                          // declared here is a new type on every render, so React
+                          // remounted both chips ~2×/s. On LAN panels the fresh
+                          // nodes missed PanelZoom's text scale for up to 1.5 s,
+                          // the chips widened, the title wrapped to 3 lines and
+                          // the CT graph height jumped (2026-10-31).
+                          const chip = (row, color, label) => (
+                            <span key={label}
                               onClick={() => row && row.ct_value != null && openCycleVideo(row)}
                               title={row && row.ct_value != null
                                      ? `${label} ${Number(row.ct_value).toFixed(2)}s · ${row.part_code || "—"} @ ${fmtT(row.ts)} · tap for video`
@@ -4423,8 +4510,8 @@ export default function Fullscreen() {
                           );
                           return (
                             <>
-                              <Chip row={eMin} color={STATUS_CLR["RUNNING"]}   label="Min" />
-                              <Chip row={eMax} color={STATUS_CLR["BREAKDOWN"]} label="Max" />
+                              {chip(eMin, STATUS_CLR["RUNNING"],   "Min")}
+                              {chip(eMax, STATUS_CLR["BREAKDOWN"], "Max")}
                             </>
                           );
                         })()}
@@ -4508,6 +4595,19 @@ export default function Fullscreen() {
 
                 {/* Body — canvas + slider (same structure as landscape CT mode) */}
                 <div style={{flex:1, position:"relative", minHeight:0, padding:"4px 8px 2px"}}>
+                  {/* 2026-10-27 — a combined-machine line (only YRA-SA-6WAY: Mag
+                      Weld robot 1 + 2) shows one CT chart per robot here too, as
+                      landscape does; portrait drew only the single line chart. */}
+                  {comboMembers.length >= 2 && (
+                    <div style={{position:"absolute", inset:4, zIndex:6, background:bgCard}}>
+                      <CombinedRobotCharts members={comboMembers} shift={shift}
+                        token={sessionStorage.getItem("mes_token") || ""}
+                        th={{ D, bgDeep, border, text, textSub, textMut,
+                              card: { background: bgCard, border: `1px solid ${border}`, borderRadius: 8 } }}
+                        onCycleVideo={openRobotVideo} dark={dark} slots={robotSlots}
+                        chartReady={!!(chartReady && chartLib)} />
+                    </div>
+                  )}
                   <div ref={cmsScrollRef} style={{
                       position:"absolute", inset:4,
                       display:"flex", flexDirection:"column"}}>
@@ -4729,8 +4829,10 @@ export default function Fullscreen() {
                             { hour:"2-digit", minute:"2-digit", hour12:false });
                         } catch { return "—"; }
                       };
-                      const Chip = ({ row, color, label }) => (
-                        <span
+                      // Plain render function, not a component (see the
+                      // portrait strip): avoids remounting the chips each render.
+                      const chip = (row, color, label) => (
+                        <span key={label}
                           onClick={() => row && row.ct_value != null && openCycleVideo(row)}
                           title={row && row.ct_value != null
                                  ? `${label} ${Number(row.ct_value).toFixed(2)}s · ${row.part_code || "—"} @ ${fmtT(row.ts)} · tap for video`
@@ -4753,8 +4855,8 @@ export default function Fullscreen() {
                       );
                       return (
                         <>
-                          <Chip row={eMin} color={STATUS_CLR["RUNNING"]}   label="Min" />
-                          <Chip row={eMax} color={STATUS_CLR["BREAKDOWN"]} label="Max" />
+                          {chip(eMin, STATUS_CLR["RUNNING"],   "Min")}
+                          {chip(eMax, STATUS_CLR["BREAKDOWN"], "Max")}
                           <span style={{width:1,height:12,background:border,flexShrink:0}}/>
                         </>
                       );
@@ -4901,7 +5003,9 @@ export default function Fullscreen() {
                   <CombinedRobotCharts members={comboMembers} shift={shift}
                     token={sessionStorage.getItem("mes_token") || ""}
                     th={{ D, bgDeep, border, text, textSub, textMut,
-                          card: { background: bgCard, border: `1px solid ${border}`, borderRadius: 8 } }} />
+                          card: { background: bgCard, border: `1px solid ${border}`, borderRadius: 8 } }}
+                    onCycleVideo={openRobotVideo} dark={dark} slots={robotSlots}
+                    chartReady={!!(chartReady && chartLib)} />
                 </div>
               )}
               {chartMode === "ct" && (
@@ -5668,6 +5772,9 @@ export default function Fullscreen() {
               justifyContent:"space-between",alignItems:"center",marginBottom:10,flexShrink:0,
             }}>
               <span style={{fontSize:12,fontWeight:800,color:text,letterSpacing:".04em"}}>
+                {videoModal._machine_name && (
+                  <span style={{color:"#a855f7",marginRight:8}}>{videoModal._machine_name}</span>
+                )}
                 Part #{videoModal.cycle_seq}
                 {videoModal.part_code && (
                   <> {"  |  "}ID: <span style={{fontFamily:"monospace",color:"#3b82f6"}}>{String(videoModal.part_code).replace(/:$/, "")}</span></>
@@ -6111,7 +6218,7 @@ export default function Fullscreen() {
               {!videoExpanded && (
                 <FsCycleCommentsPanel
                   lineId={lineId}
-                  machineName="Final Inspection"
+                  machineName={videoModal._machine_name || "Final Inspection"}
                   /* 2026-06-05 — Key = cycle_seq + the cycle's DATE.  cycle_seq
                      resets every day, so `cycle_<seq>` alone made today's cycle
                      #N show a PAST day's cycle #N notes.  Adding the ts-date
@@ -6119,7 +6226,8 @@ export default function Fullscreen() {
                      with the Wallboard (both compute the same key from the same
                      ts).  /wallboard-cycles has no part_code, so this is the
                      shared id.  (Backend untouched, no deletes.) */
-                  partCode={`cycle_${videoModal.cycle_seq}` + (videoModal.ts ? `_${new Date(videoModal.ts).toISOString().slice(0, 10)}` : "")}
+                  partCode={videoModal._comment_key
+                            || (`cycle_${videoModal.cycle_seq}` + (videoModal.ts ? `_${new Date(videoModal.ts).toISOString().slice(0, 10)}` : ""))}
                   isFallbackKey={true}
                   isNg={!!videoModal.is_ng}
                   border={border}
@@ -8178,7 +8286,7 @@ function LossRemarkModal({ lineId, payload, onClose, onSwitchSlot, border, bgDee
       .then(d => {
         if (stop) return;
         setAndon(d);
-        const dr = {}, fb = {}, at = {}, mc = {}, sb = {};
+        const dr = {}, fb = {}, at = {}, mc = {}, sb = {}, ac = {};
         ((d && d.calls) || []).forEach(c => {
           const k = `${c.type}|${c.machine}|${c.start}`;
           // 2026-10-21 — Department is fixed (operator): a breakdown call is its
@@ -8187,9 +8295,9 @@ function LossRemarkModal({ lineId, payload, onClose, onSwitchSlot, border, bgDee
           dr[k] = c.remark || "";
           fb[k] = loss_type === "others" ? "Production" : bdDeptOf(c.type);
           at[k] = c.attended_by || "";
-          mc[k] = c.bd_machine || ""; sb[k] = c.sub_dept || "";
+          mc[k] = c.bd_machine || ""; sb[k] = c.sub_dept || ""; ac[k] = c.action || "";
         });
-        setCallDraft(dr); setCallFb(fb); setCallAt(at); setCallMc(mc); setCallSub(sb);
+        setCallDraft(dr); setCallFb(fb); setCallAt(at); setCallMc(mc); setCallSub(sb); setCallAct(ac);
       })
       .catch(() => { if (!stop) setAndon(null); });
     return () => { stop = true; };
@@ -8198,7 +8306,10 @@ function LossRemarkModal({ lineId, payload, onClose, onSwitchSlot, border, bgDee
   const [callFb,      setCallFb]      = useState({});     // Department (breakdown minor rows; API field filled_by)
   const [callAt,      setCallAt]      = useState({});     // "Attended by"
   const [callMc,      setCallMc]      = useState({});     // Machine No. picked by production (bd_machine)
-  const [callSub,     setCallSub]     = useState({});     // Sub Department (Others rows; optional)
+  const [callSub,     setCallSub]     = useState({});     // Sub Department (Others: Maintenance/Tool Room; Breakdown: Production)
+  // 2026-10-28 — breakdown row with Sub Department "Production": the action the
+  // line's own people took (saved to andon_remarks_history.action).
+  const [callAct,     setCallAct]     = useState({});
   const [callSaving,  setCallSaving]  = useState(false);
   const [callSavedAt, setCallSavedAt] = useState(null);
   const [slipView,    setSlipView]    = useState(null);   // slip opened with "View slip"
@@ -8220,10 +8331,13 @@ function LossRemarkModal({ lineId, payload, onClose, onSwitchSlot, border, bgDee
     ? (andon.calls || []).filter(c => !c.slip && !c.ongoing && c.starts_here !== false) : [];
   const t4 = (c) => [callDraft[callKey(c)], callFb[callKey(c)], callAt[callKey(c)], callMc[callKey(c)]]
     .map(v => (v || "").trim());
+  const isProd = (c) => isBd && (callSub[callKey(c)] || "") === "Production";
+  const actOf  = (c) => (isProd(c) ? (callAct[callKey(c)] || "").trim() : "");
   const rowChanged = (c) => { const [r, f, a, m] = t4(c);
     return r !== (c.remark || "") || f !== (c.filled_by || "") || a !== (c.attended_by || "")
-        || m !== (c.bd_machine || "") || (callSub[callKey(c)] || "") !== (c.sub_dept || ""); };
-  const minorMissing = minorRows.filter(c => t4(c).some(v => !v)).length;
+        || m !== (c.bd_machine || "") || (callSub[callKey(c)] || "") !== (c.sub_dept || "")
+        || actOf(c) !== (c.action || ""); };
+  const minorMissing = minorRows.filter(c => t4(c).some(v => !v) || (isProd(c) && !actOf(c))).length;
   const callChanged = callMode && (isTbl
     ? minorRows.some(rowChanged)
     : (andon.calls || []).some(
@@ -8235,6 +8349,7 @@ function LossRemarkModal({ lineId, payload, onClose, onSwitchSlot, border, bgDee
   const [attendees, setAttendees] = useState([]);
   const [toolAttendees, setToolAttendees] = useState([]);
   const [pickers,   setPickers]   = useState(null);
+  const [lineLeaders, setLineLeaders] = useState({ options: [], def: "" });
   const needPickers = isTbl && minorRows.length > 0 && !!token;
   useEffect(() => {
     if (!needPickers) return;
@@ -8253,8 +8368,21 @@ function LossRemarkModal({ lineId, payload, onClose, onSwitchSlot, border, bgDee
       .then(r => r.ok ? r.json() : null)
       .then(d => { if (!stop && d) setPickers(d); })
       .catch(() => {});
+    // 2026-10-28 — Sub Department Production: the people of THIS line — the
+    // leaders assigned to it, and the one Shift Allocation put on it for this
+    // date + shift (pre-filled).  Operator: "us line ke liye jo assign person h".
+    const lq = new URLSearchParams({ line_id: String(lineId) });
+    if (date) lq.set("date", String(date));
+    if (shift_name) lq.set("shift", String(shift_name));
+    fetch(`/api/leaders/for-line?${lq.toString()}`, h)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (!stop && d) setLineLeaders({
+        options: (d.options || []).map(o => (typeof o === "string" ? o : (o.username || o.name))).filter(Boolean),
+        def: (typeof d.default === "string" ? d.default : (d.default && (d.default.username || d.default.name))) || "",
+      }); })
+      .catch(() => {});
     return () => { stop = true; };
-  }, [needPickers, lineId, token]);
+  }, [needPickers, lineId, token, date, shift_name]);
   const saveCalls = async () => {
     if (!callMode || callSaving || !canSaveCalls) return;
     if (!token) { setError("Login required to save remark"); return; }
@@ -8265,7 +8393,8 @@ function LossRemarkModal({ lineId, payload, onClose, onSwitchSlot, border, bgDee
             .map(c => { const [r, f, a, m] = t4(c);
               return { type: c.type, machine: c.machine, start: c.start, remark: r,
                        filled_by: f, attended_by: a, bd_machine: m,
-                       sub_dept: isOth ? (callSub[callKey(c)] || "") : "" }; })
+                       sub_dept: isOth ? (callSub[callKey(c)] || "") : (isProd(c) ? "Production" : ""),
+                       action: actOf(c) }; })
         : (andon.calls || [])
         .filter(c => (callDraft[callKey(c)] || "").trim()
                      && (callDraft[callKey(c)] || "").trim() !== (c.remark || ""))
@@ -8385,7 +8514,11 @@ function LossRemarkModal({ lineId, payload, onClose, onSwitchSlot, border, bgDee
            style={{
              background: bgDeep, color: text,
              border: `1px solid ${border}`, borderRadius: 10,
-             padding: 16, width: (isBd && callMode) ? "min(1180px, 97vw)" : "min(560px, 92vw)",
+             // 2026-10-28 — wider when a row is Production (its Action Taken
+             // column would otherwise squeeze Remarks and Action, operator)
+             padding: 16, width: (isBd && callMode)
+               ? (minorRows.some(c => isProd(c)) ? "min(1500px, 98vw)" : "min(1180px, 97vw)")
+               : "min(560px, 92vw)",
              maxHeight: "85vh", display: "flex", flexDirection: "column",
              fontFamily: "'Barlow',sans-serif",
              boxShadow: "0 20px 60px rgba(0,0,0,.6)",
@@ -8442,6 +8575,13 @@ function LossRemarkModal({ lineId, payload, onClose, onSwitchSlot, border, bgDee
                 {isTbl ? (
                   <BdSlipAndMinor
                     mode={isOth ? "others" : "breakdown"} callSub={callSub} setCallSub={setCallSub}
+                    callAct={callAct} setCallAct={setCallAct}
+                    prodOk={(andon.calls || []).some(c => "action" in c)}
+                    /* the line's Shift-Allocation leader first, then the zone's leaders
+                       (/leaders/for-line falls back to EVERY leader when none is
+                       assigned to the line, so its options are not used as the list) */
+                    prodLeaders={[...new Set([lineLeaders.def, ...((pickers && pickers.leaders) || [])].filter(Boolean))]}
+                    prodDefault={lineLeaders.def}
                     calls={andon.calls || []} callKey={callKey} dur={dur} clk={clk}
                     callDraft={callDraft} setCallDraft={setCallDraft}
                     callAt={callAt} setCallAt={setCallAt}
@@ -8734,11 +8874,18 @@ function BdSlipAndMinor({ calls, callKey, dur, clk, callDraft, setCallDraft,
                           callAt, setCallAt, callMc, setCallMc, machines, leaders, toolAttendees,
                           attendees, onViewSlip, onSave, onOpenSlot, mode = "breakdown",
                           callSub = {}, setCallSub = () => {},
+                          callAct = {}, setCallAct = () => {}, prodOk = false,
+                          prodLeaders = [], prodDefault = "",
                           border, text, textSub, textMut }) {
   const oth = mode === "others";
+  // 2026-10-28 — breakdown rows: optional Sub Department "Production" -> the
+  // line leaders attend and an Action column appears (operator).
+  const prodRow = (k) => !oth && (callSub[k] || "") === "Production";
   const num = new Map(calls.map((c, i) => [callKey(c), i + 1]));
   const slipCalls = calls.filter(c => c.slip);
   const minor = calls.filter(c => !c.slip);
+  const showAct = !oth && minor.some(c => prodRow(callKey(c)));
+  const restCols = 6 + (showAct ? 1 : 0);        // columns after Total Time
   const full = (cl) => cl.end ? Math.round((Date.parse(cl.end) - Date.parse(cl.start)) / 1000) : cl.open_s;
   const durTxt = (cl) => `${dur(cl.open_s)}${full(cl) - cl.open_s > 1 ? ` of ${dur(full(cl))}` : ""}`;
   const STAGE = { COMPLETED: "#22c55e", PENDING_MAINTENANCE: "#f59e0b", PENDING_PRODUCTION: "#ef4444" };
@@ -8814,7 +8961,7 @@ function BdSlipAndMinor({ calls, callKey, dur, clk, callDraft, setCallDraft,
             {oth ? "Other loss calls" : "Minor stoppages (no slip)"}
           </div>
           <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, minWidth: 980 }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, minWidth: showAct ? 1400 : 980 }}>
               <thead>
                 <tr>
                   <th style={th}>#</th>
@@ -8824,9 +8971,10 @@ function BdSlipAndMinor({ calls, callKey, dur, clk, callDraft, setCallDraft,
                   <th style={{ ...th, width: 135 }}>Machine No.</th>
                   <th style={{ ...th, width: 170 }}>Machine Name</th>
                   <th style={{ ...th, width: 110 }}>Department</th>
-                  {oth && <th style={{ ...th, width: 130 }}>Sub Department</th>}
+                  <th style={{ ...th, width: 130 }}>Sub Department</th>
                   <th style={{ ...th, width: 160 }}>Attended by</th>
-                  <th style={th}>Remarks</th>
+                  <th style={{ ...th, minWidth: 240 }}>Remarks / Problem</th>
+                  {showAct && <th style={{ ...th, minWidth: 240 }}>Action Taken</th>}
                 </tr>
               </thead>
               <tbody>
@@ -8856,7 +9004,7 @@ function BdSlipAndMinor({ calls, callKey, dur, clk, callDraft, setCallDraft,
                       </td>
                       {cl.starts_here === false ? (
                         // carried over from an earlier hour: remarked in the hour it started
-                        <td colSpan={oth ? 6 : 5} style={{ ...td, color: textMut }}>
+                        <td colSpan={restCols} style={{ ...td, color: textMut }}>
                           <span style={{ fontStyle: "italic" }}>
                             Started in the {cl.start_slot || "previous"} hour — fill it there.
                           </span>
@@ -8875,7 +9023,7 @@ function BdSlipAndMinor({ calls, callKey, dur, clk, callDraft, setCallDraft,
                           )}
                         </td>
                       ) : cl.ongoing ? (
-                        <td colSpan={oth ? 6 : 5} style={{ ...td, color: textMut, fontStyle: "italic" }}>
+                        <td colSpan={restCols} style={{ ...td, color: textMut, fontStyle: "italic" }}>
                           Call still open — fill once it is closed.
                         </td>
                       ) : (
@@ -8903,22 +9051,34 @@ function BdSlipAndMinor({ calls, callKey, dur, clk, callDraft, setCallDraft,
                           <td style={{ ...td, color: text, fontWeight: 700 }}>
                             <div style={{ padding: "5px 0" }}>{dept}</div>
                           </td>
-                          {oth && (
-                            <td style={td}>
+                          <td style={td}>
+                            {oth ? (
                               <select value={callSub[k] || ""} style={inp}
                                 onChange={e => { const v = e.target.value; setCallSub(d => ({ ...d, [k]: v })); }}>
                                 <option value="">— (optional)</option>
                                 <option value="Maintenance">Maintenance</option>
                                 <option value="Tool Room">Tool Room</option>
                               </select>
-                            </td>
-                          )}
+                            ) : (
+                              <select value={callSub[k] || ""} style={inp}
+                                onChange={e => { const v = e.target.value; setCallSub(d => ({ ...d, [k]: v }));
+                                  // Production: the line's allocated leader fills an empty Attended by
+                                  if (v === "Production" && prodDefault && !(callAt[k] || "").trim())
+                                    setCallAt(d => ({ ...d, [k]: prodDefault })); }}>
+                                <option value="">— (optional)</option>
+                                {/* only once the API stores Production + Action (it then
+                                    returns an `action` field on every call) */}
+                                {(prodOk || callSub[k] === "Production")
+                                  && <option value="Production">Production</option>}
+                              </select>
+                            )}
+                          </td>
                           <td style={td}>
                             <NameCombo
-                              options={dept === "Production" ? leaders
+                              options={prodRow(k) ? prodLeaders : dept === "Production" ? leaders
                                        : dept === "Tool Room" ? (toolAttendees || []) : attendees}
                               value={callAt[k] || ""} maxLength={160}
-                              placeholder={dept === "Production" ? "Line leader" : "Name"}
+                              placeholder={(dept === "Production" || prodRow(k)) ? "Line leader" : "Name"}
                               style={{ ...inp, ...red(callAt[k]) }} onKeyDown={onKey}
                               onChange={v => setCallAt(d => ({ ...d, [k]: v }))} />
                           </td>
@@ -8928,6 +9088,18 @@ function BdSlipAndMinor({ calls, callKey, dur, clk, callDraft, setCallDraft,
                               onKeyDown={onKey}
                               onChange={e => { const v = e.target.value; setCallDraft(d => ({ ...d, [k]: v })); }} />
                           </td>
+                          {showAct && (
+                            <td style={td}>
+                              {prodRow(k) ? (
+                                <input value={callAct[k] || ""} maxLength={2000}
+                                  placeholder="Action taken" style={{ ...inp, ...red(callAct[k]) }}
+                                  onKeyDown={onKey}
+                                  onChange={e => { const v = e.target.value; setCallAct(d => ({ ...d, [k]: v })); }} />
+                              ) : (
+                                <div style={{ padding: "5px 0", color: textMut }}>—</div>
+                              )}
+                            </td>
+                          )}
                         </>
                       )}
                     </tr>

@@ -12,7 +12,7 @@
 import re
 import threading
 import time
-from datetime import date, timedelta
+from datetime import date, datetime as _dt, timedelta
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -480,6 +480,39 @@ def set_leader_meta(leader_id: int, body: MetaBody, user=Depends(get_current_use
 
 
 # ── Per-shift line-leader allocation (used from the Shift Allocation page) ──
+# 2026-11-12 (operator): a shift's saved line leader is LOCKED once that shift
+# has ended.  The next shift had picked the earlier shift by mistake and
+# overwrote its leader (YHB-SS 12-Nov A: changed to Bhagat at 19:19, during B
+# shift), so the Operator / Track Record signatures, Shift Compile and the
+# escalation showed the wrong leader.  After the shift end only shift incharge
+# and above (_ALLOWED) may change or clear it; a leader that was never saved can
+# still be filled in late.  Every change of a saved leader is logged.
+def _leader_shift_end(cur, line_id: int, shift_date: str, shift_name: str):
+    base = str(shift_name or "").upper()
+    if base.endswith("_OT"):
+        base = base[:-3]
+    try:
+        d = date.fromisoformat(str(shift_date)[:10])
+    except ValueError:
+        return None
+    cur.execute("""SELECT end_time, crosses_midnight FROM mes_shift_configs
+                    WHERE line_id = %s AND shift_name = %s""", (line_id, base))
+    r = cur.fetchone()
+    if not r or r["end_time"] is None:
+        return None
+    end = _dt.combine(d, r["end_time"])
+    return end + timedelta(days=1) if r["crosses_midnight"] else end
+
+
+def _leader_locked(cur, line_id: int, shift_date: str, shift_name: str, user):
+    """(locked for this user, shift end) — the shift has ended and the user is
+    below shift incharge."""
+    end = _leader_shift_end(cur, line_id, shift_date, shift_name)
+    if not end or _dt.now() < end:
+        return False, end
+    return (user or {}).get("role") not in _ALLOWED, end
+
+
 @router.get("/shift-alloc")
 def get_shift_alloc(line_id: int, date: str, shift: str,
                     user=Depends(get_current_user)):
@@ -493,9 +526,13 @@ def get_shift_alloc(line_id: int, date: str, shift: str,
                         WHERE sa.line_id=%s AND sa.shift_date=%s AND sa.shift_name=%s""",
                     (line_id, date, shift))
         r = cur.fetchone()
+        locked, end = _leader_locked(cur, line_id, date, shift, user)
         conn.commit()
     return {"leader_id": (r["leader_id"] if r else None),
-            "username": (r["username"] if r else None)}
+            "username": (r["username"] if r else None),
+            # a saved leader of an ended shift: read-only for this user
+            "locked": bool(locked and r and r["leader_id"]),
+            "shift_end": end.isoformat(timespec="minutes") if end else None}
 
 
 @router.get("/for-line")
@@ -552,6 +589,23 @@ def set_shift_alloc(body: ShiftAllocBody, user=Depends(get_current_user)):
     with get_conn() as conn:
         cur = conn.cursor()
         _ensure_shift_alloc(cur)
+        dc = dict_cursor(conn)
+        dc.execute("""SELECT sa.leader_id, a.username FROM mes_leader_shift_alloc sa
+                       LEFT JOIN mes_admin a ON a.id = sa.leader_id
+                      WHERE sa.line_id=%s AND sa.shift_date=%s AND sa.shift_name=%s""",
+                   (body.line_id, body.shift_date, body.shift_name))
+        old = dc.fetchone()
+        new_id = int(body.leader_id) if body.leader_id else None
+        changed = bool(old and old["leader_id"] != new_id)
+        locked, end = _leader_locked(dc, body.line_id, body.shift_date, body.shift_name, user)
+        if changed and locked:
+            print(f"[LEADER] blocked: line {body.line_id} {body.shift_date} {body.shift_name} "
+                  f"{old['username']} -> {new_id} by {user.get('username')} (shift ended {end:%d-%m %H:%M})",
+                  flush=True)
+            sd = str(body.shift_date)[:10]
+            raise HTTPException(409, f"{body.shift_name} shift of {sd[8:10]}-{sd[5:7]}-{sd[:4]} ended at "
+                                     f"{end:%H:%M}: its line leader {old['username']} is locked. "
+                                     f"A shift incharge or above can change it.")
         if not body.leader_id:
             cur.execute("""DELETE FROM mes_leader_shift_alloc
                             WHERE line_id=%s AND shift_date=%s AND shift_name=%s""",
@@ -566,6 +620,10 @@ def set_shift_alloc(body: ShiftAllocBody, user=Depends(get_current_user)):
                         (body.line_id, body.shift_date, body.shift_name,
                          int(body.leader_id), user.get("username")))
         conn.commit()
+    if changed:
+        print(f"[LEADER] line {body.line_id} {body.shift_date} {body.shift_name}: {old['username']} -> "
+              f"{new_id or '(none)'} by {user.get('username')}"
+              + (f" after the shift end ({end:%d-%m %H:%M})" if end and _dt.now() >= end else ""), flush=True)
     return {"ok": True, "leader_id": body.leader_id}
 
 

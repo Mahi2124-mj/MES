@@ -24,6 +24,7 @@
 import { useRef, useEffect, useMemo, useState } from "react";
 import VideoProgressBar from "../components/VideoProgressBar";
 import { useAuth } from "../context/AuthContext";
+import PageTopbar from "../components/PageTopbar";
 
 const API = "";
 
@@ -176,8 +177,14 @@ export default function CommentsHistory() {
     }).catch(() => {});
   }, [token]);
 
+  // 2026-10-28 — request ids: an older, slower response must never overwrite
+  // the one for the current filters.
+  const reqSeq = useRef(0);
+  const parSeq = useRef(0);
+
   // Fetch comments
   const refresh = () => {
+    const my = ++reqSeq.current;
     setLoading(true); setError("");
     const params = new URLSearchParams({
       date_from: dateFrom,
@@ -189,16 +196,16 @@ export default function CommentsHistory() {
     if (q)         params.set("q",          q);
     const ln = Number(lineId) || 0;
     api(`/api/lines/${ln}/comments-history?${params.toString()}`, token)
-      .then(d => { setRows(d.rows || []); setLastFetch(new Date()); })
-      .catch(e => setError(String(e.message || e)))
-      .finally(() => setLoading(false));
+      .then(d => { if (my !== reqSeq.current) return; setRows(d.rows || []); setLastFetch(new Date()); })
+      .catch(e => { if (my === reqSeq.current) setError(String(e.message || e)); })
+      .finally(() => { if (my === reqSeq.current) setLoading(false); });
     // Headline counts for the same window — how many parts ran, how many were
     // over target, and how many carried a comment.
     const sp = new URLSearchParams({ date_from: dateFrom, date_to: dateTo });
     if (shift) sp.set("shift_name", shift);
     api(`/api/lines/${ln}/comments-summary?${sp.toString()}`, token)
-      .then(d => setSummary(d))
-      .catch(() => setSummary(null));
+      .then(d => { if (my === reqSeq.current) setSummary(d); })
+      .catch(() => { if (my === reqSeq.current) setSummary(null); });
   };
 
   // Auto-load on mount
@@ -206,6 +213,7 @@ export default function CommentsHistory() {
 
   // Pareto fetch — recorded conditions (comments + NG remarks) grouped by base.
   const refreshPareto = () => {
+    const my = ++parSeq.current;
     setPLoading(true);
     const params = new URLSearchParams({ date_from: dateFrom, date_to: dateTo });
     if (shift)          params.set("shift_name", shift);
@@ -213,10 +221,22 @@ export default function CommentsHistory() {
     if (Number(zoneId)) params.set("zone_id", String(Number(zoneId)));
     const ln = Number(lineId) || 0;   // 0 = all lines (line_id is in the path)
     api(`/api/lines/${ln}/comments-pareto?${params.toString()}`, token)
-      .then(d => setPareto(d))
-      .catch(() => setPareto({ items: [], total: 0 }))
-      .finally(() => setPLoading(false));
+      .then(d => { if (my === parSeq.current) setPareto(d); })
+      .catch(() => { if (my === parSeq.current) setPareto({ items: [], total: 0 }); })
+      .finally(() => { if (my === parSeq.current) setPLoading(false); });
   };
+
+  // 2026-10-28 — the filters apply as soon as they change (operator: "pareto is
+  // not filtered as per selection" — the dropdowns showed YNC-SS / A shift while
+  // the list and Pareto still held the page-open load of every line, because
+  // nothing re-fetched until Apply was pressed).  Text fields wait 600 ms.
+  const firstFilterRun = useRef(true);
+  useEffect(() => {
+    if (firstFilterRun.current) { firstFilterRun.current = false; return undefined; }
+    const t = setTimeout(() => { refresh(); if (tab === "pareto") refreshPareto(); }, 600);
+    return () => clearTimeout(t);
+    /* eslint-disable-next-line */
+  }, [dateFrom, dateTo, shift, partCode, machineId, q, lineId, zoneId]);
   // Reload the Pareto when its tab opens (Apply re-runs it for filter changes).
   useEffect(() => {
     if (tab === "pareto") refreshPareto();
@@ -725,41 +745,14 @@ export default function CommentsHistory() {
 
   return (
     <div style={wrap}>
-     <div
-  style={{
-    display: "flex",
-    alignItems: "center",
-    marginBottom: 14,
-    position: "relative",
-  }}
->
-  <h1
-    style={{
-      fontSize: 22,
-      fontWeight: 800,
-      margin: 0,
-      color: "#0f172a",
-      position: "absolute",
-      left: "50%",
-      transform: "translateX(-50%)",
-      paddingBottom: 4,
-    }}
-  >
-    Comments History
-  </h1>
-
-  <div
-    style={{
-      fontSize: 11,
-      color: "#64748b",
-      marginLeft: "auto",
-    }}
-  >
-    {lastFetch
-      ? `Last fetched: ${lastFetch.toLocaleTimeString("en-IN")}`
-      : "—"}
-  </div>
-</div>
+      {/* 2026-11-03 — the shared two-tone page bar (black + theme blue), as on
+          Andon History, Shift Allocation and the other pages. */}
+      <PageTopbar leading="Comments" accent="History" />
+      <div style={{ fontSize: 11, color: "#64748b", textAlign: "right", margin: "6px 2px 8px" }}>
+        {lastFetch
+          ? `Last fetched: ${lastFetch.toLocaleTimeString("en-IN")}`
+          : "—"}
+      </div>
 
       {/* ── Filter bar ─────────────────────────────────── */}
       <div style={card}>

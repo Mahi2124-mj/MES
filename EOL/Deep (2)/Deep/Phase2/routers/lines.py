@@ -1914,7 +1914,9 @@ def get_cycle_video(
         if _robot:
             from routers.submachines import cycle_video as _robot_clip
             return _robot_clip(sub_id=_robot["sub_plc_id"], cycle_seq=_robot["cycle_seq"],
-                               ng=int(_robot["is_ng"]), token=token, request=request)
+                               ng=int(_robot["is_ng"]), token=token, request=request,
+                               date_str=str(hit["record_date"]) if hit and hit.get("record_date") else None,
+                               shift=None)
         # Use the row's OWN record_date from here on (archive lookup + clip
         # naming): across midnight it is the shift's date, not today's.
         if hit and hit.get("record_date"):
@@ -1987,6 +1989,14 @@ def get_cycle_video(
             # which CMS grinds on until the proxy timeout and then 404s.  120 s
             # is far above any real CT here, so normal cycles are untouched.
             _clip_dur     = max(3.0, _cycle_dur_s + 1.0)
+            # 2026-11-13 — some Final machines pulse OK when the inspection
+            # STARTS (YNC-SS: the guard door closes on L108), so their window is
+            # moved later; see clip_archive.MAIN_CLIP_SHIFT.  0 for other lines.
+            try:
+                from routers.clip_archive import main_clip_shift as _mcs
+                _shift_s = float(_mcs(line_id) or 0.0)
+            except Exception:
+                _shift_s = 0.0
             # 2026-08-11 — operator spec: an Alarm clip shows the Alarm AND the
             # cycle after it as ONE continuous video.  This log stores only the
             # cycle END (`ts`), so extending means pushing _ts_end out to the
@@ -2001,13 +2011,26 @@ def get_cycle_video(
                 )
                 _nx = cur.fetchone()
                 if _nx and _nx["ts"] and _nx["ts"] > _ts_end:
-                    _gap = (_nx["ts"] - _ts_end).total_seconds()
-                    _ts_end    = _nx["ts"]
+                    _gap = (_nx["ts"] - _ts_end).total_seconds() + _shift_s
+                    _ts_end    = _nx["ts"] + _td(seconds=_shift_s)
                     _clip_dur += _gap
+            elif _shift_s:
+                _ts_end = _ts_end + _td(seconds=_shift_s)
             _clip_cap     = float(os.environ.get("CLIP_MAX_SECONDS", "120") or 120)
             if _clip_cap > 0 and _clip_dur > _clip_cap:
                 _clip_dur = _clip_cap
             _ts_start     = _ts_end - _td(seconds=_clip_dur)
+            # A shifted window on the newest cycle ends a few seconds in the
+            # FUTURE.  Wait for it (bounded) so the clip is complete; the CMS
+            # then waits its usual ~2 s for the recorder to flush.
+            if _shift_s:
+                try:
+                    _e = _ts_end.replace(tzinfo=None) if _ts_end.tzinfo else _ts_end
+                    _wait = (_e - datetime.now()).total_seconds()
+                    if _wait > 0:
+                        time.sleep(min(_wait, _shift_s + 1.0))
+                except Exception:
+                    pass
             # 2026-07-01 — Resolve THIS line's OWN main camera instead of a
             # hardcoded default.  The old `cam_panasonic_default` made EVERY
             # line pull the .115 (YNC) feed — e.g. YCA-SS Final Inspection
@@ -4345,6 +4368,24 @@ def _hourly_loss_core(cur, line_id: int, target_date: str, shift: str) -> dict:
             } for s in slots
         ], "totals": { f"loss_{k}": 0 for k in LOSS_KEYS } | {"total_loss": 0}}
 
+    # 2026-10-25 — a shift that starts in the afternoon/evening (B, 18:30-03:15)
+    # runs past midnight: its slots that start before noon (00:05-03:15, and an
+    # OT slot after the shift) belong to the NEXT day.  Dated on record_date
+    # they looked finished at 18:30 with 0 parts, so the card showed their whole
+    # plan as speed loss (3:00:00) and OEE 0 % until midnight.
+    _night_shift = False
+    try:
+        cur.execute("SELECT start_time FROM mes_shift_configs "
+                    "WHERE line_id = %s AND shift_name = %s", (line_id, shift))
+        _shr = cur.fetchone()
+        _sst = (_shr.get("start_time") if isinstance(_shr, dict)
+                else (_shr[0] if _shr else None))
+        if isinstance(_sst, str):
+            _sst = _dt.strptime(_sst[:8], "%H:%M:%S").time()
+        _night_shift = _sst is not None and _sst.hour >= 12
+    except Exception:
+        _night_shift = False
+
     # Helper: convert HH:MM:SS time + base date → datetime, handling
     # cross-midnight slots by adding 1 day to end if needed.
     def _slot_window(slot, base_date):
@@ -4352,6 +4393,8 @@ def _hourly_loss_core(cur, line_id: int, target_date: str, shift: str) -> dict:
         st = slot["start_time"]; en = slot["end_time"]
         if isinstance(st, str): st = _dt.strptime(st, "%H:%M:%S").time()
         if isinstance(en, str): en = _dt.strptime(en, "%H:%M:%S").time()
+        if _night_shift and st.hour < 12:
+            base += timedelta(days=1)
         slot_start = base + timedelta(hours=st.hour, minutes=st.minute, seconds=st.second)
         slot_end   = base + timedelta(hours=en.hour, minutes=en.minute, seconds=en.second)
         if slot["crosses_midnight"] or slot_end <= slot_start:
@@ -4558,7 +4601,11 @@ def _hourly_loss_core(cur, line_id: int, target_date: str, shift: str) -> dict:
                     avail = sum(v for k, v in slot_loss[idx].items() if k != "loss_speed")
                     slot_loss[idx]["loss_speed"] = max(0, int(round(short * spp - avail)))
                     slot_parts[idx] = {"plan": plan_now, "ok": made, "short": short,
-                                       "sec_per_part": round(spp, 2)}
+                                       "sec_per_part": round(spp, 2),
+                                       # 2026-11-12 — slot window, so the wallboard can
+                                       # count each machine's own parts per slot
+                                       "from": slot_windows[idx][1].isoformat(timespec="seconds"),
+                                       "to":   slot_windows[idx][2].isoformat(timespec="seconds")}
                     plan_seconds += plan_now * spp
             else:
                 parts_speed = False                          # nothing recorded: keep 4b

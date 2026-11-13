@@ -16,6 +16,8 @@ const MaintenanceCAPA = lazy(() => import("./pages/MaintenanceCAPA"));
 const MaintenanceDeviations = lazy(() => import("./pages/MaintenanceDeviations"));
 const MaintenancePokaYoke = lazy(() => import("./pages/MaintenancePokaYoke"));
 const AirFlow = lazy(() => import("./pages/AirFlow"));  // 2026-10-10 Maintenance → Air Flow (chart + master)
+const PredictiveMaintenance = lazy(() => import("./pages/PredictiveMaintenance"));
+const MeetingVideos = lazy(() => import("./pages/MeetingVideos"));  // 2026-11-13 Local Meeting Video (cycle clips saved from the Supervisor wall, 10 days)  // 2026-11-12 Maintenance → Predictive Maintenance (Predictive Module :1006)
 const LogBook = lazy(() => import("./pages/LogBook"));
 const PMPanel = lazy(() => import("./pages/PMPanel"));
 const ProcessGraphs = lazy(() => import("./pages/ProcessGraphs"));
@@ -24,8 +26,13 @@ const WeldMonitor = lazy(() => import("./pages/WeldMonitor"));
 const QualityDeviations = lazy(() => import("./pages/QualityDeviations"));
 const SaFiQualityHistory = lazy(() => import("./pages/SaFiQualityHistory"));
 const RedBinLock = lazy(() => import("./pages/RedBinLock"));
+// 2026-11-11 — Line Rejection: Red Bin portal rejections zone/line-wise (read-only)
+const LineRejection = lazy(() => import("./pages/LineRejection"));
 const CmsPortal = lazy(() => import("./pages/CmsPortal"));
 const CommentsHistory = lazy(() => import("./pages/CommentsHistory"));
+const ControlBoard = lazy(() => import("./pages/ControlBoard"));
+// 2026-11-07 — Control Board View: live line dashboard + board documents (pilot YNC-SS)
+const ControlBoardView = lazy(() => import("./pages/ControlBoardView"));
 const Historical = lazy(() => import("./pages/Historical"));
 const Audit = lazy(() => import("./pages/Audit"));
 const WaitingTime = lazy(() => import("./pages/WaitingTime"));
@@ -62,10 +69,13 @@ const SixSigmaPage = lazy(() => import("./pages/SixSigmaPage"));
 const BinFillingPage = lazy(() => import("./pages/BinFillingPage"));
 const PeffSheet = lazy(() => import("./pages/PeffSheet"));
 const LogViewer = lazy(() => import("./pages/LogViewer"));
+const DbStructure = lazy(() => import("./pages/DbStructure"));  // 2026-10-29 Admin → DB Structure (tree + live)
+const MachineMap = lazy(() => import("./pages/MachineMap"));  // 2026-10-29 MES vs Maintenance machine names/numbers (read-only)
 const VideoCoverage = lazy(() => import("./pages/VideoCoverage"));
 const PyBypass = lazy(() => import("./pages/PyBypass"));
 const FaultHistory = lazy(() => import("./pages/FaultHistory"));
 import { getApkInfo } from "./api/appVersion";
+import { LanRefreshBtn, useLanRefreshSlots } from "./components/LanRefresh";
 
 // ─── Dashboard switch ──────────────────────────────────────────────────────
 // `/dashboard` shows different pages based on the logged-in user:
@@ -235,10 +245,12 @@ function NotifyPoller() {
 
 // LAN panel (65") ONLY: zoom the two shop-floor wall dashboards — Management
 // (/:line/MANAGEMENT, /fullscreen) and Supervisor (/:line/SUPERVISOR,
-// /wallboard/left) — to 90% so they fit the big screen better. Every OTHER page
-// and every non-LAN device stays at 100%. Uses `zoom` (NOT transform) so sticky
-// headers / fixed modals aren't broken — a transform re-anchors position:fixed
-// and clipped the layout when tried globally.
+// /wallboard/left) — to 90% so they fit the big screen better. Uses `zoom` (NOT
+// transform) so sticky headers / fixed modals aren't broken — a transform
+// re-anchors position:fixed and clipped the layout when tried globally.
+// 2026-10-31 — every OTHER page in the LAN app now runs at a plain 90 % zoom
+// too (operator: "poore app me 90%"). Non-LAN devices (site, phone app) stay
+// at 100 %.
 function PanelZoom() {
   const { pathname } = useLocation();
   useEffect(() => {
@@ -247,6 +259,9 @@ function PanelZoom() {
                        (p || "").startsWith("/wallboard/left/");
     let lan = false; try { lan = getApkInfo().isLan; } catch {}
     const wall = lan && isWallPath(pathname);
+    // 2026-11-03 — html.mes-lan scopes LAN-app-only CSS (index.html) so a
+    // panel layout fix never changes the website.
+    try { document.documentElement.classList.toggle("mes-lan", lan); } catch {}
 
     // 2026-09-13 — LAN wall: render TEXT at 90% only (layout untouched → the grid
     // still fills the panel, so NO bottom gap — unlike a page-zoom which shrank the
@@ -255,6 +270,18 @@ function PanelZoom() {
     // scaled ancestor, so nothing compounds. The original size is cached in
     // data-fs0 so repeated passes (for late/newly-mounted nodes) never re-scale.
     const TEXT_SCALE = 0.9;
+    const PAGE_ZOOM  = 0.9;   // non-wall pages in the LAN app
+    // Under zoom a 100vh page ends 10 % short of the screen; paint the strip
+    // below it with the page's own background colour.
+    const pageBg = (root) => {
+      for (const el of root.children) {
+        const cs = getComputedStyle(el);
+        if (cs.position === "fixed" || cs.position === "absolute" || cs.display === "none") continue;
+        const c = cs.backgroundColor;
+        if (c && c !== "transparent" && c !== "rgba(0, 0, 0, 0)") return c;
+      }
+      return "";
+    };
     const scaleText = () => {
       if (!wall) return;
       const root = document.getElementById("root");
@@ -292,17 +319,28 @@ function PanelZoom() {
           if (!isFinite(fit) || fit <= 0) fit = 1;
           fit = Math.max(0.7, Math.min(1, fit));
           z = fit >= 0.999 ? "" : String(Number(fit.toFixed(3)));
+        } else if (lan) {
+          z = String(PAGE_ZOOM);
         }
       } catch {}
       try {
         document.documentElement.style.zoom = z;
+        // --mes-zinv = 1 / zoom keeps the status-bar offsets (index.html,
+        // SlideNav, Refresh button) equal to the real bar under zoom.
+        if (z) document.documentElement.style.setProperty("--mes-zinv", String(1 / parseFloat(z)));
+        else document.documentElement.style.removeProperty("--mes-zinv");
         // Paint the whole background stack dark on the wall so any sub-pixel gap
-        // between the dark tiles blends in (no thin white dashes). Cleared off-wall.
-        const dark = wall ? "#0b1220" : "";
-        document.documentElement.style.background = dark;
-        if (document.body) document.body.style.background = dark;
+        // between the dark tiles blends in (no thin white dashes). Other LAN
+        // pages: the page's own colour, and #root stretched to the full screen.
         const root = document.getElementById("root");
-        if (root) { root.style.background = dark; root.style.minHeight = wall ? "100vh" : ""; }
+        const pageZoomed = !wall && lan;
+        const paint = wall ? "#0b1220" : (pageZoomed && root ? pageBg(root) : "");
+        document.documentElement.style.background = paint;
+        if (document.body) document.body.style.background = paint;
+        if (root) {
+          root.style.background = paint;
+          root.style.minHeight = wall ? "100vh" : (pageZoomed ? `calc(100vh / ${PAGE_ZOOM})` : "");
+        }
       } catch {}
     };
 
@@ -378,27 +416,18 @@ function PanelAutoLogin() {
 // LAN panel (65") only: a small always-on Refresh button. The app is a
 // WebView (no browser reload), so if the panel ever loses the LAN link and the
 // live data freezes, there was no way to force a reload — this gives one.
+// 2026-11-03 — pages with a header show it inside the header (LanRefreshSlot,
+// components/LanRefresh.jsx); this fixed corner copy is only for pages with no
+// slot (the TV walls: below the status bar, in line with their first row).
 function LanRefreshButton() {
+  const slots = useLanRefreshSlots();
   const { isLan } = getApkInfo();
-  if (!isLan) return null;
-  const [spin, setSpin] = useState(false);
+  if (!isLan || slots > 0) return null;
   return (
-    <button
-      onClick={() => { setSpin(true); try { window.location.reload(); } catch {} }}
-      title="Refresh"
-      aria-label="Refresh"
-      style={{
-        position: "fixed", right: 12, top: 12, zIndex: 2147483000,
-        width: 44, height: 44, borderRadius: 12,
-        border: "1px solid rgba(255,255,255,0.28)",
-        background: "rgba(15,23,42,0.72)", color: "#fff",
-        fontSize: 22, lineHeight: 1, cursor: "pointer",
-        display: "flex", alignItems: "center", justifyContent: "center",
-        boxShadow: "0 2px 10px rgba(0,0,0,.35)",
-      }}>
-      <span style={{ display: "inline-block", animation: spin ? "lanrefspin .7s linear infinite" : "none" }}>↻</span>
-      <style>{`@keyframes lanrefspin{to{transform:rotate(360deg)}}`}</style>
-    </button>
+    <LanRefreshBtn style={{
+      position: "fixed", right: 14, top: "calc(var(--cap-sat, 0px) * var(--mes-zinv, 1) + 14px)",
+      zIndex: 2147483000,
+    }} />
   );
 }
 
@@ -659,12 +688,15 @@ function AppRoutes() {
 
       {/* Network Panel — dedicated switch-network monitor (admin-only). */}
       <Route path="/network" element={
-        <Protected requiredAccess="admin"><NetworkPanel /></Protected>
+        <Protected requiredAccess="admin"><NetworkPanel standalone /></Protected>
       } />
         <Route path="/logs" element={<Protected requiredAccess="logs"><LogViewer /></Protected>} />
+        <Route path="/db-structure" element={<Protected requiredAccess="db-structure"><DbStructure /></Protected>} />
+        <Route path="/machine-map" element={<Protected requiredAccess="machine-map"><MachineMap /></Protected>} />
         {/* 2026-10-09 — CMS web app inside the MES, admin role only */}
         <Route path="/cms-portal" element={<Protected requiredAccess="cms-portal"><CmsPortal /></Protected>} />
         <Route path="/video-coverage" element={<Protected requiredAccess="video-coverage"><VideoCoverage /></Protected>} />
+        <Route path="/meeting-videos" element={<Protected requiredAccess="meeting-videos"><MeetingVideos /></Protected>} />
         <Route path="/py-bypass" element={<Protected requiredAccess="py-bypass"><PyBypass /></Protected>} />
         {/* 2026-09-27 — faults recorded from the bits assigned in Fault Config */}
         <Route path="/fault-history" element={<Protected requiredAccess="fault-history"><FaultHistory /></Protected>} />
@@ -738,6 +770,9 @@ function AppRoutes() {
       } />
       <Route path="/andon-history" element={
         <Protected requiredAccess="andon-history"><AndonHistory /></Protected>
+      } />
+      <Route path="/line-rejection" element={
+        <Protected requiredAccess="line-rejection"><LineRejection /></Protected>
       } />
       <Route path="/prod-breakdown-slip" element={
         <Protected requiredAccess="prod-breakdown-slip"><ProdBreakdownSlip /></Protected>
@@ -822,6 +857,9 @@ function AppRoutes() {
       <Route path="/maintenance-air-flow" element={
         <Protected requiredAccess="maintenance-air-flow"><AirFlow /></Protected>
       } />
+      <Route path="/maintenance-predictive" element={
+        <Protected requiredAccess="maintenance-predictive"><PredictiveMaintenance /></Protected>
+      } />
 
       {/* Quality Dashboard — zone-tile health view.  Each zone tile rolls
           up its lines' PY pass/fail; click to expand and see lines with
@@ -865,6 +903,20 @@ function AppRoutes() {
           Permissions had no effect — the toggle would have lied. */}
       <Route path="/comments-history" element={
         <Protected requiredAccess="comments-history"><CommentsHistory /></Protected>
+      } />
+
+      {/* 2026-11-04 — Control Board: the line-side board documents (UI demo). */}
+      <Route path="/control-board" element={
+        <Protected requiredAccess="control-board"><ControlBoard /></Protected>
+      } />
+      {/* 2026-11-07 — Control Board View (operator's "Rev. Control Board View"
+          sheet): one line's live dashboard merged with its board documents.
+          Pilot on YNC-SS (the default when the URL names no line). */}
+      <Route path="/control-board-view" element={
+        <Protected bare requiredAccess="control-board-view"><ControlBoardView /></Protected>
+      } />
+      <Route path="/control-board-view/:lineId" element={
+        <Protected bare requiredAccess="control-board-view"><ControlBoardView /></Protected>
       } />
 
       {/* Catch-all */}

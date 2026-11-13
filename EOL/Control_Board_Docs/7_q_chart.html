@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Portrait Q Chart - Perfect No Overlap</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        body {
+            background: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .toolbar {
+            width: 100%;
+            max-width: 1100px;
+            display: flex;
+            justify-content: space-between;
+            background: #fff;
+            padding: 12px 20px;
+            border: 1px solid #ccc;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .toolbar button {
+            padding: 6px 16px;
+            font-weight: bold;
+            cursor: pointer;
+            border: 1px solid #333;
+            margin-left: 8px;
+        }
+
+        .page-container {
+            width: 1050px;
+            background: #fff;
+            padding: 20px;
+            border: 2px solid #000;
+            position: relative;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+        }
+
+        /* Header Section */
+        .header-box {
+            width: 100%;
+            margin-bottom: 20px;
+        }
+
+        .header-table {
+            width: 100%;
+            border-collapse: collapse;
+            border: 2px solid #000;
+        }
+
+        .header-table td {
+            border: 2px solid #000;
+            padding: 8px;
+            text-align: center;
+        }
+
+        .logo-box {
+            border: 2px solid #000;
+            color: #000;
+            font-weight: bold;
+            font-size: 16px;
+            display: inline-block;
+            padding: 8px 12px;
+        }
+
+        .main-title {
+            font-size: 28px;
+            font-weight: bold;
+            font-family: "Times New Roman", serif;
+        }
+
+        .sub-title {
+            font-size: 32px;
+            font-weight: bold;
+            font-family: "Times New Roman", serif;
+            letter-spacing: 2px;
+        }
+
+        .info-text {
+            font-size: 16px;
+            font-weight: bold;
+            text-align: left;
+            padding-left: 10px !important;
+        }
+
+        .inp {
+            border: none;
+            border-bottom: 1px dashed #000;
+            outline: none;
+            font-size: 16px;
+            font-weight: bold;
+            width: 150px;
+            font-family: Arial;
+        }
+
+        /* Chart Area */
+        .chart-area {
+            position: relative;
+            width: 1000px;
+            height: 1100px;
+            margin: 0 auto;
+            background: #fff;
+        }
+
+        #svg-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        #months-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        /* Month Container */
+        .month-container {
+            position: absolute;
+            width: 170px;
+            height: 160px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-end;
+            pointer-events: auto;
+        }
+
+        .pyramid-row {
+            display: flex;
+            justify-content: center;
+            margin-top: -1px;
+        }
+
+        .bubble {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            border: 1.5px solid #000;
+            background: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 0 1px;
+            user-select: none;
+            color: #000;
+        }
+
+        .bubble:hover {
+            background-color: #e8f0fe;
+        }
+
+        .month-label {
+            font-size: 14px;
+            font-weight: bold;
+            margin-top: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Colors */
+        .bg-green {
+            background-color: #00B050 !important;
+            color: #fff !important;
+            border-color: #00B050;
+        }
+
+        .bg-yellow {
+            background-color: #FFC000 !important;
+            color: #000 !important;
+            border-color: #FFC000;
+        }
+
+        .bg-red {
+            background-color: #FF0000 !important;
+            color: #fff !important;
+            border-color: #FF0000;
+        }
+
+        /* Legend Area */
+        .legend-table {
+            width: 100%;
+            border-collapse: collapse;
+            border: 2px solid #000;
+            margin-top: 20px;
+        }
+
+        .legend-table td {
+            border: 2px solid #000;
+            text-align: left;
+            padding: 15px 20px;
+            font-size: 15px;
+            font-weight: bold;
+            vertical-align: middle;
+        }
+
+        .legend-circle {
+            display: inline-block;
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            border: 2px solid #000;
+            vertical-align: middle;
+            margin-right: 12px;
+        }
+
+        @media print {
+            body {
+                padding: 0;
+                background: #fff;
+            }
+
+            .toolbar {
+                display: none;
+            }
+
+            .page-container {
+                border: none;
+                box-shadow: none;
+                padding: 0;
+                width: 100%;
+                max-width: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="toolbar">
+        <div>
+            <strong>PORTRAIT Q CHART (ZERO OVERLAP - 100% PERFECT)</strong>
+            <span style="margin-left:20px; color:#555;">(Click Bubbles: Blank &rarr; Green &rarr; Yellow &rarr;
+                Red)</span>
+        </div>
+        <div>
+            <button onclick="location.reload()">Clear Data</button>
+            <button onclick="window.print()" style="background:#0056b3; color:#fff;">Print / Save PDF</button>
+        </div>
+    </div>
+
+    <div class="page-container">
+
+        <!-- Header -->
+        <div class="header-box">
+            <table class="header-table">
+                <tr>
+                    <td rowspan="2" style="width:15%;">
+                        <div class="logo-box">YOUR<br>COMPANY</div>
+                    </td>
+                    <td class="main-title">YOUR COMPANY DEVICE INDIA PVT. LTD.</td>
+                </tr>
+                <tr>
+                    <td class="sub-title">Q CHART</td>
+                </tr>
+                <tr>
+                    <td colspan="2" style="padding:0; border:none;">
+                        <table style="width:100%; border-collapse:collapse;">
+                            <tr>
+                                <td class="info-text"
+                                    style="width:50%; border-top:2px solid #000; border-right:2px solid #000; padding:10px;">
+                                    CUSTOMER :- <input class="inp" value="KML/BSL"></td>
+                                <td class="info-text" style="width:50%; border-top:2px solid #000; padding:10px;">YEAR
+                                    :- <input class="inp" placeholder="e.g. 2026"></td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="chart-area">
+            <svg id="svg-bg" width="1000" height="1100"></svg>
+            <div id="months-layer"></div>
+        </div>
+
+        <table class="legend-table">
+            <tr>
+                <td style="width:33.33%;">
+                    <div class="legend-circle" style="background-color: #00B050;"></div> No Complaint
+                </td>
+                <td style="width:33.33%;">
+                    <div class="legend-circle" style="background-color: #FFC000;"></div> Complaint from resident
+                    engineer
+                </td>
+                <td style="width:33.33%;">
+                    <div class="legend-circle" style="background-color: #FF0000;"></div> Complaint From customer
+                </td>
+            </tr>
+        </table>
+
+    </div>
+
+    <script>
+        // 1. GENERATE SVG OVAL BACKGROUND
+        const cx = 500, cy = 520;
+        const rxOuter = 440, ryOuter = 500;
+        const rxInner = 210, ryInner = 260;
+
+        let svg = `<ellipse cx="${cx}" cy="${cy}" rx="${rxInner}" ry="${ryInner}" fill="none" stroke="#000" stroke-width="2.5"/>`;
+        svg += `<ellipse cx="${cx}" cy="${cy}" rx="${rxOuter}" ry="${ryOuter}" fill="none" stroke="#000" stroke-width="2.5"/>`;
+
+        // Dividing Lines
+        const divAngles = [-75, -45, -15, 15, 75, 105, 135, 165, 195, 225, 255];
+
+        divAngles.forEach(a => {
+            let angle = a * Math.PI / 180;
+            let x1 = cx + rxInner * Math.cos(angle);
+            let y1 = cy + ryInner * Math.sin(angle);
+            let x2 = cx + rxOuter * Math.cos(angle);
+            let y2 = cy + ryOuter * Math.sin(angle);
+            svg += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#000" stroke-width="2.5"/>`;
+        });
+
+        // The tail replaces the 45-degree line.
+        svg += `<polygon points="630,680 970,1050 1100,950 720,620" fill="#fff" />`;
+
+        // Tail boundaries at exact tangents / angles to look like a solid 'Q' punch
+        svg += `<line x1="660" y1="710" x2="950" y2="1000" stroke="#000" stroke-width="2.5"/>`;
+        svg += `<line x1="700" y1="670" x2="990" y2="960" stroke="#000" stroke-width="2.5"/>`;
+        svg += `<line x1="950" y1="1000" x2="990" y2="960" stroke="#000" stroke-width="2.5"/>`;
+
+        document.getElementById('svg-bg').innerHTML = svg;
+
+        // 2. GENERATE PERFECTLY ALIGNED PYRAMIDS
+        const months = [
+            { name: "JULY", days: 31, angle: -90, offsetX: 0, offsetY: -12 },
+            { name: "AUGUST", days: 31, angle: -60, offsetX: 0, offsetY: -10 },
+            { name: "SEPTEMBER", days: 30, angle: -30, offsetX: -8, offsetY: -3 },
+            { name: "OCTOBER", days: 31, angle: 0, offsetX: -12, offsetY: 0 },
+            { name: "NOVEMBER", days: 30, angle: 30, offsetX: -18, offsetY: -8 },
+            { name: "DECEMBER", days: 31, angle: 60, offsetX: -5, offsetY: 8 },
+            { name: "JANUARY", days: 31, angle: 90, offsetX: 0, offsetY: 18 },
+            { name: "FEBRUARY", days: 29, angle: 120, offsetX: 8, offsetY: 12 },
+            { name: "MARCH", days: 31, angle: 150, offsetX: 12, offsetY: -3 },
+            { name: "APRIL", days: 30, angle: 180, offsetX: 15, offsetY: 0 },
+            { name: "MAY", days: 31, angle: 210, offsetX: 12, offsetY: -3 },
+            { name: "JUNE", days: 30, angle: 240, offsetX: 5, offsetY: -8 }
+        ];
+
+        const rxMid = 325, ryMid = 385;
+        let monthsHTML = '';
+
+        months.forEach(m => {
+            let rad = m.angle * Math.PI / 180;
+            let x = cx + rxMid * Math.cos(rad) - 85 + m.offsetX;
+            let y = cy + ryMid * Math.sin(rad) - 80 + m.offsetY;
+
+            let html = `<div class="month-container" style="left:${x}px; top:${y}px;">`;
+
+            let day = 1;
+            const rowSizes = [3, 4, 5, 6, 7, 6];
+
+            rowSizes.forEach(size => {
+                if (day > m.days) return;
+                html += `<div class="pyramid-row">`;
+                for (let i = 0; i < size; i++) {
+                    if (day <= m.days) {
+                        html += `<div class="bubble" onclick="toggleColor(this)">${day}</div>`;
+                        day++;
+                    }
+                }
+                html += `</div>`;
+            });
+
+            html += `<div class="month-label">${m.name}</div>`;
+            html += `</div>`;
+            monthsHTML += html;
+        });
+
+        document.getElementById('months-layer').innerHTML = monthsHTML;
+
+        function toggleColor(el) {
+            if (el.classList.contains('bg-green')) {
+                el.classList.remove('bg-green'); el.classList.add('bg-yellow');
+            } else if (el.classList.contains('bg-yellow')) {
+                el.classList.remove('bg-yellow'); el.classList.add('bg-red');
+            } else if (el.classList.contains('bg-red')) {
+                el.classList.remove('bg-red');
+            } else {
+                el.classList.add('bg-green');
+            }
+        }
+    </script>
+
+</body>
+
+</html>

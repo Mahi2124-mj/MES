@@ -234,8 +234,12 @@ def _user_scope(user):
 # "supervisor dashboard pe pending slip ka number, click pe kaun si aur kab se".
 # A slip belongs to the shift instance its breakdown started in; once that
 # shift ended FILL_GRACE_MIN ago, only these roles may still submit it.
-FILL_GRACE_MIN = 30
-LATE_FILL_ROLES = {"shift_incharge", "admin"}
+# 2026-10-31 — operator: the slip may be filled only until 3 h after the shift
+# ends, then it is locked; the Shift Incharge loses the late-fill right too
+# ("lock hone ke baad shift incharge bhi na bhar sake").  Admin keeps it as
+# the one correction path.
+FILL_GRACE_MIN = 180
+LATE_FILL_ROLES = {"admin"}
 _ALIAS_TTL = 300.0
 _alias_cache = {"at": 0.0, "map": {}}
 
@@ -723,9 +727,8 @@ def submit(sid: int, body: ProdSubmit, user=Depends(get_current_user)):
         vals.append(_blank_to_none(value))
 
     _uid = user.get("id") if isinstance(user, dict) else None
-    # 30-minute rule: past the slip's shift end + FILL_GRACE_MIN only the
-    # Shift Incharge (or admin) may still fill it.  Enforced here, not just by
-    # a greyed button.
+    # Fill window: past the slip's shift end + FILL_GRACE_MIN (3 h) the slip is
+    # locked for everyone but admin.  Enforced here, not just by a greyed button.
     with _maint_conn() as rconn:
         rcur = rconn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
         rcur.execute(f"""SELECT line, shift, slip_date, bd_start_date, bd_start_time
@@ -737,8 +740,8 @@ def submit(sid: int, body: ProdSubmit, user=Depends(get_current_user)):
         if (deadline and datetime.now() > deadline
                 and (user or {}).get("role") not in LATE_FILL_ROLES):
             raise HTTPException(403,
-                f"Shift ended more than {FILL_GRACE_MIN} min ago "
-                f"(window closed {deadline:%d-%b %H:%M}). Only the Shift Incharge can fill this slip now.")
+                f"This slip is locked: the fill window closed {deadline:%d-%b %H:%M} "
+                f"({FILL_GRACE_MIN // 60} h after the shift ended).")
     with _maint_conn(write=True) as conn:
         cur = conn.cursor()
         # forward-only stage guard: must still be PENDING_PRODUCTION

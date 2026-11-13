@@ -3,7 +3,7 @@
 AUTO-GENERATED COLLECTOR — YSD-SS
 Line ID    : 4
 Table      : ysd_l2_dashboard
-Generated  : 2026-08-19 09:42:33
+Generated  : 2026-11-03 14:10:44
 
 DO NOT EDIT MANUALLY — regenerate via admin panel if config changes.
 """

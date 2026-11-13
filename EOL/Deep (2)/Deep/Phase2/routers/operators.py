@@ -82,7 +82,7 @@ def _ensure_tables() -> None:
         # is the per-request-DDL pattern that deadlocked handlers elsewhere.
         cur.execute("""ALTER TABLE mes_operators
             ADD COLUMN IF NOT EXISTS skill_level INTEGER NOT NULL DEFAULT 1
-            CHECK (skill_level BETWEEN 1 AND 5)""")
+            CHECK (skill_level BETWEEN 0 AND 4)""")
         # Which zone the operator belongs to (Employee Master → Zone column).
         # Nullable: existing operators show "—" until someone sets it.
         cur.execute("ALTER TABLE mes_operators ADD COLUMN IF NOT EXISTS zone_id INTEGER")
@@ -96,7 +96,7 @@ class OperatorUpsert(BaseModel):
     full_name:   str
     employee_id: Optional[str] = None
     department:  Optional[str] = None
-    skill_level: int  = 1   # 1=trainee … 5=expert; matched against process.required_skill_level
+    skill_level: int  = 1   # 0=OJT, 1=L1 … 4=L4 (30-Oct: OJT added, L5 removed); matched against process.required_skill_level
     is_active:   bool = True
     zone_id:     Optional[int] = None
 
@@ -122,7 +122,7 @@ def create_operator(body: OperatorUpsert, admin=Depends(require_admin)):
                 RETURNING id
             """, (body.badge_code.strip(), body.full_name.strip(),
                   body.employee_id, body.department,
-                  max(1, min(5, body.skill_level)), body.is_active, body.zone_id))
+                  max(0, min(4, body.skill_level)), body.is_active, body.zone_id))
             new_id = cur.fetchone()[0]
             conn.commit()
         except Exception as exc:
@@ -174,7 +174,7 @@ def edit_operator(operator_id: int, body: OperatorUpsert, admin=Depends(require_
                               skill_level=%s, is_active=%s, zone_id=%s
                         WHERE id=%s""",
                     (badge, name, body.employee_id, body.department,
-                     max(1, min(5, body.skill_level)), body.is_active, body.zone_id,
+                     max(0, min(4, body.skill_level)), body.is_active, body.zone_id,
                      operator_id))
         if cur.rowcount == 0:
             conn.rollback()

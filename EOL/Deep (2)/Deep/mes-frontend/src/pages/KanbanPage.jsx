@@ -18,6 +18,7 @@ import { useAuth } from "../context/AuthContext";
 import { api } from "../api/client";
 import AIAssistant from "../components/AIAssistant";
 import PageTopbar from "../components/PageTopbar";
+import LineSelect from "../components/LineSelect";
 
 const WINDOWS = [
   { key: "12pm",    label: "12 PM",      api: "12PM"    },
@@ -144,9 +145,9 @@ function DashboardTab({ token, showToast }) {
     <div>
       <div style={{ display: "flex", gap: 12, marginBottom: 16, alignItems: "end", flexWrap: "wrap" }}>
         <Field label="Line">
-          <select value={lineId} onChange={e => setLineId(Number(e.target.value))} style={{ ...glassSelect, minWidth: 180 }}>
+          <LineSelect value={lineId} onChange={e => setLineId(Number(e.target.value))} style={{ ...glassSelect, minWidth: 180 }}>
             {lines.map(l => <option key={l.id} value={l.id}>{l.line_name}</option>)}
-          </select>
+          </LineSelect>
         </Field>
         <Field label="Date">
           <input type="date" value={onDate} onChange={e => setOnDate(e.target.value)} style={glassSelect} />
@@ -257,9 +258,9 @@ function PlanTab({ token, showToast }) {
     <div>
       <div style={{ display: "flex", gap: 10, marginBottom: 16, alignItems: "end" }}>
         <Field label="Line">
-          <select value={lineId} onChange={e => setLineId(Number(e.target.value))} style={{ ...glassSelect, minWidth: 180 }}>
+          <LineSelect value={lineId} onChange={e => setLineId(Number(e.target.value))} style={{ ...glassSelect, minWidth: 180 }}>
             {lines.map(l => <option key={l.id} value={l.id}>{l.line_name}</option>)}
-          </select>
+          </LineSelect>
         </Field>
         <Field label="Month">
           <input type="month" value={yearMonth} onChange={e => setYearMonth(e.target.value)} style={glassSelect} />
@@ -357,9 +358,9 @@ function LinksTab({ token, showToast, isAdmin }) {
     <div>
       <div style={{ display: "flex", gap: 10, marginBottom: 16, alignItems: "end" }}>
         <Field label="Line">
-          <select value={lineId} onChange={e => setLineId(Number(e.target.value))} style={{ ...glassSelect, minWidth: 180 }}>
+          <LineSelect value={lineId} onChange={e => setLineId(Number(e.target.value))} style={{ ...glassSelect, minWidth: 180 }}>
             {lines.map(l => <option key={l.id} value={l.id}>{l.line_name}</option>)}
-          </select>
+          </LineSelect>
         </Field>
       </div>
 

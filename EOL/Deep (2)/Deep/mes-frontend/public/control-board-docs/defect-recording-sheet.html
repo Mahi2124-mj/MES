@@ -1,0 +1,1342 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>DEFECT RECORDING SHEET - TOYOTA BOSHOKU</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: "Calibri", "Arial", sans-serif;
+        }
+
+        body {
+            background: #e9ecef;
+            margin: 0;
+            padding: 15px;
+        }
+
+        .toolbar {
+            width: 1650px;
+            margin: 0 auto 10px auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #fff;
+            padding: 8px 15px;
+            border: 1px solid #bbb;
+            font-size: 13px;
+        }
+
+        .toolbar button {
+            padding: 6px 14px;
+            font-size: 13px;
+            font-weight: bold;
+            cursor: pointer;
+            border: 1px solid #333;
+            background: #f8f9fa;
+            margin-left: 8px;
+        }
+
+        .toolbar button.primary {
+            background: #0056b3;
+            color: #fff;
+            border-color: #004085;
+        }
+
+        .sheet-wrapper {
+            width: 1674px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        table.excel-sheet {
+            border-collapse: collapse;
+            table-layout: fixed;
+            width: 1650px;
+            background: #fff;
+            border: 2px solid #000;
+        }
+
+        table.excel-sheet td,
+        table.excel-sheet th {
+            padding: 0;
+            margin: 0;
+            vertical-align: middle;
+            text-align: center;
+            font-size: 11px;
+            color: #000;
+            position: relative;
+            border: 1px solid #000;
+        }
+
+        .bt-m {
+            border-top: 2px solid #000 !important;
+        }
+
+        .bb-m {
+            border-bottom: 2px solid #000 !important;
+        }
+
+        .bl-m {
+            border-left: 2px solid #000 !important;
+        }
+
+        .br-m {
+            border-right: 2px solid #000 !important;
+        }
+
+        .cell-input {
+            width: 100%;
+            height: 100%;
+            min-height: 28px;
+            border: none;
+            outline: none;
+            background: transparent;
+            text-align: center;
+            font-size: 11px;
+            font-family: inherit;
+            padding: 2px 4px;
+            display: block;
+        }
+
+        .cell-input:focus {
+            background: rgba(255, 249, 196, 0.7);
+        }
+
+        .left-input {
+            text-align: left;
+            padding-left: 6px;
+        }
+
+        .header-input {
+            border: none;
+            border-bottom: 1px solid #000;
+            outline: none;
+            background: transparent;
+            font-weight: bold;
+            font-size: 12px;
+            width: 95px;
+        }
+
+        @media print {
+            body {
+                background: #fff;
+                padding: 0;
+            }
+
+            .toolbar {
+                display: none;
+            }
+
+            .sheet-wrapper {
+                box-shadow: none;
+                padding: 0;
+                width: 100%;
+            }
+
+            * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="toolbar">
+        <div>
+            <strong>TOYOTA BOSHOKU - DEFECT RECORDING SHEET (EXACT FORMAT)</strong>
+        </div>
+        <div>
+            
+            <button class="primary cb-pdf-btn" onclick="cbSavePdf()">Save PDF</button><button onclick="window.print()">Print</button>
+        </div>
+    </div>
+
+    <div class="sheet-wrapper">
+        <table class="excel-sheet" id="mainDefectSheet">
+            <colgroup>
+                <col style="width: 45px;"> <!-- A: S.NO. -->
+                <col style="width: 135px;"> <!-- B: DEFECT NAME -->
+                <col style="width: 155px;"> <!-- C: SUB PROCESS -->
+                <col style="width: 75px;"> <!-- D: LAST MONTH REJECTION -->
+                <col style="width: 75px;"> <!-- E: DUE TO -->
+                <script>
+                    for (let i = 1; i <= 31; i++) {
+                        document.write('<col style="width: 33px;">');
+                    }
+                </script>
+                <col style="width: 55px;"> <!-- AK: TOTAL -->
+            </colgroup>
+            <tbody>
+
+
+                <!-- Header Row 1 -->
+                <tr style="height: 44px;">
+                    <td colspan="2" rowspan="2" class="bt-m bb-m bl-m br-m" style="padding: 2px;">
+                        <div style="text-align:center; line-height:1;"><img src="data:image/png;base64,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" alt="Toyota Boshoku" style="display:block; margin:0 auto; height:44px; max-width:100%; object-fit:contain;"><div style="margin-top:3px; font-size:9px; font-weight:bold; color:#000; letter-spacing:0.3px; white-space:nowrap;">TOYOTA BOSHOKU</div></div>
+                    </td>
+                    <td colspan="29" class="bt-m bb-m bl-m br-m"
+                        style="font-family: Arial, sans-serif; font-size: 22px; font-weight: bold; text-align: center;">
+                        TOYOTA BOSHOKU DEVICE INDIA PVT. LTD.
+                    </td>
+                    <td colspan="2" class="bt-m bb-m bl-m br-m text-left"
+                        style="font-size: 12px; font-weight: bold; padding-left: 6px;">MONTH:-</td>
+                    <td colspan="4" class="bt-m bb-m bl-m br-m text-left"
+                        style="font-size: 12px; font-weight: bold; padding-left: 6px;">
+                        <input type="text" class="header-input">
+                    </td>
+                </tr>
+
+                <!-- Header Row 2 -->
+                <tr style="height: 32px;">
+                    <td colspan="29" class="bt-m bb-m bl-m br-m"
+                        style="font-family: Arial, sans-serif; font-size: 16px; font-weight: bold; text-align: center;">
+                        DEFECT RECORDING SHEET
+                    </td>
+                    <td colspan="2" class="bt-m bb-m bl-m br-m text-left"
+                        style="font-size: 12px; font-weight: bold; padding-left: 6px;">LINE NAME:-</td>
+                    <td colspan="4" class="bt-m bb-m bl-m br-m text-left"
+                        style="font-size: 12px; font-weight: bold; padding-left: 6px;">
+                        <input type="text" class="header-input">
+                    </td>
+                </tr>
+
+                <tr style="height:28px;">
+                    <td colspan="31" class="bt-m bb-m bl-m" style="border:none;"></td>
+                    <td colspan="2" class="bt-m bb-m bl-m br-t" style="font-weight:bold;">SHIFT:-</td>
+                    <td colspan="4" class="bt-m bb-m bl-t br-m" style="font-weight:bold;"><input
+                            style="text-align: center;" type="text" class="header-input" value="A"></td>
+                </tr>
+
+                <!-- Table Header Row 5 & 6 -->
+                <tr style="height: 36px; font-weight: bold; font-size: 12px; background: #f0f4f8;">
+                    <td rowspan="2" class="bt-m bb-m bl-m">S.NO.</td>
+                    <td rowspan="2" colspan="2" class="bt-m bb-m">DEFECT NAME</td>
+                    <td rowspan="2" class="bt-m bb-m">LAST MONTH<br>REJECTION</td>
+                    <td rowspan="2" class="bt-m bb-m">DUE TO</td>
+                    <td colspan="31" class="bt-m bb-t br-m">DATES</td>
+                    <td rowspan="2" class="bt-m bb-m br-m">TOTAL</td>
+                </tr>
+                <tr style="height: 26px; font-weight: bold; font-size: 11px; background: #f0f4f8;">
+                    <script>
+                        for (let d = 1; d <= 31; d++) {
+                            document.write('<td class="bt-t bb-m">' + d + '</td>');
+                        }
+                    </script>
+                </tr>
+
+
+                <tr style="height: 32px;">
+                    <td rowspan="2" class="bl-m">1</td>
+                    <td rowspan="2" colspan="2"><input type="text" class="cell-input left-input"
+                            placeholder="Defect Name"></td>
+                    <td rowspan="2"><input type="text" class="cell-input"></td>
+                    <td>PROCESS</td>
+                    <script>for (let i = 0; i < 31; i++)document.write('<td><input type="text" class="cell-input"></td>');</script>
+                    <td class="br-m"><input type="text" class="cell-input"
+                            style="font-weight:bold; background:#f7fafc;"></td>
+                </tr>
+                <tr style="height: 32px;">
+                    <td>CHILD PART</td>
+                    <script>for (let i = 0; i < 31; i++)document.write('<td><input type="text" class="cell-input"></td>');</script>
+                    <td class="br-m"><input type="text" class="cell-input"
+                            style="font-weight:bold; background:#f7fafc;"></td>
+                </tr>
+
+                <tr style="height: 32px;">
+                    <td rowspan="2" class="bl-m">2</td>
+                    <td rowspan="2" colspan="2"><input type="text" class="cell-input left-input"
+                            placeholder="Defect Name"></td>
+                    <td rowspan="2"><input type="text" class="cell-input"></td>
+                    <td>PROCESS</td>
+                    <script>for (let i = 0; i < 31; i++)document.write('<td><input type="text" class="cell-input"></td>');</script>
+                    <td class="br-m"><input type="text" class="cell-input"
+                            style="font-weight:bold; background:#f7fafc;"></td>
+                </tr>
+                <tr style="height: 32px;">
+                    <td>CHILD PART</td>
+                    <script>for (let i = 0; i < 31; i++)document.write('<td><input type="text" class="cell-input"></td>');</script>
+                    <td class="br-m"><input type="text" class="cell-input"
+                            style="font-weight:bold; background:#f7fafc;"></td>
+                </tr>
+
+                <tr style="height: 32px;">
+                    <td rowspan="2" class="bl-m">3</td>
+                    <td rowspan="2" colspan="2"><input type="text" class="cell-input left-input"
+                            placeholder="Defect Name"></td>
+                    <td rowspan="2"><input type="text" class="cell-input"></td>
+                    <td>PROCESS</td>
+                    <script>for (let i = 0; i < 31; i++)document.write('<td><input type="text" class="cell-input"></td>');</script>
+                    <td class="br-m"><input type="text" class="cell-input"
+                            style="font-weight:bold; background:#f7fafc;"></td>
+                </tr>
+                <tr style="height: 32px;">
+                    <td>CHILD PART</td>
+                    <script>for (let i = 0; i < 31; i++)document.write('<td><input type="text" class="cell-input"></td>');</script>
+                    <td class="br-m"><input type="text" class="cell-input"
+                            style="font-weight:bold; background:#f7fafc;"></td>
+                </tr>
+
+                <tr style="height: 32px;">
+                    <td rowspan="2" class="bl-m">4</td>
+                    <td rowspan="2" colspan="2"><input type="text" class="cell-input left-input"
+                            placeholder="Defect Name"></td>
+                    <td rowspan="2"><input type="text" class="cell-input"></td>
+                    <td>PROCESS</td>
+                    <script>for (let i = 0; i < 31; i++)document.write('<td><input type="text" class="cell-input"></td>');</script>
+                    <td class="br-m"><input type="text" class="cell-input"
+                            style="font-weight:bold; background:#f7fafc;"></td>
+                </tr>
+                <tr style="height: 32px;">
+                    <td>CHILD PART</td>
+                    <script>for (let i = 0; i < 31; i++)document.write('<td><input type="text" class="cell-input"></td>');</script>
+                    <td class="br-m"><input type="text" class="cell-input"
+                            style="font-weight:bold; background:#f7fafc;"></td>
+                </tr>
+
+                <tr style="height: 32px;">
+                    <td rowspan="2" class="bl-m">5</td>
+                    <td rowspan="2" colspan="2"><input type="text" class="cell-input left-input"
+                            placeholder="Defect Name"></td>
+                    <td rowspan="2"><input type="text" class="cell-input"></td>
+                    <td>PROCESS</td>
+                    <script>for (let i = 0; i < 31; i++)document.write('<td><input type="text" class="cell-input"></td>');</script>
+                    <td class="br-m"><input type="text" class="cell-input"
+                            style="font-weight:bold; background:#f7fafc;"></td>
+                </tr>
+                <tr style="height: 32px;">
+                    <td>CHILD PART</td>
+                    <script>for (let i = 0; i < 31; i++)document.write('<td><input type="text" class="cell-input"></td>');</script>
+                    <td class="br-m"><input type="text" class="cell-input"
+                            style="font-weight:bold; background:#f7fafc;"></td>
+                </tr>
+
+                <tr style="height: 32px;">
+                    <td rowspan="2" class="bl-m">6</td>
+                    <td rowspan="2" colspan="2"><input type="text" class="cell-input left-input"
+                            placeholder="Defect Name"></td>
+                    <td rowspan="2"><input type="text" class="cell-input"></td>
+                    <td>PROCESS</td>
+                    <script>for (let i = 0; i < 31; i++)document.write('<td><input type="text" class="cell-input"></td>');</script>
+                    <td class="br-m"><input type="text" class="cell-input"
+                            style="font-weight:bold; background:#f7fafc;"></td>
+                </tr>
+                <tr style="height: 32px;">
+                    <td>CHILD PART</td>
+                    <script>for (let i = 0; i < 31; i++)document.write('<td><input type="text" class="cell-input"></td>');</script>
+                    <td class="br-m"><input type="text" class="cell-input"
+                            style="font-weight:bold; background:#f7fafc;"></td>
+                </tr>
+
+                <tr style="height: 32px;">
+                    <td rowspan="2" class="bl-m">7</td>
+                    <td rowspan="2" colspan="2"><input type="text" class="cell-input left-input"
+                            placeholder="Defect Name"></td>
+                    <td rowspan="2"><input type="text" class="cell-input"></td>
+                    <td>PROCESS</td>
+                    <script>for (let i = 0; i < 31; i++)document.write('<td><input type="text" class="cell-input"></td>');</script>
+                    <td class="br-m"><input type="text" class="cell-input"
+                            style="font-weight:bold; background:#f7fafc;"></td>
+                </tr>
+                <tr style="height: 32px;">
+                    <td>CHILD PART</td>
+                    <script>for (let i = 0; i < 31; i++)document.write('<td><input type="text" class="cell-input"></td>');</script>
+                    <td class="br-m"><input type="text" class="cell-input"
+                            style="font-weight:bold; background:#f7fafc;"></td>
+                </tr>
+
+
+
+                <!-- Abnormal Handling -->
+                <tr style="height: 32px;">
+                    <td class="bl-m"></td>
+                    <td colspan="4" style="font-weight:bold; font-size:11px; text-align:left; padding-left:6px;">DEFECT
+                        DUE TO ABNORMAL HANDLING</td>
+                    <script>for (let i = 0; i < 31; i++)document.write('<td><input type="text" class="cell-input"></td>');</script>
+                    <td class="br-m"><input type="text" class="cell-input"
+                            style="font-weight:bold; background:#f7fafc;"></td>
+                </tr>
+
+                <tr style="height: 30px;">
+                    <td colspan="37" class="bl-m br-m"
+                        style="font-weight: bold; font-size: 12px; background: #f8f9fa; text-align: left; padding-left: 8px;">
+                        FINAL INSPECTION DEFECT</td>
+                </tr>
+
+                <tr style="height: 32px;">
+                    <td rowspan="2" class="bl-m">1</td>
+                    <td rowspan="2" colspan="2"><input type="text" class="cell-input left-input"
+                            placeholder="Defect Name"></td>
+                    <td rowspan="2"><input type="text" class="cell-input"></td>
+                    <td>PROCESS</td>
+                    <script>for (let i = 0; i < 31; i++)document.write('<td><input type="text" class="cell-input"></td>');</script>
+                    <td class="br-m"><input type="text" class="cell-input"
+                            style="font-weight:bold; background:#f7fafc;"></td>
+                </tr>
+                <tr style="height: 32px;">
+                    <td>CHILD PART</td>
+                    <script>for (let i = 0; i < 31; i++)document.write('<td><input type="text" class="cell-input"></td>');</script>
+                    <td class="br-m"><input type="text" class="cell-input"
+                            style="font-weight:bold; background:#f7fafc;"></td>
+                </tr>
+
+                <tr style="height: 32px;">
+                    <td rowspan="2" class="bl-m">2</td>
+                    <td rowspan="2" colspan="2"><input type="text" class="cell-input left-input"
+                            placeholder="Defect Name"></td>
+                    <td rowspan="2"><input type="text" class="cell-input"></td>
+                    <td>PROCESS</td>
+                    <script>for (let i = 0; i < 31; i++)document.write('<td><input type="text" class="cell-input"></td>');</script>
+                    <td class="br-m"><input type="text" class="cell-input"
+                            style="font-weight:bold; background:#f7fafc;"></td>
+                </tr>
+                <tr style="height: 32px;">
+                    <td>CHILD PART</td>
+                    <script>for (let i = 0; i < 31; i++)document.write('<td><input type="text" class="cell-input"></td>');</script>
+                    <td class="br-m"><input type="text" class="cell-input"
+                            style="font-weight:bold; background:#f7fafc;"></td>
+                </tr>
+
+                <tr style="height: 32px;">
+                    <td rowspan="2" class="bl-m">3</td>
+                    <td rowspan="2" colspan="2"><input type="text" class="cell-input left-input"
+                            placeholder="Defect Name"></td>
+                    <td rowspan="2"><input type="text" class="cell-input"></td>
+                    <td>PROCESS</td>
+                    <script>for (let i = 0; i < 31; i++)document.write('<td><input type="text" class="cell-input"></td>');</script>
+                    <td class="br-m"><input type="text" class="cell-input"
+                            style="font-weight:bold; background:#f7fafc;"></td>
+                </tr>
+                <tr style="height: 32px;">
+                    <td>CHILD PART</td>
+                    <script>for (let i = 0; i < 31; i++)document.write('<td><input type="text" class="cell-input"></td>');</script>
+                    <td class="br-m"><input type="text" class="cell-input"
+                            style="font-weight:bold; background:#f7fafc;"></td>
+                </tr>
+
+                <tr style="height: 32px;">
+                    <td rowspan="2" class="bl-m">4</td>
+                    <td rowspan="2" colspan="2"><input type="text" class="cell-input left-input"
+                            placeholder="Defect Name"></td>
+                    <td rowspan="2"><input type="text" class="cell-input"></td>
+                    <td>PROCESS</td>
+                    <script>for (let i = 0; i < 31; i++)document.write('<td><input type="text" class="cell-input"></td>');</script>
+                    <td class="br-m"><input type="text" class="cell-input"
+                            style="font-weight:bold; background:#f7fafc;"></td>
+                </tr>
+                <tr style="height: 32px;">
+                    <td>CHILD PART</td>
+                    <script>for (let i = 0; i < 31; i++)document.write('<td><input type="text" class="cell-input"></td>');</script>
+                    <td class="br-m"><input type="text" class="cell-input"
+                            style="font-weight:bold; background:#f7fafc;"></td>
+                </tr>
+
+                <tr style="height: 34px;">
+                    <td colspan="3" class="bt-m bb-m bl-m"
+                        style="font-weight: bold; font-size: 12px; text-align: left; padding-left: 8px;">TOTAL REJECTION
+                        QTY.</td>
+                    <td colspan="2" class="bt-m bb-m"></td>
+                    <script>
+                        for (let d = 1; d <= 31; d++) {
+                            document.write('<td class="bt-m bb-m"><input type="text" class="cell-input" style="font-weight:bold;"></td>');
+                        }
+                    </script>
+                    <td class="bt-m bb-m br-m"><input type="text" class="cell-input"
+                            style="font-weight:bold; background:#e2e8f0;"></td>
+                </tr>
+
+                <tr style="height: 30px;">
+                    <td colspan="5" class="bl-m text-left"
+                        style="font-weight: bold; font-size: 11px; padding-left: 8px;">1/DAY (SIGNATURE BY LINE LEADER /
+                        SUPERVISOR)</td>
+                    <script>for (let i = 0; i < 31; i++)document.write('<td><input type="text" class="cell-input" style="font-size:10px;"></td>');</script>
+                    <td class="br-m"></td>
+                </tr>
+                <tr style="height: 30px;">
+                    <td colspan="5" class="bb-m bl-m text-left"
+                        style="font-weight: bold; font-size: 11px; padding-left: 8px;">1/WEEK (SIGNATURE BY MANAGER)
+                    </td>
+                    <script>for (let i = 0; i < 31; i++)document.write('<td class="bb-m"></td>');</script>
+                    <td class="bb-m br-m"></td>
+                </tr>
+
+
+
+                <tr style="height:28px;">
+                    <td colspan="31" class="bt-m bb-m bl-m" style="border:none;"></td>
+                    <td colspan="2" class="bt-m bb-m bl-m br-t" style="font-weight:bold;">SHIFT:-</td>
+                    <td colspan="4" class="bt-m bb-m bl-t br-m" style="font-weight:bold;"><input
+                            style="text-align: center;" type="text" class="header-input" value="B"></td>
+                </tr>
+
+                <!-- Table Header Row 5 & 6 -->
+                <tr style="height: 36px; font-weight: bold; font-size: 12px; background: #f0f4f8;">
+                    <td rowspan="2" class="bt-m bb-m bl-m">S.NO.</td>
+                    <td rowspan="2" colspan="2" class="bt-m bb-m">DEFECT NAME</td>
+                    <td rowspan="2" class="bt-m bb-m">LAST MONTH<br>REJECTION</td>
+                    <td rowspan="2" class="bt-m bb-m">DUE TO</td>
+                    <td colspan="31" class="bt-m bb-t br-m">DATES</td>
+                    <td rowspan="2" class="bt-m bb-m br-m">TOTAL</td>
+                </tr>
+                <tr style="height: 26px; font-weight: bold; font-size: 11px; background: #f0f4f8;">
+                    <script>
+                        for (let d = 1; d <= 31; d++) {
+                            document.write('<td class="bt-t bb-m">' + d + '</td>');
+                        }
+                    </script>
+                </tr>
+
+                <tr style="height: 32px;">
+                    <td rowspan="2" class="bl-m">1</td>
+                    <td rowspan="2" colspan="2"><input type="text" class="cell-input left-input"
+                            placeholder="Defect Name"></td>
+                    <td rowspan="2"><input type="text" class="cell-input"></td>
+                    <td>PROCESS</td>
+                    <script>for (let i = 0; i < 31; i++)document.write('<td><input type="text" class="cell-input"></td>');</script>
+                    <td class="br-m"><input type="text" class="cell-input"
+                            style="font-weight:bold; background:#f7fafc;"></td>
+                </tr>
+                <tr style="height: 32px;">
+                    <td>CHILD PART</td>
+                    <script>for (let i = 0; i < 31; i++)document.write('<td><input type="text" class="cell-input"></td>');</script>
+                    <td class="br-m"><input type="text" class="cell-input"
+                            style="font-weight:bold; background:#f7fafc;"></td>
+                </tr>
+
+                <tr style="height: 32px;">
+                    <td rowspan="2" class="bl-m">2</td>
+                    <td rowspan="2" colspan="2"><input type="text" class="cell-input left-input"
+                            placeholder="Defect Name"></td>
+                    <td rowspan="2"><input type="text" class="cell-input"></td>
+                    <td>PROCESS</td>
+                    <script>for (let i = 0; i < 31; i++)document.write('<td><input type="text" class="cell-input"></td>');</script>
+                    <td class="br-m"><input type="text" class="cell-input"
+                            style="font-weight:bold; background:#f7fafc;"></td>
+                </tr>
+                <tr style="height: 32px;">
+                    <td>CHILD PART</td>
+                    <script>for (let i = 0; i < 31; i++)document.write('<td><input type="text" class="cell-input"></td>');</script>
+                    <td class="br-m"><input type="text" class="cell-input"
+                            style="font-weight:bold; background:#f7fafc;"></td>
+                </tr>
+
+                <tr style="height: 32px;">
+                    <td rowspan="2" class="bl-m">3</td>
+                    <td rowspan="2" colspan="2"><input type="text" class="cell-input left-input"
+                            placeholder="Defect Name"></td>
+                    <td rowspan="2"><input type="text" class="cell-input"></td>
+                    <td>PROCESS</td>
+                    <script>for (let i = 0; i < 31; i++)document.write('<td><input type="text" class="cell-input"></td>');</script>
+                    <td class="br-m"><input type="text" class="cell-input"
+                            style="font-weight:bold; background:#f7fafc;"></td>
+                </tr>
+                <tr style="height: 32px;">
+                    <td>CHILD PART</td>
+                    <script>for (let i = 0; i < 31; i++)document.write('<td><input type="text" class="cell-input"></td>');</script>
+                    <td class="br-m"><input type="text" class="cell-input"
+                            style="font-weight:bold; background:#f7fafc;"></td>
+                </tr>
+
+                <tr style="height: 32px;">
+                    <td rowspan="2" class="bl-m">4</td>
+                    <td rowspan="2" colspan="2"><input type="text" class="cell-input left-input"
+                            placeholder="Defect Name"></td>
+                    <td rowspan="2"><input type="text" class="cell-input"></td>
+                    <td>PROCESS</td>
+                    <script>for (let i = 0; i < 31; i++)document.write('<td><input type="text" class="cell-input"></td>');</script>
+                    <td class="br-m"><input type="text" class="cell-input"
+                            style="font-weight:bold; background:#f7fafc;"></td>
+                </tr>
+                <tr style="height: 32px;">
+                    <td>CHILD PART</td>
+                    <script>for (let i = 0; i < 31; i++)document.write('<td><input type="text" class="cell-input"></td>');</script>
+                    <td class="br-m"><input type="text" class="cell-input"
+                            style="font-weight:bold; background:#f7fafc;"></td>
+                </tr>
+
+                <tr style="height: 32px;">
+                    <td rowspan="2" class="bl-m">5</td>
+                    <td rowspan="2" colspan="2"><input type="text" class="cell-input left-input"
+                            placeholder="Defect Name"></td>
+                    <td rowspan="2"><input type="text" class="cell-input"></td>
+                    <td>PROCESS</td>
+                    <script>for (let i = 0; i < 31; i++)document.write('<td><input type="text" class="cell-input"></td>');</script>
+                    <td class="br-m"><input type="text" class="cell-input"
+                            style="font-weight:bold; background:#f7fafc;"></td>
+                </tr>
+                <tr style="height: 32px;">
+                    <td>CHILD PART</td>
+                    <script>for (let i = 0; i < 31; i++)document.write('<td><input type="text" class="cell-input"></td>');</script>
+                    <td class="br-m"><input type="text" class="cell-input"
+                            style="font-weight:bold; background:#f7fafc;"></td>
+                </tr>
+
+                <tr style="height: 32px;">
+                    <td rowspan="2" class="bl-m">6</td>
+                    <td rowspan="2" colspan="2"><input type="text" class="cell-input left-input"
+                            placeholder="Defect Name"></td>
+                    <td rowspan="2"><input type="text" class="cell-input"></td>
+                    <td>PROCESS</td>
+                    <script>for (let i = 0; i < 31; i++)document.write('<td><input type="text" class="cell-input"></td>');</script>
+                    <td class="br-m"><input type="text" class="cell-input"
+                            style="font-weight:bold; background:#f7fafc;"></td>
+                </tr>
+                <tr style="height: 32px;">
+                    <td>CHILD PART</td>
+                    <script>for (let i = 0; i < 31; i++)document.write('<td><input type="text" class="cell-input"></td>');</script>
+                    <td class="br-m"><input type="text" class="cell-input"
+                            style="font-weight:bold; background:#f7fafc;"></td>
+                </tr>
+
+                <tr style="height: 32px;">
+                    <td rowspan="2" class="bl-m">7</td>
+                    <td rowspan="2" colspan="2"><input type="text" class="cell-input left-input"
+                            placeholder="Defect Name"></td>
+                    <td rowspan="2"><input type="text" class="cell-input"></td>
+                    <td>PROCESS</td>
+                    <script>for (let i = 0; i < 31; i++)document.write('<td><input type="text" class="cell-input"></td>');</script>
+                    <td class="br-m"><input type="text" class="cell-input"
+                            style="font-weight:bold; background:#f7fafc;"></td>
+                </tr>
+                <tr style="height: 32px;">
+                    <td>CHILD PART</td>
+                    <script>for (let i = 0; i < 31; i++)document.write('<td><input type="text" class="cell-input"></td>');</script>
+                    <td class="br-m"><input type="text" class="cell-input"
+                            style="font-weight:bold; background:#f7fafc;"></td>
+                </tr>
+
+
+
+                <!-- Abnormal Handling -->
+                <tr style="height: 32px;">
+                    <td class="bl-m"></td>
+                    <td colspan="4" style="font-weight:bold; font-size:11px; text-align:left; padding-left:6px;">DEFECT
+                        DUE TO ABNORMAL HANDLING</td>
+                    <script>for (let i = 0; i < 31; i++)document.write('<td><input type="text" class="cell-input"></td>');</script>
+                    <td class="br-m"><input type="text" class="cell-input"
+                            style="font-weight:bold; background:#f7fafc;"></td>
+                </tr>
+
+                <tr style="height: 30px;">
+                    <td colspan="37" class="bl-m br-m"
+                        style="font-weight: bold; font-size: 12px; background: #f8f9fa; text-align: left; padding-left: 8px;">
+                        FINAL INSPECTION DEFECT</td>
+                </tr>
+
+                <script>
+                    for (let f = 1; f <= 4; f++) {
+                        document.write('<tr style="height: 32px;"><td rowspan="2" class="bl-m">' + (f + 1) + '</td><td rowspan="2" colspan="2"><input type="text" class="cell-input left-input" placeholder="Defect Name"></td><td rowspan="2"><input type="text" class="cell-input"></td><td>PROCESS</td>');
+                        for (let d = 0; d < 31; d++) document.write('<td><input type="text" class="cell-input"></td>');
+                        document.write('<td class="br-m"><input type="text" class="cell-input" style="font-weight:bold; background:#f7fafc;"></td></tr>');
+
+                        document.write('<tr style="height: 32px;"><td>CHILD PART</td>');
+                        for (let d = 0; d < 31; d++) document.write('<td><input type="text" class="cell-input"></td>');
+                        document.write('<td class="br-m"><input type="text" class="cell-input" style="font-weight:bold; background:#f7fafc;"></td></tr>');
+                    }
+                </script>
+
+                <tr style="height: 34px;">
+                    <td colspan="3" class="bt-m bb-m bl-m"
+                        style="font-weight: bold; font-size: 12px; text-align: left; padding-left: 8px;">TOTAL REJECTION
+                        QTY.</td>
+                    <td colspan="2" class="bt-m bb-m"></td>
+                    <script>
+                        for (let d = 1; d <= 31; d++) {
+                            document.write('<td class="bt-m bb-m"><input type="text" class="cell-input" style="font-weight:bold;"></td>');
+                        }
+                    </script>
+                    <td class="bt-m bb-m br-m"><input type="text" class="cell-input"
+                            style="font-weight:bold; background:#e2e8f0;"></td>
+                </tr>
+
+                <tr style="height: 30px;">
+                    <td colspan="5" class="bl-m text-left"
+                        style="font-weight: bold; font-size: 11px; padding-left: 8px;">1/DAY (SIGNATURE BY LINE LEADER /
+                        SUPERVISOR)</td>
+                    <script>for (let i = 0; i < 31; i++)document.write('<td><input type="text" class="cell-input" style="font-size:10px;"></td>');</script>
+                    <td class="br-m"></td>
+                </tr>
+                <tr style="height: 30px;">
+                    <td colspan="5" class="bb-m bl-m text-left"
+                        style="font-weight: bold; font-size: 11px; padding-left: 8px;">1/WEEK (SIGNATURE BY MANAGER)
+                    </td>
+                    <script>for (let i = 0; i < 31; i++)document.write('<td class="bb-m"></td>');</script>
+                    <td class="bb-m br-m"></td>
+                </tr>
+
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        function clearSheet() {
+            if (confirm("Clear all entries on this sheet?")) {
+                document.querySelectorAll('#mainDefectSheet input').forEach(input => {
+                    if (input.value !== 'MAR.26' && input.value !== 'A' && input.value !== 'B') input.value = '';
+                });
+            }
+        }
+    </script>
+
+
+<script src="cb-pdf.js?v=70e072f2"></script>
+
+<script>
+/* MES Control Board: fit-to-width zoom requested by the page around this frame. */
+(function () {
+  var ok = window.CSS && CSS.supports && CSS.supports("zoom", "0.5");
+  window.addEventListener("message", function (e) {
+    if (e.source !== window.parent || !e.data || e.data.type !== "cb-zoom" || !ok) return;
+    var z = Number(e.data.zoom) || 1;
+    document.documentElement.style.zoom = (z === 1) ? "" : String(z);
+    try { window.parent.postMessage({ type: "cb-zoom-ok", zoom: z }, "*"); } catch (x) {}
+  });
+})();
+</script>
+
+<script>
+/* MES Control Board: line / month dropdowns (lines posted in by the Control Board). */
+(function () {
+  var CFG = {"title": "Defect Recording Sheet", "four": false};
+  var MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  function norm(t) { return String(t || "").replace(/\s+/g, " ").trim().toUpperCase(); }
+  function field(re) {
+    var tds = document.querySelectorAll("td");
+    for (var i = 0; i < tds.length; i++) {
+      if (!re.test(norm(tds[i].textContent))) continue;
+      var nx = tds[i].nextElementSibling;
+      return tds[i].querySelector("input") || (nx && nx.querySelector("input")) || null;
+    }
+    return null;
+  }
+  var f = {};
+  if (CFG.four) {
+    var hi = document.querySelectorAll("#tbody4M tr:nth-child(2) input.header-input");
+    f = { line: hi[0], month: hi[1], year: hi[2] };
+  } else {
+    f = { line: field(/^LINE( NAME)? ?:-?$/), month: field(/^MONTH ?:-?$/) };
+  }
+  if (!f.line && !f.month) return;
+  var css = document.createElement("style");
+  css.textContent = "select.cb-sel{background:transparent;cursor:pointer;outline:none;padding:0 2px;box-sizing:border-box;" +
+    "max-width:100%}select.cb-sel:focus{background:#fff9c4}";
+  document.head.appendChild(css);
+  // a dropdown in place of the text box: same font, as wide as the cell allows
+  function toSelect(input) {
+    if (!input) return null;
+    var cs = getComputedStyle(input), td = input.parentNode, sel = document.createElement("select");
+    var room = td.getBoundingClientRect().right - input.getBoundingClientRect().left - 6;
+    sel.className = "cb-sel";
+    sel.style.cssText = "font-family:" + cs.fontFamily + ";font-size:" + cs.fontSize + ";font-weight:" + cs.fontWeight +
+      ";color:" + cs.color + ";width:" + Math.max(input.offsetWidth, Math.floor(room)) + "px;height:" +
+      Math.max(22, input.offsetHeight) + "px;border:none;border-bottom:" + cs.borderBottomWidth + " " +
+      cs.borderBottomStyle + " " + cs.borderBottomColor + ";text-align:" + cs.textAlign + ";text-align-last:" + cs.textAlign;
+    td.replaceChild(sel, input);
+    return sel;
+  }
+  var lineSel = toSelect(f.line), monthSel = toSelect(f.month), yearSel = toSelect(f.year);
+  var now = new Date(), Y = now.getFullYear(), M = now.getMonth();
+  function two(n) { return (n < 10 ? "0" : "") + n; }
+  if (monthSel && yearSel) {
+    monthSel.innerHTML = MONTHS.map(function (m, i) { return '<option value="' + two(i + 1) + '">' + m + "</option>"; }).join("");
+    yearSel.innerHTML = [Y, Y - 1].map(function (y) { return '<option value="' + y + '">' + y + "</option>"; }).join("");
+    monthSel.value = two(M + 1); yearSel.value = String(Y);
+  } else if (monthSel) {
+    var h = "";
+    for (var yy = Y; yy >= Y - 1; yy--) for (var mm = 11; mm >= 0; mm--)
+      h += '<option value="' + yy + "-" + two(mm + 1) + '">' + MONTHS[mm] + " " + yy + "</option>";
+    monthSel.innerHTML = h; monthSel.value = Y + "-" + two(M + 1);
+  }
+  if (lineSel) lineSel.innerHTML = '<option value="">Select line</option>';
+  function month() {
+    if (monthSel && yearSel) return yearSel.value + "-" + monthSel.value;
+    return monthSel ? monthSel.value : "";
+  }
+  function setMonth(ym) {
+    if (!ym || !/^\d{4}-\d{2}$/.test(ym)) return;
+    if (monthSel && yearSel) {
+      if (![].some.call(yearSel.options, function (o) { return o.value === ym.slice(0, 4); }))
+        yearSel.insertAdjacentHTML("beforeend", '<option value="' + ym.slice(0, 4) + '">' + ym.slice(0, 4) + "</option>");
+      yearSel.value = ym.slice(0, 4); monthSel.value = ym.slice(5, 7);
+    } else if (monthSel) {
+      if (![].some.call(monthSel.options, function (o) { return o.value === ym; }))
+        monthSel.insertAdjacentHTML("beforeend", '<option value="' + ym + '">' + MONTHS[+ym.slice(5, 7) - 1] + " " + ym.slice(0, 4) + "</option>");
+      monthSel.value = ym;
+    }
+  }
+  function sel() { return { line_id: lineSel ? lineSel.value : "", month: month() }; }
+  function tell() { try { window.parent.postMessage({ type: "cb-select", line_id: sel().line_id, month: sel().month }, "*"); } catch (x) {} }
+  [lineSel, monthSel, yearSel].forEach(function (s) { if (s) s.addEventListener("change", tell); });
+  function buildLine(lines, pick) {
+    if (!lineSel) return;
+    var keep = pick != null ? String(pick) : lineSel.value, zone = null;
+    var html = '<option value="">Select line</option>';
+    lines.forEach(function (l) {
+      var z = l.zone_name || "No zone";
+      if (z !== zone) { html += (zone === null ? "" : "</optgroup>") + '<optgroup label="' + z.replace(/"/g, "&quot;") + '">'; zone = z; }
+      html += '<option value="' + l.line_id + '">' + String(l.line_name || "").replace(/</g, "&lt;") + "</option>";
+    });
+    lineSel.innerHTML = html + (zone === null ? "" : "</optgroup>");
+    lineSel.value = keep;
+    if (lineSel.value !== keep) lineSel.value = "";
+  }
+  // status note in the toolbar (screen only, like the toolbar)
+  var bar = document.querySelector(".toolbar > div"), note = document.createElement("span");
+  note.style.cssText = "margin-left:14px;font-size:12px;font-weight:600;color:#475569";
+  if (bar) bar.appendChild(note);
+  window.cbNote = function (t) { note.textContent = t || ""; };
+  window.addEventListener("message", function (e) {
+    if (e.source !== window.parent || !e.data || e.data.type !== "cb-data") return;
+    buildLine(Array.isArray(e.data.lines) ? e.data.lines : [], e.data.line_id);
+    setMonth(e.data.month);
+    if (typeof window.cbOnData === "function") window.cbOnData(e.data, sel());
+  });
+  // Save PDF file name: "<sheet> - <line> - <Mon YYYY>"
+  window.cbPdfName = function () {
+    var ln = lineSel && lineSel.value ? lineSel.options[lineSel.selectedIndex].text : "";
+    var m = month(), mo = /^\d{4}-\d{2}$/.test(m) ? MONTHS[+m.slice(5, 7) - 1] + " " + m.slice(0, 4) : "";
+    return [CFG.title, window.cbTitleExtra || "", ln, mo].filter(Boolean).join(" - ");
+  };
+})();
+</script>
+
+<style>
+#mainDefectSheet input.cb-rj { color: #b91c1c; font-weight: 700; }
+#mainDefectSheet input.cb-rj-name { color: #0f172a; font-weight: 700; }
+#mainDefectSheet input.cb-rj-link { cursor: pointer; }
+#mainDefectSheet input.cb-rj-link:hover { background: #fee2e2; outline: 1px solid #fca5a5; }
+#mainDefectSheet input.cb-f { font-weight: 700; }
+@media print { #mainDefectSheet input.cb-rj-link:hover { background: transparent; outline: none; } }
+</style>
+<script>
+/* MES Control Board: Defect Recording Sheet filled from the Red Bin rejections. */
+(function () {
+  var T = document.getElementById("mainDefectSheet");
+  if (!T) return;
+  var MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  function txt(el) { return String(el.textContent || "").replace(/\s+/g, " ").trim().toUpperCase(); }
+  function inp(td) { return td ? td.querySelector("input") : null; }
+  // the last 32 cells of a row = 31 days + TOTAL
+  function grid(tr) {
+    var tds = tr.children, n = tds.length;
+    if (n < 32) return null;
+    var days = [];
+    for (var i = n - 32; i < n - 1; i++) days.push(tds[i]);
+    return { days: days, total: tds[n - 1] };
+  }
+  // ---- read the format: a block per "SHIFT:-" header
+  var blocks = [], cur = null, section = "proc", slot = null;
+  [].forEach.call(T.rows, function (tr) {
+    var tds = [].slice.call(tr.children), lab = tds.map(txt), t = txt(tr);
+    var si = -1;
+    lab.forEach(function (x, i) { if (si < 0 && /^SHIFT ?:-?$/.test(x)) si = i; });
+    if (si >= 0) {
+      cur = { shift: inp(tds[si + 1]), proc: [], fi: [], abnormal: null, total: null,
+              rows: [], sign: null, done: false };
+      blocks.push(cur); section = "proc"; slot = null;
+      return;
+    }
+    if (!cur) return;
+    // 2026-11-12: TOTAL REJECTION QTY = a formula over every quantity row of the
+    // block (Red Bin, typed, Recliner welding spatter); the leader-sign row
+    if (/^TOTAL REJECTION QTY/.test(t)) { cur.total = grid(tr); cur.done = true; return; }
+    if (/SIGNATURE BY LINE LEADER/.test(t)) { cur.sign = grid(tr); return; }
+    if (!cur.done) {
+      var gr = grid(tr);
+      if (gr && inp(gr.days[0]) && inp(gr.total)) cur.rows.push(gr);
+    }
+    if (t === "FINAL INSPECTION DEFECT") { section = "fi"; slot = null; return; }
+    var pi = lab.indexOf("PROCESS"), ci = lab.indexOf("CHILD PART");
+    var name = tr.querySelector('input[placeholder="Defect Name"]');
+    if (pi >= 0 && name) {
+      slot = { name: name, last: inp(tds[pi - 1]), process: grid(tr), child: null };
+      cur[section].push(slot);
+      return;
+    }
+    if (ci >= 0 && slot && !slot.child) { slot.child = grid(tr); return; }
+    if (/ABNORMAL HANDLING/.test(t)) { cur.abnormal = grid(tr); return; }
+  });
+  if (!blocks.length) return;
+
+  // ---- formula (2026-11-12, operator: "total rejection quantity me total ka
+  // formula bhi check kar lena, naa ho toh lagaa dena"): each row's TOTAL = its
+  // 31 days, TOTAL REJECTION QTY per day = all rows of the block, its TOTAL =
+  // the month.  Recalculated on every entry; formula cells are read-only.
+  function num(i) { if (!i) return NaN; var v = parseFloat(String(i.value).replace(/,/g, "")); return isNaN(v) ? NaN : v; }
+  function fmtN(v) { return String(Math.round(v * 100) / 100); }
+  function setF(i, v, tip) { if (!i) return; i.value = v; i.removeAttribute("data-cb-lock"); i.readOnly = true; i.classList.add("cb-f"); if (tip && !i.title) i.title = tip; }
+  function recalc() {
+    blocks.forEach(function (b) {
+      if (!b.total) return;
+      var dayT = [], any = [];
+      b.rows.forEach(function (g) {
+        var s = 0, has = false;
+        g.days.forEach(function (td, d) {
+          var v = num(inp(td));
+          if (isNaN(v)) return;
+          s += v; has = true; dayT[d] = (dayT[d] || 0) + v; any[d] = true;
+        });
+        setF(inp(g.total), has ? fmtN(s) : "", "Total of the row (formula)");
+      });
+      var tot = 0, hasT = false;
+      b.total.days.forEach(function (td, d) {
+        setF(inp(td), any[d] ? fmtN(dayT[d]) : "", "Total of the day (formula)");
+        if (any[d]) { tot += dayT[d]; hasT = true; }
+      });
+      setF(inp(b.total.total), hasT ? fmtN(tot) : "", "Total of the month (formula)");
+    });
+    paintSign();
+  }
+  T.addEventListener("input", function (e) { if (e.target && e.target.tagName === "INPUT") recalc(); });
+  // 2026-11-13: the day of each box (CELLS_SCRIPT locks all but today's)
+  window.cbDateOf = function (el, P) {
+    var td = el.closest && el.closest("td"), tr = td && td.parentNode;
+    if (!tr || !T.contains(tr) || !P.y || !P.m) return "";
+    var tds = tr.children, n = tds.length, i = [].indexOf.call(tds, td);
+    if (n < 32 || i < n - 32 || i >= n - 1) return "";
+    var d = i - (n - 32) + 1, dim = new Date(P.y, P.m, 0).getDate();
+    return d <= dim ? cbYmd(P.y, P.m, d) : "X";
+  };
+  if (typeof window.clearSheet === "function") {
+    var clear0 = window.clearSheet;
+    window.clearSheet = function () { clear0(); recalc(); };
+  }
+
+  // ---- line leader's signature per day (2026-11-12, operator: "line leader
+  // signature me signature auto fetch kar le jaise track record sheet me"):
+  // the Track Record Sheet's data — the leader in Shift Allocation of each
+  // shift that ran, signature image from Employee Master — posted in as `sign`
+  var lastSign = null;
+  // 2026-11-12 (operator): a signature only on a day that has a quantity in the
+  // block (Red Bin or typed; a typed 0 counts) - never on an empty day.  Leader =
+  // the Track Record day, else the leader saved in Shift Allocation (`leads`).
+  function dayHas(b, k) {
+    if (b.total) { var t = inp(b.total.days[k]); return !!(t && String(t.value).trim()); }
+    return b.rows.some(function (g) { var i = inp(g.days[k]); return !!(i && String(i.value).trim()); });
+  }
+  function fillSign(sg) { lastSign = sg; paintSign(); }
+  function paintSign() {
+    var sg = lastSign;
+    blocks.forEach(function (b) {
+      if (!b.sign) return;
+      var sh = String(b.shift ? b.shift.value : "").trim().toUpperCase();
+      var days = (sg && sg.shifts && sg.shifts[sh]) || {}, leaders = (sg && sg.leaders) || {};
+      var leads = (sg && sg.leads && sg.leads[sh]) || {};
+      b.sign.days.forEach(function (td, k) {
+        var box = inp(td);
+        if (!box) return;
+        var old = td.querySelector("img.cb-sign");
+        if (old) td.removeChild(old);
+        box.style.display = "";
+        if (box.getAttribute("data-cb-sign")) { box.value = ""; box.title = ""; box.readOnly = box.hasAttribute("data-cb-lock"); box.removeAttribute("data-cb-sign"); }
+        if (box.value) return;                       // typed by hand: kept
+        if (!dayHas(b, k)) return;                   // no quantity that day: no signature
+        var v = days[String(k + 1)], lid = (v && v.S1) || leads[String(k + 1)] || null;
+        var L = lid ? leaders[lid] : null;
+        if (L && L.signature) {
+          var img = document.createElement("img");
+          img.className = "cb-sign"; img.src = L.signature; img.alt = L.name || ""; img.title = L.name || "";
+          img.style.cssText = "display:block;max-width:100%;max-height:26px;margin:0 auto;object-fit:contain";
+          box.style.display = "none"; box.setAttribute("data-cb-sign", "1");
+          td.insertBefore(img, box);
+        } else if ((v && v.S1_name) || (L && L.name)) {
+          box.value = (v && v.S1_name) || L.name; box.title = box.value;
+          box.removeAttribute("data-cb-lock"); box.readOnly = true;          // auto signature: frozen
+          box.setAttribute("data-cb-sign", "1");
+        }
+      });
+    });
+  }
+  recalc();
+
+  // ---- writing: every cell this script fills is remembered and cleared before the next fill
+  var filled = [];
+  function put(td, val, cls, ids, title) {
+    var i = inp(td);
+    if (!i) return;
+    i.value = val; i.removeAttribute("data-cb-lock"); i.readOnly = true;   // Red Bin value: frozen
+    i.classList.add(cls || "cb-rj");
+    if (ids && ids.length) {
+      i.classList.add("cb-rj-link");
+      i.setAttribute("data-ids", ids.join(","));
+      i.setAttribute("data-title", title || "");
+      i.title = (title || "") + " - click for the summary";
+    }
+    filled.push(i);
+  }
+  function reset() {
+    filled.forEach(function (i) {
+      i.value = ""; i.readOnly = i.hasAttribute("data-cb-lock");
+      i.classList.remove("cb-rj", "cb-rj-name", "cb-rj-link");
+      i.removeAttribute("data-ids"); i.removeAttribute("data-title"); i.removeAttribute("title");
+    });
+    filled = [];
+  }
+  function sum(rs) { var q = 0; rs.forEach(function (r) { q += Number(r.qty) || 0; }); return q; }
+  function ids(rs) { return rs.map(function (r) { return r.id; }); }
+  var DUE = { process: "Process", child: "Child Part", handling: "Abnormal Handling" };
+  var monLabel = "";
+  function dayTitle(d) { return d + " " + monLabel; }
+  // one row of 31 days + total from a list of records
+  function fillRow(g, rs, what, shift) {
+    if (!g || !rs.length) return;
+    var by = {};
+    rs.forEach(function (r) { (by[r.day] = by[r.day] || []).push(r); });
+    Object.keys(by).forEach(function (d) {
+      var td = g.days[Number(d) - 1];
+      if (td) put(td, String(sum(by[d])), "cb-rj", ids(by[d]), what + " - " + dayTitle(d) + " - Shift " + shift);
+    });
+    put(g.total, String(sum(rs)), "cb-rj", ids(rs), what + " - " + monLabel + " - Shift " + shift);
+  }
+  var last = null;
+  function fill(rej) {
+    fill0(rej);
+    recalc();
+  }
+  function fill0(rej) {
+    reset();
+    last = rej;
+    if (!rej) return;
+    var m = String(rej.month || "");
+    monLabel = /^\d{4}-\d{2}$/.test(m) ? MONTHS[+m.slice(5, 7) - 1] + " " + m.slice(0, 4) : m;
+    var recs = rej.records || [], prev = rej.last_month || [];
+    blocks.forEach(function (b) {
+      var sh = String(b.shift ? b.shift.value : "").trim().toUpperCase();
+      if (!sh) return;
+      var mine = recs.filter(function (r) { return String(r.shift || "").toUpperCase() === sh; });
+      var mineLast = prev.filter(function (r) { return String(r.shift || "").toUpperCase() === sh; });
+      ["proc", "fi"].forEach(function (sec) {
+        var slots = b[sec];
+        if (!slots.length) return;
+        var g = {};
+        mine.forEach(function (r) {
+          if (r.section !== sec || r.due === "handling") return;
+          var k = r.defect || "(No defect name)";
+          (g[k] = g[k] || { name: k, names: [k], recs: [] }).recs.push(r);
+        });
+        var list = Object.keys(g).map(function (k) { return g[k]; });
+        list.sort(function (a, c) { return sum(c.recs) - sum(a.recs) || a.name.localeCompare(c.name); });
+        if (list.length > slots.length) {
+          var keep = list.slice(0, slots.length - 1), rest = list.slice(slots.length - 1);
+          var other = { name: "Other defects (" + rest.length + ")", names: [], recs: [] };
+          rest.forEach(function (x) { other.names = other.names.concat(x.names); other.recs = other.recs.concat(x.recs); });
+          list = keep.concat([other]);
+        }
+        list.forEach(function (grp, i) {
+          var s = slots[i];
+          put(s.name.parentNode, grp.name, "cb-rj-name", ids(grp.recs), grp.name + " - " + monLabel + " - Shift " + sh);
+          var lq = 0;
+          mineLast.forEach(function (r) {
+            if (r.section === sec && r.due !== "handling" && grp.names.indexOf(r.defect || "(No defect name)") >= 0) lq += Number(r.qty) || 0;
+          });
+          if (lq && s.last) put(s.last.parentNode, String(lq), "cb-rj");
+          ["process", "child"].forEach(function (due) {
+            var rs = grp.recs.filter(function (r) { return r.due === due; });
+            fillRow(due === "process" ? s.process : s.child, rs, grp.name + " (" + DUE[due] + ")", sh);
+          });
+        });
+      });
+      fillRow(b.abnormal, mine.filter(function (r) { return r.due === "handling"; }), "Defect due to abnormal handling", sh);
+      fillRow(b.total, mine, "Total rejection", sh);
+    });
+  }
+  // a click on a filled cell opens its rejections in the MES page
+  T.addEventListener("click", function (e) {
+    var i = e.target && e.target.closest ? e.target.closest("input.cb-rj-link") : null;
+    if (!i) return;
+    var list = String(i.getAttribute("data-ids") || "").split(",").filter(Boolean);
+    if (!list.length) return;
+    try { window.parent.postMessage({ type: "cb-rj-open", ids: list, title: i.getAttribute("data-title") || "" }, "*"); } catch (x) {}
+  });
+  // the shift boxes can be changed (e.g. C): fill again
+  blocks.forEach(function (b) { if (b.shift) b.shift.addEventListener("change", function () { fill(last); fillSign(lastSign); }); });
+  window.cbOnData = function (d, s) {
+    var note = window.cbNote || function () {};
+    var sg = d && d.sign;
+    fillSign(s && s.line_id && sg && String(sg.line_id) === String(s.line_id) && sg.month === s.month ? sg : null);
+    if (!s || !s.line_id) { fill(null); note("Select a line to fill the Red Bin rejections."); return; }
+    var rej = d.rej;
+    if (!rej || String(rej.line_id) !== String(s.line_id) || rej.month !== s.month) {
+      fill(null);
+      note(d.rejError ? d.rejError : d.rejLoading ? "Loading rejections..." : "");
+      return;
+    }
+    fill(rej);
+    if (!rej.rb_line) { note(rej.rb_zone ? "No Red Bin line matches this line." : "This line is not in the Red Bin portal."); return; }
+    var n = (rej.records || []).length, q = sum(rej.records || []);
+    note("Red Bin: " + String(rej.rb_zone || "").replace(/^Zone\s*\d+\s*-\s*/i, "") + " " + rej.rb_line +
+         ((rej.shared_with || []).length ? " (also " + rej.shared_with.join(", ") + ")" : "") +
+         " - " + (n ? q + " pcs in " + n + " rejection" + (n === 1 ? "" : "s") + ". Click a quantity for its summary." : "no rejection this month."));
+  };
+})();
+</script>
+
+<script>
+/* MES Control Board: auto-save what the user types or clicks (2026-11-12).
+   Every input / text box / editable text / click mark of the sheet is keyed (its
+   id, else its position) and, a moment after the user changes it, posted to the
+   Control Board ("cb-cells-save"), which saves it for the sheet's line and
+   period.  Saved entries come back as "cb-cells" and are put in again after
+   every MES fill.  Values MES fills itself (read-only boxes) are never sent, and
+   only the box the user changed is saved (no formula or MES values).
+   2026-11-13 (operator): only TODAY can be entered.  The Control Board sends the
+   line's production day ("today"), the day each saved value was entered ("set")
+   and the period; the sheet says which day a box belongs to (window.cbDateOf:
+   "YYYY-MM-DD", "W:<from>:<to>" for a weekly box, "" for the whole period,
+   "X" never).  Everything else is locked (read-only, clicks blocked); today's
+   boxes get an orange frame on screen (not in the PDF). */
+(function () {
+  if (window.__cbCells) return;
+  window.__cbCells = true;
+  var SKIP = ".toolbar, .no-print, .cb-hov, .cb-tip";
+  var applying = false, canSave = false, scope = "", dirty = {}, timer = null, seq = 0, pend = {}, retry = {};
+  var base = {}, init = null, applied = {};
+  var today = "", setOn = {}, open = true, P = {}, noteAt = 0, admin = false;
+  function skip(el) { return !!(el.closest && el.closest(SKIP)); }
+  function isForm(el) { return /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName); }
+  function isEdit(el) {
+    if (el.hasAttribute && el.hasAttribute("data-cb-ce")) return true;      // ours, locked for now
+    var a = el.getAttribute && el.getAttribute("contenteditable");
+    if (a === "" || a === "true") { el.setAttribute("data-cb-ce", "1"); return true; }
+    return false;
+  }
+  var lcss = document.createElement("style");
+  lcss.textContent = "[data-cb-lock]{cursor:not-allowed!important}" +
+    "[data-cb-lock]:focus{background:transparent!important;outline:none!important}" +
+    ".cb-today.cb-screen{outline:2px solid #f59e0b!important;outline-offset:-2px}";
+  document.head.appendChild(lcss);
+  function two(n) { return (n < 10 ? "0" : "") + n; }
+  window.cbYmd = function (y, m, d) { return y + "-" + two(m) + "-" + two(d); };
+  function dmy(iso) { return iso ? iso.slice(8, 10) + "-" + iso.slice(5, 7) + "-" + iso.slice(0, 4) : ""; }
+  function pinfo(period, kind) {
+    var p = String(period || "");
+    if (kind === "year" && /^\d{4}$/.test(p)) return { kind: kind, y: +p };
+    if (kind === "fy" && /^\d{4}-\d{2}$/.test(p)) return { kind: kind, y0: +p.slice(0, 4) };
+    if (/^\d{4}-\d{2}$/.test(p)) return { kind: "month", y: +p.slice(0, 4), m: +p.slice(5, 7) };
+    return {};
+  }
+  function dateOf(el) {
+    try { return typeof window.cbDateOf === "function" ? String(window.cbDateOf(el, P) || "") : ""; }
+    catch (err) { return "X"; }
+  }
+  function why(k, el) {                     // "" = may be changed, else the reason
+    if (!today) return "";                  // older API without the day rule: as before
+    if (!canSave) return scope ? "Saved copy: read-only" : "Pick a line in the Control Board filter to enter data";
+    if (admin) return dateOf(el) === "X" ? "This box cannot be filled" : "";      // admin: any day
+    if (!open) return "Only today's entries (" + dmy(today) + ") can be made: this sheet is for another period";
+    var dk = dateOf(el), w = /^W:(.{10}):(.{10})$/.exec(dk);
+    if (dk === "X") return "This box cannot be filled";
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dk) && dk !== today) return "Only today's column (" + dmy(today) + ") can be changed";
+    if (w && !(w[1] <= today && today <= w[2])) return "Only the current week's box can be signed";
+    if (setOn[k] && setOn[k] < today) return "Entered on " + dmy(setOn[k]) + ": it cannot be changed";
+    return "";
+  }
+  function setLock(el, reason) {
+    var lock = !!reason;
+    if (isForm(el)) {
+      if (lock) {
+        if (!el.readOnly || el.hasAttribute("data-cb-lock")) { el.readOnly = true; el.setAttribute("data-cb-lock", reason); }
+      } else if (el.hasAttribute("data-cb-lock")) { el.removeAttribute("data-cb-lock"); el.readOnly = false; }
+      if (el.tagName === "SELECT" || /^(checkbox|radio)$/i.test(el.type || "")) el.disabled = el.hasAttribute("data-cb-lock");
+    } else if (el.hasAttribute("data-cb-ce")) {
+      el.setAttribute("contenteditable", lock ? "false" : "true");
+      if (lock) el.setAttribute("data-cb-lock", reason); else el.removeAttribute("data-cb-lock");
+    } else if (lock) el.setAttribute("data-cb-lock", reason);
+    else el.removeAttribute("data-cb-lock");
+  }
+  function lockAll() {
+    var m = keyed();
+    for (var k in m) {
+      var el = m[k], r = why(k, el), mine = !r && !!today && dateOf(el) === today && !(isForm(el) && el.readOnly);
+      setLock(el, r);
+      el.classList.toggle("cb-today", mine);
+      if (mine) el.classList.add("cb-screen");
+    }
+  }
+  function lockNote(el, text) {
+    var t = Date.now();
+    if (t - noteAt < 1500) return;
+    noteAt = t;
+    status(text || el.getAttribute("data-cb-lock") || "Locked", "error");
+  }
+  // a locked click mark does nothing; a locked box says why
+  document.addEventListener("click", function (e) {
+    var t = e.target, el = t && t.closest ? t.closest("[data-cb-lock]") : null;
+    if (!el && t && isForm(t) && t.readOnly && today && !skip(t) && !t.classList.contains("cb-rj-link")) {
+      lockNote(t, "Filled automatically: it cannot be changed");      // MES value / formula
+      return;
+    }
+    if (!el || skip(el)) return;
+    if (!isForm(el) && !el.hasAttribute("data-cb-ce")) { e.stopPropagation(); e.preventDefault(); }
+    lockNote(el);
+  }, true);
+  function keyed() {
+    var m = {}, n = 0;
+    [].forEach.call(document.querySelectorAll("input, textarea, select"), function (el) {
+      if (skip(el) || el.classList.contains("cb-sel")) return;
+      if (/^(button|submit|reset|file|hidden|image)$/i.test(el.type || "")) return;
+      if (el.id) m["#" + el.id] = el; else m["f" + (n++)] = el;
+    });
+    var e = 0;
+    [].forEach.call(document.querySelectorAll("[contenteditable]"), function (el) { if (!skip(el) && isEdit(el)) m["e" + (e++)] = el; });
+    var k = 0;
+    [].forEach.call(document.querySelectorAll("[onclick]"), function (el) {
+      if (skip(el) || /^(BUTTON|A|INPUT|SELECT|TEXTAREA)$/.test(el.tagName) || (el.closest && el.closest("button"))) return;
+      m["k" + (k++)] = el;
+    });
+    return m;
+  }
+  function read(el) {
+    if (isForm(el)) return /^(checkbox|radio)$/i.test(el.type || "") ? (el.checked ? "1" : "") : String(el.value == null ? "" : el.value);
+    if (isEdit(el)) return el.innerText;
+    // our screen-only marks (today's frame) are not part of the saved value
+    var c = String(el.className || "").replace(/(^|\s)cb-(today|screen)(?=\s|$)/g, " ").replace(/\s+/g, " ").trim();
+    return JSON.stringify({ c: c, s: el.getAttribute("data-state"), t: el.children.length ? null : el.textContent });
+  }
+  function write(el, v) {
+    if (isForm(el)) {
+      if (/^(checkbox|radio)$/i.test(el.type || "")) el.checked = v === "1"; else el.value = v;
+      el.dispatchEvent(new Event("input", { bubbles: true }));
+      el.dispatchEvent(new Event("change", { bubbles: true }));
+    } else if (isEdit(el)) {
+      el.innerText = v;
+    } else {
+      try {
+        var o = JSON.parse(v);
+        el.className = o.c || "";
+        if (o.s == null) el.removeAttribute("data-state"); else el.setAttribute("data-state", o.s);
+        if (o.t != null && !el.children.length) el.textContent = o.t;
+      } catch (err) { /* not a mark */ }
+    }
+  }
+  function snap(m) { var b = {}; for (var k in m) b[k] = read(m[k]); return b; }
+  function status(text, state) {
+    try { parent.postMessage({ type: "cb-cells-status", text: text, state: state || "" }, "*"); } catch (e) { /* no parent */ }
+  }
+  function apply(cells, sc) {
+    var m = keyed();
+    if (!init) init = snap(m);
+    applying = true;
+    try {
+      if (sc !== scope) {                  // another line / period: its typed entries go
+        for (var k0 in applied) if (!(k0 in cells) && m[k0] && init[k0] != null) {
+          if (!(isForm(m[k0]) && m[k0].readOnly && !m[k0].hasAttribute("data-cb-lock"))) write(m[k0], init[k0]);
+        }
+        dirty = {};
+      }
+      for (var k in cells) {
+        var el = m[k];
+        // MES has a value there (read-only, not by our lock): MES wins
+        if (!el || (isForm(el) && el.readOnly && !el.hasAttribute("data-cb-lock"))) continue;
+        if (read(el) !== cells[k]) write(el, cells[k]);
+      }
+    } finally { applying = false; }
+    scope = sc; applied = cells;
+    base = snap(keyed());
+  }
+  function mark(el) {
+    if (applying || !el) return;
+    var m = keyed();
+    for (var k in m) if (m[k] === el) { dirty[k] = el; break; }
+    clearTimeout(timer); timer = setTimeout(flush, 600);
+  }
+  function markAllMarks() {                // a button changed many marks at once (all safe / reset)
+    if (applying) return;
+    var m = keyed();
+    for (var k in m) if (k.charAt(0) === "k" && read(m[k]) !== base[k]) dirty[k] = m[k];
+    clearTimeout(timer); timer = setTimeout(flush, 600);
+  }
+  function flush() {
+    var ch = {}, any = false;
+    for (var k in dirty) {
+      var el = dirty[k];
+      if (!el.isConnected || (isForm(el) && el.readOnly)) continue;
+      var v = read(el);
+      if (v !== base[k]) { ch[k] = v; any = true; }
+    }
+    dirty = {};
+    if (!any) return;
+    if (!canSave) { status(scope ? "Not saved: read-only" : "Not saved: pick a line in the Control Board filter", "error"); return; }
+    var s = ++seq, m2 = keyed(), dts = {};
+    for (var k3 in ch) dts[k3] = m2[k3] ? dateOf(m2[k3]) : "";
+    pend[s] = ch;
+    status("Saving…", "busy");
+    parent.postMessage({ type: "cb-cells-save", seq: s, changes: ch, dates: dts, scope: scope }, "*");
+  }
+  document.addEventListener("input", function (e) {
+    var t = e.target;
+    if (!t || skip(t)) return;
+    if (isForm(t)) mark(t);
+    else { var ce = t.closest && t.closest("[contenteditable]"); if (ce && isEdit(ce)) mark(ce); }
+  }, true);
+  document.addEventListener("change", function (e) { var t = e.target; if (t && isForm(t) && !skip(t) && !t.classList.contains("cb-sel")) mark(t); }, true);
+  document.addEventListener("click", function (e) {      // bubble phase: after the sheet's own onclick
+    var t = e.target, el = t && t.closest ? t.closest("[onclick]") : null;
+    if (!el) return;
+    // a button (toolbar too: "Mark all safe", reset) may change many marks at once
+    if (/^(BUTTON|A)$/.test(el.tagName) || el.closest("button")) { setTimeout(markAllMarks, 0); return; }
+    if (skip(el)) return;
+    mark(el);
+  });
+  // the sheet's own Clear button (removed 2026-11-13; the server refuses a clear now)
+  if (false && typeof window.clearSheet === "function") {
+    var clear0 = window.clearSheet;
+    window.clearSheet = function () {
+      var conf0 = window.confirm, said = false;
+      window.confirm = function (msg) { said = conf0.call(window, msg); return said; };
+      try { clear0.apply(this, arguments); } finally { window.confirm = conf0; }
+      if (said && canSave) {
+        var s = ++seq;
+        pend[s] = null;
+        status("Clearing…", "busy");
+        parent.postMessage({ type: "cb-cells-save", seq: s, changes: {}, clear: true, scope: scope }, "*");
+      }
+    };
+  }
+  window.addEventListener("message", function (e) {
+    var d = e.data;
+    if (!d || e.source !== window.parent) return;
+    if (d.type === "cb-cells") {
+      canSave = !!d.canSave;
+      today = /^\d{4}-\d{2}-\d{2}$/.test(d.today || "") ? d.today : "";
+      setOn = d.set || {};
+      open = d.open !== false;
+      admin = !!d.admin;
+      P = pinfo(d.period, d.pkind);
+      apply(d.cells || {}, String(d.scope || ""));
+      lockAll();
+    } else if (d.type === "cb-cells-ack") {
+      var ch = pend[d.seq];
+      delete pend[d.seq];
+      if (d.ok) {
+        if (ch) for (var k in ch) { base[k] = ch[k]; if (today && String(ch[k]).trim()) setOn[k] = setOn[k] || today; }
+        status("Saved", "done");
+      } else if (d.locked) {                  // the day rule said no: put the saved value back
+        status("Not saved: " + (d.error || "locked"), "error");
+        if (ch) {
+          var m1 = keyed();
+          applying = true;
+          try { for (var k1 in ch) if (m1[k1] && base[k1] != null) write(m1[k1], base[k1]); }
+          finally { applying = false; }
+          lockAll();
+        }
+      } else {
+        status("Not saved: " + (d.error || "error"), "error");
+        if (ch) {                             // try again once after 5 s
+          var m = keyed();
+          for (var k2 in ch) if (m[k2] && !retry[k2]) { retry[k2] = 1; dirty[k2] = m[k2]; }
+          clearTimeout(timer); timer = setTimeout(function () { flush(); retry = {}; }, 5000);
+        }
+      }
+    }
+  });
+})();
+</script>
+</body>
+
+</html>

@@ -8,6 +8,7 @@ import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { api } from "../api/client";
 import PageTopbar from "../components/PageTopbar";
+import LineSelect from "../components/LineSelect";
 
 const localDay = (d = new Date()) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -349,8 +350,8 @@ export default function VideoCoverage() {
           ["To", <input type="date" value={to} min={from} onChange={e => setTo(e.target.value)} style={inp} />],
           ["Shift", <select value={shift} onChange={e => setShift(e.target.value)} style={inp}>
                       <option value="ALL">All shifts</option><option value="A">Shift A</option><option value="B">Shift B</option></select>],
-          ["Line", <select value={lineId} onChange={e => setLineId(e.target.value)} style={{ ...inp, minWidth: 170 }}>
-                     <option value="">All lines</option>{lines.map(l => <option key={l.id} value={l.id}>{l.line_name}</option>)}</select>],
+          ["Line", <LineSelect value={lineId} onChange={e => setLineId(e.target.value)} style={{ ...inp, minWidth: 170 }}>
+                     <option value="">All lines</option>{lines.map(l => <option key={l.id} value={l.id}>{l.line_name}</option>)}</LineSelect>],
         ].map(([lb, el]) => (
           <label key={lb} style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 11, fontWeight: 700, color: C.sub,
                                    textTransform: "uppercase", letterSpacing: ".04em" }}>{lb}{el}</label>

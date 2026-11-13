@@ -19,12 +19,15 @@ const EXTRA_PAGES = [
   { key: "maintenance-logbook",   label: "Maintenance Log Book" },
   { key: "maintenance-pm",        label: "Preventive Maintenance" },
   { key: "maintenance-air-flow",  label: "Air Flow" },
+  { key: "maintenance-predictive", label: "Predictive Maintenance" },
   { key: "quality-dashboard",     label: "Quality Dashboard" },
   { key: "quality-deviations",    label: "Quality Deviation" },
   { key: "video-coverage",        label: "Video Coverage" },
+  { key: "meeting-videos",        label: "Local Meeting Video" },
   { key: "py-bypass",             label: "PY Bypass" },
   { key: "sa-fi-history",         label: "SA / FI History" },
   { key: "redbin-lock",           label: "Red Bin Lock" },
+  { key: "line-rejection",        label: "Line Rejection" },
   { key: "logs",                  label: "Log Viewer" },
 ].map(p => ({ ...p, path: "/" + p.key }));
 
@@ -53,16 +56,27 @@ const ALL_PAGES = (() => {
 // clamp that keeps it fully on screen (also after a resize / rotation).
 const BTN_SIZE = 54;
 const BTN_POS_KEY = "mes_ai_btn_pos";
-const clampBtn = (p) => ({
-  x: Math.min(Math.max(4, p.x), Math.max(4, window.innerWidth - BTN_SIZE - 4)),
-  y: Math.min(Math.max(4, p.y), Math.max(4, window.innerHeight - BTN_SIZE - 4)),
-});
+// 2026-11-03 — the LAN app zooms every page to 90 % (html zoom, App.jsx
+// PanelZoom).  left/top are then in zoomed px while innerWidth is screen px,
+// so the clamp stopped the button ~10 % short of the right and bottom edges.
+// Work in the page's own (zoomed) px: screen size / zoom.  Zoom 1 on the web.
+const pageZoom = () => {
+  try { return parseFloat(getComputedStyle(document.documentElement).zoom) || 1; } catch { return 1; }
+};
+const viewSize = () => { const z = pageZoom(); return { w: window.innerWidth / z, h: window.innerHeight / z }; };
+const clampBtn = (p) => {
+  const { w, h } = viewSize();
+  return {
+    x: Math.min(Math.max(4, p.x), Math.max(4, w - BTN_SIZE - 4)),
+    y: Math.min(Math.max(4, p.y), Math.max(4, h - BTN_SIZE - 4)),
+  };
+};
 // The chat panel opens on the button's side of the screen (left/right,
 // top/bottom), so moving the button also moves where the chat covers the
 // page.  No saved position = the original bottom-right corner.
 const panelAnchor = (p) => {
   if (!p) return { bottom: 16, right: 16 };
-  const w = window.innerWidth, h = window.innerHeight;
+  const { w, h } = viewSize();
   const pw = Math.min(400, w - 32), ph = Math.min(560, h - 88);
   const out = {};
   if (p.x + BTN_SIZE / 2 < w / 2) out.left  = Math.max(16, Math.min(p.x, w - 16 - pw));
@@ -223,8 +237,10 @@ function AssistantPanel({ pageContext = {}, path = "" }) {
   }, []);
   const onBtnDown = (e) => {
     if (e.button !== undefined && e.button !== 0) return;
+    // Pointer and rect are in screen px; s = screen px per page px (the zoom).
     const r = e.currentTarget.getBoundingClientRect();
-    drag.current = { sx: e.clientX, sy: e.clientY, ox: r.left, oy: r.top, moved: false };
+    const s = (r.width / BTN_SIZE) || 1;
+    drag.current = { sx: e.clientX, sy: e.clientY, ox: r.left / s, oy: r.top / s, s, moved: false };
     try { e.currentTarget.setPointerCapture(e.pointerId); } catch {}
   };
   const onBtnMove = (e) => {
@@ -233,7 +249,7 @@ function AssistantPanel({ pageContext = {}, path = "" }) {
     const dx = e.clientX - d.sx, dy = e.clientY - d.sy;
     if (!d.moved && Math.hypot(dx, dy) < 6) return;
     d.moved = true;
-    setBtnPos(clampBtn({ x: d.ox + dx, y: d.oy + dy }));
+    setBtnPos(clampBtn({ x: d.ox + dx / d.s, y: d.oy + dy / d.s }));
   };
   const onBtnUp = () => {
     const d = drag.current;

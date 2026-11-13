@@ -637,7 +637,7 @@ export default function ShiftCompile() {
                     <td style={td}>{m.process_name}{m.machines_covered ? <span style={{ color: "#94a3b8" }}> · {m.machines_covered}</span> : null}</td>
                     <td style={td}>{m.required ?? "—"}</td>
                     <td style={td}>{m.operators.map(o => o.name).join(", ") || <span style={{ color: "#cbd5e1" }}>—</span>}</td>
-                    <td style={td}>{m.operators.map((o, j) => <span key={j} style={{ color: o.skill_ok === false ? "#dc2626" : "#16a34a", marginRight: 6, fontWeight: 600 }}>L{o.skill ?? "?"}</span>)}</td>
+                    <td style={td}>{m.operators.map((o, j) => <span key={j} style={{ color: o.skill_ok === false ? "#dc2626" : "#16a34a", marginRight: 6, fontWeight: 600 }}>{o.skill === 0 ? "OJT" : `L${o.skill ?? "?"}`}</span>)}</td>
                   </tr>
                 ))}
                 {(!detail.manpower || detail.manpower.length === 0) &&
@@ -774,6 +774,24 @@ export default function ShiftCompile() {
             </div>
           )}
 
+          {/* 2026-11-10 — open Control Board items block the close (4M Change sheet, Operator sheet) */}
+          {!detail.close.closed && (detail.four_m_pending || []).length > 0 && (
+            <div style={{ background: "#fef2f2", border: "1.5px solid #fca5a5", borderRadius: 12, padding: "12px 16px",
+                          marginBottom: 12 }}>
+              <div style={{ fontWeight: 800, color: "#b91c1c", marginBottom: 6 }}>
+                ⚠ Control Board sheet not completed — this shift cannot be closed</div>
+              {detail.four_m_pending.map((p, i) => (
+                <div key={i} style={{ fontSize: 13, color: "#7f1d1d" }}>
+                  {p.label} · {String(p.param || "").replace(/_/g, " ")} — fill {(p.missing || []).join(", ")}
+                </div>
+              ))}
+              {[...new Set(detail.four_m_pending.map(p => p.sheet || "4m-change"))].map(k => (
+                <a key={k} href={`/control-board?sheet=${k}`} style={{ display: "inline-block", marginTop: 8, marginRight: 16,
+                                                                     fontSize: 13, fontWeight: 700, color: "#1e40af" }}>
+                  {k === "operator-visual" ? "Open the Operator Visualization Sheet →" : "Open the 4M Change Control Sheet →"}</a>
+              ))}
+            </div>
+          )}
           {/* close control */}
           {detail.close.closed ? (
             <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap",
@@ -794,7 +812,7 @@ export default function ShiftCompile() {
                 {detail.scheduled_end && new Date() > new Date(detail.scheduled_end) &&
                   <span style={{ color: "#b45309", fontWeight: 600 }}> (scheduled end passed — will mark LATE)</span>}
               </div>
-              <SlideToClose onConfirm={doClose} disabled={saving} />
+              <SlideToClose onConfirm={doClose} disabled={saving || (detail.four_m_pending || []).length > 0} />
             </div>
           ) : (
             <div style={{ fontSize: 13, color: "#94a3b8" }}>View-only — only this line's leader (or admin) can close the shift.</div>

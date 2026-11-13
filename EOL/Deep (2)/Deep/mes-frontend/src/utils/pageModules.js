@@ -22,6 +22,12 @@ export const PAGE_MODULES = {
     { key: "trace", label: "Part Traceability" },
     { key: "bdlog", label: "Breakdown History" },
     { key: "ctstudy", label: "Cycle Time Study" },
+    // 2026-11-12 — saved Control Board sheets + Line Rejection (per day)
+    { key: "cb4m", label: "4M Change" },
+    { key: "cbops", label: "Operator Visual" },
+    { key: "cbtrack", label: "Track Record" },
+    { key: "cbdefect", label: "Defect Recording" },
+    { key: "cbrej", label: "Line Rejection" },
   ],
   // 2026-09-14 — Comments History now has two independently-assignable modules:
   // the comment/remark table and the new Pareto analysis.

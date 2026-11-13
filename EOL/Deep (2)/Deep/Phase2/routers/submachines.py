@@ -593,6 +593,11 @@ def cycle_video(
                               "caller says which dot was clicked."),
     token:     Optional[str] = Query(None,
                   description="JWT fallback for <video src=...>"),
+    date_str:  Optional[str] = Query(None, alias="date",
+                  description="YYYY-MM-DD record date of the cycle (2026-10-27): a past "
+                              "shift's cycle_seq can repeat today's, so the OVER TARGET "
+                              "popup names the shift it came from.  Omitted = latest."),
+    shift:     Optional[str] = Query(None, description="shift of the cycle (with date)"),
     request:   Request = None,
 ):
     """
@@ -627,12 +632,29 @@ def cycle_video(
         cur = dict_cursor(conn)
         # Combined machine: the clicked number is the merged sequence — map it
         # back to the member's own row and serve that robot's clip.
+        # 2026-10-28 — lines.get_cycle_video calls this function directly (combined
+        # machine robots); arguments it leaves out arrive as FastAPI Query
+        # objects, not None — treat anything that is not text as "not given".
+        if not isinstance(date_str, str):
+            date_str = None
+        if not isinstance(shift, str):
+            shift = None
+        _rec = None
+        if date_str:
+            try:
+                _rec = datetime.strptime(date_str[:10], "%Y-%m-%d").date()
+            except ValueError:
+                raise HTTPException(400, "date must be YYYY-MM-DD")
+        _shift = (shift or "").strip() or None
         _mem = combined_members(cur, sub_id)
         if _mem:
-            cur.execute("""SELECT MAX(record_date) AS d FROM mes_submachine_ct_log
-                            WHERE sub_plc_id = ANY(%s) AND record_date >= CURRENT_DATE - 1""",
-                        (_mem,))
-            _d = (cur.fetchone() or {}).get("d")
+            if _rec:
+                _d = _rec
+            else:
+                cur.execute("""SELECT MAX(record_date) AS d FROM mes_submachine_ct_log
+                                WHERE sub_plc_id = ANY(%s) AND record_date >= CURRENT_DATE - 1""",
+                            (_mem,))
+                _d = (cur.fetchone() or {}).get("d")
             _hit = (next((r for r in combined_cycles(cur, _mem, _d) if r["vseq"] == cycle_seq), None)
                     if _d else None)
             if not _hit:
@@ -649,8 +671,10 @@ def cycle_video(
             FROM mes_submachine_ct_log
             WHERE sub_plc_id = %s AND cycle_seq = %s
               AND (%s::int IS NULL OR COALESCE(is_ng, FALSE) = (%s::int = 1))
+              AND (%s::date IS NULL OR record_date = %s::date)
+              AND (%s::text IS NULL OR shift_name = %s::text)
             ORDER BY ts_end DESC LIMIT 1
-        """, (sub_id, cycle_seq, ng, ng))
+        """, (sub_id, cycle_seq, ng, ng, _rec, _rec, _shift, _shift))
         row = cur.fetchone()
         if not row:
             raise HTTPException(404, "Cycle not found")

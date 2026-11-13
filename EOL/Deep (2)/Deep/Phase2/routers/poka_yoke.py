@@ -3308,8 +3308,20 @@ def list_model_master(user=Depends(get_current_user)):
         return cur.fetchall()
 
 
+def _check_model_bit(bit):
+    """2026-10-24 — the bit number is the value the PLC model register holds
+    while this model runs.  0 means "no model" everywhere in MES (the collector
+    ignores a 0 read), so a model on bit 0 can never be shown.  Loop Pipe was
+    renumbered 0-3 for D1200 and YHB went "Unknown" on LP-1."""
+    if bit is not None and bit < 1:
+        raise HTTPException(
+            400, "Bit number must be 1 or more (0 means no model). "
+                 "Use the value the PLC model register holds for this model.")
+
+
 @router.post("/models/", status_code=201)
 def create_model_master(body: ModelMasterCreate, admin=Depends(require_admin)):
+    _check_model_bit(body.bitNumber)
     with get_conn() as conn:
         _ensure_model_bit_col(conn)
         cur = dict_cursor(conn)
@@ -3349,9 +3361,13 @@ def create_model_master(body: ModelMasterCreate, admin=Depends(require_admin)):
 
 @router.put("/models/{model_id}")
 def update_model_master(model_id: int, body: ModelMasterUpdate, admin=Depends(require_admin)):
+    _check_model_bit(body.bitNumber)
     with get_conn() as conn:
         _ensure_model_bit_col(conn)
         cur = dict_cursor(conn)
+        cur.execute("SELECT bit_number, model_name FROM mes_py_model_master WHERE id=%s",
+                    (model_id,))
+        old = cur.fetchone() or {}
         # If bitNumber OR zoneId is being changed, validate within the
         # (possibly new) zone scope.
         if body.bitNumber is not None or body.zoneId is not None:
@@ -3403,6 +3419,39 @@ def update_model_master(model_id: int, body: ModelMasterUpdate, admin=Depends(re
         values = list(updates.values()) + [model_id]
         conn.cursor().execute(
             f"UPDATE mes_py_model_master SET {sets} WHERE id = %s", values)
+
+        # 2026-10-24 — the lines this model is assigned to keep their own copy
+        # (mes_model_mappings: model_number = bit, model_name).  A bit or name
+        # edited here used to leave those rows on the old values, so the line
+        # matched the PLC value to the wrong model (Loop Pipe showed YHB while
+        # YJC/YXA ran).  Carry the edit over, in the same transaction.
+        new_bit  = updates.get("bit_number", old.get("bit_number"))
+        new_name = (updates.get("model_name") or old.get("model_name") or "").strip()
+        if (old.get("bit_number") is not None and new_bit is not None
+                and (new_bit != old["bit_number"] or new_name != (old.get("model_name") or "").strip())):
+            cur.execute("""
+                SELECT lm.line_id, l.line_name
+                  FROM mes_model_mappings lm
+                  LEFT JOIN mes_lines l ON l.id = lm.line_id
+                 WHERE lm.model_number = %s
+                   AND UPPER(BTRIM(lm.model_name)) = UPPER(BTRIM(%s))
+                   AND EXISTS (SELECT 1 FROM mes_model_mappings o
+                                WHERE o.line_id = lm.line_id AND o.model_number = %s
+                                  AND o.id <> lm.id)
+            """, (old["bit_number"], old.get("model_name") or "", new_bit))
+            clash = cur.fetchall()
+            if clash:
+                conn.rollback()
+                raise HTTPException(
+                    409, f"Bit number {new_bit} is already used by another model on "
+                         + ", ".join(r["line_name"] or str(r["line_id"]) for r in clash)
+                         + ". Move that model to a free bit first.")
+            conn.cursor().execute("""
+                UPDATE mes_model_mappings
+                   SET model_number = %s, model_name = %s
+                 WHERE model_number = %s
+                   AND UPPER(BTRIM(model_name)) = UPPER(BTRIM(%s))
+            """, (new_bit, new_name, old["bit_number"], old.get("model_name") or ""))
     return {"ok": True}
 
 

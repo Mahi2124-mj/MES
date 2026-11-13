@@ -10,6 +10,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../api/client";
 import { useAuth } from "../context/AuthContext";
+import LineSelect from "../components/LineSelect";
 
 const pad2     = (n) => String(n).padStart(2, "0");
 const localYmd = (d) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
@@ -180,10 +181,10 @@ function BlocksTab({ token, lines, onCount }) {
           <div style={field}><label style={lbl}>TO</label>
             <input style={inp} type="date" value={to} max={todayStr()} onChange={e => setTo(e.target.value)} /></div>
           <div style={field}><label style={lbl}>LINE</label>
-            <select style={inp} value={lineId} onChange={e => setLineId(e.target.value)}>
+            <LineSelect style={inp} value={lineId} onChange={e => setLineId(e.target.value)}>
               <option value="">All lines</option>
               {lines.map(l => <option key={l.line_id} value={l.line_id}>{l.line_name}</option>)}
-            </select></div>
+            </LineSelect></div>
           <div style={{ ...field, maxWidth: 300 }}><label style={lbl}>PART CODE</label>
             <input style={{ ...inp, fontFamily: "monospace" }} value={pc} placeholder="partial match"
                    onChange={e => setPc(e.target.value)} onKeyDown={e => { if (e.key === "Enter") load(); }} /></div>

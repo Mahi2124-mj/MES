@@ -11,6 +11,7 @@ import { useEffect, useState, useCallback } from "react";
 import { api } from "../api/client";
 import { useAuth } from "../context/AuthContext";
 import PageTopbar from "../components/PageTopbar";
+import LineSelect from "../components/LineSelect";
 
 const card = { background: "#fff", border: "1px solid #e2e8f0", borderRadius: 14, padding: 16, marginBottom: 18 };
 const lbl  = { fontSize: 11.5, fontWeight: 700, color: "#334155", marginBottom: 4 };
@@ -172,10 +173,10 @@ export default function SixSigmaPage({ toast }) {
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "flex-end", marginBottom: 12 }}>
             <div>
               <div style={lbl}>Seat Slider line</div>
-              <select value={lineId} onChange={e => setLineId(e.target.value)} style={{ ...inp, minWidth: 170 }}>
+              <LineSelect value={lineId} onChange={e => setLineId(e.target.value)} style={{ ...inp, minWidth: 170 }}>
                 <option value="">— pick line —</option>
                 {lines.map(l => <option key={l.id} value={l.id}>{l.line_name}</option>)}
-              </select>
+              </LineSelect>
             </div>
             <div>
               <div style={lbl}>Machine</div>
@@ -247,10 +248,10 @@ export default function SixSigmaPage({ toast }) {
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "flex-end", marginBottom: 14 }}>
           <div>
             <div style={lbl}>Line</div>
-            <select value={viewLine} onChange={e => setViewLine(e.target.value)} style={{ ...inp, minWidth: 170 }}>
+            <LineSelect value={viewLine} onChange={e => setViewLine(e.target.value)} style={{ ...inp, minWidth: 170 }}>
               <option value="">— pick line —</option>
               {configs.map(c => <option key={c.line_id} value={c.line_id}>{c.line_name}</option>)}
-            </select>
+            </LineSelect>
           </div>
           <div>
             <div style={lbl}>Date</div>

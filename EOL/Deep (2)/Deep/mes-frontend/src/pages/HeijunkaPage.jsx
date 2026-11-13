@@ -18,6 +18,7 @@ import { useAuth } from "../context/AuthContext";
 import { api } from "../api/client";
 import AIAssistant from "../components/AIAssistant";
 import PageTopbar from "../components/PageTopbar";
+import LineSelect from "../components/LineSelect";
 
 const SHIFT_COLOR = { A: "#60a5fa", B: "#a78bfa", C: "#f472b6" };
 
@@ -158,9 +159,9 @@ export default function HeijunkaPage() {
 
         <div style={{ display: "flex", gap: 12, marginTop: 18, alignItems: "end", flexWrap: "wrap" }}>
           <Field label="Line">
-            <select value={lineId} onChange={e => setLineId(Number(e.target.value))} style={{ ...glassSelect, minWidth: 180 }}>
+            <LineSelect value={lineId} onChange={e => setLineId(Number(e.target.value))} style={{ ...glassSelect, minWidth: 180 }}>
               {lines.map(l => <option key={l.id} value={l.id}>{l.line_name}</option>)}
-            </select>
+            </LineSelect>
           </Field>
           <Field label="Date">
             <input type="date" value={onDate} onChange={e => setOnDate(e.target.value)} style={glassSelect} />

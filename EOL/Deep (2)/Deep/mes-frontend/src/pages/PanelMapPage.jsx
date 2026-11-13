@@ -7,6 +7,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { api } from "../api/client";
 import { useAuth } from "../context/AuthContext";
+import LineSelect from "../components/LineSelect";
 
 const VIEWS = [
   { key: "management", label: "Management dashboard" },
@@ -77,10 +78,10 @@ export default function PanelMapPage({ toast, readOnly = false }) {
             </div>
             <div>
               <div style={{ fontSize: 11.5, fontWeight: 700, color: "#334155", marginBottom: 4 }}>Line</div>
-              <select value={lineId} onChange={e => setLineId(e.target.value)} style={{ ...inp, minWidth: 170 }}>
+              <LineSelect value={lineId} onChange={e => setLineId(e.target.value)} style={{ ...inp, minWidth: 170 }}>
                 <option value="">— pick line —</option>
                 {lines.map(l => <option key={l.id} value={l.id}>{l.line_name}</option>)}
-              </select>
+              </LineSelect>
             </div>
             <div>
               <div style={{ fontSize: 11.5, fontWeight: 700, color: "#334155", marginBottom: 4 }}>View</div>

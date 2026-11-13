@@ -16,6 +16,7 @@ import { useAuth } from "../context/AuthContext";
 import { api } from "../api/client";
 import AIAssistant from "../components/AIAssistant";
 import PageTopbar from "../components/PageTopbar";
+import LineSelect from "../components/LineSelect";
 
 const PHASES = [
   { key: "PLAN",  label: "Plan",  desc: "Define + analyse",     color: "#3b82f6" },
@@ -144,10 +145,10 @@ export default function PDCAPage() {
             </select>
           </Field>
           <Field label="Line">
-            <select value={filter.line_id} onChange={e => setFilter({ ...filter, line_id: e.target.value })} style={{ ...glassSelect, minWidth: 140 }}>
+            <LineSelect value={filter.line_id} onChange={e => setFilter({ ...filter, line_id: e.target.value })} style={{ ...glassSelect, minWidth: 140 }}>
               <option value="">All</option>
               {lines.map(l => <option key={l.id} value={l.id}>{l.line_name}</option>)}
-            </select>
+            </LineSelect>
           </Field>
           <div style={{ flex: 1 }} />
           <button onClick={() => setShowNew(true)} style={primaryBtn}>+ NEW A3</button>
@@ -434,10 +435,10 @@ function NewA3Modal({ lines, token, onClose, onSaved, onError }) {
                    placeholder="e.g. Spike in NG on Final Inspection" style={glassSelect} />
           </Field>
           <Field label="Line">
-            <select value={f.line_id} onChange={e => setF({ ...f, line_id: e.target.value })} style={glassSelect}>
+            <LineSelect value={f.line_id} onChange={e => setF({ ...f, line_id: e.target.value })} style={glassSelect}>
               <option value="">—</option>
               {lines.map(l => <option key={l.id} value={l.id}>{l.line_name}</option>)}
-            </select>
+            </LineSelect>
           </Field>
           <Field label="Machine">
             <input value={f.machine_name} onChange={e => setF({ ...f, machine_name: e.target.value })} style={glassSelect} />

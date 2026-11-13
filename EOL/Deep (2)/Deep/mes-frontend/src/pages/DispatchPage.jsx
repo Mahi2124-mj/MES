@@ -13,6 +13,7 @@ import { useAuth } from "../context/AuthContext";
 import { api } from "../api/client";
 import AIAssistant from "../components/AIAssistant";
 import PageTopbar from "../components/PageTopbar";
+import LineSelect from "../components/LineSelect";
 
 const LOT_STATUS_COLOR = (s) => ({
   READY: "#10b981", LOADED: "#3b82f6", DISPATCHED: "#8b5cf6", CANCELLED: "#94a3b8",
@@ -210,10 +211,10 @@ function LotsTab({ token, showToast }) {
             </select>
           </Field>
           <Field label="Line *">
-            <select value={form.line_id} onChange={e => setForm({...form, line_id: e.target.value})} style={glassSelect}>
+            <LineSelect value={form.line_id} onChange={e => setForm({...form, line_id: e.target.value})} style={glassSelect}>
               <option value="">— select —</option>
               {lines.map(l => <option key={l.id} value={l.id}>{l.line_name}</option>)}
-            </select>
+            </LineSelect>
           </Field>
           <Field label="Lot Size (pieces per box)">
             <input type="number" min={0} value={form.lot_size}

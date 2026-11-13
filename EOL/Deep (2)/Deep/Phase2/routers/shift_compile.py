@@ -111,6 +111,19 @@ def _scheduled_end_dt(rec_date: date, end_time, crosses_midnight: bool):
     return end_dt
 
 
+def _four_m_pending(cur, line_id: int, rec_date: date, shift_name: str) -> list:
+    """Open Control Board items of this line / date / shift (routers/control_board_4m):
+    4M changes still open + (2026-11-10) the Operator sheet not filled for the day.
+    Each rule follows its switch in Admin → Alarm Permission."""
+    try:
+        from routers.control_board_4m import pending_4m, pending_ops
+        return ([dict(p, sheet=p.get("sheet") or "4m-change") for p in pending_4m(cur, line_id, rec_date, shift_name)]
+                + pending_ops(cur, line_id, rec_date, shift_name))
+    except Exception as e:
+        print(f"[shift-compile] 4M check skipped: {str(e)[:120]}", flush=True)
+        return []
+
+
 def _accessible_lines(cur, user: dict):
     """Lines this user may see — mirrors routers/lines.list_lines scoping:
     a non-admin WITH rows in mes_operator_lines is limited to those; a user
@@ -715,6 +728,9 @@ def detail(line_id: int = Query(...),
             "npd": {"marked": bool(npd_whole or npd_shift), "whole_day": npd_whole,
                     "shift": npd_shift, "reason": npd_reason},
             "can_close": _can_close(cur, user, line_id),
+            # 2026-11-10 — red 4M circles of this shift still missing Product /
+            # Action / Quality Result / Status (Control Board → 4M Change).
+            "four_m_pending": _four_m_pending(cur, line_id, rec_date, shift_name),
         }
 
 
@@ -746,6 +762,13 @@ def close_shift(body: CloseBody, user=Depends(get_current_user)):
         sh = cur.fetchone()
         if not sh:
             raise HTTPException(404, "Shift not configured for this line")
+        # 2026-11-10 (operator): a shift with a 4M change still open in the
+        # 4M Change Control Sheet cannot be closed.
+        _p4 = _four_m_pending(cur, body.line_id, rec_date, _sn)
+        if _p4:
+            raise HTTPException(409, "Control Board sheet not completed: " + "; ".join(
+                f"{p['label']} {p['param'].replace('_', ' ')} — fill {', '.join(p['missing'])}" for p in _p4)
+                + ". Complete it in the Control Board, then close the shift.")
         sched_end = _scheduled_end_dt(rec_date, sh["end_time"], sh["crosses_midnight"])
         now = datetime.now()
         # 2026-09-13 — the "on-time" grace after scheduled end is configurable in

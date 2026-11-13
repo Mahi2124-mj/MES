@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, Fragment } from "react";
+import { useState, useEffect, useRef, Fragment, lazy, Suspense } from "react";
 import { useSearchParams } from "react-router-dom";
 import axios from "axios";
 import AIAssistant from "../components/AIAssistant";
@@ -9,6 +9,12 @@ import CycleTimeStudy from "../components/CycleTimeStudy";
 import BreakdownSlipView from "../components/BreakdownSlipPaper";
 import { downloadSlipPdf, MAINT_SRC } from "../components/breakdownSlipPdf";
 import { useAuth } from "../context/AuthContext";
+import { LanRefreshSlot } from "../components/LanRefresh";
+import LineSelect from "../components/LineSelect";
+// 2026-11-12 — saved Control Board sheets (monthly) + Line Rejection (daily);
+// loaded only when one of those tabs opens (it pulls in the Control Board).
+const BoardSheetHistory = lazy(() => import("./HistoricalBoard").then(m => ({ default: m.BoardSheetHistory })));
+const RejectionHistory = lazy(() => import("./HistoricalBoard").then(m => ({ default: m.RejectionHistory })));
 
 const api = axios.create({ baseURL: "" });
 api.interceptors.request.use(cfg => {
@@ -314,10 +320,10 @@ function PartSearch({ zones: zonesProp }) {
           </div>
           <div className="ff">
             <label>Line (optional)</label>
-            <select value={lineId} onChange={e=>setLineId(e.target.value)}>
+            <LineSelect value={lineId} onChange={e=>setLineId(e.target.value)}>
               <option value="">All Lines</option>
               {lines.map(l=><option key={l.id} value={l.id}>{l.line_name}</option>)}
-            </select>
+            </LineSelect>
           </div>
           <div className="ff">
             <label>From</label>
@@ -1175,10 +1181,10 @@ function VideoArchiveTab({ zones: zonesProp }) {
               </div>
               <div className="ff">
                 <label>Line (optional)</label>
-                <select value={pLineId} onChange={e => setPLineId(e.target.value)}>
+                <LineSelect value={pLineId} onChange={e => setPLineId(e.target.value)}>
                   <option value="">All Lines</option>
                   {allLines.map(l => <option key={l.id} value={l.id}>{l.line_name}</option>)}
-                </select>
+                </LineSelect>
               </div>
               <div className="ff">
                 <label>From</label>
@@ -2140,6 +2146,12 @@ export default function Historical() {
     { key: "trace", label: "Part Traceability" },
     { key: "bdlog", label: "Breakdown History" },
     { key: "ctstudy", label: "Cycle Time Study" },
+    // 2026-11-12 — Control Board sheets saved every month + Line Rejection saved per day
+    { key: "cb4m", label: "4M Change" },
+    { key: "cbops", label: "Operator Visual" },
+    { key: "cbtrack", label: "Track Record" },
+    { key: "cbdefect", label: "Defect Recording" },
+    { key: "cbrej", label: "Line Rejection" },
   ];
   const visibleTabs = HIST_TABS.filter(t => canAccessModule("historical", t.key));
   const effTab = visibleTabs.some(t => t.key === activeTab)
@@ -2338,6 +2350,10 @@ export default function Historical() {
           }}>
             Production <span style={{ color: theme.accent }}>Historical Data</span>
           </div>
+          {/* LAN app: Refresh at the right of the bar (nothing on the website) */}
+          <div style={{ marginLeft:"auto", display:"flex", alignItems:"center", position:"relative", zIndex:1 }}>
+            <LanRefreshSlot />
+          </div>
         </div>
 
         {/* Every tab uses the full width.  Video Archive went first (a grid of
@@ -2348,11 +2364,13 @@ export default function Historical() {
         <div className="hist-body hist-body-wide">
 
           {/* Tab bar */}
-          <div style={{display:"flex",gap:0,marginBottom:24,background:"#fff",borderRadius:"12px 12px 0 0",
+          {/* 2026-11-12 — 11 tabs: they wrap onto a second row on a narrow screen */}
+          <div style={{display:"flex",flexWrap:"wrap",gap:0,marginBottom:24,background:"#fff",borderRadius:"12px 12px 0 0",
             border:"1px solid #e2e8f0",borderBottom:"2px solid #e2e8f0",overflow:"hidden"}}>
             {visibleTabs.map(t=>(
               <button key={t.key} onClick={()=>setActiveTab(t.key)} style={{
-                flex:1,padding:"13px 20px",fontFamily:"'Barlow',sans-serif",fontSize:14,fontWeight:700,
+                flex:"1 1 118px",padding:"13px 12px",fontFamily:"'Barlow',sans-serif",fontSize:14,fontWeight:700,
+                whiteSpace:"nowrap",
                 cursor:"pointer",border:"none",background:effTab===t.key?theme.accentDark:"#fff",
                 color:effTab===t.key?"#fff":"#64748b",
                 transition:"all .15s",
@@ -2387,6 +2405,19 @@ export default function Historical() {
           {/* Cycle Time Study — part-to-part CT of one machine over any
               window, optional model / part code, + output prediction. */}
           {effTab === "ctstudy" && <CycleTimeStudy />}
+
+          {/* 2026-11-12 — saved Control Board sheets (each line's month, saved
+              every hour by the MES-API) and the Red Bin rejections per day;
+              zone / line / month (date) filters, Save PDF.  HistoricalBoard.jsx */}
+          {["cb4m", "cbops", "cbtrack", "cbdefect", "cbrej"].includes(effTab) && (
+            <Suspense fallback={<div style={{ padding: 24, color: "#64748b", fontSize: 14 }}>Loading…</div>}>
+              {effTab === "cb4m" && <BoardSheetHistory key="4m" kind="4m" />}
+              {effTab === "cbops" && <BoardSheetHistory key="ops" kind="ops" />}
+              {effTab === "cbtrack" && <BoardSheetHistory key="track" kind="track" />}
+              {effTab === "cbdefect" && <BoardSheetHistory key="defect" kind="defect" />}
+              {effTab === "cbrej" && <RejectionHistory />}
+            </Suspense>
+          )}
 
           {/* Shift Data tab (existing content) */}
           {effTab === "shift" && <>

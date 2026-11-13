@@ -23,11 +23,21 @@ import { api } from "../api/client";
 import AIAssistant from "../components/AIAssistant";
 import PageTopbar from "../components/PageTopbar";
 
+// 2026-10-30 — operator: four levels L1..L4 plus OJT below L1 (stored as 0); L5 removed.
 const SKILL_LABELS = {
-  1: "Trainee", 2: "Basic", 3: "Skilled", 4: "Multi-skilled", 5: "Expert",
+  0: "OJT", 1: "Trainee", 2: "Basic", 3: "Skilled", 4: "Multi-skilled",
 };
 const SKILL_COLOR = (l) =>
-  l >= 4 ? "#16a34a" : l >= 3 ? "#2563eb" : l >= 2 ? "#d97706" : "#94a3b8";
+  l >= 4 ? "#16a34a" : l >= 3 ? "#2563eb" : l >= 2 ? "#d97706" : l === 0 ? "#dc2626" : "#94a3b8";
+const skillOf = (l) => (l === null || l === undefined || l === "" ? 1 : Number(l));   // 0 (OJT) stays 0
+const skillTag = (l) => (skillOf(l) === 0 ? "OJT" : `L${skillOf(l)}`);
+// 2026-10-30 — operator: on YHB Recliner (line 27) and YSD Recliner (line 29) the
+// Oiling process may be left without an operator and the crew still saves.
+const OPTIONAL_PROCS = { 27: /^\s*oiling\s*$/i, 29: /^\s*oiling\s*$/i };
+const isOptionalProc = (lineId, p) => {
+  const re = OPTIONAL_PROCS[Number(lineId)];
+  return !!(re && re.test(String((p && p.process_name) || "")));
+};
 
 /* ── Reusable: Apple Watch style ring ─────────────────────────────── */
 function Ring({ value, max = 100, size = 110, stroke = 12, color, label, suffix = "%" }) {
@@ -65,7 +75,7 @@ function Ring({ value, max = 100, size = 110, stroke = 12, color, label, suffix 
 function Avatar({ op, size = 36, ring = true }) {
   const initials = (op.full_name || "?")
     .split(/\s+/).map(s => s[0] || "").join("").slice(0, 2).toUpperCase();
-  const color = SKILL_COLOR(op.skill_level || 1);
+  const color = SKILL_COLOR(skillOf(op.skill_level));
   const bgPalette = ["#0ea5e9","#8b5cf6","#ec4899","#f97316","#14b8a6","#eab308","#22c55e","#ef4444","#6366f1"];
   const bg = bgPalette[(op.id || 0) % bgPalette.length];
   return (
@@ -78,7 +88,7 @@ function Avatar({ op, size = 36, ring = true }) {
         <div style={{
           position: "absolute", inset: 0, borderRadius: "50%",
           padding: 2,
-          background: `conic-gradient(${color} ${(op.skill_level||1)*72}deg, #e2e8f0 0deg)`,
+          background: `conic-gradient(${color} ${Math.max(skillOf(op.skill_level), 0.25)*90}deg, #e2e8f0 0deg)`,
         }} />
       )}
       <div style={{
@@ -94,7 +104,7 @@ function Avatar({ op, size = 36, ring = true }) {
 
 /* ── Draggable operator card ──────────────────────────────────────── */
 function OperatorCard({ op, count = 0, dragging, onDragStart, onDragEnd, compact, locked }) {
-  const c = SKILL_COLOR(op.skill_level || 1);
+  const c = SKILL_COLOR(skillOf(op.skill_level));
   return (
     <div
       draggable={!locked}
@@ -129,7 +139,7 @@ function OperatorCard({ op, count = 0, dragging, onDragStart, onDragEnd, compact
         <span style={{
           fontSize: 9, fontWeight: 800, padding: "1px 6px", borderRadius: 99,
           background: `${c}1a`, color: c, letterSpacing: ".05em",
-        }}>L{op.skill_level || 1}</span>
+        }}>{skillTag(op.skill_level)}</span>
         {count > 0 && (
           <span title={`Assigned to ${count}`} style={{
             fontSize: 9, fontWeight: 800, padding: "1px 6px", borderRadius: 99,
@@ -233,6 +243,11 @@ export default function ShiftAllocation() {
   const [history,   setHistory]   = useState([]);
   const [config,    setConfig]    = useState(null);
   const [locked,    setLocked]    = useState(false);
+  // 2026-10-30 — one correction after the first save (operator: "single time
+  // edit … sirf ek baar hi edit ho barbar nahi").  editStatus comes from
+  // /allocations/edit-status; a saved shift is view-only until "Edit once".
+  const [editStatus, setEditStatus] = useState(null);
+  const [editMode,   setEditMode]   = useState(false);
   const [loading,   setLoading]   = useState(false);
   const [saving,    setSaving]    = useState(false);
   const [toastV,    setToastV]    = useState(null);
@@ -259,6 +274,9 @@ export default function ShiftAllocation() {
   const showLead = true;
   const [leaders, setLeaders]         = useState([]);
   const [shiftLeader, setShiftLeader] = useState("");
+  // 2026-11-12: a saved leader of an ended shift is locked (server rule; shift
+  // incharge and above may still change it) — null or the shift end "YYYY-MM-DDTHH:MM"
+  const [leaderLock, setLeaderLock] = useState(null);
   const [leaderBusy, setLeaderBusy]   = useState(false);
   // 2026-09-25 — NOBODY saves a crew without a leader on it (operator: "jab tak
   // leader assign na ho tab tak save nahi hona chahiye").  It used to be gated
@@ -277,21 +295,25 @@ export default function ShiftAllocation() {
     api.get("/api/leaders", token).then(r => setLeaders(r.leaders || [])).catch(() => setLeaders([]));
   }, [showLead, token]);
   useEffect(() => {
+    setLeaderLock(null);
     if (!showLead || !lineId || !date || !shift) { setShiftLeader(""); return; }
     api.get(`/api/leaders/shift-alloc?line_id=${lineId}&date=${date}&shift=${encodeURIComponent(shift)}`, token)
-      .then(r => setShiftLeader(r.leader_id ? String(r.leader_id) : ""))
+      .then(r => { setShiftLeader(r.leader_id ? String(r.leader_id) : ""); setLeaderLock(r.locked ? (r.shift_end || "ended") : null); })
       .catch(() => setShiftLeader(""));
   }, [showLead, lineId, date, shift, token]);
   const saveLeader = async (lid) => {
+    const prev = shiftLeader;
     setShiftLeader(lid);
     setLeaderBusy(true);
     try {
       await api.post("/api/leaders/shift-alloc",
         { line_id: Number(lineId), shift_date: date, shift_name: shift,
           leader_id: lid ? Number(lid) : null }, token);
-      setToastV(lid ? "Line leader assigned ✓" : "Line leader cleared");
-      setTimeout(() => setToastV(null), 2500);
-    } catch (e) { setToastV("Leader save failed"); setTimeout(() => setToastV(null), 3000); }
+      showToast(lid ? "Line leader assigned ✓" : "Line leader cleared");
+    } catch (e) {
+      setShiftLeader(prev);                       // refused (e.g. locked): back to the saved leader
+      showToast((e && e.message) || "Leader save failed", "err");
+    }
     finally { setLeaderBusy(false); }
   };
 
@@ -334,12 +356,15 @@ export default function ShiftAllocation() {
     if (!lineId || !date || !shift) return;
     setLoading(true);
     try {
-      const [procs, punches, allocs, hist] = await Promise.all([
+      const [procs, punches, allocs, hist, es] = await Promise.all([
         api.get(`/api/manpower/processes?line_id=${lineId}`, token),
         api.get(`/api/manpower/punches?line_id=${lineId}&date=${date}&shift=${encodeURIComponent(shift)}`, token),
         api.get(`/api/manpower/allocations?line_id=${lineId}&date=${date}&shift=${encodeURIComponent(shift)}`, token),
         api.get(`/api/manpower/allocations?line_id=${lineId}&date=${date}&shift=${encodeURIComponent(shift)}&include_history=true`, token),
+        api.get(`/api/manpower/allocations/edit-status?line_id=${lineId}&date=${date}&shift=${encodeURIComponent(shift)}`, token).catch(() => null),
       ]);
+      setEditStatus(es);
+      setEditMode(false);
       setProcesses((procs || []).filter(p => p.is_active));
       setHistory(hist || []);
       const today = new Date().toISOString().slice(0, 10);
@@ -431,7 +456,7 @@ export default function ShiftAllocation() {
 
   // ── Drag handlers ────────────────────────────────────────────────
   const onCardDragStart = (e, opId, fromProcessId = null, slotIdx = null) => {
-    if (locked || !writable) return;
+    if (ro) return;
     setDragOp({ opId, fromProcessId, slotIdx });
     e.dataTransfer.effectAllowed = "move";
     try { e.dataTransfer.setData("text/plain", String(opId)); } catch {}
@@ -500,14 +525,28 @@ export default function ShiftAllocation() {
     });
   };
 
+  // Saved once → view-only until "Edit once"; corrected once → locked (admin may still edit).
+  const savedOnce  = !!(editStatus && editStatus.saves >= 1);
+  const editLocked = !!(editStatus && editStatus.locked);
+  const adminEdit  = !!(editStatus && editStatus.admin_override);
+  const frozen     = !locked && savedOnce && !editMode;
+  const ro         = locked || !writable || frozen;
+  const startEdit  = () => {
+    const msg = editLocked
+      ? "Admin edit: this shift was already corrected once. Save your change?"
+      : "This allocation can be corrected only ONCE.\nAfter the next Save it will be locked for this shift.\n\nContinue?";
+    if (window.confirm(msg)) setEditMode(true);
+  };
+
   // ── Save ─────────────────────────────────────────────────────────
   const save = async () => {
     if (locked) { showToast("Shift is locked — cannot save", "err"); return; }
+    if (frozen) { showToast(editLocked ? "Already corrected once — locked" : "Click Edit once to correct this allocation", "err"); return; }
     if (needLeader) {
       showToast("Assign a Line Leader for this shift before saving", "err");
       return;
     }
-    const empty = processes.filter(p => !(pending[p.id] || []).some(id => !!id));
+    const empty = processes.filter(p => !isOptionalProc(lineId, p) && !(pending[p.id] || []).some(id => !!id));
     if (empty.length) {
       const ids = new Set(empty.map(p => p.id));
       setShakeIds(ids);
@@ -650,6 +689,21 @@ export default function ShiftAllocation() {
            board is stacked and a sticky pool would cover the screen. */
         .sa-pool { position: sticky; top: 76px; align-self: flex-start; }
         @media (max-width: 600px) { .sa-pool { position: static; } }
+        /* 2026-11-03 — LAN app, portrait panel (~800 px page width at the 90 %
+           zoom): the filters were squeezed into a ~100 px column beside the
+           rings, and the 48 px side gutters left the process grid 2 px short
+           of two tiles, so every process sat alone in one long column.  Full
+           width filters with the rings under them, 20 px gutters → the tiles
+           wrap two or more per row beside the pool, as on the website. */
+        @media (max-width: 1100px) {
+          html.mes-lan .sa-hero { padding: 14px 20px 18px !important; }
+          html.mes-lan .sa-hero-left { flex: 1 1 100% !important; }
+          html.mes-lan .sa-hero-rings { margin: 0 auto; }
+          html.mes-lan .sa-board { padding: 16px 20px !important; }
+          html.mes-lan .sa-history { padding: 0 20px 32px !important; }
+        }
+        /* LAN app: the page bar now sticks below the status-bar band (index.html) */
+        html.mes-lan.cap-android .sa-pool { top: calc(76px + var(--cap-sat, 28px) * var(--mes-zinv, 1)); }
         .col-scroll::-webkit-scrollbar { width: 6px; }
         .col-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
       `}</style>
@@ -658,14 +712,14 @@ export default function ShiftAllocation() {
       <PageTopbar leading="Shift" accent="Allocation" />
 
       {/* ═══ HERO ─ filters + rings (title moved into PageTopbar) ════════ */}
-      <div style={{
+      <div className="sa-hero" style={{
         padding: "16px 48px 22px",
         background: "#fff",
         borderBottom: "1px solid #e2e8f0",
       }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start", gap: 24, flexWrap: "wrap" }}>
           {/* Left: title + filters */}
-          <div style={{ flex: 1, minWidth: 0 }}>
+          <div className="sa-hero-left" style={{ flex: 1, minWidth: 0 }}>
             {/* Title moved to <PageTopbar> above for cross-page consistency */}
             <div style={{ fontSize: 12, color: "#64748b" }}>
               Drag operators from the pool onto process columns · same operator can cover multiple machines
@@ -722,7 +776,8 @@ export default function ShiftAllocation() {
                     shownOthers.forEach(l => { const k = l.zone_name || "No zone"; (byZone[k] = byZone[k] || []).push(l); });
                     return (
                       <>
-                        <select value={shiftLeader} disabled={leaderBusy || !writable}
+                        <select value={shiftLeader} disabled={leaderBusy || !writable || !!leaderLock}
+                                title={leaderLock ? `This shift ended at ${String(leaderLock).slice(11, 16)}: its line leader is locked. A shift incharge or above can change it.` : undefined}
                                 onChange={e => saveLeader(e.target.value)} style={{ ...glassSelect, minWidth: 220 }}>
                           <option value="">— none —</option>
                           <optgroup label={zoneName}>
@@ -734,7 +789,12 @@ export default function ShiftAllocation() {
                             </optgroup>
                           ))}
                         </select>
-                        {others.length > 0 && (
+                        {leaderLock && (
+                          <span style={{ fontSize: 10, color: "#b45309", fontWeight: 600 }}>
+                            🔒 Locked: shift ended{String(leaderLock).length > 10 ? ` ${String(leaderLock).slice(11, 16)}` : ""}
+                          </span>
+                        )}
+                        {others.length > 0 && !leaderLock && (
                           <label style={{ fontSize: 10, color: "#64748b", display: "flex", alignItems: "center",
                                           gap: 5, cursor: "pointer", userSelect: "none" }}>
                             <input type="checkbox" checked={allZoneLeaders}
@@ -748,7 +808,17 @@ export default function ShiftAllocation() {
                 </FilterCell>
               )}
               <button onClick={refreshClick} disabled={loading} style={glassBtn}>↻ {loading ? "…" : "Refresh"}</button>
-              {!locked && writable && (
+              {!locked && writable && frozen && (!editLocked || adminEdit) && (
+                <button onClick={startEdit}
+                        title={editLocked ? "Admin: change this shift again" : "Correct a wrong operator — allowed once"}
+                        style={{ ...primaryBtn, background: editLocked ? "#7c3aed" : "#d97706" }}>
+                  {editLocked ? "✎ Admin edit" : "✎ Edit once"}
+                </button>
+              )}
+              {!locked && writable && editMode && (
+                <button onClick={() => refresh()} style={glassBtn}>✕ Cancel edit</button>
+              )}
+              {!ro && (
                 <button onClick={save}
                         disabled={saving || needLeader}
                         title={needLeader ? "Assign a Line Leader first" : ""}
@@ -762,7 +832,7 @@ export default function ShiftAllocation() {
                             justSavedAt={justSavedAt} saving={saving} />
               )}
             </div>
-            {!locked && writable && needLeader && (
+            {!ro && needLeader && (
               <div style={{ fontSize: 11.5, color: "#b91c1c", fontWeight: 600, marginTop: 6 }}>
                 ⚠ Assign a <b>Line Leader</b> before saving.
               </div>
@@ -771,6 +841,15 @@ export default function ShiftAllocation() {
             {/* Status pills */}
             <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
               {locked && <Pill color="#dc2626">🔒 LOCKED — past shift</Pill>}
+              {frozen && !editLocked && <Pill color="#16a34a">✓ Saved · 1 correction allowed — use ✎ Edit once</Pill>}
+              {!locked && editLocked && !editMode && (
+                <Pill color="#dc2626">🔒 Corrected once — locked{editStatus?.edited_by ? ` · by ${editStatus.edited_by}` : ""}{editStatus?.edited_at ? ` · ${new Date(editStatus.edited_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}` : ""}</Pill>
+              )}
+              {editMode && (
+                <Pill color={editLocked ? "#7c3aed" : "#d97706"}>
+                  {editLocked ? "✎ Admin edit — Save to apply" : "✎ Correction mode — this is the one allowed edit; Save locks the shift"}
+                </Pill>
+              )}
               {!locked && config && (
                 <Pill color="#2563eb">⏱ Deadline {config.allocation_deadline_minutes}m · Ack {config.ack_timeout_minutes}m</Pill>
               )}
@@ -781,7 +860,7 @@ export default function ShiftAllocation() {
           </div>
 
           {/* Right: rings */}
-          <div style={{
+          <div className="sa-hero-rings" style={{
             display: "flex", gap: 20, padding: "18px 24px",
             flexWrap: "wrap", justifyContent: "center", maxWidth: "100%", minWidth: 0,
             background: "#fff",
@@ -835,7 +914,7 @@ export default function ShiftAllocation() {
                 {pool.length} punched-in
               </div>
             </div>
-            {!locked && writable && (
+            {!ro && (
               <button onClick={openAddOperator} style={{
                 padding: "6px 12px", fontSize: 11, fontWeight: 800,
                 background: "linear-gradient(135deg, #3b82f6, #60a5fa)", color: "#fff",
@@ -848,7 +927,7 @@ export default function ShiftAllocation() {
             {pool.length === 0 ? (
               <div style={{ padding: 24, textAlign: "center", color: "#94a3b8", fontSize: 11 }}>
                 Nobody punched in yet.<br/>
-                {!locked && writable && <span style={{ fontSize: 10, marginTop: 6, display: "inline-block" }}>Click <b style={{ color: "#2563eb" }}>+ ADD</b> to manually add.</span>}
+                {!ro && <span style={{ fontSize: 10, marginTop: 6, display: "inline-block" }}>Click <b style={{ color: "#2563eb" }}>+ ADD</b> to manually add.</span>}
               </div>
             ) : (
               pool.map(op => (
@@ -859,9 +938,9 @@ export default function ShiftAllocation() {
                     dragging={dragOp?.opId === op.id && dragOp?.fromProcessId == null}
                     onDragStart={(e, opId) => onCardDragStart(e, opId, null, null)}
                     onDragEnd={onCardDragEnd}
-                    locked={locked || !writable}
+                    locked={ro}
                   />
-                  {(writable && !locked) && (
+                  {!ro && (
                     <button
                       onClick={() => removeFromPool(op.id)}
                       title="Remove from pool"
@@ -898,6 +977,7 @@ export default function ShiftAllocation() {
           processes.map(p => {
             const ops = pending[p.id] || Array(p.required_manpower_count).fill(null);
             const hasAny = ops.some(id => !!id);
+            const optional = isOptionalProc(lineId, p);
             const isShaking = shakeIds.has(p.id);
             const isHovering = dropHover === p.id;
             const reqC = SKILL_COLOR(p.required_skill_level);
@@ -911,8 +991,8 @@ export default function ShiftAllocation() {
                 onDrop={(e) => dropOnProcess(e, p.id)}
                 style={{
                   minWidth: 0,
-                  background: hasAny ? "#fff" : "#fef2f2",
-                  border: `1px solid ${isHovering ? "#2563eb" : hasAny ? "#e2e8f0" : "#fecaca"}`,
+                  background: (hasAny || optional) ? "#fff" : "#fef2f2",
+                  border: `1px solid ${isHovering ? "#2563eb" : (hasAny || optional) ? "#e2e8f0" : "#fecaca"}`,
                   borderRadius: 14, display: "flex", flexDirection: "column",
                   boxShadow: isHovering ? "0 0 0 3px rgba(37,99,235,.15)" : "0 1px 3px rgba(0,0,0,.04)",
                   transition: "border-color .15s, box-shadow .15s, background .15s",
@@ -936,7 +1016,14 @@ export default function ShiftAllocation() {
                       border: `1px solid ${reqC}44`,
                     }}>L{p.required_skill_level} {SKILL_LABELS[p.required_skill_level]}</span>
                   </div>
-                  {!hasAny && (
+                  {!hasAny && optional && (
+                    <div style={{
+                      marginTop: 8, fontSize: 9, fontWeight: 800, padding: "3px 8px", borderRadius: 6,
+                      background: "#f1f5f9", color: "#64748b", textAlign: "center", letterSpacing: ".08em",
+                      border: "1px dashed #cbd5e1",
+                    }}>OPTIONAL · CAN BE LEFT EMPTY</div>
+                  )}
+                  {!hasAny && !optional && (
                     <div className="pulse-red" style={{
                       marginTop: 8, fontSize: 9, fontWeight: 800, padding: "3px 8px", borderRadius: 6,
                       background: "#dc2626", color: "#fff", textAlign: "center", letterSpacing: ".08em",
@@ -965,15 +1052,15 @@ export default function ShiftAllocation() {
                               dragging={dragOp?.opId === op.id && dragOp?.fromProcessId === p.id && dragOp?.slotIdx === idx}
                               onDragStart={(e, oid) => onCardDragStart(e, oid, p.id, idx)}
                               onDragEnd={onCardDragEnd}
-                              locked={locked || !writable}
+                              locked={ro}
                             />
                             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0 4px" }}>
                               {!match ? (
                                 <span style={{ fontSize: 9, fontWeight: 700, color: "#dc2626" }}>
-                                  ⚠ needs L{p.required_skill_level} (has L{op.skill_level})
+                                  ⚠ needs L{p.required_skill_level} (has {skillTag(op.skill_level)})
                                 </span>
                               ) : <span/>}
-                              {!locked && writable && (
+                              {!ro && (
                                 <button onClick={() => clearSlot(p.id, idx)} title="Remove"
                                         style={{
                                           background: "transparent", border: "none",
@@ -1004,7 +1091,7 @@ export default function ShiftAllocation() {
       </div>
 
       {/* ═══ HISTORY ─ collapsible ════════════════════════════════════ */}
-      <div style={{ padding: "0 48px 32px" }}>
+      <div className="sa-history" style={{ padding: "0 48px 32px" }}>
         <div style={{
           background: "#fff",
           border: "1px solid #e2e8f0", borderRadius: 14,
@@ -1045,7 +1132,7 @@ export default function ShiftAllocation() {
                   <tbody>
                     {history.map(h => {
                       const isActive = !h.removed_at;
-                      const c = SKILL_COLOR(h.op_skill || 1);
+                      const c = SKILL_COLOR(skillOf(h.op_skill));
                       return (
                         <tr key={h.id} style={{
                           borderBottom: "1px solid #f1f5f9",
@@ -1054,7 +1141,7 @@ export default function ShiftAllocation() {
                           <td style={tdStyle}>{h.process_name}</td>
                           <td style={tdStyle}>{h.full_name}</td>
                           <td style={tdStyle}>
-                            <span style={{ color: c, fontWeight: 700 }}>L{h.op_skill}</span>
+                            <span style={{ color: c, fontWeight: 700 }}>{skillTag(h.op_skill)}</span>
                             <span style={{ color: "#94a3b8", margin: "0 4px" }}>→</span>
                             <span style={{ color: SKILL_COLOR(h.required_skill_level), fontWeight: 700 }}>L{h.required_skill_level}</span>
                           </td>
@@ -1140,8 +1227,8 @@ export default function ShiftAllocation() {
                     </div>
                     <span style={{
                       fontSize: 9, fontWeight: 800, padding: "2px 8px", borderRadius: 99,
-                      background: `${SKILL_COLOR(o.skill_level||1)}1a`, color: SKILL_COLOR(o.skill_level||1),
-                    }}>L{o.skill_level || 1}</span>
+                      background: `${SKILL_COLOR(skillOf(o.skill_level))}1a`, color: SKILL_COLOR(skillOf(o.skill_level)),
+                    }}>{skillTag(o.skill_level)}</span>
                   </div>
                 ))
               )}

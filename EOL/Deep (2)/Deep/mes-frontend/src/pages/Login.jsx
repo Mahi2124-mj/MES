@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import AIAssistant from "../components/AIAssistant";
+import { getApkInfo } from "../api/appVersion";
 
 export default function Login() {
   const [username, setUsername] = useState("");
@@ -10,6 +11,8 @@ export default function Login() {
   const [loading, setLoading]   = useState(false);
   const [showPass, setShowPass] = useState(false);
   const [mounted, setMounted]   = useState(false);
+  // LAN panel APK only: portrait card layout (see the .login-root.lan CSS).
+  const isLan = (() => { try { return getApkInfo().isLan; } catch { return false; } })();
 
   const { login, token } = useAuth();
   const navigate  = useNavigate();
@@ -391,6 +394,30 @@ export default function Login() {
 
         .login-footer-note strong { color: rgba(255,255,255,0.3); }
 
+        /* 2026-10-31 — LAN panel APK only (.login-root.lan; the site keeps its
+           layout). The 65" panel is 720 CSS px wide: the side-by-side card
+           squeezed the 360 px branding column and cut "Manufacturing Execution
+           System" under the form, so stack branding above the form as one
+           centred card. Phones (<=640 px) keep the full-bleed rule below. */
+        @media (min-width: 641px) and (max-width: 900px) {
+          /* #root is padded by the status-bar height on the native app
+             (html.cap-android, --cap-sat), so a full 100vh here pushed the
+             card that far below centre. */
+          .login-root.lan { height: auto; min-height: calc((100vh - var(--cap-sat, 0px)) * var(--mes-zinv, 1));
+                        min-height: calc((100dvh - var(--cap-sat, 0px)) * var(--mes-zinv, 1));
+                        overflow-y: auto; overflow-x: hidden; padding: 24px 0; }
+          .lan .login-card { flex-direction: column; width: 560px; max-width: 92vw; }
+          .lan .login-left { width: 100%; padding: 32px 36px 22px; }
+          .lan .login-logo-row { margin-bottom: 24px; }
+          .lan .login-hero { margin-top: 0; }
+          .lan .login-headline, .lan .login-sub-headline { font-size: 40px; }
+          .lan .login-desc { max-width: none; }
+          .lan .login-right { padding: 30px 36px 34px; border-left: none;
+                         border-top: 1px solid rgba(255,255,255,0.05); }
+          .lan .login-form-sub { margin-bottom: 28px; }
+          .lan .login-divider { margin: 26px 0 18px; }
+        }
+
         @media (max-width: 640px) {
           /* Stack the branding ABOVE the form (instead of hiding it) so all
              details show on a phone. */
@@ -411,7 +438,7 @@ export default function Login() {
         }
       `}</style>
 
-      <div className="login-root">
+      <div className={isLan ? "login-root lan" : "login-root"}>
         <div
           className="login-card"
           style={{

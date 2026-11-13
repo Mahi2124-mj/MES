@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useAuth } from "../context/AuthContext";
 import { api } from "../api/client";
 import AIAssistant from "../components/AIAssistant";
+import LineSelect from "../components/LineSelect";
 
 
 // Required columns for import validation
@@ -412,10 +413,10 @@ export default function ImportExcel() {
             {/* Target line selector */}
             <div style={{ marginBottom: 20, maxWidth: 320 }}>
               <label style={{ display: "block", fontSize: 10, fontWeight: 700, letterSpacing: ".1em", textTransform: "uppercase", color: "#64748b", marginBottom: 7 }}>Import Into Line *</label>
-              <select className="imp-input" value={impLine} onChange={e => setImpLine(e.target.value)} style={inputSt}>
+              <LineSelect className="imp-input" value={impLine} onChange={e => setImpLine(e.target.value)} style={inputSt}>
                 <option value="">Select target line…</option>
                 {lines.map(l => <option key={l.id} value={l.id}>{l.line_name} ({l.line_code})</option>)}
-              </select>
+              </LineSelect>
             </div>
 
             {/* Drop zone */}

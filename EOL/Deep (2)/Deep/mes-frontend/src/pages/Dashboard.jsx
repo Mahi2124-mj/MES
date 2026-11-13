@@ -4,6 +4,7 @@ import { api } from "../api/client";
 import AIAssistant   from "../components/AIAssistant";
 import OperatorBadge from "../components/OperatorBadge";
 import ManpowerAlertBanner from "../components/ManpowerAlertBanner";
+import { LanRefreshSlot } from "../components/LanRefresh";
 import { ClosureFormModal } from "./MaintenanceDashboard";
 
 // 2026-10-07 — live andon call colour by its status (same palette as the
@@ -888,7 +889,7 @@ function LineCard({ line, globalStatus, token, user, onRtUpdate, onNpdUpdate }) 
           display: "flex", gap: 12, flexWrap: "wrap", alignItems: "stretch",
         }}>
           {/* ─ KPI tiles ─ */}
-          <div style={{ display: "flex", gap: 8, flex: "0 1 auto" }}>
+          <div className="lc-kpis" style={{ display: "flex", gap: 8, flex: "0 1 auto" }}>
             {[
               { label: "Plan",        val: (isNPD || isOfflineShift) ? "0" : rt ? plan                    : "—", mono: true              },
               { label: "Actual",      val: isOfflineShift ? "—" : rt ? actual                               : "—", mono: true, blue: !isOfflineShift },
@@ -1109,7 +1110,7 @@ function LineCard({ line, globalStatus, token, user, onRtUpdate, onNpdUpdate }) 
         {/* Action buttons — capped width so they stay compact even when the
             line card is full container width (sub-machine mode). flex-wrap
             still folds them to 2 rows on small cards. */}
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", maxWidth: 820 }}>
+        <div className="lc-actions" style={{ display: "flex", gap: 8, flexWrap: "wrap", maxWidth: 820 }}>
           <Btn onClick={() => setModal(true)} variant="ghost">📊 Details</Btn>
           <Btn onClick={() => window.open(
                  `/${encodeURIComponent(
@@ -1687,13 +1688,30 @@ export default function Dashboard() {
     || (l.line_code || "").toLowerCase().includes(lineQ);
   const searched = lines.filter(matches);
 
+  // 2026-10-26 — operator: the order of the lines inside a zone.  Ranks are
+  // only compared within one zone, so every zone's list lives in this one
+  // array.  Lines not listed keep their order (after the listed ones).
+  //   YWD/2UA     — YWD-SS, YWD Recliner, Gear Lifter, 2UA Recliner, Nut Lifting
+  //   Seat Slider — YRA, YJC, YSD, YHB, YCA, YNC, YFG, Y17, YMC (27-Oct)
+  //   Recliner    — YRA, YSD, YHB, YNC, YMC (27-Oct)
+  const LINE_ORDER = ["YWD-SS", "YWD RECLINER", "GEAR LIFTER", "2UA RECLINER", "NUT LIFTING",
+                      "YRA-SS", "YJC-SS", "YSD-SS", "YHB-SS", "YCA-SS", "YNC-SS", "YFG-SS", "Y17-SS", "YMC-SS",
+                      "YRA RECLINER", "YSD RECLINER", "YHB RECLINER", "YNC RECLINER", "YMC RECLINER"];
+  const lineRank = (l) => {
+    const i = LINE_ORDER.indexOf(String(l.line_name || "").trim().toUpperCase());
+    return i < 0 ? 999 : i;
+  };
+  const inZone = (zid) => searched
+    .filter(l => String(l.zone_id) === String(zid))
+    .sort((a, b) => lineRank(a) - lineRank(b));
+
   const grouped = selZones.length === 0
     ? zones
-        .map(z => ({ zone: z, zoneLines: searched.filter(l => String(l.zone_id) === String(z.id)) }))
+        .map(z => ({ zone: z, zoneLines: inZone(z.id) }))
         .filter(g => g.zoneLines.length > 0)
     : selZones.map(zid => ({
         zone: zones.find(z => String(z.id) === zid) || { id: zid, zone_name: "Zone" },
-        zoneLines: searched.filter(l => String(l.zone_id) === zid),
+        zoneLines: inZone(zid),
       })).filter(g => g.zoneLines.length > 0);
 
   const unassigned = selZones.length === 0 ? searched.filter(l => !l.zone_id) : [];
@@ -1736,7 +1754,48 @@ export default function Dashboard() {
            columns instead of auto-fill, so a zone always reads as two cards per
            row on a desktop; the phone rule below still collapses it to one. */
         .lines-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:18px; }
-        @media (max-width:1100px) { .lines-grid { grid-template-columns:1fr; } }
+        /* 2026-10-26 — the 65" portrait panels (~1080 px wide) got one card per
+           row and showed two only at 50 % zoom.  Two cards now down to 700 px;
+           inside the narrower card the losses already wrap under Plan/Actual/
+           OEE, and the buttons fold into tidy rows instead of squeezing. */
+        @media (max-width:1100px) {
+          .db-body { padding:12px 20px 0; }
+          .lines-grid { gap:14px; }
+          .lc-actions > button { min-width:120px; }
+          .lc-kpis { flex:1 1 100% !important; }
+          .lc-kpis > div { min-width:0 !important; padding:10px 8px !important; }
+        }
+        @media (max-width:700px) { .lines-grid { grid-template-columns:1fr; } }
+        /* 2026-10-27 — panel (portrait, browser zoom): the centred title ran
+           under the search box.  The title stays centred (operator); the search
+           box is narrower and the title gets only the width between the side
+           groups (reserved symmetrically so it stays centred), so the two can
+           never overlap. */
+        @media (min-width:601px) and (max-width:1100px) {
+          .db-topbar { padding-right:20px; }
+          .db-tools input { width:120px !important; box-sizing:border-box; padding-right:8px !important; }
+          .db-topbar > .db-ttl { font-size:32px !important; max-width:calc(100% - 500px);
+                                 overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        }
+        @media (min-width:601px) and (max-width:800px) {
+          .db-tools input { width:100px !important; padding:7px 8px 7px 26px !important; font-size:12px !important; }
+          .db-tools .zone-drop-btn { padding:6px 10px; }
+          .db-topbar > .db-ttl { font-size:24px !important; max-width:calc(100% - 440px); }
+        }
+        /* 2026-11-03 — LAN app: the Refresh button joins the right-hand tools
+           (LanRefreshSlot), so the title reserves its width on both sides too. */
+        @media (min-width:601px) and (max-width:1100px) {
+          html.mes-lan .db-topbar > .db-ttl { max-width:calc(100% - 680px); }
+        }
+        /* ≤800 px (portrait panel, ~784 px bar at the 90 % zoom): one row
+           cannot hold a bar-centred title and the three tools ("Production
+           Dashboard" was cut to "Production …"), so the title centres in the
+           space between the logo and the tools instead. */
+        @media (min-width:601px) and (max-width:800px) {
+          html.mes-lan .db-topbar > .db-ttl { position:static !important; transform:none !important;
+                                              flex:1 1 auto; min-width:0; max-width:none; margin:0 12px;
+                                              text-align:center; }
+        }
         .empty-state { text-align:center; padding:80px 40px; color:#94a3b8; }
         @keyframes spin { to { transform:rotate(360deg) } }
         /* Phone: the 40px side padding (a desktop value) wasted a big strip on
@@ -1830,6 +1889,8 @@ export default function Dashboard() {
               </div>
             )}
           </div>
+          {/* LAN app: Refresh in line with search + zone (nothing on the website) */}
+          <LanRefreshSlot />
           </div>
         </div>
 

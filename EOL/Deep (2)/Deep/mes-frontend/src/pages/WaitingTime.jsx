@@ -15,6 +15,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { api } from "../api/client";
 import { useAuth } from "../context/AuthContext";
+import PageTopbar from "../components/PageTopbar";
 
 const C = {
   bg: "#0b1220", card: "#111c30", line: "#1e2a44",
@@ -208,8 +209,8 @@ export default function WaitingTime() {
       {/* On phones the parent has no side-padding, so the -24px full-bleed margin
           spilled off-screen → kill the horizontal bleed under 600px. */}
       <style>{`@media (max-width:600px){.wt-page{margin-left:0 !important;margin-right:0 !important;padding-left:14px !important;padding-right:14px !important;}}`}</style>
-      <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 6 }}>
-        <h2 className="m-navclear" style={{ margin: 0, fontSize: 20, fontWeight: 900 }}>Waiting Time</h2>
+      <PageTopbar leading="Waiting" accent="Time" />
+      <div style={{ display: "flex", alignItems: "center", gap: 14, margin: "12px 0 6px" }}>
         <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
           {[1, 7, 30].map(n => (
             <button key={n} onClick={() => setDays(n)} style={{

@@ -20,6 +20,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "../context/AuthContext";
 import { api } from "../api/client";
+import LineSelect from "../components/LineSelect";
 
 const C = { border:"#e2e8f0", text:"#0f172a", sub:"#64748b", blue:"#1e40af",
             blueBg:"#eff6ff", red:"#dc2626", green:"#16a34a", head:"#f8fafc" };
@@ -249,11 +250,11 @@ export default function PyConfigEditor({ readOnly = false, toast } = {}) {
       <div style={{ display:"flex", gap:14, flexWrap:"wrap", alignItems:"flex-end",
                     background:C.head, border:`1px solid ${C.border}`, borderRadius:8, padding:"10px 12px", marginBottom:12 }}>
         <div><div style={lbl}>Line</div>
-          <select style={{ ...inp, width:210 }} value={lineId}
+          <LineSelect style={{ ...inp, width:210 }} value={lineId}
             onChange={(e)=>{ setLineId(e.target.value); setStationFilter(""); setModelFilter(""); cancel(); }}>
             <option value="">— select line —</option>
             {lines.map((l)=><option key={l.id} value={l.id}>{l.lineCode} — {l.lineName}</option>)}
-          </select>
+          </LineSelect>
         </div>
         <div><div style={lbl}>Station</div>
           <select style={{ ...inp, width:230 }} value={stationFilter} disabled={!lineId}

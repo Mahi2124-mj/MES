@@ -324,6 +324,10 @@ export function AuthProvider({ children }) {
     // current user, so it's safe to expose to everyone.  The chain SETUP page
     // is admin-only (backend PUT is admin-gated too).
     if (page === "my-escalations")   return true;
+    // 2026-11-13 — Local Meeting Video: cycle clips saved for the line meeting,
+    // listed per the user's own line scope.  Open to every login (the panel
+    // runs on a shopfloor account); admin can still set it to none per user.
+    if (page === "meeting-videos")   return true;
     if (page === "escalation-admin") return user?.role === "admin";
     // My Team (2026-09-13): seniors see their juniors' activeness down the leg.
     // Self-filtering (juniors only), so gate to roles that actually have a team.
@@ -366,6 +370,12 @@ export function AuthProvider({ children }) {
     // and production.  Any user can still be granted/revoked it per-user.
     if (page === "andon-history")
       return isDepartment || isSectionIncharge || isProductionIncharge || isQualityIncharge || isProduction;
+
+    // 2026-11-11 — Line Rejection (Red Bin portal rejections, read-only):
+    // production side + quality by default; anyone else via Page Permissions.
+    if (page === "line-rejection")
+      return isProduction || isSectionIncharge || isProductionIncharge || isQualityIncharge
+          || (isDepartment && ["quality", "production"].includes((user?.departmentSlug || "").toLowerCase()));
 
     // Production Breakdown Slip — production fills the andon auto-slip.
     if (page === "prod-breakdown-slip")
@@ -423,7 +433,7 @@ export function AuthProvider({ children }) {
         return ["dashboard", "department-panel", "admin-maintenance",
                 "maintenance-historical", "maintenance-capa",
                 "maintenance-deviations", "maintenance-poka-yoke",
-                "maintenance-logbook", "maintenance-pm", "maintenance-air-flow",
+                "maintenance-logbook", "maintenance-pm", "maintenance-air-flow", "maintenance-predictive",
                 "process-graphs", "settings"].includes(page);
       }
       if (slug === "quality") {

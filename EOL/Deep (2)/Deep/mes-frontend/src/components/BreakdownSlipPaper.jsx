@@ -146,7 +146,8 @@ export default function BreakdownSlipPaper({ row, onClose }) {
             </div>
             {[
               { code: "A", desc: "MACHINE OR LINE HAS STOPPED AND PRODUCTION LOSS DIRECTLY" },
-              { code: "B", desc: "MACHINE RUNNING WITH PRODUCTION LOSS ( PRODUCTION EFFECTED ) ( ADJUSTMENT )" },
+              { code: "B", desc: "MACHINE RUNNING WITH PRODUCTION LOSS ( PRODUCTION EFFECTED )" },
+              { code: "C", desc: "ADJUSTMENT" },
             ].map((c) => (
               <div key={c.code} className="bds-cat-row">
                 <div className="bds-cat-cell-code">{c.code} CATEGORY B/D :-</div>

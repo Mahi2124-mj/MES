@@ -11,6 +11,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { api } from "../api/client";
 import { useAuth } from "../context/AuthContext";
+import { cleanSignatureDataUrl } from "../utils/cleanSignature";
 
 const th = { textAlign: "left", padding: "8px 12px", fontSize: 11, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: ".04em", borderBottom: "1px solid #e2e8f0", whiteSpace: "nowrap" };
 const td = { padding: "9px 12px", fontSize: 13, color: "#0f172a", borderBottom: "1px solid #f1f5f9", verticalAlign: "top" };
@@ -155,35 +156,28 @@ export default function LeaderAllocation() {
   // The image is downscaled here, in the browser: a phone photo is several MB
   // and the server rightly refuses anything over ~300 KB, so shrinking it at
   // the source is what makes "just take a picture of the sign" actually work.
+  // 2026-11-06 — also cleaned automatically: cropped to the ink, paper made
+  // transparent (utils/cleanSignature.js); if no ink can be told from the
+  // paper it falls back to the plain downscale.
   const uploadSignature = async (ld, file) => {
     if (!file) return;
-    if (!/^image\//.test(file.type)) { flash("Image file chuniye"); return; }
+    if (!/^image\//.test(file.type)) { flash("Select an image file"); return; }
     try {
+      setBusy(true);
       const dataUrl = await new Promise((res, rej) => {
         const fr = new FileReader();
         fr.onload = () => res(fr.result);
         fr.onerror = rej;
         fr.readAsDataURL(file);
       });
-      const small = await new Promise((res) => {
-        const img = new Image();
-        img.onload = () => {
-          const maxW = 480, scale = Math.min(1, maxW / img.width);
-          const cv = document.createElement("canvas");
-          cv.width = Math.round(img.width * scale);
-          cv.height = Math.round(img.height * scale);
-          cv.getContext("2d").drawImage(img, 0, 0, cv.width, cv.height);
-          res(cv.toDataURL("image/png"));
-        };
-        img.onerror = () => res(dataUrl);
-        img.src = dataUrl;
-      });
-      setBusy(true);
+      let small = dataUrl, cleaned = false;
+      try { ({ dataUrl: small, cleaned } = await cleanSignatureDataUrl(dataUrl)); }
+      catch { /* unreadable image: send as is, the server checks it */ }
       await api.post(`/api/leaders/${ld.id}/signature`, { signature_image: small }, token);
-      flash(`${ld.username} ka signature save ho gaya`);
+      flash(cleaned ? `${ld.username}: signature saved (background removed)` : `${ld.username}: signature saved`);
       load();
     } catch (e) {
-      flash("Signature save nahi hua: " + (e.message || ""));
+      flash("Signature not saved: " + (e.message || ""));
     } finally { setBusy(false); }
   };
 

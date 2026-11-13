@@ -19,6 +19,7 @@ import { useAuth } from "../context/AuthContext";
 import { api } from "../api/client";
 import AIAssistant from "../components/AIAssistant";
 import PageTopbar from "../components/PageTopbar";
+import LineSelect from "../components/LineSelect";
 
 const SEVERITY_COLOR = {
   high:   "#dc2626",
@@ -109,11 +110,11 @@ export default function AnythingWrongPage() {
             <div style={{ display: "flex", gap: 10, marginTop: 16, alignItems: "end", flexWrap: "wrap" }}>
               <div>
                 <label style={lblStyle}>Filter Line</label>
-                <select value={lineId} onChange={e => setLineId(e.target.value ? Number(e.target.value) : "")}
+                <LineSelect value={lineId} onChange={e => setLineId(e.target.value ? Number(e.target.value) : "")}
                         style={{ ...glassSelect, minWidth: 180, marginTop: 6 }}>
                   <option value="">All Lines</option>
                   {lines.map(l => <option key={l.id} value={l.id}>{l.line_name}</option>)}
-                </select>
+                </LineSelect>
               </div>
               <button onClick={load} style={glassBtn}>↻ {loading ? "…" : "Refresh"}</button>
             </div>

@@ -3,7 +3,7 @@
 AUTO-GENERATED COLLECTOR — Loop Pipe-Line 1
 Line ID    : 30
 Table      : loop_pipe_dashboard_01
-Generated  : 2026-09-29 21:20:24
+Generated  : 2026-10-24 16:44:42
 
 DO NOT EDIT MANUALLY — regenerate via admin panel if config changes.
 """
@@ -28,7 +28,7 @@ CONFIG = {
     "max_ct":     13.81,
     "models":     {1: 'YHB TOWEL BAR', 2: 'YCA TOWEL BAR', 3: 'YRA TOWEL BAR', 4: 'YJC/YXA TOWEL BAR'},
     "status_map": {0: {'name': 'IDLE', 'loss': None}, 1: {'name': 'RUNNING', 'loss': None}, 2: {'name': 'BREAKDOWN', 'loss': 'breakdown'}, 3: {'name': 'QUALITY_ISSUE', 'loss': 'quality'}, 4: {'name': 'MODEL_SETUP', 'loss': 'setup'}, 5: {'name': 'MATERIAL_WAIT', 'loss': 'material'}, 6: {'name': 'OTHER_LOSS', 'loss': 'others'}, 7: {'name': 'CHANGE_OVER', 'loss': 'change_over'}, 8: {'name': 'BREAK', 'loss': 'break'}},
-    "breaks":     [{'start': '01:00:00', 'end': '01:10:00', 'name': 'Night Tea Break'}, {'start': '04:00:00', 'end': '04:10:00', 'name': 'Early Morning Break'}, {'start': '10:00:00', 'end': '10:10:00', 'name': 'Morning Tea Break'}, {'start': '12:00:00', 'end': '12:35:00', 'name': 'Lunch Break'}, {'start': '14:30:00', 'end': '14:40:00', 'name': 'Evening Tea Break'}, {'start': '18:00:00', 'end': '18:10:00', 'name': 'Dinner Break 1'}, {'start': '20:00:00', 'end': '20:10:00', 'name': 'Tea Break'}, {'start': '22:00:00', 'end': '22:35:00', 'name': 'Dinner Break 2'}],
+    "breaks":     [{'start': '01:00:00', 'end': '01:10:00', 'name': 'Night Tea Break'}, {'start': '04:00:00', 'end': '04:10:00', 'name': 'Early Morning Break'}, {'start': '10:00:00', 'end': '10:10:00', 'name': 'Morning Tea Break'}, {'start': '12:30:00', 'end': '13:05:00', 'name': 'Lunch Break'}, {'start': '14:30:00', 'end': '14:40:00', 'name': 'Evening Tea Break'}, {'start': '18:00:00', 'end': '18:10:00', 'name': 'Dinner Break 1'}, {'start': '20:00:00', 'end': '20:10:00', 'name': 'Tea Break'}, {'start': '21:30:00', 'end': '22:05:00', 'name': 'Dinner Break 2'}],
     "shifts":     {'A': {'start': '08:30:00', 'end': '17:15:00', 'plan': 2200, 'crosses_midnight': False}, 'B': {'start': '18:30:00', 'end': '03:15:00', 'plan': 2200, 'crosses_midnight': True}},
 }
 

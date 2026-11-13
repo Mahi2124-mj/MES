@@ -13,6 +13,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { api } from "../api/client";
+import PageTopbar from "../components/PageTopbar";
 
 //  2026-09-27 — operator: *"collector ki log viewer me ek tab or add kr de
 //  jisse m collector ki live read value dekh pau sab collectors ki"*.
@@ -400,7 +401,8 @@ export default function LogViewer() {
   return (
     <div style={{ minHeight: "100vh", background: bg, padding: 16,
                   color: dark ? "#e6edf7" : "#0f172a" }}>
-      <h2 className="m-navclear" style={{ margin: "0 0 12px", fontSize: 19, fontWeight: 800 }}>Log Viewer</h2>
+      <PageTopbar leading="Log" accent="Viewer" />
+      <div style={{ height: 12 }} />
 
       <div style={{ display: "flex", gap: 2, marginBottom: 14,
                     borderBottom: `1px solid ${dark ? "#243049" : "#e2e8f0"}` }}>
