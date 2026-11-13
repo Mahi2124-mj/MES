@@ -62,6 +62,128 @@ def _model_ideal(cur, line_id: int, fallback: float) -> float:
         return fallback
 
 
+# ── 2026-11-12 — PLAN vs ACTUAL loss per machine (OVER TARGET popup) ──────
+# Operator: "plan vs actual hone par bhi loss show karta hai … speed loss ko
+# maine sahi karaya tha na waise kar de — plan ke according part ban gaye toh
+# loss show naa ho aur jyada ban jaaye toh green".  The popup used
+# SUM(ct − ideal) over the running cycles, so a machine at or above plan still
+# showed minutes of loss.  Now every machine is judged on PARTS against the
+# line's plan so far (plan and part time from routers/lines._hourly_loss_core,
+# the parts-based speed rule of 19-Oct), over the shift so far:
+#   short = plan so far − machine parts × N
+#   loss  = max(0, short × seconds per part − the shift's stoppage losses)
+# N = how many machines share the work: a machine whose ideal CT is about N×
+# the line's is one of N in parallel (Rail Assy #01/#02, Guide S/A Insert
+# #1/#2, YLM Bending: ideal 30 s on a 15 s line, each makes half the parts —
+# checked on 12 lines, 11-Nov A).  More parts than plan = a GAIN, returned
+# negative (green); exactly on plan = 0.  The board's speed-loss card stays
+# hour by hour, so Final Inspection here can differ from it when one hour was
+# behind and another ahead.  Kept beside the old `loss_seconds`.
+_PVA_CACHE = {}
+_PVA_TTL_S = 30
+
+
+def _pva_core(cur, line_id, day, shift):
+    import time as _time
+    key = (line_id, str(day), str(shift))
+    now = _time.time()
+    hit = _PVA_CACHE.get(key)
+    if hit and now - hit[0] < _PVA_TTL_S:
+        return hit[1]
+    from routers.lines import _hourly_loss_core
+    core = _hourly_loss_core(cur, line_id, str(day), shift)
+    _PVA_CACHE[key] = (now, core)
+    if len(_PVA_CACHE) > 400:
+        for k, (t, _c) in list(_PVA_CACHE.items()):
+            if now - t > _PVA_TTL_S:
+                _PVA_CACHE.pop(k, None)
+    return core
+
+
+def _parallel_n(machine_ideal, line_ideal) -> int:
+    try:
+        k = float(machine_ideal or 0) / float(line_ideal or 0)
+    except (TypeError, ValueError, ZeroDivisionError):
+        return 1
+    return max(1, int(round(k))) if k >= 1.75 else 1
+
+
+def _local_naive(ts):
+    if not ts:
+        return None
+    try:
+        t = datetime.fromisoformat(str(ts))
+    except ValueError:
+        return None
+    return t.astimezone().replace(tzinfo=None) if t.tzinfo else t
+
+
+def _apply_plan_vs_actual(cur, line_id, day, shift, line_ideal, main_row, machines):
+    """Adds plan_loss_seconds (signed: + loss, − gain), plan_parts, made_parts
+    and plan_n to main_row and every machine.  Leaves them out when the line
+    has no parts-based speed this shift or the machine recorded (almost) no
+    parts — the wallboard then keeps the old figure."""
+    core = _pva_core(cur, line_id, day, shift)
+    if (core or {}).get("speed_mode") != "parts":
+        return
+    slots = []
+    for s in core.get("slots") or []:
+        p = s.get("parts") or {}
+        a, b = _local_naive(p.get("from")), _local_naive(p.get("to"))
+        if a is None or b is None:
+            continue
+        avail = sum(float(v or 0) for k, v in s.items()
+                    if k.startswith("loss_") and k != "loss_speed")
+        slots.append((a, b, int(p.get("plan") or 0), int(p.get("ok") or 0),
+                      float(p.get("sec_per_part") or 0), avail))
+    if not slots:
+        return
+    plan_so_far = sum(sl[2] for sl in slots)
+    if plan_so_far <= 0:
+        return
+    plan_s = float(core.get("plan_seconds") or 0) or sum(sl[2] * sl[4] for sl in slots)
+    spp = plan_s / plan_so_far                       # seconds per part, shift so far
+    stopped = sum(sl[5] for sl in slots)             # breakdown / setup / material … time
+
+    def score(made_by_slot, n):
+        # The SHIFT so far, not hour by hour: an hour ahead makes up for an hour
+        # behind, so a machine that has made its plan never shows a loss (hourly,
+        # YLM Bending-01 at 358 of 358 still read 1:48).
+        eq = sum(made_by_slot) * n
+        if eq < plan_so_far:
+            return max(0, int(round((plan_so_far - eq) * spp - stopped)))
+        return -int(round((eq - plan_so_far) * spp))
+
+    def put(d, made_by_slot, n):
+        made = sum(made_by_slot)
+        if made * n < max(5, 0.02 * plan_so_far):
+            return                                  # PLC not counting / not run
+        d["plan_loss_seconds"] = score(made_by_slot, n)
+        d["plan_parts"] = int(round(plan_so_far / n))
+        d["made_parts"] = int(made)
+        d["plan_n"] = n
+
+    put(main_row, [sl[3] for sl in slots], 1)
+    for d in machines:
+        ideal = float(d.get("ideal_ct") or 0)
+        n = 1 if d.get("combined_of") else _parallel_n(ideal, line_ideal)
+        made = [0] * len(slots)
+        for cy in d.get("cycles") or []:
+            if cy.get("is_ng"):
+                continue
+            ct = float(cy.get("ct") or 0)
+            if ideal > 0 and ct < ideal * 0.5:      # same phantom rule as the tiles
+                continue
+            t = _local_naive(cy.get("ts"))
+            if t is None:
+                continue
+            for i, (a, b, *_rest) in enumerate(slots):
+                if a <= t < b:
+                    made[i] += 1
+                    break
+        put(d, made, n)
+
+
 # 2026-08-12 — how long the boards stay dark before a shift starts.
 SHIFT_BLANK_MIN = int(os.environ.get("SHIFT_BLANK_MINUTES", "5") or 5)
 
@@ -559,6 +681,17 @@ def wallboard_cycles(
             "loss_seconds":   main_loss,
             "cycles_counted": main_counted,
         }
+
+        # 2026-11-12 — plan vs actual loss per machine (see _apply_plan_vs_actual)
+        try:
+            _apply_plan_vs_actual(cur, line_id, today, shift,
+                                  float(line["ideal_cycle_time"] or 15.0), main_row, out)
+        except Exception as exc:
+            print(f"[WALLBOARD] plan-vs-actual loss skipped: {exc}")
+            try:
+                cur.connection.rollback()
+            except Exception:
+                pass
 
         _payload = {
             "shift_name":   shift,

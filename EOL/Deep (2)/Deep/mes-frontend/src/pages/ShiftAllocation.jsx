@@ -274,6 +274,9 @@ export default function ShiftAllocation() {
   const showLead = true;
   const [leaders, setLeaders]         = useState([]);
   const [shiftLeader, setShiftLeader] = useState("");
+  // 2026-11-12: a saved leader of an ended shift is locked (server rule; shift
+  // incharge and above may still change it) — null or the shift end "YYYY-MM-DDTHH:MM"
+  const [leaderLock, setLeaderLock] = useState(null);
   const [leaderBusy, setLeaderBusy]   = useState(false);
   // 2026-09-25 — NOBODY saves a crew without a leader on it (operator: "jab tak
   // leader assign na ho tab tak save nahi hona chahiye").  It used to be gated
@@ -292,21 +295,25 @@ export default function ShiftAllocation() {
     api.get("/api/leaders", token).then(r => setLeaders(r.leaders || [])).catch(() => setLeaders([]));
   }, [showLead, token]);
   useEffect(() => {
+    setLeaderLock(null);
     if (!showLead || !lineId || !date || !shift) { setShiftLeader(""); return; }
     api.get(`/api/leaders/shift-alloc?line_id=${lineId}&date=${date}&shift=${encodeURIComponent(shift)}`, token)
-      .then(r => setShiftLeader(r.leader_id ? String(r.leader_id) : ""))
+      .then(r => { setShiftLeader(r.leader_id ? String(r.leader_id) : ""); setLeaderLock(r.locked ? (r.shift_end || "ended") : null); })
       .catch(() => setShiftLeader(""));
   }, [showLead, lineId, date, shift, token]);
   const saveLeader = async (lid) => {
+    const prev = shiftLeader;
     setShiftLeader(lid);
     setLeaderBusy(true);
     try {
       await api.post("/api/leaders/shift-alloc",
         { line_id: Number(lineId), shift_date: date, shift_name: shift,
           leader_id: lid ? Number(lid) : null }, token);
-      setToastV(lid ? "Line leader assigned ✓" : "Line leader cleared");
-      setTimeout(() => setToastV(null), 2500);
-    } catch (e) { setToastV("Leader save failed"); setTimeout(() => setToastV(null), 3000); }
+      showToast(lid ? "Line leader assigned ✓" : "Line leader cleared");
+    } catch (e) {
+      setShiftLeader(prev);                       // refused (e.g. locked): back to the saved leader
+      showToast((e && e.message) || "Leader save failed", "err");
+    }
     finally { setLeaderBusy(false); }
   };
 
@@ -769,7 +776,8 @@ export default function ShiftAllocation() {
                     shownOthers.forEach(l => { const k = l.zone_name || "No zone"; (byZone[k] = byZone[k] || []).push(l); });
                     return (
                       <>
-                        <select value={shiftLeader} disabled={leaderBusy || !writable}
+                        <select value={shiftLeader} disabled={leaderBusy || !writable || !!leaderLock}
+                                title={leaderLock ? `This shift ended at ${String(leaderLock).slice(11, 16)}: its line leader is locked. A shift incharge or above can change it.` : undefined}
                                 onChange={e => saveLeader(e.target.value)} style={{ ...glassSelect, minWidth: 220 }}>
                           <option value="">— none —</option>
                           <optgroup label={zoneName}>
@@ -781,7 +789,12 @@ export default function ShiftAllocation() {
                             </optgroup>
                           ))}
                         </select>
-                        {others.length > 0 && (
+                        {leaderLock && (
+                          <span style={{ fontSize: 10, color: "#b45309", fontWeight: 600 }}>
+                            🔒 Locked: shift ended{String(leaderLock).length > 10 ? ` ${String(leaderLock).slice(11, 16)}` : ""}
+                          </span>
+                        )}
+                        {others.length > 0 && !leaderLock && (
                           <label style={{ fontSize: 10, color: "#64748b", display: "flex", alignItems: "center",
                                           gap: 5, cursor: "pointer", userSelect: "none" }}>
                             <input type="checkbox" checked={allZoneLeaders}

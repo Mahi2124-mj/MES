@@ -255,9 +255,10 @@ def peff_data(line_id: int = Query(...),
         mrows = cur.fetchall()
 
         # ── operators keyed by process_id (robust — the allocation references
-        #    the process, not the drifting machine). Carry-forward: if this exact
-        #    day has no allocation, use the most recent same-shift day earlier in
-        #    the SAME week (the crew stays put through the week until changed).
+        #    the process, not the drifting machine).  2026-11-10 (operator): names
+        #    only from THIS day + shift's SAVED allocation — the same-week
+        #    carry-forward was removed ("jab tak shift allocation save na ho,
+        #    operator name show na ho").
         def _fetch_ops(qdate):
             cur.execute("""
                 SELECT a.process_id, o.full_name
@@ -272,16 +273,6 @@ def peff_data(line_id: int = Query(...),
             return m
 
         op_by_pid = _fetch_ops(d)
-        if not op_by_pid:
-            cur.execute("""
-                SELECT MAX(shift_date) AS sd FROM mes_manpower_allocations
-                 WHERE line_id=%s AND shift_name=%s AND removed_at IS NULL
-                   AND shift_date < %s
-                   AND date_trunc('week', shift_date) = date_trunc('week', %s::date)
-            """, (line_id, shift, d, d))
-            cr = cur.fetchone()
-            if cr and cr["sd"]:
-                op_by_pid = _fetch_ops(cr["sd"])
 
         machines = []
         ss_cols = _yra_ss_columns(cur, line_id) or _seat_slider_columns(cur, line_id)

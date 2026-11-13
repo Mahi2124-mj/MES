@@ -19,12 +19,15 @@ const EXTRA_PAGES = [
   { key: "maintenance-logbook",   label: "Maintenance Log Book" },
   { key: "maintenance-pm",        label: "Preventive Maintenance" },
   { key: "maintenance-air-flow",  label: "Air Flow" },
+  { key: "maintenance-predictive", label: "Predictive Maintenance" },
   { key: "quality-dashboard",     label: "Quality Dashboard" },
   { key: "quality-deviations",    label: "Quality Deviation" },
   { key: "video-coverage",        label: "Video Coverage" },
+  { key: "meeting-videos",        label: "Local Meeting Video" },
   { key: "py-bypass",             label: "PY Bypass" },
   { key: "sa-fi-history",         label: "SA / FI History" },
   { key: "redbin-lock",           label: "Red Bin Lock" },
+  { key: "line-rejection",        label: "Line Rejection" },
   { key: "logs",                  label: "Log Viewer" },
 ].map(p => ({ ...p, path: "/" + p.key }));
 

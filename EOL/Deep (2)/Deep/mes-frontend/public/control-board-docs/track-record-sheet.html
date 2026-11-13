@@ -222,8 +222,8 @@
     <div class="toolbar">
         <div><strong>TOYOTA BOSHOKU DEVICE INDIA PVT. LTD. - TRACK RECORD SHEET</strong></div>
         <div>
-            <button onclick="clearSheet()">Clear All Data</button>
-            <button class="primary" onclick="window.print()">Print / Save PDF</button>
+            
+            <button class="primary cb-pdf-btn" onclick="cbSavePdf()">Save PDF</button><button onclick="window.print()">Print</button>
         </div>
     </div>
 
@@ -250,7 +250,7 @@
             // Header Rows 1 & 2
             html += '<tr style="height:44px;">' +
                 '<td colspan="2" rowspan="2" class="bt-m bb-m bl-m br-m" style="text-align:center; padding:4px;">' +
-                '<div style="border:2px solid #c00; color:#c00; font-weight:bold; font-size:12px; padding:4px 2px; line-height:1.1;">TOYOTA BOSHOKU</div>' +
+                '<div style="text-align:center; line-height:1;"><img src="data:image/png;base64,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" alt="Toyota Boshoku" style="display:block; margin:0 auto; height:44px; max-width:100%; object-fit:contain;"><div style="margin-top:3px; font-size:9px; font-weight:bold; color:#000; letter-spacing:0.3px; white-space:nowrap;">TOYOTA BOSHOKU</div></div>' +
                 '</td>' +
                 '<td colspan="28" class="bt-m bb-m" style="text-align:center; font-size:24px; font-weight:bold; letter-spacing:1px;">TOYOTA BOSHOKU DEVICE INDIA PVT. LTD.</td>' +
                 '<td colspan="2" class="bt-m bb-m bl-m br-m" style="font-size:12px; font-weight:bold; padding-left:6px;">LINE NAME:-</td>' +
@@ -481,6 +481,8 @@
         }
     </script>
 
+<script src="cb-pdf.js?v=70e072f2"></script>
+
 <script>
 /* MES Control Board: fit-to-width zoom requested by the page around this frame. */
 (function () {
@@ -519,17 +521,265 @@
     "select.cb-sel:focus{background:#fff9c4}@media print{select.cb-sel{-webkit-appearance:none;appearance:none}}";
   document.head.appendChild(css);
   function fmt(v) { return (v === null || v === undefined || v === "") ? "" : (Number(v) + " sec."); }
+  function tell() {
+    try { window.parent.postMessage({ type: "cb-select", line_id: lineSel ? lineSel.value : "",
+                                      month: monthSel ? monthSel.value : "" }, "*"); } catch (x) {}
+  }
+  // status note in the toolbar (hidden when printing, like the toolbar)
+  var bar = document.querySelector(".toolbar > div");
+  var note = document.createElement("span");
+  note.style.cssText = "margin-left:14px;font-size:12px;font-weight:600;color:#475569";
+  if (bar) bar.appendChild(note);
+  var CODES = ["A","B","C","D","E","F","G","M1","M2","M3","M4","M5","M6"];
+  function cell(sh, code, day) { return document.getElementById(sh + "-" + code + "-" + day); }
+  // 2026-11-12 (operator): the line leader's signature only on a day whose
+  // column has values (MES or typed) - never on an empty day.  Leader = the
+  // day's MES row, else the leader saved in Shift Allocation (`leads`).
+  var lastSd = null;
+  function colHas(sh, day) {
+    return CODES.some(function (code) { var el = cell(sh, code, day); return !!(el && String(el.value).trim()); });
+  }
+  function signDay(sh, day) {
+    var s1 = cell(sh, "S1", day);
+    if (!s1) return;
+    var td = s1.parentNode, old = td.querySelector("img.cb-sign");
+    if (old) td.removeChild(old);
+    s1.style.display = "";
+    if (s1.getAttribute("data-cb-sign")) { s1.value = ""; s1.title = ""; s1.style.fontSize = ""; s1.removeAttribute("data-cb-sign");
+                                            s1.readOnly = s1.hasAttribute("data-cb-lock"); }
+    var sd = lastSd;
+    if (!sd || s1.value || !colHas(sh, day)) return;
+    var v = sd.shifts && sd.shifts[sh] ? sd.shifts[sh][String(day)] : null;
+    var lid = (v && v.S1) || (sd.leads && sd.leads[sh] ? sd.leads[sh][String(day)] : null);
+    var L = lid ? (sd.leaders || {})[lid] : null, name = (v && v.S1_name) || (L && L.name) || "";
+    if (L && L.signature) {
+      var img = document.createElement("img");
+      img.className = "cb-sign"; img.src = L.signature; img.alt = L.name || ""; img.title = L.name || "";
+      img.style.cssText = "display:block;max-width:100%;max-height:30px;margin:0 auto;object-fit:contain";
+      s1.style.display = "none"; s1.setAttribute("data-cb-sign", "1"); td.insertBefore(img, s1);
+    } else if (name) {
+      s1.value = name; s1.title = name; s1.style.fontSize = "9px"; s1.setAttribute("data-cb-sign", "1");
+      s1.removeAttribute("data-cb-lock"); s1.readOnly = true;          // auto signature: frozen
+    }
+  }
+  sheet.addEventListener("input", function (e) {
+    var m = /^([AB])-([A-Z0-9]+)-(\d+)$/.exec((e.target && e.target.id) || "");
+    if (m && m[2] !== "S1" && m[2] !== "S2") signDay(m[1], +m[3]);
+  });
+  function fillDays(sd) {
+    var n = 0;
+    lastSd = sd;
+    ["A", "B"].forEach(function (sh) {
+      var days = (sd && sd.shifts && sd.shifts[sh]) || {};
+      for (var day = 1; day <= 31; day++) {
+        var v = days[String(day)] || null;
+        if (v) n++;
+        CODES.forEach(function (code) {
+          var el = cell(sh, code, day);
+          if (!el) return;
+          var has = !!(v && v[code] !== null && v[code] !== undefined && String(v[code]) !== "");
+          el.value = has ? String(v[code]) : "";
+          // 2026-11-13 (operator): what MES fills is frozen
+          if (has) el.removeAttribute("data-cb-lock");
+          el.readOnly = has || el.hasAttribute("data-cb-lock");
+          el.classList.toggle("cb-mes", has);
+        });
+        var s1 = cell(sh, "S1", day);
+        if (s1) { s1.value = ""; s1.title = ""; s1.style.fontSize = ""; s1.removeAttribute("data-cb-sign");
+                  s1.readOnly = s1.hasAttribute("data-cb-lock"); }
+        signDay(sh, day);
+      }
+      if (window.drawShiftGraph) drawShiftGraph(sh);
+    });
+    return n;
+  }
+  // manual edits recalculate C, F and G with G at one decimal (operator rule)
+  window.updateShiftCalc = function (shift, day) {
+    function num(code) { var el = cell(shift, code, day); return el ? parseFloat(el.value) : NaN; }
+    var a = num("A"), b = num("B"), d = num("D"), e = num("E");
+    var c = (!isNaN(a) || !isNaN(b)) ? (isNaN(a) ? 0 : a) + (isNaN(b) ? 0 : b) : num("C");
+    var f = (!isNaN(d) || !isNaN(e)) ? (isNaN(d) ? 0 : d) + (isNaN(e) ? 0 : e) : num("F");
+    if (!isNaN(a) || !isNaN(b)) cell(shift, "C", day).value = String(c);
+    if (!isNaN(d) || !isNaN(e)) cell(shift, "F", day).value = String(f);
+    if (!isNaN(c) && !isNaN(f) && f > 0) cell(shift, "G", day).value = (c / f * 60).toFixed(1);
+    if (window.drawShiftGraph) drawShiftGraph(shift);
+  };
   function fill() {
     var id = lineSel ? lineSel.value : "", row = null;
     for (var i = 0; i < data.length; i++) if (String(data[i].line_id) === id) row = data[i];
-    ctIn.forEach(function (el) { el.value = row ? fmt(row.cycle_time) : ""; el.placeholder = row ? "not set" : ""; });
-    tgIn.forEach(function (el) { el.value = row ? fmt(row.target) : ""; el.placeholder = row ? "not set" : ""; });
+    // 2026-11-13: Standard Data values are frozen (typed only when Standard Data has none)
+    function std(el, v) {
+      var has = v !== null && v !== undefined && v !== "";
+      el.value = row ? fmt(v) : ""; el.placeholder = row ? "not set" : "";
+      if (has) el.removeAttribute("data-cb-lock");
+      el.readOnly = has || el.hasAttribute("data-cb-lock");
+    }
+    ctIn.forEach(function (el) { std(el, row ? row.cycle_time : null); });
+    tgIn.forEach(function (el) { std(el, row ? row.target : null); });
+    placeTargets();
   }
+  // Solid red target line, its value box and the black arrow follow the Target
+  // box (2026-11-06; the operator drew them fixed at the 80 level labelled "82").
+  // Same scale as the blue graph: the sheet's valToY() gives y inside the graph.
+  // The dashed line and its "90" box stay as drawn.
+  var tcss = document.createElement("style");
+  tcss.textContent = ".cb-tline{position:absolute;left:0;height:0;border-top:2.5px solid #ff0000;z-index:3;pointer-events:none}";
+  document.head.appendChild(tcss);
+  [].slice.call(sheet.querySelectorAll("td")).forEach(function (td) {
+    var st = td.getAttribute("style") || "";
+    if (st.indexOf("solid #ff0000") >= 0) td.setAttribute("style", st.replace(/border-bottom:[^;]*solid #ff0000[^;]*;?/, ""));
+  });
+  [].slice.call(sheet.querySelectorAll(".target-callout")).forEach(function (el) {
+    if (el.textContent.trim() === "82") el.style.display = "none";
+  });
+  // Arrow (2026-11-06, operator): starts in the Target box just right of the
+  // target value and points at the target line.  Graph px in the title cell:
+  // title column 58+98+54 = 210 wide, Target value box = rows 17-19 (y 272-320).
+  var COL_W = 210, TIP_X = 242, TAIL_Y = 296, ARROW_TIP_FIXED = 189;
+  var meas = document.createElement("canvas").getContext("2d");
+  function tailX(input) {
+    var txt = input ? (input.value || input.placeholder || "") : "";
+    var cs = input ? getComputedStyle(input) : null;
+    meas.font = (cs ? cs.fontWeight : "400") + " " + ((input && input.style.fontSize) || "20px") + " " +
+                (cs ? cs.fontFamily : "sans-serif");
+    return Math.min(COL_W - 14, Math.max(COL_W / 2 + 10, COL_W / 2 + meas.measureText(txt).width / 2 + 8));
+  }
+  function drawArrow(svg, yTip, xTail) {
+    if (!svg) return;
+    var left = Math.min(xTail, TIP_X) - 10, top = Math.min(TAIL_Y, yTip) - 10;
+    var sx = xTail - left, sy = TAIL_Y - top, px = TIP_X - left, py = yTip - top;
+    var dx = px - sx, dy = py - sy, L = Math.sqrt(dx * dx + dy * dy) || 1, ux = dx / L, uy = dy / L;
+    var bx = px - 12 * ux, by = py - 12 * uy, nx = -uy, ny = ux;
+    function f(v) { return v.toFixed(1); }
+    svg.setAttribute("width", String(Math.abs(TIP_X - xTail) + 20));
+    svg.setAttribute("height", String(Math.abs(TAIL_Y - yTip) + 20));
+    svg.style.right = "auto"; svg.style.bottom = "auto"; svg.style.left = left + "px"; svg.style.top = top + "px";
+    svg.innerHTML = '<line x1="' + f(sx) + '" y1="' + f(sy) + '" x2="' + f(bx + 2 * ux) + '" y2="' + f(by + 2 * uy) +
+      '" stroke="#000" stroke-width="2.5" /><polygon points="' + f(px) + "," + f(py) + " " + f(bx + 5.5 * nx) + "," +
+      f(by + 5.5 * ny) + " " + f(bx - 5.5 * nx) + "," + f(by - 5.5 * ny) + '" fill="#000" />';
+  }
+  function placeTarget(sh, idx) {
+    var cv = document.getElementById("canvas-" + sh);
+    if (!cv || typeof window.valToY !== "function") return;
+    var host = cv.parentNode, scaleTd = host.previousElementSibling, titleTd = host.parentNode.firstElementChild;
+    var svg = titleTd ? titleTd.querySelector("svg") : null;
+    var line = host.querySelector(".cb-tline"), call = scaleTd ? scaleTd.querySelector(".cb-tcall") : null;
+    if (!line) { line = document.createElement("div"); line.className = "cb-tline"; host.appendChild(line); }
+    if (!call && scaleTd) { call = document.createElement("div"); call.className = "target-callout cb-tcall"; scaleTd.appendChild(call); }
+    var t = parseFloat(tgIn[idx] ? tgIn[idx].value : ""), ok = !isNaN(t) && t > 0;
+    line.style.display = ok ? "" : "none";
+    if (call) call.style.display = ok ? "" : "none";
+    var xt = tailX(tgIn[idx]);
+    if (!ok) { drawArrow(svg, ARROW_TIP_FIXED, xt); return; }
+    var y = window.valToY(t);
+    line.style.top = (y - 1.25) + "px"; line.style.width = cv.width + "px";
+    if (call) { call.textContent = String(Math.round(t * 100) / 100); call.style.top = (y + 2) + "px"; call.style.bottom = "auto"; }
+    drawArrow(svg, y, xt);
+  }
+  function placeTargets() { placeTarget("A", 0); placeTarget("B", 1); }
+  tgIn.forEach(function (el) { el.addEventListener("input", placeTargets); el.addEventListener("change", placeTargets); });
+  placeTargets();
+
+  // 2026-11-06 (operator) — graph right edge: the day-31 cells carry both the
+  // solid border (br-m) and the dotted one (br-h), and br-h wins (later rule),
+  // so the graph had no black right edge.  Any such clash keeps the solid one.
+  ["t", "b", "l", "r"].forEach(function (s) {
+    [].slice.call(sheet.querySelectorAll("td.b" + s + "-m.b" + s + "-h")).forEach(function (td) { td.classList.remove("b" + s + "-h"); });
+  });
+
+  // Manager Sign 1/Week: one box per week (days 1-7, 8-14, 15-21, 22-28, 29-31)
+  // instead of one per day.  The box keeps the week's first-day id.
+  var WEEKS = [[1, 7], [8, 14], [15, 21], [22, 28], [29, 31]];
+  ["A", "B"].forEach(function (sh) {
+    WEEKS.forEach(function (w, n) {
+      var keep = document.getElementById(sh + "-S2-" + w[0]);
+      if (!keep) return;
+      var td = keep.parentNode;
+      for (var d = w[0] + 1; d <= w[1]; d++) {
+        var x = document.getElementById(sh + "-S2-" + d);
+        if (x && x.parentNode !== td) x.parentNode.parentNode.removeChild(x.parentNode);
+      }
+      td.colSpan = w[1] - w[0] + 1;
+      if (w[1] === 31) { td.classList.remove("br-t"); td.classList.add("br-m"); }
+      keep.placeholder = "Week " + (n + 1);
+      keep.title = "Manager sign - week " + (n + 1) + " (days " + w[0] + "-" + w[1] + ")";
+    });
+  });
+  // 2026-11-13: the day of each box (CELLS_SCRIPT locks all but today's)
+  window.cbDateOf = function (el, P) {
+    var m = /^([AB])-([A-Z0-9]+)-(\d+)$/.exec(el.id || "");
+    if (!m || !P.y || !P.m) return "";
+    var dim = new Date(P.y, P.m, 0).getDate(), d = +m[3];
+    if (m[2] === "S2") {
+      for (var i = 0; i < WEEKS.length; i++) if (WEEKS[i][0] === d)
+        return d > dim ? "X" : "W:" + cbYmd(P.y, P.m, d) + ":" + cbYmd(P.y, P.m, Math.min(WEEKS[i][1], dim));
+      return "X";
+    }
+    return d <= dim ? cbYmd(P.y, P.m, d) : "X";
+  };
+
+  // Graph hover: point at a day to see its value (mouse; a tap on touch panels).
+  // Ring on the point, dashed day line, and a box with the day's man hours per
+  // piece against the target, man hours and parts.  Screen only (no-print).
+  var hcss = document.createElement("style");
+  hcss.textContent =
+    ".cb-hov{position:absolute;left:0;top:0;z-index:6;cursor:crosshair}" +
+    ".cb-vl{position:absolute;top:0;width:0;border-left:1px dashed #0056b3;opacity:.7;pointer-events:none;z-index:3;display:none}" +
+    ".cb-dot{position:absolute;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;box-sizing:border-box;" +
+    "background:#fff;border:3px solid #0056b3;pointer-events:none;z-index:7;display:none}" +
+    ".cb-tip{position:absolute;z-index:8;pointer-events:none;display:none;background:#0f172a;color:#fff;" +
+    "font:12px/1.4 Arial,sans-serif;padding:6px 10px;border-radius:6px;white-space:nowrap;box-shadow:0 4px 14px rgba(0,0,0,.28)}" +
+    ".cb-tip .h{font-weight:bold;font-size:13px}.cb-tip .ok{color:#86efac}.cb-tip .bad{color:#fca5a5}.cb-tip .m{color:#cbd5e1}" +
+    "@media print{.no-print{display:none!important}}";
+  document.head.appendChild(hcss);
+  function val(sh, code, day) { var el = cell(sh, code, day), v = el ? parseFloat(el.value) : NaN; return isNaN(v) ? null : v; }
+  ["A", "B"].forEach(function (sh, idx) {
+    var cv = document.getElementById("canvas-" + sh);
+    if (!cv) return;
+    var host = cv.parentNode, W = cv.width, H = cv.height, hideT = null;
+    function mk(cls) { var e = document.createElement("div"); e.className = cls + " no-print"; host.appendChild(e); return e; }
+    var vl = mk("cb-vl"), hov = mk("cb-hov"), dot = mk("cb-dot"), tip = mk("cb-tip");
+    vl.style.height = H + "px"; hov.style.width = W + "px"; hov.style.height = H + "px";
+    function line(cls, text) { var d = document.createElement("div"); d.className = cls; d.textContent = text; tip.appendChild(d); }
+    function hide() { vl.style.display = dot.style.display = tip.style.display = "none"; }
+    function show(e) {
+      clearTimeout(hideT);
+      var r = hov.getBoundingClientRect();
+      if (!r.width || typeof window.valToY !== "function") return;
+      var day = Math.min(31, Math.max(1, Math.floor((e.clientX - r.left) / r.width * W / 44) + 1));
+      var x = (day - 1) * 44 + 22, g = val(sh, "G", day), y = H / 2;
+      vl.style.left = x + "px"; vl.style.display = "block";
+      tip.textContent = "";
+      if (g === null || g <= 0) {
+        dot.style.display = "none";
+        line("h", "Day " + day); line("m", "No data");
+      } else {
+        y = window.valToY(g);
+        dot.style.left = x + "px"; dot.style.top = y + "px"; dot.style.display = "block";
+        var t = parseFloat(tgIn[idx] ? tgIn[idx].value : ""), c = val(sh, "C", day), f = val(sh, "F", day);
+        line("h", "Day " + day + ": " + g + " sec.");
+        if (!isNaN(t) && t > 0) line(g <= t ? "ok" : "bad", (g <= t ? "Within" : "Above") + " target (" + t + " sec.)");
+        if (c !== null) line("m", "Man hour: " + c + " min");
+        if (f !== null) line("m", "Parts: " + f);
+      }
+      tip.style.display = "block";
+      var tw = tip.offsetWidth, th = tip.offsetHeight;
+      var left = x + 14; if (left + tw > W) left = x - 14 - tw;
+      var top = y - th - 12; if (top < 0) top = Math.min(H - th, y + 14);
+      tip.style.left = left + "px"; tip.style.top = Math.max(0, top) + "px";
+    }
+    hov.addEventListener("pointermove", show);
+    hov.addEventListener("pointerdown", show);
+    hov.addEventListener("pointerleave", function (e) {
+      clearTimeout(hideT);
+      if (e.pointerType === "mouse") hide(); else hideT = setTimeout(hide, 2500);
+    });
+  });
   function buildLine(lines, pick) {
     if (!lineTd) return;
     if (!lineSel) {
       lineSel = document.createElement("select"); lineSel.className = "cb-sel";
-      lineSel.addEventListener("change", fill);
+      lineSel.addEventListener("change", function () { fill(); tell(); });
       lineTd.innerHTML = ""; lineTd.appendChild(lineSel);
     }
     var keep = pick != null ? String(pick) : lineSel.value;
@@ -547,6 +797,7 @@
     if (!monthTd) return;
     if (!monthSel) {
       monthSel = document.createElement("select"); monthSel.className = "cb-sel";
+      monthSel.addEventListener("change", tell);
       monthTd.innerHTML = ""; monthTd.appendChild(monthSel);
       var now = new Date(), y = now.getFullYear(), html = "";
       for (var yy = y; yy >= y - 1; yy--) for (var m = 11; m >= 0; m--)
@@ -562,13 +813,291 @@
     buildLine(data, e.data.line_id);
     buildMonth(e.data.month);
     fill();
+    var sd = e.data.sheet, cur = lineSel ? lineSel.value : "", mon = monthSel ? monthSel.value : "";
+    if (!cur) { fillDays(null); note.textContent = "Select a line to load MES data."; return; }
+    if (e.data.loading) { note.textContent = "Loading MES data…"; return; }
+    if (sd && String(sd.line_id) === cur && sd.month === mon) {
+      var n = fillDays(sd);
+      note.textContent = n ? ("MES data: " + n + " shift" + (n === 1 ? "" : "s") + " filled") : "No MES data for this month.";
+    } else if (e.data.error) {
+      fillDays(null); note.textContent = e.data.error;
+    }
   });
+  // Save PDF file name: "Track Record Sheet - <line> - <Mon YYYY>"
+  window.cbPdfName = function () {
+    var ln = lineSel && lineSel.value ? lineSel.options[lineSel.selectedIndex].text : "";
+    var mo = monthSel ? monthSel.options[monthSel.selectedIndex].text : "";
+    return ["Track Record Sheet", ln, mo].filter(Boolean).join(" - ");
+  };
   // Clear keeps the line, month, cycle time and target (the original kept the two defaults).
+  // MES values come back when the line or month is picked again.
   window.clearSheet = function () {
     if (!confirm("Clear all entered data? Line, month, cycle time and target stay.")) return;
     ins.forEach(function (el) { if (ctIn.indexOf(el) < 0 && tgIn.indexOf(el) < 0) el.value = ""; });
     if (window.drawShiftGraph) { drawShiftGraph("A"); drawShiftGraph("B"); }
   };
+})();
+</script>
+
+<script>
+/* MES Control Board: auto-save what the user types or clicks (2026-11-12).
+   Every input / text box / editable text / click mark of the sheet is keyed (its
+   id, else its position) and, a moment after the user changes it, posted to the
+   Control Board ("cb-cells-save"), which saves it for the sheet's line and
+   period.  Saved entries come back as "cb-cells" and are put in again after
+   every MES fill.  Values MES fills itself (read-only boxes) are never sent, and
+   only the box the user changed is saved (no formula or MES values).
+   2026-11-13 (operator): only TODAY can be entered.  The Control Board sends the
+   line's production day ("today"), the day each saved value was entered ("set")
+   and the period; the sheet says which day a box belongs to (window.cbDateOf:
+   "YYYY-MM-DD", "W:<from>:<to>" for a weekly box, "" for the whole period,
+   "X" never).  Everything else is locked (read-only, clicks blocked); today's
+   boxes get an orange frame on screen (not in the PDF). */
+(function () {
+  if (window.__cbCells) return;
+  window.__cbCells = true;
+  var SKIP = ".toolbar, .no-print, .cb-hov, .cb-tip";
+  var applying = false, canSave = false, scope = "", dirty = {}, timer = null, seq = 0, pend = {}, retry = {};
+  var base = {}, init = null, applied = {};
+  var today = "", setOn = {}, open = true, P = {}, noteAt = 0, admin = false;
+  function skip(el) { return !!(el.closest && el.closest(SKIP)); }
+  function isForm(el) { return /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName); }
+  function isEdit(el) {
+    if (el.hasAttribute && el.hasAttribute("data-cb-ce")) return true;      // ours, locked for now
+    var a = el.getAttribute && el.getAttribute("contenteditable");
+    if (a === "" || a === "true") { el.setAttribute("data-cb-ce", "1"); return true; }
+    return false;
+  }
+  var lcss = document.createElement("style");
+  lcss.textContent = "[data-cb-lock]{cursor:not-allowed!important}" +
+    "[data-cb-lock]:focus{background:transparent!important;outline:none!important}" +
+    ".cb-today.cb-screen{outline:2px solid #f59e0b!important;outline-offset:-2px}";
+  document.head.appendChild(lcss);
+  function two(n) { return (n < 10 ? "0" : "") + n; }
+  window.cbYmd = function (y, m, d) { return y + "-" + two(m) + "-" + two(d); };
+  function dmy(iso) { return iso ? iso.slice(8, 10) + "-" + iso.slice(5, 7) + "-" + iso.slice(0, 4) : ""; }
+  function pinfo(period, kind) {
+    var p = String(period || "");
+    if (kind === "year" && /^\d{4}$/.test(p)) return { kind: kind, y: +p };
+    if (kind === "fy" && /^\d{4}-\d{2}$/.test(p)) return { kind: kind, y0: +p.slice(0, 4) };
+    if (/^\d{4}-\d{2}$/.test(p)) return { kind: "month", y: +p.slice(0, 4), m: +p.slice(5, 7) };
+    return {};
+  }
+  function dateOf(el) {
+    try { return typeof window.cbDateOf === "function" ? String(window.cbDateOf(el, P) || "") : ""; }
+    catch (err) { return "X"; }
+  }
+  function why(k, el) {                     // "" = may be changed, else the reason
+    if (!today) return "";                  // older API without the day rule: as before
+    if (!canSave) return scope ? "Saved copy: read-only" : "Pick a line in the Control Board filter to enter data";
+    if (admin) return dateOf(el) === "X" ? "This box cannot be filled" : "";      // admin: any day
+    if (!open) return "Only today's entries (" + dmy(today) + ") can be made: this sheet is for another period";
+    var dk = dateOf(el), w = /^W:(.{10}):(.{10})$/.exec(dk);
+    if (dk === "X") return "This box cannot be filled";
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dk) && dk !== today) return "Only today's column (" + dmy(today) + ") can be changed";
+    if (w && !(w[1] <= today && today <= w[2])) return "Only the current week's box can be signed";
+    if (setOn[k] && setOn[k] < today) return "Entered on " + dmy(setOn[k]) + ": it cannot be changed";
+    return "";
+  }
+  function setLock(el, reason) {
+    var lock = !!reason;
+    if (isForm(el)) {
+      if (lock) {
+        if (!el.readOnly || el.hasAttribute("data-cb-lock")) { el.readOnly = true; el.setAttribute("data-cb-lock", reason); }
+      } else if (el.hasAttribute("data-cb-lock")) { el.removeAttribute("data-cb-lock"); el.readOnly = false; }
+      if (el.tagName === "SELECT" || /^(checkbox|radio)$/i.test(el.type || "")) el.disabled = el.hasAttribute("data-cb-lock");
+    } else if (el.hasAttribute("data-cb-ce")) {
+      el.setAttribute("contenteditable", lock ? "false" : "true");
+      if (lock) el.setAttribute("data-cb-lock", reason); else el.removeAttribute("data-cb-lock");
+    } else if (lock) el.setAttribute("data-cb-lock", reason);
+    else el.removeAttribute("data-cb-lock");
+  }
+  function lockAll() {
+    var m = keyed();
+    for (var k in m) {
+      var el = m[k], r = why(k, el), mine = !r && !!today && dateOf(el) === today && !(isForm(el) && el.readOnly);
+      setLock(el, r);
+      el.classList.toggle("cb-today", mine);
+      if (mine) el.classList.add("cb-screen");
+    }
+  }
+  function lockNote(el, text) {
+    var t = Date.now();
+    if (t - noteAt < 1500) return;
+    noteAt = t;
+    status(text || el.getAttribute("data-cb-lock") || "Locked", "error");
+  }
+  // a locked click mark does nothing; a locked box says why
+  document.addEventListener("click", function (e) {
+    var t = e.target, el = t && t.closest ? t.closest("[data-cb-lock]") : null;
+    if (!el && t && isForm(t) && t.readOnly && today && !skip(t) && !t.classList.contains("cb-rj-link")) {
+      lockNote(t, "Filled automatically: it cannot be changed");      // MES value / formula
+      return;
+    }
+    if (!el || skip(el)) return;
+    if (!isForm(el) && !el.hasAttribute("data-cb-ce")) { e.stopPropagation(); e.preventDefault(); }
+    lockNote(el);
+  }, true);
+  function keyed() {
+    var m = {}, n = 0;
+    [].forEach.call(document.querySelectorAll("input, textarea, select"), function (el) {
+      if (skip(el) || el.classList.contains("cb-sel")) return;
+      if (/^(button|submit|reset|file|hidden|image)$/i.test(el.type || "")) return;
+      if (el.id) m["#" + el.id] = el; else m["f" + (n++)] = el;
+    });
+    var e = 0;
+    [].forEach.call(document.querySelectorAll("[contenteditable]"), function (el) { if (!skip(el) && isEdit(el)) m["e" + (e++)] = el; });
+    var k = 0;
+    [].forEach.call(document.querySelectorAll("[onclick]"), function (el) {
+      if (skip(el) || /^(BUTTON|A|INPUT|SELECT|TEXTAREA)$/.test(el.tagName) || (el.closest && el.closest("button"))) return;
+      m["k" + (k++)] = el;
+    });
+    return m;
+  }
+  function read(el) {
+    if (isForm(el)) return /^(checkbox|radio)$/i.test(el.type || "") ? (el.checked ? "1" : "") : String(el.value == null ? "" : el.value);
+    if (isEdit(el)) return el.innerText;
+    // our screen-only marks (today's frame) are not part of the saved value
+    var c = String(el.className || "").replace(/(^|\s)cb-(today|screen)(?=\s|$)/g, " ").replace(/\s+/g, " ").trim();
+    return JSON.stringify({ c: c, s: el.getAttribute("data-state"), t: el.children.length ? null : el.textContent });
+  }
+  function write(el, v) {
+    if (isForm(el)) {
+      if (/^(checkbox|radio)$/i.test(el.type || "")) el.checked = v === "1"; else el.value = v;
+      el.dispatchEvent(new Event("input", { bubbles: true }));
+      el.dispatchEvent(new Event("change", { bubbles: true }));
+    } else if (isEdit(el)) {
+      el.innerText = v;
+    } else {
+      try {
+        var o = JSON.parse(v);
+        el.className = o.c || "";
+        if (o.s == null) el.removeAttribute("data-state"); else el.setAttribute("data-state", o.s);
+        if (o.t != null && !el.children.length) el.textContent = o.t;
+      } catch (err) { /* not a mark */ }
+    }
+  }
+  function snap(m) { var b = {}; for (var k in m) b[k] = read(m[k]); return b; }
+  function status(text, state) {
+    try { parent.postMessage({ type: "cb-cells-status", text: text, state: state || "" }, "*"); } catch (e) { /* no parent */ }
+  }
+  function apply(cells, sc) {
+    var m = keyed();
+    if (!init) init = snap(m);
+    applying = true;
+    try {
+      if (sc !== scope) {                  // another line / period: its typed entries go
+        for (var k0 in applied) if (!(k0 in cells) && m[k0] && init[k0] != null) {
+          if (!(isForm(m[k0]) && m[k0].readOnly && !m[k0].hasAttribute("data-cb-lock"))) write(m[k0], init[k0]);
+        }
+        dirty = {};
+      }
+      for (var k in cells) {
+        var el = m[k];
+        // MES has a value there (read-only, not by our lock): MES wins
+        if (!el || (isForm(el) && el.readOnly && !el.hasAttribute("data-cb-lock"))) continue;
+        if (read(el) !== cells[k]) write(el, cells[k]);
+      }
+    } finally { applying = false; }
+    scope = sc; applied = cells;
+    base = snap(keyed());
+  }
+  function mark(el) {
+    if (applying || !el) return;
+    var m = keyed();
+    for (var k in m) if (m[k] === el) { dirty[k] = el; break; }
+    clearTimeout(timer); timer = setTimeout(flush, 600);
+  }
+  function markAllMarks() {                // a button changed many marks at once (all safe / reset)
+    if (applying) return;
+    var m = keyed();
+    for (var k in m) if (k.charAt(0) === "k" && read(m[k]) !== base[k]) dirty[k] = m[k];
+    clearTimeout(timer); timer = setTimeout(flush, 600);
+  }
+  function flush() {
+    var ch = {}, any = false;
+    for (var k in dirty) {
+      var el = dirty[k];
+      if (!el.isConnected || (isForm(el) && el.readOnly)) continue;
+      var v = read(el);
+      if (v !== base[k]) { ch[k] = v; any = true; }
+    }
+    dirty = {};
+    if (!any) return;
+    if (!canSave) { status(scope ? "Not saved: read-only" : "Not saved: pick a line in the Control Board filter", "error"); return; }
+    var s = ++seq, m2 = keyed(), dts = {};
+    for (var k3 in ch) dts[k3] = m2[k3] ? dateOf(m2[k3]) : "";
+    pend[s] = ch;
+    status("Saving…", "busy");
+    parent.postMessage({ type: "cb-cells-save", seq: s, changes: ch, dates: dts, scope: scope }, "*");
+  }
+  document.addEventListener("input", function (e) {
+    var t = e.target;
+    if (!t || skip(t)) return;
+    if (isForm(t)) mark(t);
+    else { var ce = t.closest && t.closest("[contenteditable]"); if (ce && isEdit(ce)) mark(ce); }
+  }, true);
+  document.addEventListener("change", function (e) { var t = e.target; if (t && isForm(t) && !skip(t) && !t.classList.contains("cb-sel")) mark(t); }, true);
+  document.addEventListener("click", function (e) {      // bubble phase: after the sheet's own onclick
+    var t = e.target, el = t && t.closest ? t.closest("[onclick]") : null;
+    if (!el) return;
+    // a button (toolbar too: "Mark all safe", reset) may change many marks at once
+    if (/^(BUTTON|A)$/.test(el.tagName) || el.closest("button")) { setTimeout(markAllMarks, 0); return; }
+    if (skip(el)) return;
+    mark(el);
+  });
+  // the sheet's own Clear button (removed 2026-11-13; the server refuses a clear now)
+  if (false && typeof window.clearSheet === "function") {
+    var clear0 = window.clearSheet;
+    window.clearSheet = function () {
+      var conf0 = window.confirm, said = false;
+      window.confirm = function (msg) { said = conf0.call(window, msg); return said; };
+      try { clear0.apply(this, arguments); } finally { window.confirm = conf0; }
+      if (said && canSave) {
+        var s = ++seq;
+        pend[s] = null;
+        status("Clearing…", "busy");
+        parent.postMessage({ type: "cb-cells-save", seq: s, changes: {}, clear: true, scope: scope }, "*");
+      }
+    };
+  }
+  window.addEventListener("message", function (e) {
+    var d = e.data;
+    if (!d || e.source !== window.parent) return;
+    if (d.type === "cb-cells") {
+      canSave = !!d.canSave;
+      today = /^\d{4}-\d{2}-\d{2}$/.test(d.today || "") ? d.today : "";
+      setOn = d.set || {};
+      open = d.open !== false;
+      admin = !!d.admin;
+      P = pinfo(d.period, d.pkind);
+      apply(d.cells || {}, String(d.scope || ""));
+      lockAll();
+    } else if (d.type === "cb-cells-ack") {
+      var ch = pend[d.seq];
+      delete pend[d.seq];
+      if (d.ok) {
+        if (ch) for (var k in ch) { base[k] = ch[k]; if (today && String(ch[k]).trim()) setOn[k] = setOn[k] || today; }
+        status("Saved", "done");
+      } else if (d.locked) {                  // the day rule said no: put the saved value back
+        status("Not saved: " + (d.error || "locked"), "error");
+        if (ch) {
+          var m1 = keyed();
+          applying = true;
+          try { for (var k1 in ch) if (m1[k1] && base[k1] != null) write(m1[k1], base[k1]); }
+          finally { applying = false; }
+          lockAll();
+        }
+      } else {
+        status("Not saved: " + (d.error || "error"), "error");
+        if (ch) {                             // try again once after 5 s
+          var m = keyed();
+          for (var k2 in ch) if (m[k2] && !retry[k2]) { retry[k2] = 1; dirty[k2] = m[k2]; }
+          clearTimeout(timer); timer = setTimeout(function () { flush(); retry = {}; }, 5000);
+        }
+      }
+    }
+  });
 })();
 </script>
 </body>

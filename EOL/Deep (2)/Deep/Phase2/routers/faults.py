@@ -241,8 +241,22 @@ def fault_history(date_from: Optional[str] = None,
         k = dict(cur.fetchone() or {})
         total = int(k.get("n") or 0)
 
+        #  2026-11-10 — operator: Pareto "Per day / Days" → "Per shift /
+        #  Shifts".  A shift = record_date + shift_name (the collector files a
+        #  B-shift fault after midnight under the shift's own date).  The
+        #  GAP_AB / GAP_BA periods between shifts are not shifts: their hits
+        #  stay in `hits` but are left out of the per-shift figures.
+        sh_ok = "COALESCE(h.shift_name,'') <> '' AND upper(h.shift_name) NOT LIKE 'GAP%%'"
+        cur.execute(f"""SELECT count(DISTINCT h.record_date::text || '|' || h.shift_name)
+                                 FILTER (WHERE {sh_ok}) AS shifts
+                          FROM mes_fault_history h WHERE {w}""", args)
+        k_shifts = int((cur.fetchone() or {}).get("shifts") or 0)
+
         cur.execute(f"""SELECT h.fault_name, count(*) AS hits,
                                count(DISTINCT h.record_date) AS on_days,
+                               count(DISTINCT h.record_date::text || '|' || h.shift_name)
+                                 FILTER (WHERE {sh_ok}) AS on_shifts,
+                               count(*) FILTER (WHERE {sh_ok}) AS shift_hits,
                                count(DISTINCT h.machine_id) AS machines,
                                max(h.started_at) AS last_at
                           FROM mes_fault_history h WHERE {w}
@@ -261,6 +275,11 @@ def fault_history(date_from: Optional[str] = None,
             #  and across the whole filtered range.
             p["per_day_seen"] = round(p["hits"] / max(1, int(p["on_days"] or 1)), 2)
             p["per_day_range"] = round(p["hits"] / days, 2)
+            #  Occurrences per shift it was seen in (A/B shifts only).
+            p["on_shifts"] = int(p.get("on_shifts") or 0)
+            p["shift_hits"] = int(p.get("shift_hits") or 0)
+            p["per_shift_seen"] = (round(p["shift_hits"] / p["on_shifts"], 2)
+                                   if p["on_shifts"] else None)
 
         cur.execute(f"""SELECT h.*, {dur} AS dur_s, l.line_name, z.zone_name
                           FROM mes_fault_history h
@@ -307,6 +326,7 @@ def fault_history(date_from: Optional[str] = None,
                      "distinct_faults": len(par),
                      "days": days,
                      "per_day": round(total / days, 2),
+                     "shifts": k_shifts,
                      "top_fault": (par[0]["fault_name"] if par else None),
                      "top_hits": (par[0]["hits"] if par else 0),
                      "first_at": k.get("first_at"), "last_at": k.get("last_at")},
@@ -358,18 +378,18 @@ def fault_history_excel(date_from: Optional[str] = None,
     k = d.get("kpis") or {}
     s2 = wb.create_sheet("Pareto")
     s2.append(["Fault", "Occurrences", "Share %", "Cumulative %",
-               "Days it occurred", "Per day (those days)", "Per day (range)",
+               "Shifts it occurred", "Per shift (those shifts)", "Per day (range)",
                "Machines", "Last seen"])
     for c in s2[1]:
         c.fill, c.font = hdr_fill, hdr_font
     for p in d["pareto"]:
         s2.append([p["fault_name"], p["hits"], p["pct"], p["cum_pct"],
-                   p.get("on_days"), p.get("per_day_seen"), p.get("per_day_range"),
+                   p.get("on_shifts"), p.get("per_shift_seen"), p.get("per_day_range"),
                    p.get("machines"), stamp(p.get("last_at"))])
     s2.append(["TOTAL", k.get("occurrences", 0), 100.0, 100.0,
-               k.get("days"), "", k.get("per_day"), "", ""])
+               k.get("shifts"), "", k.get("per_day"), "", ""])
     s2["A" + str(s2.max_row)].font = Font(bold=True)
-    for i, w in enumerate([38, 13, 10, 14, 17, 20, 16, 11, 20], start=1):
+    for i, w in enumerate([38, 13, 10, 14, 18, 23, 16, 11, 20], start=1):
         s2.column_dimensions[s2.cell(row=1, column=i).column_letter].width = w
     s2.freeze_panes = "A2"
 

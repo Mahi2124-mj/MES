@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>5S Daily Check Sheet</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: "Arial", sans-serif;
+        }
+
+        body {
+            background: #f4f4f4;
+            margin: 0;
+            padding: 15px;
+        }
+
+        .toolbar {
+            width: 100%;
+            max-width: 1600px;
+            margin: 0 auto 10px auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #fff;
+            padding: 10px 15px;
+            border: 1px solid #ccc;
+            font-size: 14px;
+        }
+
+        .toolbar button {
+            padding: 6px 16px;
+            font-size: 13px;
+            font-weight: bold;
+            cursor: pointer;
+            border: 1px solid #333;
+            background: #eee;
+            margin-left: 8px;
+        }
+
+        .sheet-wrapper {
+            width: 100%;
+            max-width: 1600px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 15px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            overflow-x: auto;
+        }
+
+        table {
+            border-collapse: collapse;
+            table-layout: fixed;
+            width: 1600px;
+            border: 2px solid #000;
+        }
+
+        td,
+        th {
+            border: 1px solid #000;
+            text-align: center;
+            padding: 2px 4px;
+            font-size: 11px;
+            height: 30px;
+        }
+
+        .text-left {
+            text-align: left;
+            padding-left: 8px;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .bold {
+            font-weight: bold;
+        }
+
+        /* Fonts matching screenshot */
+        .title-font {
+            font-family: "Times New Roman", Times, serif;
+            font-size: 24px !important;
+        }
+
+        .header-font {
+            font-family: "Times New Roman", Times, serif;
+            font-size: 14px !important;
+            font-weight: bold;
+        }
+
+        /* Original Sheet Colours */
+        .bg-cyan {
+            background-color: #00FFFF;
+        }
+
+        .bg-light-green {
+            background-color: #CCFFCC;
+        }
+
+        .bg-light-orange {
+            background-color: #FFCC99;
+        }
+
+        .bg-blank {
+            background-color: #f4f4f4;
+            border-left: none;
+            border-right: none;
+        }
+
+        /* Thick Borders for Structure */
+        .thick-top {
+            border-top: 2px solid #000 !important;
+        }
+
+        .thick-bottom {
+            border-bottom: 2px solid #000 !important;
+        }
+
+        .thick-left {
+            border-left: 2px solid #000 !important;
+        }
+
+        .thick-right {
+            border-right: 2px solid #000 !important;
+        }
+
+        /* Inputs & Checkmarks */
+        input {
+            border: none;
+            border-bottom: 1px solid #000;
+            outline: none;
+            background: transparent;
+            width: 100%;
+            text-align: center;
+            font-size: 11px;
+        }
+
+        input:focus {
+            background: #fff9c4;
+        }
+
+        .header-input {
+            width: 100px;
+            font-weight: bold;
+            font-size: 14px;
+            font-family: "Times New Roman", Times, serif;
+        }
+
+        .clickable {
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            user-select: none;
+        }
+
+        .clickable:hover {
+            background-color: #e8f0fe;
+        }
+
+        .ok {
+            color: #008000;
+        }
+
+        .ng {
+            color: #ff0000;
+        }
+
+        @media print {
+            body {
+                padding: 0;
+            }
+
+            .toolbar {
+                display: none;
+            }
+
+            .sheet-wrapper {
+                box-shadow: none;
+                padding: 0;
+                border: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="toolbar">
+        <div>
+            <strong>5S DAILY CHECK SHEET</strong>
+            <span style="margin-left: 15px; color: #555;">(Boxes par click karein: Blank &rarr; ✓ &rarr; ✕)</span>
+        </div>
+        <div>
+            <button onclick="window.location.reload()">Clear All</button>
+            <button onclick="window.print()" style="background:#0056b3; color:#fff;">Print / Save PDF</button>
+        </div>
+    </div>
+
+    <div class="sheet-wrapper">
+        <table id="checkSheetTable">
+            <!-- JS auto-generates content -->
+        </table>
+    </div>
+
+    <script>
+        // Pura 5S ka data
+        const data = [
+            {
+                title: "1S Sorting (Seiri)", rows: [
+                    "Nothing on Floor - scrap of paper, tools, parts, bins, chips, oil , Guide Ball etc. are lying on the floor.",
+                    "Corrugated box should be not overflowing to corrugated scrap",
+                    "Wanted ( Okay ) & Unwanted ( Rejected ) Parts should be not mixed in a bin .",
+                    "There should be no leakages of air,water,oil and grease etc.",
+                    "All Rejected parts should be identified with red marker.",
+                    "Unused Parts / Documents / Tool should be not avilable on line / Control Board .",
+                    "Every machine wire should not loose."
+                ]
+            },
+            {
+                title: "2S Systemic Arrangement<br>(Seiton)", rows: [
+                    "Every location of parts , documents , tools , equipments , fixture etc. are clearly defined & identified .",
+                    "Gangways are free of material, parts ,trolleys, empty bins etc.",
+                    "FIFO ( First In & First Out) System to be maintained .",
+                    "Cleaning tools like Broom, Brush, Tool for cleaning are kept at an appropriate location.",
+                    "Fire Extinguisher available in pre fixed locations, no material in front of fire extinguisher.( If )",
+                    "All Rack / Stand / Board should be on the fixed white circle ( Tape )",
+                    "5's zone Rules & Responsbility to be Update & maintained ( Photographs etc) ."
+                ]
+            },
+            {
+                title: "3S - Cleaning<br>( Seiso )", rows: [
+                    "Child parts rack cleaning done as per decide frequency",
+                    "Every location of parts , documents , tools , equipments , fixture etc. are cleaned .",
+                    "Tubelights/ fans / machine outside area cleaning done as per frequency",
+                    "Floor outside perimeter to be clean at shift end / start up (Clean up if found dirty)",
+                    "Poka - Yoke / Limit Sample should be clean as per decide frequency.",
+                    "No any dirty bins as abnormal condition",
+                    "Unnecessary item don’t hide in machine panel .",
+                    "No any display paper leafs & Cobra file tear on Control Board / WI displayed"
+                ]
+            },
+            {
+                title: "4S - Standardisation<br>( Seiketsu )", rows: [
+                    "All check sheets ( Poka- Yoke , machine , Inprocess etc ) are to be updated & signed .",
+                    "All ( Graph , Date , Production Plan , SWCT Plan & Control board Documents etc ) to be updated .",
+                    "Standards are known and visible",
+                    "Every stand , board , m/c etc cleaning frequency to be decided .",
+                    "Rack should be identified"
+                ]
+            },
+            {
+                title: "5S Self Discipline<br>(Shitsuke)", rows: [
+                    "Operators to be Aware in 5S & he knows their 5's responsbility . ( Supervisor ask 5's to one operator on daily basis )",
+                    "Reject part to be in Rejected bin with Red marker identification .",
+                    "The operators / Supervisor following lane dicipline on line .",
+                    "Follow up Daily 5's check sheet & Enternal 5's Audit NC points Action taken and Improvement carried out",
+                    "Operators don’t make noise on line ."
+                ]
+            }
+        ];
+
+        let html = `<colgroup><col width="120"><col width="40"><col width="390">`;
+        for (let i = 1; i <= 31; i++) html += `<col width="32">`;
+        html += `</colgroup>`;
+
+        // Headers (Aligned as per screenshot)
+        html += `<tr><td colspan="34" class="bg-cyan thick-bottom text-center" style="padding: 10px 50px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+        <span class="bold title-font">5S Daily Check Sheet</span>
+        <span class="header-font" style="margin-left: 100px;">{ Zone : <input class="header-input"> ( Sub Zone : <input class="header-input"> ) }</span>
+        <span class="header-font">Sub Zone Leader : <input class="header-input" style="width:150px;"></span>
+    </div>
+  </td></tr>`;
+
+        html += `<tr class="bg-light-green header-font"><td colspan="2"></td><td class="text-center">Criteria for deciding the Level</td>`;
+        html += `<td colspan="31" class="text-center">Date</td></tr>`;
+
+        html += `<tr class="bg-light-orange header-font"><td colspan="2" class="thick-bottom"></td><td class="text-center thick-bottom">Marks Allocation</td>`;
+        for (let i = 1; i <= 31; i++) html += `<td class="thick-bottom">${i}</td>`;
+        html += `</tr>`;
+
+        // 1S se 5S ki rows
+        data.forEach((section, sIndex) => {
+            section.rows.forEach((task, tIndex) => {
+                let isLast = (tIndex === section.rows.length - 1) ? "thick-bottom" : "";
+                html += `<tr>`;
+
+                if (tIndex === 0) {
+                    html += `<td rowspan="${section.rows.length}" class="bold thick-left thick-right thick-bottom">${section.title}</td>`;
+                }
+
+                html += `<td class="thick-right ${isLast}">${tIndex + 1}.0</td>`;
+                html += `<td class="text-left thick-right ${isLast}">${task}</td>`;
+
+                for (let i = 1; i <= 31; i++) {
+                    let rightBorder = (i === 31) ? "thick-right" : "";
+                    html += `<td class="clickable ${isLast} ${rightBorder}" onclick="markCell(this)"></td>`;
+                }
+                html += `</tr>`;
+            });
+
+            // Har section ke baad khaali jagah (5S ke baad nahi chahiye)
+            if (sIndex < 4) {
+                html += `<tr><td colspan="34" class="bg-blank thick-left thick-right thick-bottom" style="height:12px;"></td></tr>`;
+            }
+        });
+
+        // Niche ke Signature Rows
+        html += `<tr><td colspan="3" class="bold text-left thick-left thick-bottom">CHECKED BY :- SIGN ( ENGG / LINE LEADER )</td>`;
+        for (let i = 1; i <= 31; i++) {
+            let rightBorder = (i === 31) ? "thick-right" : "";
+            html += `<td class="thick-bottom ${rightBorder}"><input></td>`;
+        }
+        html += `</tr>`;
+
+        html += `<tr><td colspan="3" class="bold text-left thick-left thick-bottom">VERIFIED BY :- PRODUCTION MANAGER ( WEEKLY )</td>`;
+        for (let i = 1; i <= 4; i++) html += `<td colspan="7" class="thick-bottom thick-right"><input placeholder="Week ${i}"></td>`;
+        html += `<td colspan="3" class="thick-bottom thick-right"><input placeholder="Week 5"></td></tr>`;
+
+        document.getElementById('checkSheetTable').innerHTML = html;
+
+        // Tick / Cross lagane wala function
+        function markCell(cell) {
+            if (cell.innerText === "") {
+                cell.innerText = "✓";
+                cell.className = cell.className.replace(" ng", "") + " ok";
+            }
+            else if (cell.innerText === "✓") {
+                cell.innerText = "✕";
+                cell.className = cell.className.replace(" ok", "") + " ng";
+            }
+            else {
+                cell.innerText = "";
+                cell.className = cell.className.replace(" ng", "");
+            }
+        }
+    </script>
+
+</body>
+
+</html>

@@ -13,6 +13,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { api } from "../api/client";
 import { LanRefreshSlot } from "../components/LanRefresh";
+import LineSelect from "../components/LineSelect";
 
 function fmtAgo(ts) {
   if (!ts) return "—";
@@ -474,14 +475,14 @@ export default function QualityDeviations() {
               <div className="qd-toolbar">
                 <div>
                   <div className="qd-label">Line</div>
-                  <select className="qd-input"
+                  <LineSelect className="qd-input"
                           value={ncrLineFilter}
                           onChange={e => setNcrLineFilter(e.target.value)}>
                     <option value="">All Lines</option>
                     {lines.map(l => (
                       <option key={l.id} value={l.id}>{l.line_name}</option>
                     ))}
-                  </select>
+                  </LineSelect>
                 </div>
                 <div>
                   <div className="qd-label">Status</div>
@@ -584,14 +585,14 @@ export default function QualityDeviations() {
                 </div>
                 <div>
                   <div className="qd-label">Line</div>
-                  <select className="qd-input"
+                  <LineSelect className="qd-input"
                           value={paretoLine}
                           onChange={e => setParetoLine(e.target.value)}>
                     <option value="">All Lines</option>
                     {lines.map(l => (
                       <option key={l.id} value={l.id}>{l.line_name}</option>
                     ))}
-                  </select>
+                  </LineSelect>
                 </div>
                 <div style={{flex:1}} />
                 <div style={{fontSize:12, color:"#64748b"}}>
@@ -707,14 +708,14 @@ export default function QualityDeviations() {
                 <div className="qd-toolbar" style={{borderTop:"1px solid #f1f5f9"}}>
                   <div>
                     <div className="qd-label">Line</div>
-                    <select className="qd-input"
+                    <LineSelect className="qd-input"
                             value={inspLineFilter}
                             onChange={e => setInspLineFilter(e.target.value)}>
                       <option value="">All Lines</option>
                       {lines.map(l => (
                         <option key={l.id} value={l.id}>{l.line_name}</option>
                       ))}
-                    </select>
+                    </LineSelect>
                   </div>
                   <div>
                     <div className="qd-label">Status</div>
@@ -1152,11 +1153,11 @@ function NCRCreateModal({ token, theme, lines, defectTypes, onClose, onSaved }) 
     <ModalShell title="Log New NCR" theme={theme} onClose={onClose}>
       <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:14}}>
         <Field label="Line *">
-          <select className="qd-input" style={fullW}
+          <LineSelect className="qd-input" style={fullW}
                   value={lineId} onChange={e => setLineId(e.target.value)}>
             <option value="">— select —</option>
             {lines.map(l => <option key={l.id} value={l.id}>{l.line_name}</option>)}
-          </select>
+          </LineSelect>
         </Field>
         <Field label="Shift">
           <select className="qd-input" style={fullW}
@@ -1519,11 +1520,11 @@ function InspectionLogModal({ token, theme, lines, chars, onClose, onSaved }) {
     <ModalShell title="Log Inspection Measurement" theme={theme} onClose={onClose}>
       <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:14}}>
         <Field label="Line *">
-          <select className="qd-input" style={fullW}
+          <LineSelect className="qd-input" style={fullW}
                   value={lineId} onChange={e => setLineId(e.target.value)}>
             <option value="">— select —</option>
             {lines.map(l => <option key={l.id} value={l.id}>{l.line_name}</option>)}
-          </select>
+          </LineSelect>
         </Field>
         <Field label="Shift">
           <select className="qd-input" style={fullW}
@@ -1821,11 +1822,11 @@ function FLPCreateModal({ token, theme, lines, onClose, onSaved }) {
     <ModalShell title="Log First / Last Piece Check" theme={theme} onClose={onClose}>
       <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:14}}>
         <Field label="Line *">
-          <select className="qd-input" style={fullW}
+          <LineSelect className="qd-input" style={fullW}
                   value={lineId} onChange={e => setLineId(e.target.value)}>
             <option value="">— select —</option>
             {lines.map(l => <option key={l.id} value={l.id}>{l.line_name}</option>)}
-          </select>
+          </LineSelect>
         </Field>
         <Field label="Piece Type *">
           <select className="qd-input" style={fullW}

@@ -263,8 +263,8 @@
 				Box: <b>1st Click = Tick [✓]</b>, <b>2nd = Cross [✕]</b>)</span>
 		</div>
 		<div>
-			<button onclick="clearSheet()">Reset All</button>
-			<button class="primary" onclick="window.print()">Print / Save PDF</button>
+			
+			<button class="primary cb-pdf-btn" onclick="cbSavePdf()">Save PDF</button><button onclick="window.print()">Print</button>
 		</div>
 	</div>
 
@@ -291,7 +291,7 @@
 			// ROW 0 & ROW 1: Top Header
 			h += '<tr style="height:46px;">' +
 				'<td rowspan="2" class="bt-m bb-m bl-m br-m" style="text-align:center; padding:3px;">' +
-				'<div style="border:2px solid #d00; padding:4px 2px; color:#d00; font-weight:bold; font-size:13px; line-height:1.15;">TOYOTA<br>BOSHOKU</div>' +
+				'<div style="text-align:center; line-height:1;"><img src="data:image/png;base64,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" alt="Toyota Boshoku" style="display:block; margin:0 auto; height:44px; max-width:100%; object-fit:contain;"><div style="margin-top:3px; font-size:9px; font-weight:bold; color:#000; letter-spacing:0.3px; white-space:nowrap;">TOYOTA BOSHOKU</div></div>' +
 				'</td>' +
 				'<td colspan="24" class="bt-m bb-m bl-m" style="text-align:center; font-size:28px; font-weight:bold; letter-spacing:0.5px;">TOYOTA BOSHOKU DEVICE INDIA PVT. LTD.</td>' +
 				'<td colspan="3" class="bt-m bb-m bl-m br-m" style="font-size:15px; font-weight:bold; padding-left:6px;">LINE :-</td>' +
@@ -498,6 +498,8 @@
 	</script>
 
 
+<script src="cb-pdf.js?v=70e072f2"></script>
+
 <script>
 /* MES Control Board: fit-to-width zoom requested by the page around this frame. */
 (function () {
@@ -508,6 +510,654 @@
     document.documentElement.style.zoom = (z === 1) ? "" : String(z);
     try { window.parent.postMessage({ type: "cb-zoom-ok", zoom: z }, "*"); } catch (x) {}
   });
+})();
+</script>
+
+<script>
+/* MES Control Board: line / month dropdowns (lines posted in by the Control Board). */
+(function () {
+  var CFG = {"title": "4M Change Control Sheet", "four": true};
+  var MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  function norm(t) { return String(t || "").replace(/\s+/g, " ").trim().toUpperCase(); }
+  function field(re) {
+    var tds = document.querySelectorAll("td");
+    for (var i = 0; i < tds.length; i++) {
+      if (!re.test(norm(tds[i].textContent))) continue;
+      var nx = tds[i].nextElementSibling;
+      return tds[i].querySelector("input") || (nx && nx.querySelector("input")) || null;
+    }
+    return null;
+  }
+  var f = {};
+  if (CFG.four) {
+    var hi = document.querySelectorAll("#tbody4M tr:nth-child(2) input.header-input");
+    f = { line: hi[0], month: hi[1], year: hi[2] };
+  } else {
+    f = { line: field(/^LINE( NAME)? ?:-?$/), month: field(/^MONTH ?:-?$/) };
+  }
+  if (!f.line && !f.month) return;
+  var css = document.createElement("style");
+  css.textContent = "select.cb-sel{background:transparent;cursor:pointer;outline:none;padding:0 2px;box-sizing:border-box;" +
+    "max-width:100%}select.cb-sel:focus{background:#fff9c4}";
+  document.head.appendChild(css);
+  // a dropdown in place of the text box: same font, as wide as the cell allows
+  function toSelect(input) {
+    if (!input) return null;
+    var cs = getComputedStyle(input), td = input.parentNode, sel = document.createElement("select");
+    var room = td.getBoundingClientRect().right - input.getBoundingClientRect().left - 6;
+    sel.className = "cb-sel";
+    sel.style.cssText = "font-family:" + cs.fontFamily + ";font-size:" + cs.fontSize + ";font-weight:" + cs.fontWeight +
+      ";color:" + cs.color + ";width:" + Math.max(input.offsetWidth, Math.floor(room)) + "px;height:" +
+      Math.max(22, input.offsetHeight) + "px;border:none;border-bottom:" + cs.borderBottomWidth + " " +
+      cs.borderBottomStyle + " " + cs.borderBottomColor + ";text-align:" + cs.textAlign + ";text-align-last:" + cs.textAlign;
+    td.replaceChild(sel, input);
+    return sel;
+  }
+  var lineSel = toSelect(f.line), monthSel = toSelect(f.month), yearSel = toSelect(f.year);
+  var now = new Date(), Y = now.getFullYear(), M = now.getMonth();
+  function two(n) { return (n < 10 ? "0" : "") + n; }
+  if (monthSel && yearSel) {
+    monthSel.innerHTML = MONTHS.map(function (m, i) { return '<option value="' + two(i + 1) + '">' + m + "</option>"; }).join("");
+    yearSel.innerHTML = [Y, Y - 1].map(function (y) { return '<option value="' + y + '">' + y + "</option>"; }).join("");
+    monthSel.value = two(M + 1); yearSel.value = String(Y);
+  } else if (monthSel) {
+    var h = "";
+    for (var yy = Y; yy >= Y - 1; yy--) for (var mm = 11; mm >= 0; mm--)
+      h += '<option value="' + yy + "-" + two(mm + 1) + '">' + MONTHS[mm] + " " + yy + "</option>";
+    monthSel.innerHTML = h; monthSel.value = Y + "-" + two(M + 1);
+  }
+  if (lineSel) lineSel.innerHTML = '<option value="">Select line</option>';
+  function month() {
+    if (monthSel && yearSel) return yearSel.value + "-" + monthSel.value;
+    return monthSel ? monthSel.value : "";
+  }
+  function setMonth(ym) {
+    if (!ym || !/^\d{4}-\d{2}$/.test(ym)) return;
+    if (monthSel && yearSel) {
+      if (![].some.call(yearSel.options, function (o) { return o.value === ym.slice(0, 4); }))
+        yearSel.insertAdjacentHTML("beforeend", '<option value="' + ym.slice(0, 4) + '">' + ym.slice(0, 4) + "</option>");
+      yearSel.value = ym.slice(0, 4); monthSel.value = ym.slice(5, 7);
+    } else if (monthSel) {
+      if (![].some.call(monthSel.options, function (o) { return o.value === ym; }))
+        monthSel.insertAdjacentHTML("beforeend", '<option value="' + ym + '">' + MONTHS[+ym.slice(5, 7) - 1] + " " + ym.slice(0, 4) + "</option>");
+      monthSel.value = ym;
+    }
+  }
+  function sel() { return { line_id: lineSel ? lineSel.value : "", month: month() }; }
+  function tell() { try { window.parent.postMessage({ type: "cb-select", line_id: sel().line_id, month: sel().month }, "*"); } catch (x) {} }
+  [lineSel, monthSel, yearSel].forEach(function (s) { if (s) s.addEventListener("change", tell); });
+  function buildLine(lines, pick) {
+    if (!lineSel) return;
+    var keep = pick != null ? String(pick) : lineSel.value, zone = null;
+    var html = '<option value="">Select line</option>';
+    lines.forEach(function (l) {
+      var z = l.zone_name || "No zone";
+      if (z !== zone) { html += (zone === null ? "" : "</optgroup>") + '<optgroup label="' + z.replace(/"/g, "&quot;") + '">'; zone = z; }
+      html += '<option value="' + l.line_id + '">' + String(l.line_name || "").replace(/</g, "&lt;") + "</option>";
+    });
+    lineSel.innerHTML = html + (zone === null ? "" : "</optgroup>");
+    lineSel.value = keep;
+    if (lineSel.value !== keep) lineSel.value = "";
+  }
+  // status note in the toolbar (screen only, like the toolbar)
+  var bar = document.querySelector(".toolbar > div"), note = document.createElement("span");
+  note.style.cssText = "margin-left:14px;font-size:12px;font-weight:600;color:#475569";
+  if (bar) bar.appendChild(note);
+  window.cbNote = function (t) { note.textContent = t || ""; };
+  window.addEventListener("message", function (e) {
+    if (e.source !== window.parent || !e.data || e.data.type !== "cb-data") return;
+    buildLine(Array.isArray(e.data.lines) ? e.data.lines : [], e.data.line_id);
+    setMonth(e.data.month);
+    if (typeof window.cbOnData === "function") window.cbOnData(e.data, sel());
+  });
+  // Save PDF file name: "<sheet> - <line> - <Mon YYYY>"
+  window.cbPdfName = function () {
+    var ln = lineSel && lineSel.value ? lineSel.options[lineSel.selectedIndex].text : "";
+    var m = month(), mo = /^\d{4}-\d{2}$/.test(m) ? MONTHS[+m.slice(5, 7) - 1] + " " + m.slice(0, 4) : "";
+    return [CFG.title, window.cbTitleExtra || "", ln, mo].filter(Boolean).join(" - ");
+  };
+})();
+</script>
+
+<style>
+/* MES Control Board: 4M Change Control Sheet (saved) */
+#main4MSheet .circle-badge.cb-off { visibility: hidden; pointer-events: none; }
+#main4MSheet textarea.cb-ta { height: 34px; min-height: 0; resize: none; overflow: hidden; line-height: 1.15;
+  padding: 2px 4px; white-space: pre-wrap; word-break: break-word; color: #000; }
+#main4MSheet tr.cb-4m-row .cell-input { text-transform: uppercase; color: #000; }
+#main4MSheet input.cb-auto { font-weight: 600; cursor: default; }
+#main4MSheet input.cb-auto:focus { background: transparent; }
+#main4MSheet tr.cb-4m-row td.cb-miss { background: #fff1f2; }
+#main4MSheet tr.cb-4m-row.cb-pend td.cb-miss { background: #fecaca; }
+#main4MSheet tr.cb-4m-fill .status-square { cursor: default; }
+#main4MSheet tr.cb-4m-fill .cell-input:focus { background: transparent; }
+#main4MSheet td.cb-dwrap { padding: 0; border-left: none; border-right: none; position: relative; }
+#main4MSheet table.cb-days { position: absolute; top: 0; left: 0; width: 100%; height: 100%; table-layout: fixed;
+  border-collapse: collapse; border: none; background: transparent; }
+#main4MSheet table.cb-days td { border-top: none !important; border-bottom: none !important; border-right: none !important;
+  border-left: 1px solid #000 !important; }
+#main4MSheet table.cb-days td:first-child { border-left: none !important; }
+#main4MSheet table.cb-days td.cb-dhide { display: none; }
+#main4MSheet table.cb-days td.cb-dhead { cursor: pointer; }
+#main4MSheet table.cb-days td.cb-dhead:hover { filter: brightness(.93); }
+#main4MSheet table.cb-days td.cb-dsel.cb-screen { background: #1e40af !important; color: #fff; }
+#main4MSheet table.cb-days td.cb-today.cb-screen { background: #fff7cc !important; }
+#main4MSheet .circle-badge.cb-lock { cursor: not-allowed; }
+#main4MSheet .circle-badge.cb-lock:hover { transform: none; }
+#main4MSheet tr.cb-4m-row.cb-fhide.cb-screen { display: none; }
+#main4MSheet tr.cb-4m-row.cb-ro .cell-input { cursor: default; }
+#main4MSheet tr.cb-4m-row.cb-ro .cell-input:focus { background: transparent; }
+#main4MSheet tr.cb-4m-row.cb-ro .status-square { cursor: default; }
+#main4MSheet tr.cb-4m-row td.cb-qopen { background: #fffbe6; }
+#main4MSheet tr.cb-4m-row td.cb-qopen .cell-input { cursor: text; }
+#main4MSheet tr.cb-4m-row td.cb-qopen .cell-input:focus { background: #fff9c4; }
+/* 2026-11-13: rows filled from a breakdown slip (TOOL BREAKAGE / M/C B/D) */
+#main4MSheet tr.cb-4m-row td.cb-slip.cb-screen { background: #fff7ed; }
+#main4MSheet tr.cb-4m-row td.cb-slip.cb-screen .cell-input { cursor: pointer; color: #000; }
+#main4MSheet tr.cb-4m-row td.cb-slip.cb-screen .cell-input:focus { background: transparent; }
+</style>
+
+<script>
+/* MES Control Board: 4M Change Control Sheet saved — red circles -> detail rows. */
+(function () {
+  var tbody = document.getElementById("tbody4M");
+  if (!tbody) return;
+  var PMAP = { "MAN": "MAN", "MATERIAL": "MATERIAL", "MACHINE": "MACHINE", "METHOD": "METHOD",
+               "TOOL BREAKAGE / M/C B/D": "TOOL_BREAKAGE", "POWER FAILURE": "POWER_FAILURE",
+               "OPERATOR ON UNPLANNED LEAVE": "UNPLANNED_LEAVE" };
+  var CHG = ["MAN", "MACHINE", "METHOD", "MATERIAL", "UNEXPECTED"];       // detail cells 1..5
+  var TXT = { 6: "product", 7: "action_taken", 8: "quality_result", 12: "manager" };
+  var QTY = { 9: "ok_qty", 10: "ng_qty" }, QF = { ok_qty: 9, ng_qty: 10 };
+  var REQ = { product: 6, action_taken: 7, quality_result: 8, status: 13 };
+  function norm(t) { return String(t || "").replace(/\s+/g, " ").trim().toUpperCase(); }
+  function two(n) { return (n < 10 ? "0" : "") + n; }
+  function note(t) { if (window.cbNote) window.cbNote(t); }
+
+  // 2026-11-10 (operator): the day columns of the circle grid follow the
+  // month — a 28 / 30-day month spreads its days over the full width instead of
+  // leaving 29-31 blank.  The details table below shares the sheet's column grid
+  // (Manager / Status sit on the day 29-31 columns), so the grid stays: each
+  // shift-header / circle row gets its 31 day cells moved into one inner table
+  // (colspan 31) whose visible cells share the width equally.
+  var dayRows = [], headRows = [];
+  function wrapDays(tr, isHead) {
+    var cells = [].slice.call(tr.cells, 1);
+    if (cells.length !== 31) return;
+    var wrap = document.createElement("td");
+    wrap.colSpan = 31;
+    wrap.className = "cb-dwrap";
+    ["bt-m", "bb-m", "bg-ashift", "bg-bshift"].forEach(function (c) { if (cells[0].classList.contains(c)) wrap.classList.add(c); });
+    var t = document.createElement("table"), r = t.insertRow();
+    t.className = "cb-days";
+    cells.forEach(function (td) { r.appendChild(td); });
+    wrap.appendChild(t);
+    tr.appendChild(wrap);
+    dayRows.push(cells);
+    if (isHead) {
+      headRows.push(cells);
+      cells.forEach(function (td, i) {
+        td.classList.add("cb-dhead");
+        td.title = "Show only this date in 4M CHANGE DETAILS";
+        td.addEventListener("click", function () { setFilter(i + 1); });
+      });
+    }
+  }
+  var lastDays = 31;
+  function layoutDays(n) {
+    if (!(n >= 28 && n <= 31) || n === lastDays) return;
+    lastDays = n;
+    dayRows.forEach(function (cells) { cells.forEach(function (td, i) { td.classList.toggle("cb-dhide", i >= n); }); });
+  }
+  // circles: shift block, row and day of each
+  var circles = [], shift = null;
+  [].slice.call(tbody.rows).forEach(function (tr) {
+    var c0 = tr.cells[0], t = norm(c0 && c0.textContent);
+    if (t === "A SHIFT" || t === "B SHIFT") { shift = t.charAt(0); wrapDays(tr, true); return; }
+    var p = c0 && c0.classList.contains("param-col") ? PMAP[t] : null;
+    if (!p || !shift) return;
+    [].forEach.call(tr.querySelectorAll(".circle-badge"), function (el, i) {
+      el.setAttribute("data-shift", shift); el.setAttribute("data-param", p); el.setAttribute("data-day", String(i + 1));
+      circles.push(el);
+    });
+    wrapDays(tr);
+  });
+  // detail rows: the printed rows between the column header and LEGENDS
+  var head = null, legend = null;
+  [].forEach.call(tbody.rows, function (tr) {
+    var t = norm(tr.textContent);
+    if (!head && t.indexOf("MAN CHANGE DETAILS") >= 0) head = tr;
+    else if (head && !legend && t.indexOf("LEGENDS") === 0) legend = tr;
+  });
+  if (!head || !legend || !circles.length) return;
+  var printed = [];
+  for (var r0 = head.nextElementSibling; r0 && r0 !== legend; r0 = r0.nextElementSibling) printed.push(r0);
+  if (!printed.length) return;
+  var MIN_ROWS = printed.length;
+  var tpl = printed[0].cloneNode(true);
+  [].forEach.call(tpl.cells, function (td) { td.classList.remove("bb-m"); });
+
+  var on = false, cur = { line_id: "", month: "", days: 31, key: "", current: null };
+  // 2026-11-10 (operator): a click on a date in the A / B SHIFT row shows only
+  // that date's rows below (both shifts); "Clear filter" or a second click shows all
+  var filterDay = 0;
+  var fbar = document.querySelector(".toolbar > div:last-child"), flab = null, fbtn = null;
+  if (fbar) {
+    flab = document.createElement("span");
+    flab.style.cssText = "font-size:12px;font-weight:600;color:#1e40af;margin-right:8px;display:none";
+    fbtn = document.createElement("button");
+    fbtn.type = "button"; fbtn.textContent = "Clear filter"; fbtn.disabled = true;
+    fbtn.style.display = "none";
+    fbtn.addEventListener("click", function () { setFilter(0); });
+    fbar.insertBefore(fbtn, fbar.firstChild);
+    fbar.insertBefore(flab, fbtn);
+  }
+  function setFilter(d) {
+    if (!on) return;
+    filterDay = d && d !== filterDay && d <= cur.days ? d : 0;
+    applyFilter();
+  }
+  function applyFilter() {
+    if (filterDay > cur.days) filterDay = 0;
+    headRows.forEach(function (cells) {
+      cells.forEach(function (td, i) { td.classList.toggle("cb-dsel", i + 1 === filterDay); td.classList.add("cb-screen"); });
+    });
+    var shown = 0;
+    rows.forEach(function (r) {
+      var hide = filterDay && +String(r.d.date).slice(8, 10) !== filterDay;
+      r.tr.classList.toggle("cb-fhide", !!hide); r.tr.classList.add("cb-screen");
+      if (!hide) shown++;
+    });
+    if (flab) {
+      flab.style.display = filterDay ? "" : "none";
+      flab.textContent = filterDay ? "Showing " + two(filterDay) + "-" + cur.month.slice(5, 7) + "-" + cur.month.slice(0, 4)
+        + ": " + (shown ? shown + " row(s)" : "no 4M change") : "";
+    }
+    if (fbtn) { fbtn.disabled = !filterDay; fbtn.style.display = on ? "" : "none"; }
+  }
+  var rows = [], pendingMarks = {}, markFrom = {}, markSending = {}, waiting = {}, seq = 0;
+
+  function daysIn(m) { return /^\d{4}-\d{2}$/.test(m || "") ? new Date(+m.slice(0, 4), +m.slice(5, 7), 0).getDate() : 31; }
+  function ckey(el) { return el.getAttribute("data-shift") + "|" + el.getAttribute("data-param") + "|" + el.getAttribute("data-day"); }
+  function post(msg, local) {
+    msg.type = "cb-4m-save"; msg.seq = ++seq; msg.line_id = cur.line_id;
+    local.kind = msg.kind; waiting[msg.seq] = local;
+    try { window.parent.postMessage(msg, "*"); } catch (x) {}
+    note("Saving…");
+  }
+
+  // ── circles ───────────────────────────────────────────────────────────
+  function paintCircles(marks) {
+    layoutDays(cur.days);
+    var c = cur.current, cday = c && String(c.date).slice(0, 7) === cur.month ? +String(c.date).slice(8, 10) : 0;
+    circles.forEach(function (el) {
+      var d = +el.getAttribute("data-day");
+      var live = on && !!cday && d === cday && el.getAttribute("data-shift") === c.shift;
+      el.classList.toggle("cb-lock", on && !live && !cur.admin);         // admin: any circle
+      var td = el.closest("td");
+      if (td) { td.classList.toggle("cb-today", live); td.classList.add("cb-screen"); }
+      el.classList.toggle("cb-off", d > cur.days);
+      var k = ckey(el);
+      if (pendingMarks.hasOwnProperty(k)) return;            // a click still being saved
+      var m = marks && marks[el.getAttribute("data-shift")];
+      var st = (d <= cur.days && m && m[el.getAttribute("data-param")] && m[el.getAttribute("data-param")][String(d)]) || "blank";
+      el.setAttribute("data-state", st);
+    });
+  }
+  // one save per circle at a time: quick clicks (green -> red) send the latest state after the ack
+  function sendMark(el) {
+    var k = ckey(el);
+    if (markSending.hasOwnProperty(k)) return;
+    var st = pendingMarks[k];
+    markSending[k] = st;
+    post({ kind: "mark", date: cur.month + "-" + two(+el.getAttribute("data-day")),
+           shift: el.getAttribute("data-shift"), param: el.getAttribute("data-param"), state: st },
+         { ckey: k, el: el, state: st });
+  }
+  var origCircle = window.toggleCircle;
+  window.toggleCircle = function (el) {
+    if (!on && cur.key) return;                         // MES sheet still loading
+    if (!on) return origCircle(el);
+    if (!cur.line_id) { note("Select a line first"); return; }
+    if (el.classList.contains("cb-off")) return;
+    if (el.classList.contains("cb-lock")) {
+      note(cur.current ? "Only the running shift can be marked: " + cur.current.label
+                       : "No shift is running now: circles can be marked during the shift only");
+      return;
+    }
+    var k = ckey(el);
+    if (!pendingMarks.hasOwnProperty(k)) markFrom[k] = el.getAttribute("data-state");
+    origCircle(el);
+    pendingMarks[k] = el.getAttribute("data-state");
+    sendMark(el);
+  };
+
+  // ── detail rows ───────────────────────────────────────────────────────
+  function newRow() {
+    var tr = tpl.cloneNode(true), c = tr.cells;
+    [1, 2, 3, 4, 5, 6, 7, 8, 12].forEach(function (i) {
+      var inp = c[i] && c[i].querySelector("input");
+      if (!inp) return;
+      var ta = document.createElement("textarea");
+      ta.className = "cell-input left-input cb-ta"; ta.rows = 2; ta.spellcheck = false;
+      c[i].replaceChild(ta, inp);
+    });
+    [0, 11].forEach(function (i) {
+      var inp = c[i] && c[i].querySelector("input");
+      if (inp) { inp.readOnly = true; inp.tabIndex = -1; inp.classList.add("cb-auto"); }
+    });
+    // 2026-11-12 (operator): OK / NG Qty typed by the user (the parts checked
+    // after the change), open from 15 min before to 15 min after the shift end
+    [9, 10].forEach(function (i) {
+      var inp = c[i] && c[i].querySelector("input");
+      if (inp) { inp.readOnly = true; inp.tabIndex = -1; inp.inputMode = "numeric"; inp.classList.add("cb-qty"); }
+    });
+    c[0].classList.add("cb-date");
+    return tr;
+  }
+  function field(tr, i) { return tr.cells[i] && tr.cells[i].querySelector("textarea, input"); }
+  // long text: smaller font first (down to 9 px), then the row grows — nothing is cut off
+  function fit(ta) {
+    if (!ta || ta.tagName !== "TEXTAREA") return;
+    ta.style.fontSize = ""; ta.style.height = "";
+    var base = parseFloat(getComputedStyle(ta).fontSize) || 12, s = base;
+    while (s > 9 && ta.scrollHeight > ta.clientHeight + 1) { s -= 0.5; ta.style.fontSize = s + "px"; }
+    if (ta.scrollHeight > ta.clientHeight + 1) ta.style.height = (ta.scrollHeight + 2) + "px";
+  }
+  function upper(el) {
+    var a = el.selectionStart, b = el.selectionEnd, v = el.value.toUpperCase();
+    if (v !== el.value) { el.value = v; try { el.setSelectionRange(a, b); } catch (x) {} }
+  }
+  function statusOf(tr) {
+    var sq = tr.cells[13] && tr.cells[13].querySelector(".status-square");
+    var v = sq ? sq.getAttribute("data-state") : "";
+    return v === "returned" ? "RETURNED" : v === "not-returned" ? "NOT_RETURNED" : "";
+  }
+  function markMissing(row) {
+    var miss = 0;
+    Object.keys(REQ).forEach(function (f) {
+      var i = REQ[f], v = f === "status" ? statusOf(row.tr) : (field(row.tr, i) || {}).value;
+      var empty = !String(v || "").trim();
+      row.tr.cells[i].classList.toggle("cb-miss", empty);
+      if (empty) miss++;
+    });
+    row.tr.classList.toggle("cb-pend", !!(row.d.shift_ended && miss));
+    return miss;
+  }
+  function setAuto(row) {
+    var d = row.d, c = row.tr;
+    field(c, 0).value = d.label || "";
+    field(c, 11).value = d.supervisor || "";
+    field(c, 11).title = d.supervisor ? "" : "Line leader from Shift Allocation (not saved yet)";
+  }
+  function hm(t) { return String(t || "").slice(11, 16); }
+  function qtyTip(d) {
+    if (!d.qty_from) return "OK / NG Qty: no shift timing for this line";
+    return d.qty_open ? "Type the OK / NG parts checked after the change (open until " + hm(d.qty_to) + ")"
+      : "OK / NG Qty can be filled from " + hm(d.qty_from) + " to " + hm(d.qty_to) +
+        " only (15 min before to 15 min after the shift end)";
+  }
+  function setEditable(row, i, v) {          // MES value into a cell the user is not editing
+    var el = field(row.tr, i);
+    if (!el || el === document.activeElement) return;
+    el.value = v || ""; fit(el);
+  }
+  function fillRow(row, keepDirty) {
+    var d = row.d;
+    setAuto(row);
+    row.tr.classList.toggle("cb-ro", !d.editable);
+    [].forEach.call(row.tr.querySelectorAll("textarea"), function (ta) { ta.readOnly = !d.editable; ta.tabIndex = d.editable ? 0 : -1; });
+    // 2026-11-13: a breakdown-slip row — the change text comes from the slip
+    // (read-only; a click opens the slip), Product / Action Taken start from it
+    var sl = d.slip || null;
+    for (var ci = 1; ci <= 5; ci++) {
+      var cel = row.tr.cells[ci], cta = field(row.tr, ci);
+      if (!cel) continue;
+      cel.classList.toggle("cb-slip", !!sl && ci === 5); cel.classList.add("cb-screen");
+      if (sl && cta) { cta.readOnly = true; cta.tabIndex = -1; }
+    }
+    if (row.tr.cells[5]) row.tr.cells[5].title = sl ? "Breakdown slip " + sl.no + (sl.stage ? " (" + stageText(sl.stage) + ")" : "")
+                                                         + ": click to open the slip" : "";
+    [6, 7].forEach(function (i) {
+      var au = !!(d.auto && d.auto[TXT[i]]), cel = row.tr.cells[i];
+      if (!cel) return;
+      cel.classList.toggle("cb-autov", au); cel.classList.add("cb-screen");
+      cel.title = au ? "From the breakdown slip: cannot be changed" : "";
+      // 2026-11-13 (operator): data that comes automatically is frozen
+      var ta6 = field(row.tr, i);
+      if (au && ta6) { ta6.readOnly = true; ta6.tabIndex = -1; }
+    });
+    if (!(keepDirty && row.dirty.change))
+      CHG.forEach(function (col, j) { setEditable(row, j + 1, d.change_col === col ? d.change_text : ""); });
+    Object.keys(TXT).forEach(function (i) { if (!(keepDirty && row.dirty[TXT[i]])) setEditable(row, +i, d[TXT[i]]); });
+    var qo = !!d.qty_open;
+    Object.keys(QTY).forEach(function (i) {
+      var el = field(row.tr, +i);
+      if (!el) return;
+      el.readOnly = !qo; el.tabIndex = qo ? 0 : -1; el.title = qtyTip(d);
+      row.tr.cells[+i].classList.toggle("cb-qopen", qo);
+      if (!(keepDirty && row.dirty[QTY[i]])) setEditable(row, +i, d[QTY[i]] == null ? "" : String(d[QTY[i]]));
+    });
+    if (!(keepDirty && row.dirty.status)) {
+      var sq = row.tr.cells[13].querySelector(".status-square");
+      if (sq) sq.setAttribute("data-state", d.status === "RETURNED" ? "returned" : d.status === "NOT_RETURNED" ? "not-returned" : "blank");
+    }
+    markMissing(row);
+  }
+  function rowOf(tr) { for (var i = 0; i < rows.length; i++) if (rows[i].tr === tr) return rows[i]; return null; }
+  function stageText(st) {
+    return st === "PENDING_PRODUCTION" ? "production half not filled yet"
+         : st === "PENDING_MAINTENANCE" ? "maintenance half not filled yet"
+         : st === "COMPLETED" ? "completed" : String(st || "").toLowerCase();
+  }
+  function save(row, now) {
+    clearTimeout(row.timer);
+    var go = function () {
+      if (row.inflight) return;                          // the ack sends what is still dirty
+      var fields = {}, vers = {}, any = false;
+      // OK / NG Qty are sent on their own (own time window): a refused Qty never holds back the text
+      var qtyFirst = Object.keys(row.dirty).some(function (f) { return row.dirty[f] && QF[f]; });
+      Object.keys(row.dirty).forEach(function (f) {
+        if (!row.dirty[f] || !!QF[f] !== qtyFirst) return;
+        any = true; vers[f] = row.ver[f];
+        if (f === "change") {
+          var col = null, text = "";
+          CHG.forEach(function (c, j) { var v = field(row.tr, j + 1).value.trim(); if (v && !col) { col = c; text = v; } });
+          fields.change = { col: col, text: text };
+        } else if (f === "status") fields.status = statusOf(row.tr);
+        else if (QF[f]) fields[f] = field(row.tr, QF[f]).value.trim();
+        else { for (var i in TXT) if (TXT[i] === f) fields[f] = field(row.tr, +i).value.trim(); }
+      });
+      if (!any) return;
+      row.inflight = true;
+      post({ kind: "row", date: row.d.date, shift: row.d.shift, param: row.d.param,
+             slip_key: row.d.slip_key || "", fields: fields },
+           { row: row, vers: vers, qty: qtyFirst, vals: fields });
+    };
+    if (now) go(); else row.timer = setTimeout(go, 700);
+  }
+  function edit(row, f, now) {
+    row.ver[f] = (row.ver[f] || 0) + 1; row.dirty[f] = true;
+    markMissing(row); save(row, now);
+  }
+  function bind(tr, d) {
+    var row = { d: d, tr: tr, ver: {}, dirty: {}, timer: null };
+    tr.classList.add("cb-4m-row");
+    CHG.forEach(function (col, j) {
+      var ta = field(tr, j + 1);
+      ta.addEventListener("input", function () {
+        upper(ta);
+        if (ta.value.trim()) CHG.forEach(function (c2, k) {                // one change column per row
+          var o = field(tr, k + 1); if (k !== j && o.value) { o.value = ""; fit(o); }
+        });
+        fit(ta); edit(row, "change");
+      });
+      ta.addEventListener("blur", function () { if (row.dirty.change) save(row, true); });
+    });
+    Object.keys(TXT).forEach(function (i) {
+      var ta = field(tr, +i), f = TXT[i];
+      ta.addEventListener("input", function () { upper(ta); fit(ta); edit(row, f); });
+      ta.addEventListener("blur", function () { if (row.dirty[f]) save(row, true); });
+    });
+    // 2026-11-13: say why a box cannot be typed in
+    [].forEach.call(tr.querySelectorAll("textarea"), function (ta) {
+      ta.addEventListener("click", function () {
+        if (!ta.readOnly || !row.d) return;
+        var ci = [].indexOf.call(tr.cells, ta.closest("td"));
+        if (row.d.auto && row.d.auto[TXT[ci]]) note("From the breakdown slip: it cannot be changed");
+        else if (!row.d.editable) note("Only today's entries can be changed: earlier days are locked");
+      });
+    });
+    Object.keys(QTY).forEach(function (i) {
+      var el = field(tr, +i), f = QTY[i];
+      if (!el) return;
+      el.addEventListener("input", function () {
+        var v = el.value.replace(/[^0-9]/g, "").slice(0, 5);
+        if (v !== el.value) el.value = v;
+        edit(row, f);
+      });
+      el.addEventListener("blur", function () { if (row.dirty[f]) save(row, true); });
+      el.addEventListener("click", function () { if (el.readOnly) note(qtyTip(row.d)); });
+    });
+    var slipCell = field(tr, 5);
+    if (slipCell) slipCell.addEventListener("click", function () {
+      var sl = row.d && row.d.slip;
+      if (!sl) return;
+      try { window.parent.postMessage({ type: "cb-slip-open", src: sl.src, id: sl.id, stage: sl.stage || "" }, "*"); } catch (x) {}
+    });
+    rows.push(row);
+    fillRow(row, false);
+    return row;
+  }
+  function filler(tr) {
+    tr.classList.add("cb-4m-fill");
+    [].forEach.call(tr.querySelectorAll("textarea, input"), function (el) { el.readOnly = true; el.tabIndex = -1; });
+  }
+  var origSq = window.toggleStatusSquare;
+  window.toggleStatusSquare = function (el) {
+    if (!on) return origSq(el);
+    var row = rowOf(el.closest("tr"));
+    if (!row) return;                                   // rows come from red circles only
+    if (!row.d.editable) { note("Only today's entries can be changed: earlier days are locked"); return; }
+    origSq(el);
+    edit(row, "status", true);
+  };
+  function focusInfo() {
+    var a = document.activeElement, tr = a && a.closest && a.closest("tr"), row = tr && rowOf(tr);
+    if (!row) return null;
+    return { key: row.d.key, cell: [].indexOf.call(tr.cells, a.closest("td")),
+             s: a.selectionStart, e: a.selectionEnd };
+  }
+  function renderRows(list, force) {
+    list = list || [];
+    var same = !force && rows.length === list.length && rows.every(function (r, i) { return r.d.key === list[i].key; });
+    if (same) {
+      rows.forEach(function (r, i) { r.d = list[i]; fillRow(r, true); });
+      applyFilter();
+      return;
+    }
+    var old = {}, fi = focusInfo();
+    rows.forEach(function (r) { old[r.d.key] = r; });
+    var cur_rows = [];
+    for (var x = head.nextElementSibling; x && x !== legend; x = x.nextElementSibling) cur_rows.push(x);
+    cur_rows.forEach(function (x) { x.parentNode.removeChild(x); });
+    rows = [];
+    var n = Math.max(MIN_ROWS, list.length + 1), made = [];   // always one free row below
+    for (var i = 0; i < n; i++) {
+      var tr = newRow();
+      tbody.insertBefore(tr, legend);
+      made.push(tr);
+      if (i < list.length) {
+        var row = bind(tr, list[i]), was = old[list[i].key];
+        if (was) {                                         // keep edits not saved yet
+          Object.keys(was.dirty).forEach(function (f) {
+            if (!was.dirty[f]) return;
+            row.dirty[f] = true; row.ver[f] = was.ver[f];
+            if (f === "change") CHG.forEach(function (c, j) { field(tr, j + 1).value = field(was.tr, j + 1).value; fit(field(tr, j + 1)); });
+            else if (f === "status") tr.cells[13].querySelector(".status-square").setAttribute("data-state",
+              was.tr.cells[13].querySelector(".status-square").getAttribute("data-state"));
+            else if (QF[f]) field(tr, QF[f]).value = field(was.tr, QF[f]).value;
+            else for (var k in TXT) if (TXT[k] === f) { field(tr, +k).value = field(was.tr, +k).value; fit(field(tr, +k)); }
+          });
+          if (Object.keys(row.dirty).length) save(row, false);
+          markMissing(row);
+        }
+      } else filler(tr);
+    }
+    [].forEach.call(made[made.length - 1].cells, function (td) { td.classList.add("bb-m"); });
+    applyFilter();
+    if (fi) rows.forEach(function (r) {
+      if (r.d.key !== fi.key) return;
+      var el = r.tr.cells[fi.cell] && r.tr.cells[fi.cell].querySelector("textarea");
+      if (el) { el.focus(); try { el.setSelectionRange(fi.s, fi.e); } catch (y) {} }
+    });
+  }
+
+  // ── MES hand-off ─────────────────────────────────────────────────────
+  window.addEventListener("message", function (e) {
+    if (e.source !== window.parent || !e.data || e.data.type !== "cb-4m-ack") return;
+    var w = waiting[e.data.seq];
+    delete waiting[e.data.seq];
+    if (!w) return;
+    if (w.kind === "mark") {
+      delete markSending[w.ckey];
+      if (!e.data.ok) {                                  // back to the last saved state
+        w.el.setAttribute("data-state", markFrom[w.ckey] || "blank");
+        delete pendingMarks[w.ckey]; delete markFrom[w.ckey];
+      } else if (pendingMarks[w.ckey] !== w.state) sendMark(w.el);
+      else { delete pendingMarks[w.ckey]; delete markFrom[w.ckey]; }
+    } else {
+      w.row.inflight = false;
+      if (e.data.ok) Object.keys(w.vers).forEach(function (f) {
+        if (w.qty) w.row.d[f] = w.vals[f] === "" ? null : +w.vals[f];
+        if (w.row.ver[f] === w.vers[f]) w.row.dirty[f] = false;
+      });
+      else if (w.qty) Object.keys(w.vers).forEach(function (f) {      // refused Qty: back to the saved value
+        if (w.row.ver[f] !== w.vers[f]) return;
+        w.row.dirty[f] = false;
+        var el = field(w.row.tr, QF[f]);
+        if (el) el.value = w.row.d[f] == null ? "" : String(w.row.d[f]);
+      });
+      if ((e.data.ok || w.qty) && Object.keys(w.row.dirty).some(function (f) { return w.row.dirty[f]; })) save(w.row, true);
+    }
+    if (!e.data.ok) { note("Not saved: " + (e.data.error || "error")); return; }
+    if (!Object.keys(waiting).length) {
+      var t = new Date();
+      note("Saved " + two(t.getHours()) + ":" + two(t.getMinutes()) + summary());
+    }
+  });
+  function pendingNow() {           // ended shifts still missing a compulsory field (as on screen)
+    return rows.filter(function (r) { return r.d.shift_ended && markMissing(r) > 0; }).length;
+  }
+  function summary() { var n = pendingNow(); return n ? " · " + n + " 4M change(s) pending" : ""; }
+  window.cbOnData = function (data, s) {
+    if (!data || !data.m4) return;
+    var key = (s.line_id || "") + "|" + (s.month || "");
+    var sh = data.sheet4m;
+    if (!s.line_id) {
+      on = true; cur = { line_id: "", month: s.month, days: daysIn(s.month), key: key, current: null };
+      pendingMarks = {}; filterDay = 0; paintCircles(null); renderRows([], true); note("Select a line");
+      return;
+    }
+    if (!sh || String(sh.line_id) !== String(s.line_id) || sh.month !== s.month) {
+      if (key !== cur.key) {                              // another line / month: blank until it loads
+        on = false; cur = { line_id: s.line_id, month: s.month, days: daysIn(s.month), key: key };
+        pendingMarks = {}; paintCircles(null); renderRows([], true);
+      }
+      note(data.error || (data.loading ? "Loading…" : ""));
+      return;
+    }
+    var switched = key !== cur.key || !on;
+    on = true;
+    cur = { line_id: s.line_id, month: s.month, days: sh.days || daysIn(s.month), key: key, current: sh.current || null,
+            admin: !!sh.admin };
+    if (switched) { pendingMarks = {}; filterDay = 0; }
+    paintCircles(sh.marks);
+    renderRows(sh.rows, switched);
+    var n = pendingNow();
+    if (!Object.keys(waiting).length)
+      note(n ? n + " 4M change(s) pending: fill Product Details, Action Taken, Quality Result and Status"
+             : (data.error || ""));
+  };
 })();
 </script>
 </body>

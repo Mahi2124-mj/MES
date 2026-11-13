@@ -16,6 +16,8 @@ const MaintenanceCAPA = lazy(() => import("./pages/MaintenanceCAPA"));
 const MaintenanceDeviations = lazy(() => import("./pages/MaintenanceDeviations"));
 const MaintenancePokaYoke = lazy(() => import("./pages/MaintenancePokaYoke"));
 const AirFlow = lazy(() => import("./pages/AirFlow"));  // 2026-10-10 Maintenance → Air Flow (chart + master)
+const PredictiveMaintenance = lazy(() => import("./pages/PredictiveMaintenance"));
+const MeetingVideos = lazy(() => import("./pages/MeetingVideos"));  // 2026-11-13 Local Meeting Video (cycle clips saved from the Supervisor wall, 10 days)  // 2026-11-12 Maintenance → Predictive Maintenance (Predictive Module :1006)
 const LogBook = lazy(() => import("./pages/LogBook"));
 const PMPanel = lazy(() => import("./pages/PMPanel"));
 const ProcessGraphs = lazy(() => import("./pages/ProcessGraphs"));
@@ -24,9 +26,13 @@ const WeldMonitor = lazy(() => import("./pages/WeldMonitor"));
 const QualityDeviations = lazy(() => import("./pages/QualityDeviations"));
 const SaFiQualityHistory = lazy(() => import("./pages/SaFiQualityHistory"));
 const RedBinLock = lazy(() => import("./pages/RedBinLock"));
+// 2026-11-11 — Line Rejection: Red Bin portal rejections zone/line-wise (read-only)
+const LineRejection = lazy(() => import("./pages/LineRejection"));
 const CmsPortal = lazy(() => import("./pages/CmsPortal"));
 const CommentsHistory = lazy(() => import("./pages/CommentsHistory"));
 const ControlBoard = lazy(() => import("./pages/ControlBoard"));
+// 2026-11-07 — Control Board View: live line dashboard + board documents (pilot YNC-SS)
+const ControlBoardView = lazy(() => import("./pages/ControlBoardView"));
 const Historical = lazy(() => import("./pages/Historical"));
 const Audit = lazy(() => import("./pages/Audit"));
 const WaitingTime = lazy(() => import("./pages/WaitingTime"));
@@ -690,6 +696,7 @@ function AppRoutes() {
         {/* 2026-10-09 — CMS web app inside the MES, admin role only */}
         <Route path="/cms-portal" element={<Protected requiredAccess="cms-portal"><CmsPortal /></Protected>} />
         <Route path="/video-coverage" element={<Protected requiredAccess="video-coverage"><VideoCoverage /></Protected>} />
+        <Route path="/meeting-videos" element={<Protected requiredAccess="meeting-videos"><MeetingVideos /></Protected>} />
         <Route path="/py-bypass" element={<Protected requiredAccess="py-bypass"><PyBypass /></Protected>} />
         {/* 2026-09-27 — faults recorded from the bits assigned in Fault Config */}
         <Route path="/fault-history" element={<Protected requiredAccess="fault-history"><FaultHistory /></Protected>} />
@@ -763,6 +770,9 @@ function AppRoutes() {
       } />
       <Route path="/andon-history" element={
         <Protected requiredAccess="andon-history"><AndonHistory /></Protected>
+      } />
+      <Route path="/line-rejection" element={
+        <Protected requiredAccess="line-rejection"><LineRejection /></Protected>
       } />
       <Route path="/prod-breakdown-slip" element={
         <Protected requiredAccess="prod-breakdown-slip"><ProdBreakdownSlip /></Protected>
@@ -847,6 +857,9 @@ function AppRoutes() {
       <Route path="/maintenance-air-flow" element={
         <Protected requiredAccess="maintenance-air-flow"><AirFlow /></Protected>
       } />
+      <Route path="/maintenance-predictive" element={
+        <Protected requiredAccess="maintenance-predictive"><PredictiveMaintenance /></Protected>
+      } />
 
       {/* Quality Dashboard — zone-tile health view.  Each zone tile rolls
           up its lines' PY pass/fail; click to expand and see lines with
@@ -895,6 +908,15 @@ function AppRoutes() {
       {/* 2026-11-04 — Control Board: the line-side board documents (UI demo). */}
       <Route path="/control-board" element={
         <Protected requiredAccess="control-board"><ControlBoard /></Protected>
+      } />
+      {/* 2026-11-07 — Control Board View (operator's "Rev. Control Board View"
+          sheet): one line's live dashboard merged with its board documents.
+          Pilot on YNC-SS (the default when the URL names no line). */}
+      <Route path="/control-board-view" element={
+        <Protected bare requiredAccess="control-board-view"><ControlBoardView /></Protected>
+      } />
+      <Route path="/control-board-view/:lineId" element={
+        <Protected bare requiredAccess="control-board-view"><ControlBoardView /></Protected>
       } />
 
       {/* Catch-all */}

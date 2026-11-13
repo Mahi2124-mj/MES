@@ -1989,6 +1989,14 @@ def get_cycle_video(
             # which CMS grinds on until the proxy timeout and then 404s.  120 s
             # is far above any real CT here, so normal cycles are untouched.
             _clip_dur     = max(3.0, _cycle_dur_s + 1.0)
+            # 2026-11-13 — some Final machines pulse OK when the inspection
+            # STARTS (YNC-SS: the guard door closes on L108), so their window is
+            # moved later; see clip_archive.MAIN_CLIP_SHIFT.  0 for other lines.
+            try:
+                from routers.clip_archive import main_clip_shift as _mcs
+                _shift_s = float(_mcs(line_id) or 0.0)
+            except Exception:
+                _shift_s = 0.0
             # 2026-08-11 — operator spec: an Alarm clip shows the Alarm AND the
             # cycle after it as ONE continuous video.  This log stores only the
             # cycle END (`ts`), so extending means pushing _ts_end out to the
@@ -2003,13 +2011,26 @@ def get_cycle_video(
                 )
                 _nx = cur.fetchone()
                 if _nx and _nx["ts"] and _nx["ts"] > _ts_end:
-                    _gap = (_nx["ts"] - _ts_end).total_seconds()
-                    _ts_end    = _nx["ts"]
+                    _gap = (_nx["ts"] - _ts_end).total_seconds() + _shift_s
+                    _ts_end    = _nx["ts"] + _td(seconds=_shift_s)
                     _clip_dur += _gap
+            elif _shift_s:
+                _ts_end = _ts_end + _td(seconds=_shift_s)
             _clip_cap     = float(os.environ.get("CLIP_MAX_SECONDS", "120") or 120)
             if _clip_cap > 0 and _clip_dur > _clip_cap:
                 _clip_dur = _clip_cap
             _ts_start     = _ts_end - _td(seconds=_clip_dur)
+            # A shifted window on the newest cycle ends a few seconds in the
+            # FUTURE.  Wait for it (bounded) so the clip is complete; the CMS
+            # then waits its usual ~2 s for the recorder to flush.
+            if _shift_s:
+                try:
+                    _e = _ts_end.replace(tzinfo=None) if _ts_end.tzinfo else _ts_end
+                    _wait = (_e - datetime.now()).total_seconds()
+                    if _wait > 0:
+                        time.sleep(min(_wait, _shift_s + 1.0))
+                except Exception:
+                    pass
             # 2026-07-01 — Resolve THIS line's OWN main camera instead of a
             # hardcoded default.  The old `cam_panasonic_default` made EVERY
             # line pull the .115 (YNC) feed — e.g. YCA-SS Final Inspection
@@ -4580,7 +4601,11 @@ def _hourly_loss_core(cur, line_id: int, target_date: str, shift: str) -> dict:
                     avail = sum(v for k, v in slot_loss[idx].items() if k != "loss_speed")
                     slot_loss[idx]["loss_speed"] = max(0, int(round(short * spp - avail)))
                     slot_parts[idx] = {"plan": plan_now, "ok": made, "short": short,
-                                       "sec_per_part": round(spp, 2)}
+                                       "sec_per_part": round(spp, 2),
+                                       # 2026-11-12 — slot window, so the wallboard can
+                                       # count each machine's own parts per slot
+                                       "from": slot_windows[idx][1].isoformat(timespec="seconds"),
+                                       "to":   slot_windows[idx][2].isoformat(timespec="seconds")}
                     plan_seconds += plan_now * spp
             else:
                 parts_speed = False                          # nothing recorded: keep 4b

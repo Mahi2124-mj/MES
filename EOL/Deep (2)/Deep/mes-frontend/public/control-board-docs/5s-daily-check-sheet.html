@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>5S Daily Check Sheet</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: "Arial", sans-serif;
+        }
+
+        body {
+            background: #f4f4f4;
+            margin: 0;
+            padding: 15px;
+        }
+
+        .toolbar {
+            width: 100%;
+            max-width: 1630px;
+            margin: 0 auto 10px auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #fff;
+            padding: 10px 15px;
+            border: 1px solid #ccc;
+            font-size: 14px;
+        }
+
+        .toolbar button {
+            padding: 6px 16px;
+            font-size: 13px;
+            font-weight: bold;
+            cursor: pointer;
+            border: 1px solid #333;
+            background: #eee;
+            margin-left: 8px;
+        }
+
+        .sheet-wrapper {
+            width: 100%;
+            max-width: 1630px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 15px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            overflow-x: auto;
+        }
+
+        table {
+            border-collapse: collapse;
+            table-layout: fixed;
+            width: 1600px;
+            border: 2px solid #000;
+        }
+
+        td,
+        th {
+            border: 1px solid #000;
+            text-align: center;
+            padding: 2px 4px;
+            font-size: 11px;
+            height: 30px;
+        }
+
+        .text-left {
+            text-align: left;
+            padding-left: 8px;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .bold {
+            font-weight: bold;
+        }
+
+        /* Fonts matching screenshot */
+        .title-font {
+            font-family: "Times New Roman", Times, serif;
+            font-size: 24px !important;
+        }
+
+        .header-font {
+            font-family: "Times New Roman", Times, serif;
+            font-size: 14px !important;
+            font-weight: bold;
+        }
+
+        /* Original Sheet Colours */
+        .bg-cyan {
+            background-color: #00FFFF;
+        }
+
+        .bg-light-green {
+            background-color: #CCFFCC;
+        }
+
+        .bg-light-orange {
+            background-color: #FFCC99;
+        }
+
+        .bg-blank {
+            background-color: #f4f4f4;
+            border-left: none;
+            border-right: none;
+        }
+
+        /* Thick Borders for Structure */
+        .thick-top {
+            border-top: 2px solid #000 !important;
+        }
+
+        .thick-bottom {
+            border-bottom: 2px solid #000 !important;
+        }
+
+        .thick-left {
+            border-left: 2px solid #000 !important;
+        }
+
+        .thick-right {
+            border-right: 2px solid #000 !important;
+        }
+
+        /* Inputs & Checkmarks */
+        input {
+            border: none;
+            border-bottom: 1px solid #000;
+            outline: none;
+            background: transparent;
+            width: 100%;
+            text-align: center;
+            font-size: 11px;
+        }
+
+        input:focus {
+            background: #fff9c4;
+        }
+
+        .header-input {
+            width: 100px;
+            font-weight: bold;
+            font-size: 14px;
+            font-family: "Times New Roman", Times, serif;
+        }
+
+        .clickable {
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            user-select: none;
+        }
+
+        .clickable:hover {
+            background-color: #e8f0fe;
+        }
+
+        .ok {
+            color: #008000;
+        }
+
+        .ng {
+            color: #ff0000;
+        }
+
+        @media print {
+            body {
+                padding: 0;
+            }
+
+            .toolbar {
+                display: none;
+            }
+
+            .sheet-wrapper {
+                box-shadow: none;
+                padding: 0;
+                border: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="toolbar">
+        <div>
+            <strong>5S DAILY CHECK SHEET</strong>
+            <span style="margin-left: 15px; color: #555;">(Click a box: Blank &rarr; ✓ &rarr; ✕)</span>
+        </div>
+        <div>
+            
+            <button class="cb-pdf-btn" onclick="cbSavePdf()" style="background:#0056b3; color:#fff;">Save PDF</button><button onclick="window.print()">Print</button>
+        </div>
+    </div>
+
+    <div class="sheet-wrapper">
+        <table id="checkSheetTable">
+            <!-- JS auto-generates content -->
+        </table>
+    </div>
+
+    <script>
+        // Pura 5S ka data
+        const data = [
+            {
+                title: "1S Sorting (Seiri)", rows: [
+                    "Nothing on Floor - scrap of paper, tools, parts, bins, chips, oil , Guide Ball etc. are lying on the floor.",
+                    "Corrugated box should be not overflowing to corrugated scrap",
+                    "Wanted ( Okay ) & Unwanted ( Rejected ) Parts should be not mixed in a bin .",
+                    "There should be no leakages of air,water,oil and grease etc.",
+                    "All Rejected parts should be identified with red marker.",
+                    "Unused Parts / Documents / Tool should be not avilable on line / Control Board .",
+                    "Every machine wire should not loose."
+                ]
+            },
+            {
+                title: "2S Systemic Arrangement<br>(Seiton)", rows: [
+                    "Every location of parts , documents , tools , equipments , fixture etc. are clearly defined & identified .",
+                    "Gangways are free of material, parts ,trolleys, empty bins etc.",
+                    "FIFO ( First In & First Out) System to be maintained .",
+                    "Cleaning tools like Broom, Brush, Tool for cleaning are kept at an appropriate location.",
+                    "Fire Extinguisher available in pre fixed locations, no material in front of fire extinguisher.( If )",
+                    "All Rack / Stand / Board should be on the fixed white circle ( Tape )",
+                    "5's zone Rules & Responsbility to be Update & maintained ( Photographs etc) ."
+                ]
+            },
+            {
+                title: "3S - Cleaning<br>( Seiso )", rows: [
+                    "Child parts rack cleaning done as per decide frequency",
+                    "Every location of parts , documents , tools , equipments , fixture etc. are cleaned .",
+                    "Tubelights/ fans / machine outside area cleaning done as per frequency",
+                    "Floor outside perimeter to be clean at shift end / start up (Clean up if found dirty)",
+                    "Poka - Yoke / Limit Sample should be clean as per decide frequency.",
+                    "No any dirty bins as abnormal condition",
+                    "Unnecessary item don’t hide in machine panel .",
+                    "No any display paper leafs & Cobra file tear on Control Board / WI displayed"
+                ]
+            },
+            {
+                title: "4S - Standardisation<br>( Seiketsu )", rows: [
+                    "All check sheets ( Poka- Yoke , machine , Inprocess etc ) are to be updated & signed .",
+                    "All ( Graph , Date , Production Plan , SWCT Plan & Control board Documents etc ) to be updated .",
+                    "Standards are known and visible",
+                    "Every stand , board , m/c etc cleaning frequency to be decided .",
+                    "Rack should be identified"
+                ]
+            },
+            {
+                title: "5S Self Discipline<br>(Shitsuke)", rows: [
+                    "Operators to be Aware in 5S & he knows their 5's responsbility . ( Supervisor ask 5's to one operator on daily basis )",
+                    "Reject part to be in Rejected bin with Red marker identification .",
+                    "The operators / Supervisor following lane dicipline on line .",
+                    "Follow up Daily 5's check sheet & Enternal 5's Audit NC points Action taken and Improvement carried out",
+                    "Operators don’t make noise on line ."
+                ]
+            }
+        ];
+
+        let html = `<colgroup><col width="120"><col width="40"><col width="390">`;
+        for (let i = 1; i <= 31; i++) html += `<col width="32">`;
+        html += `</colgroup>`;
+
+        // Headers (Aligned as per screenshot)
+        html += `<tr><td colspan="34" class="bg-cyan thick-bottom text-center" style="padding: 10px 50px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+        <span class="bold title-font">5S Daily Check Sheet</span>
+        <span class="header-font" style="margin-left: 100px;">{ Zone : <input class="header-input"> ( Sub Zone : <input class="header-input"> ) }</span>
+        <span class="header-font">Sub Zone Leader : <input class="header-input" style="width:150px;"></span>
+    </div>
+  </td></tr>`;
+
+        html += `<tr class="bg-light-green header-font"><td colspan="2"></td><td class="text-center">Criteria for deciding the Level</td>`;
+        html += `<td colspan="31" class="text-center">Date</td></tr>`;
+
+        html += `<tr class="bg-light-orange header-font"><td colspan="2" class="thick-bottom"></td><td class="text-center thick-bottom">Marks Allocation</td>`;
+        for (let i = 1; i <= 31; i++) html += `<td class="thick-bottom">${i}</td>`;
+        html += `</tr>`;
+
+        // 1S se 5S ki rows
+        data.forEach((section, sIndex) => {
+            section.rows.forEach((task, tIndex) => {
+                let isLast = (tIndex === section.rows.length - 1) ? "thick-bottom" : "";
+                html += `<tr>`;
+
+                if (tIndex === 0) {
+                    html += `<td rowspan="${section.rows.length}" class="bold thick-left thick-right thick-bottom">${section.title}</td>`;
+                }
+
+                html += `<td class="thick-right ${isLast}">${tIndex + 1}.0</td>`;
+                html += `<td class="text-left thick-right ${isLast}">${task}</td>`;
+
+                for (let i = 1; i <= 31; i++) {
+                    let rightBorder = (i === 31) ? "thick-right" : "";
+                    html += `<td class="clickable ${isLast} ${rightBorder}" onclick="markCell(this)"></td>`;
+                }
+                html += `</tr>`;
+            });
+
+            // Har section ke baad khaali jagah (5S ke baad nahi chahiye)
+            if (sIndex < 4) {
+                html += `<tr><td colspan="34" class="bg-blank thick-left thick-right thick-bottom" style="height:12px;"></td></tr>`;
+            }
+        });
+
+        // Niche ke Signature Rows
+        html += `<tr><td colspan="3" class="bold text-left thick-left thick-bottom">CHECKED BY :- SIGN ( ENGG / LINE LEADER )</td>`;
+        for (let i = 1; i <= 31; i++) {
+            let rightBorder = (i === 31) ? "thick-right" : "";
+            html += `<td class="thick-bottom ${rightBorder}"><input></td>`;
+        }
+        html += `</tr>`;
+
+        html += `<tr><td colspan="3" class="bold text-left thick-left thick-bottom">VERIFIED BY :- PRODUCTION MANAGER ( WEEKLY )</td>`;
+        for (let i = 1; i <= 4; i++) html += `<td colspan="7" class="thick-bottom thick-right"><input placeholder="Week ${i}"></td>`;
+        html += `<td colspan="3" class="thick-bottom thick-right"><input placeholder="Week 5"></td></tr>`;
+
+        document.getElementById('checkSheetTable').innerHTML = html;
+
+        // Tick / Cross lagane wala function
+        function markCell(cell) {
+            if (cell.innerText === "") {
+                cell.innerText = "✓";
+                cell.className = cell.className.replace(" ng", "") + " ok";
+            }
+            else if (cell.innerText === "✓") {
+                cell.innerText = "✕";
+                cell.className = cell.className.replace(" ok", "") + " ng";
+            }
+            else {
+                cell.innerText = "";
+                cell.className = cell.className.replace(" ng", "");
+            }
+        }
+    </script>
+
+
+<script src="cb-pdf.js?v=70e072f2"></script>
+
+<script>
+/* MES Control Board: fit-to-width zoom requested by the page around this frame. */
+(function () {
+  var ok = window.CSS && CSS.supports && CSS.supports("zoom", "0.5");
+  window.addEventListener("message", function (e) {
+    if (e.source !== window.parent || !e.data || e.data.type !== "cb-zoom" || !ok) return;
+    var z = Number(e.data.zoom) || 1;
+    document.documentElement.style.zoom = (z === 1) ? "" : String(z);
+    try { window.parent.postMessage({ type: "cb-zoom-ok", zoom: z }, "*"); } catch (x) {}
+  });
+})();
+</script>
+
+<script>
+/* MES Control Board: auto-save what the user types or clicks (2026-11-12).
+   Every input / text box / editable text / click mark of the sheet is keyed (its
+   id, else its position) and, a moment after the user changes it, posted to the
+   Control Board ("cb-cells-save"), which saves it for the sheet's line and
+   period.  Saved entries come back as "cb-cells" and are put in again after
+   every MES fill.  Values MES fills itself (read-only boxes) are never sent, and
+   only the box the user changed is saved (no formula or MES values).
+   2026-11-13 (operator): only TODAY can be entered.  The Control Board sends the
+   line's production day ("today"), the day each saved value was entered ("set")
+   and the period; the sheet says which day a box belongs to (window.cbDateOf:
+   "YYYY-MM-DD", "W:<from>:<to>" for a weekly box, "" for the whole period,
+   "X" never).  Everything else is locked (read-only, clicks blocked); today's
+   boxes get an orange frame on screen (not in the PDF). */
+(function () {
+  if (window.__cbCells) return;
+  window.__cbCells = true;
+  var SKIP = ".toolbar, .no-print, .cb-hov, .cb-tip";
+  var applying = false, canSave = false, scope = "", dirty = {}, timer = null, seq = 0, pend = {}, retry = {};
+  var base = {}, init = null, applied = {};
+  var today = "", setOn = {}, open = true, P = {}, noteAt = 0, admin = false;
+  function skip(el) { return !!(el.closest && el.closest(SKIP)); }
+  function isForm(el) { return /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName); }
+  function isEdit(el) {
+    if (el.hasAttribute && el.hasAttribute("data-cb-ce")) return true;      // ours, locked for now
+    var a = el.getAttribute && el.getAttribute("contenteditable");
+    if (a === "" || a === "true") { el.setAttribute("data-cb-ce", "1"); return true; }
+    return false;
+  }
+  var lcss = document.createElement("style");
+  lcss.textContent = "[data-cb-lock]{cursor:not-allowed!important}" +
+    "[data-cb-lock]:focus{background:transparent!important;outline:none!important}" +
+    ".cb-today.cb-screen{outline:2px solid #f59e0b!important;outline-offset:-2px}";
+  document.head.appendChild(lcss);
+  function two(n) { return (n < 10 ? "0" : "") + n; }
+  window.cbYmd = function (y, m, d) { return y + "-" + two(m) + "-" + two(d); };
+  function dmy(iso) { return iso ? iso.slice(8, 10) + "-" + iso.slice(5, 7) + "-" + iso.slice(0, 4) : ""; }
+  function pinfo(period, kind) {
+    var p = String(period || "");
+    if (kind === "year" && /^\d{4}$/.test(p)) return { kind: kind, y: +p };
+    if (kind === "fy" && /^\d{4}-\d{2}$/.test(p)) return { kind: kind, y0: +p.slice(0, 4) };
+    if (/^\d{4}-\d{2}$/.test(p)) return { kind: "month", y: +p.slice(0, 4), m: +p.slice(5, 7) };
+    return {};
+  }
+  function dateOf(el) {
+    try { return typeof window.cbDateOf === "function" ? String(window.cbDateOf(el, P) || "") : ""; }
+    catch (err) { return "X"; }
+  }
+  function why(k, el) {                     // "" = may be changed, else the reason
+    if (!today) return "";                  // older API without the day rule: as before
+    if (!canSave) return scope ? "Saved copy: read-only" : "Pick a line in the Control Board filter to enter data";
+    if (admin) return dateOf(el) === "X" ? "This box cannot be filled" : "";      // admin: any day
+    if (!open) return "Only today's entries (" + dmy(today) + ") can be made: this sheet is for another period";
+    var dk = dateOf(el), w = /^W:(.{10}):(.{10})$/.exec(dk);
+    if (dk === "X") return "This box cannot be filled";
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dk) && dk !== today) return "Only today's column (" + dmy(today) + ") can be changed";
+    if (w && !(w[1] <= today && today <= w[2])) return "Only the current week's box can be signed";
+    if (setOn[k] && setOn[k] < today) return "Entered on " + dmy(setOn[k]) + ": it cannot be changed";
+    return "";
+  }
+  function setLock(el, reason) {
+    var lock = !!reason;
+    if (isForm(el)) {
+      if (lock) {
+        if (!el.readOnly || el.hasAttribute("data-cb-lock")) { el.readOnly = true; el.setAttribute("data-cb-lock", reason); }
+      } else if (el.hasAttribute("data-cb-lock")) { el.removeAttribute("data-cb-lock"); el.readOnly = false; }
+      if (el.tagName === "SELECT" || /^(checkbox|radio)$/i.test(el.type || "")) el.disabled = el.hasAttribute("data-cb-lock");
+    } else if (el.hasAttribute("data-cb-ce")) {
+      el.setAttribute("contenteditable", lock ? "false" : "true");
+      if (lock) el.setAttribute("data-cb-lock", reason); else el.removeAttribute("data-cb-lock");
+    } else if (lock) el.setAttribute("data-cb-lock", reason);
+    else el.removeAttribute("data-cb-lock");
+  }
+  function lockAll() {
+    var m = keyed();
+    for (var k in m) {
+      var el = m[k], r = why(k, el), mine = !r && !!today && dateOf(el) === today && !(isForm(el) && el.readOnly);
+      setLock(el, r);
+      el.classList.toggle("cb-today", mine);
+      if (mine) el.classList.add("cb-screen");
+    }
+  }
+  function lockNote(el, text) {
+    var t = Date.now();
+    if (t - noteAt < 1500) return;
+    noteAt = t;
+    status(text || el.getAttribute("data-cb-lock") || "Locked", "error");
+  }
+  // a locked click mark does nothing; a locked box says why
+  document.addEventListener("click", function (e) {
+    var t = e.target, el = t && t.closest ? t.closest("[data-cb-lock]") : null;
+    if (!el && t && isForm(t) && t.readOnly && today && !skip(t) && !t.classList.contains("cb-rj-link")) {
+      lockNote(t, "Filled automatically: it cannot be changed");      // MES value / formula
+      return;
+    }
+    if (!el || skip(el)) return;
+    if (!isForm(el) && !el.hasAttribute("data-cb-ce")) { e.stopPropagation(); e.preventDefault(); }
+    lockNote(el);
+  }, true);
+  function keyed() {
+    var m = {}, n = 0;
+    [].forEach.call(document.querySelectorAll("input, textarea, select"), function (el) {
+      if (skip(el) || el.classList.contains("cb-sel")) return;
+      if (/^(button|submit|reset|file|hidden|image)$/i.test(el.type || "")) return;
+      if (el.id) m["#" + el.id] = el; else m["f" + (n++)] = el;
+    });
+    var e = 0;
+    [].forEach.call(document.querySelectorAll("[contenteditable]"), function (el) { if (!skip(el) && isEdit(el)) m["e" + (e++)] = el; });
+    var k = 0;
+    [].forEach.call(document.querySelectorAll("[onclick]"), function (el) {
+      if (skip(el) || /^(BUTTON|A|INPUT|SELECT|TEXTAREA)$/.test(el.tagName) || (el.closest && el.closest("button"))) return;
+      m["k" + (k++)] = el;
+    });
+    return m;
+  }
+  function read(el) {
+    if (isForm(el)) return /^(checkbox|radio)$/i.test(el.type || "") ? (el.checked ? "1" : "") : String(el.value == null ? "" : el.value);
+    if (isEdit(el)) return el.innerText;
+    // our screen-only marks (today's frame) are not part of the saved value
+    var c = String(el.className || "").replace(/(^|\s)cb-(today|screen)(?=\s|$)/g, " ").replace(/\s+/g, " ").trim();
+    return JSON.stringify({ c: c, s: el.getAttribute("data-state"), t: el.children.length ? null : el.textContent });
+  }
+  function write(el, v) {
+    if (isForm(el)) {
+      if (/^(checkbox|radio)$/i.test(el.type || "")) el.checked = v === "1"; else el.value = v;
+      el.dispatchEvent(new Event("input", { bubbles: true }));
+      el.dispatchEvent(new Event("change", { bubbles: true }));
+    } else if (isEdit(el)) {
+      el.innerText = v;
+    } else {
+      try {
+        var o = JSON.parse(v);
+        el.className = o.c || "";
+        if (o.s == null) el.removeAttribute("data-state"); else el.setAttribute("data-state", o.s);
+        if (o.t != null && !el.children.length) el.textContent = o.t;
+      } catch (err) { /* not a mark */ }
+    }
+  }
+  function snap(m) { var b = {}; for (var k in m) b[k] = read(m[k]); return b; }
+  function status(text, state) {
+    try { parent.postMessage({ type: "cb-cells-status", text: text, state: state || "" }, "*"); } catch (e) { /* no parent */ }
+  }
+  function apply(cells, sc) {
+    var m = keyed();
+    if (!init) init = snap(m);
+    applying = true;
+    try {
+      if (sc !== scope) {                  // another line / period: its typed entries go
+        for (var k0 in applied) if (!(k0 in cells) && m[k0] && init[k0] != null) {
+          if (!(isForm(m[k0]) && m[k0].readOnly && !m[k0].hasAttribute("data-cb-lock"))) write(m[k0], init[k0]);
+        }
+        dirty = {};
+      }
+      for (var k in cells) {
+        var el = m[k];
+        // MES has a value there (read-only, not by our lock): MES wins
+        if (!el || (isForm(el) && el.readOnly && !el.hasAttribute("data-cb-lock"))) continue;
+        if (read(el) !== cells[k]) write(el, cells[k]);
+      }
+    } finally { applying = false; }
+    scope = sc; applied = cells;
+    base = snap(keyed());
+  }
+  function mark(el) {
+    if (applying || !el) return;
+    var m = keyed();
+    for (var k in m) if (m[k] === el) { dirty[k] = el; break; }
+    clearTimeout(timer); timer = setTimeout(flush, 600);
+  }
+  function markAllMarks() {                // a button changed many marks at once (all safe / reset)
+    if (applying) return;
+    var m = keyed();
+    for (var k in m) if (k.charAt(0) === "k" && read(m[k]) !== base[k]) dirty[k] = m[k];
+    clearTimeout(timer); timer = setTimeout(flush, 600);
+  }
+  function flush() {
+    var ch = {}, any = false;
+    for (var k in dirty) {
+      var el = dirty[k];
+      if (!el.isConnected || (isForm(el) && el.readOnly)) continue;
+      var v = read(el);
+      if (v !== base[k]) { ch[k] = v; any = true; }
+    }
+    dirty = {};
+    if (!any) return;
+    if (!canSave) { status(scope ? "Not saved: read-only" : "Not saved: pick a line in the Control Board filter", "error"); return; }
+    var s = ++seq, m2 = keyed(), dts = {};
+    for (var k3 in ch) dts[k3] = m2[k3] ? dateOf(m2[k3]) : "";
+    pend[s] = ch;
+    status("Saving…", "busy");
+    parent.postMessage({ type: "cb-cells-save", seq: s, changes: ch, dates: dts, scope: scope }, "*");
+  }
+  document.addEventListener("input", function (e) {
+    var t = e.target;
+    if (!t || skip(t)) return;
+    if (isForm(t)) mark(t);
+    else { var ce = t.closest && t.closest("[contenteditable]"); if (ce && isEdit(ce)) mark(ce); }
+  }, true);
+  document.addEventListener("change", function (e) { var t = e.target; if (t && isForm(t) && !skip(t) && !t.classList.contains("cb-sel")) mark(t); }, true);
+  document.addEventListener("click", function (e) {      // bubble phase: after the sheet's own onclick
+    var t = e.target, el = t && t.closest ? t.closest("[onclick]") : null;
+    if (!el) return;
+    // a button (toolbar too: "Mark all safe", reset) may change many marks at once
+    if (/^(BUTTON|A)$/.test(el.tagName) || el.closest("button")) { setTimeout(markAllMarks, 0); return; }
+    if (skip(el)) return;
+    mark(el);
+  });
+  // the sheet's own Clear button (removed 2026-11-13; the server refuses a clear now)
+  if (false && typeof window.clearSheet === "function") {
+    var clear0 = window.clearSheet;
+    window.clearSheet = function () {
+      var conf0 = window.confirm, said = false;
+      window.confirm = function (msg) { said = conf0.call(window, msg); return said; };
+      try { clear0.apply(this, arguments); } finally { window.confirm = conf0; }
+      if (said && canSave) {
+        var s = ++seq;
+        pend[s] = null;
+        status("Clearing…", "busy");
+        parent.postMessage({ type: "cb-cells-save", seq: s, changes: {}, clear: true, scope: scope }, "*");
+      }
+    };
+  }
+  window.addEventListener("message", function (e) {
+    var d = e.data;
+    if (!d || e.source !== window.parent) return;
+    if (d.type === "cb-cells") {
+      canSave = !!d.canSave;
+      today = /^\d{4}-\d{2}-\d{2}$/.test(d.today || "") ? d.today : "";
+      setOn = d.set || {};
+      open = d.open !== false;
+      admin = !!d.admin;
+      P = pinfo(d.period, d.pkind);
+      apply(d.cells || {}, String(d.scope || ""));
+      lockAll();
+    } else if (d.type === "cb-cells-ack") {
+      var ch = pend[d.seq];
+      delete pend[d.seq];
+      if (d.ok) {
+        if (ch) for (var k in ch) { base[k] = ch[k]; if (today && String(ch[k]).trim()) setOn[k] = setOn[k] || today; }
+        status("Saved", "done");
+      } else if (d.locked) {                  // the day rule said no: put the saved value back
+        status("Not saved: " + (d.error || "locked"), "error");
+        if (ch) {
+          var m1 = keyed();
+          applying = true;
+          try { for (var k1 in ch) if (m1[k1] && base[k1] != null) write(m1[k1], base[k1]); }
+          finally { applying = false; }
+          lockAll();
+        }
+      } else {
+        status("Not saved: " + (d.error || "error"), "error");
+        if (ch) {                             // try again once after 5 s
+          var m = keyed();
+          for (var k2 in ch) if (m[k2] && !retry[k2]) { retry[k2] = 1; dirty[k2] = m[k2]; }
+          clearTimeout(timer); timer = setTimeout(function () { flush(); retry = {}; }, 5000);
+        }
+      }
+    }
+  });
+})();
+</script>
+
+<script>
+(function () {
+  // day cells = the last 31 cells of a row; VERIFIED BY = weekly boxes "Week n"
+  window.cbDateOf = function (el, P) {
+    if (!P.y || !P.m) return "";
+    var dim = new Date(P.y, P.m, 0).getDate(), wk = /^Week (\d)$/.exec(el.placeholder || "");
+    if (wk) {
+      var a = 7 * (+wk[1]) - 6, b = +wk[1] === 5 ? dim : Math.min(dim, 7 * (+wk[1]));
+      return a > dim ? "X" : "W:" + cbYmd(P.y, P.m, a) + ":" + cbYmd(P.y, P.m, b);
+    }
+    var td = el.tagName === "TD" ? el : (el.closest && el.closest("td")), tr = td && td.parentNode;
+    if (!tr || !document.getElementById("checkSheetTable").contains(tr)) return "";
+    var tds = tr.children, n = tds.length, i = [].indexOf.call(tds, td);
+    if (n < 32 || i < n - 31) return "";
+    var d = i - (n - 31) + 1;
+    return d <= dim ? cbYmd(P.y, P.m, d) : "X";
+  };
+})();
+</script>
+</body>
+
+</html>

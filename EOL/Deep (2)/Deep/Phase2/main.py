@@ -60,6 +60,7 @@ from routers.capa            import router as capa_router
 from routers.quality         import router as quality_router
 from routers.sa_fi_quality  import router as sa_fi_quality_router
 from routers.redbin_lock    import router as redbin_lock_router
+from routers.line_rejection import router as line_rejection_router   # Line Rejection: Red Bin portal rejections zone/line-wise (read-only)
 from routers.breakdown_history import router as breakdown_history_router
 from routers.bd_clip import router as bd_clip_router
 from routers.ct_study       import router as ct_study_router
@@ -84,6 +85,14 @@ from routers.pm_mail          import mail_router as pm_mail_router
 from routers.weld             import weld_router, weld_test_worker
 from routers.clip_priority    import router as clip_priority_router   # 48 h plan decisions (Admin)
 from routers.standard_data    import router as standard_data_router   # Admin → Standard Data (Track Record)
+from routers.track_record     import router as track_record_router    # Control Board → Track Record Sheet data
+from routers.control_board_pdf import router as control_board_pdf_router  # Control Board → Save PDF hand-off for the Android app
+from routers.operator_status  import router as operator_status_router   # Control Board → Operator Status sheet (crew + attendance from Shift Allocation)
+from routers.control_board_4m import router as cb_4m_router, start_4m_alarm   # Control Board → 4M Change Control Sheet (saved; shift-end alarm)
+from routers.cb_history       import router as cb_history_router, start_cb_history   # Historical Data → saved Control Board sheets (monthly) + Line Rejection (daily)
+from routers.meeting_videos   import router as meeting_videos_router, start_meeting_sweeper   # Local Meeting Video (saved cycle clips, 10 days)
+from routers.predictive       import router as predictive_router   # Maintenance → Predictive Maintenance (Predictive Module :1006, read-through)
+from routers.control_board_cells import router as cb_cells_router   # Control Board → auto-save of typed entries (Track / Defect / Safety / Q / 5S)
 from routers.cms_control      import router as cms_control_router
 from routers.network          import router as network_router, start_network_poller
 from routers.machine_master   import router as machine_master_router, start_machine_master_poller
@@ -182,6 +191,7 @@ app.include_router(capa_router)
 app.include_router(quality_router)
 app.include_router(sa_fi_quality_router)   # SEAT SLIDER: Semi-Auto <-> Final NG trace + history/export
 app.include_router(redbin_lock_router)      # Quality: Red Bin part lock (redbin.PartLock -> Final reject) + bit master
+app.include_router(line_rejection_router)   # Line Rejection: redbin.RedBinRecord zone/line-wise + record detail + photos (read-only)
 app.include_router(breakdown_history_router)  # Historical: all breakdown slips (Maintenance_DX + MES), open -> closed
 app.include_router(bd_clip_router)            # ▶ Video of an auto breakdown slip (breakdown_clipper clips)
 app.include_router(ct_study_router)           # Historical: Cycle Time Study (part-to-part CT + prediction)
@@ -217,6 +227,14 @@ app.include_router(pm_mail_router)              # PM reminder mail (server-side)
 app.include_router(weld_router)                 # Weld Monitor (Quality) — live weld current/voltage
 app.include_router(clip_priority_router)        # Admin → Clip Priority (48 h footage plan)
 app.include_router(standard_data_router)        # Admin → Standard Data (per-line Track Record values)
+app.include_router(track_record_router)         # Control Board → Track Record Sheet (per-day man-hour, parts, losses)
+app.include_router(control_board_pdf_router)    # Control Board → Save PDF: app uploads the PDF, phone browser downloads it
+app.include_router(operator_status_router)      # Control Board → Operator Status: day-1 crew + later changes, P / A / ● per day
+app.include_router(cb_4m_router)                # Control Board → 4M Change: red circles → detail rows, compulsory fields, Shift Compile close gate
+app.include_router(cb_history_router)           # Historical Data → saved copies of 4M / Operator / Track Record / Defect sheets + Red Bin days
+app.include_router(meeting_videos_router)       # Local Meeting Video → cycle clips saved from the Supervisor wall, kept 10 days
+app.include_router(predictive_router)           # Maintenance → Predictive Maintenance: module state / history / events / CSV / baseline
+app.include_router(cb_cells_router)             # Control Board sheets: GET/PUT /api/control-board/cells (+ change log)
 app.include_router(cms_control_router)          # MES → CMS per-line Video ON/OFF proxy (loopback)
 app.include_router(network_router)              # Switch-network monitor (SNMP poller)
 app.include_router(machine_master_router)       # Machine Master (DB) + live IP/camera ping status
@@ -337,6 +355,35 @@ def _start_kanban_watcher():
         start_kanban_watcher()
     except Exception as exc:
         print(f"[KANBAN] failed to start watcher: {exc}")
+
+
+@bg_startup
+def _start_meeting_sweeper():
+    """Local Meeting Video: delete saved clips after 10 days (hourly)."""
+    try:
+        start_meeting_sweeper()
+    except Exception as exc:
+        print(f"[MEETING] failed to start sweeper: {exc}")
+
+
+@bg_startup
+def _start_cb_history():
+    """Historical Data: save every line's Control Board sheets (current month)
+    and the Red Bin rejection days every hour at :15."""
+    try:
+        start_cb_history()
+    except Exception as exc:
+        print(f"[CB-HIST] failed to start saver: {exc}")
+
+
+@bg_startup
+def _start_4m_alarm():
+    """4M Change Control Sheet: alarm the line team when a red circle is still
+    open (Product / Action / Quality Result / Status) after its shift ends."""
+    try:
+        start_4m_alarm()
+    except Exception as exc:
+        print(f"[4M] failed to start alarm watcher: {exc}")
 
 
 @bg_startup

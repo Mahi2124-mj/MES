@@ -9,6 +9,7 @@ import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { api } from "../api/client";
 import PageTopbar from "../components/PageTopbar";
+import LineSelect from "../components/LineSelect";
 
 const REFRESH_MS = 20000;
 const fsel = { padding: "6px 10px", border: "1px solid #cbd5e1", borderRadius: 7, fontSize: 12.5 };
@@ -285,11 +286,11 @@ function MailConfig({ token }) {
               </tr>))}
             <tr style={{ background: "#f8fafc" }}>
               <td style={{ padding: "7px 10px" }}>
-                <select value={draft.line_id} onChange={e => setDraft({ ...draft, line_id: e.target.value })}
+                <LineSelect value={draft.line_id} onChange={e => setDraft({ ...draft, line_id: e.target.value })}
                         style={{ ...inp, minWidth: 170 }}>
                   <option value="">+ Add line…</option>
                   {(d?.lines || []).map(l => <option key={l.id} value={l.id}>{l.line_name}</option>)}
-                </select></td>
+                </LineSelect></td>
               <td style={{ padding: "7px 10px" }}>
                 <select value={draft.shift_name} onChange={e => setDraft({ ...draft, shift_name: e.target.value })}
                         style={inp}>

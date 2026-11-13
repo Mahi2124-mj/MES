@@ -48,8 +48,13 @@ export const NAV_ITEMS = [
       { key: "andon-history",    label: "Andon History",    icon: "🚦",                      path: "/andon-history" },
       //  2026-09-27 — operator: Fault History belongs to PRODUCTION, not Admin.
       { key: "fault-history",    label: "Fault History",    icon: "⚠",                       path: "/fault-history" },
+      //  2026-11-12 — Line Rejection moved off the menu into Control Board →
+      //  Back side (operator); /line-rejection itself still works.
       { key: "prod-breakdown-slip", label: "Breakdown Slip", icon: "🧯",                   path: "/prod-breakdown-slip" },
       { key: "control-board",    label: "Control Board",    icon: "🗒",                       path: "/control-board" },
+      { key: "control-board-view", label: "Control Board View", icon: "🖥",                   path: "/control-board-view" },
+      // 2026-11-13 — cycle videos a supervisor saved for the line meeting (10 days)
+      { key: "meeting-videos",   label: "Local Meeting Video", icon: "🎬",                    path: "/meeting-videos" },
       { key: "my-escalations",   label: "Inbox",            icon: "🔔",                      path: "/my-escalations" },
       { key: "my-team",          label: "My Team",          icon: "👤",                      path: "/my-team" },
       // 2026-08-24 — standalone Import/Export page removed; the EXPORT moved
@@ -140,6 +145,7 @@ export default function SlideNav({ hideTrigger = false, raise = false }) {
           { key: "maintenance-logbook",     label: "Log Book",              icon: "📒",                   path: "/maintenance-logbook" },
           { key: "maintenance-pm",          label: "Preventive Maint.",     icon: "🛠",                   path: "/maintenance-pm" },
           { key: "maintenance-air-flow",    label: "Air Flow",              icon: "💨",                   path: "/maintenance-air-flow" },
+          { key: "maintenance-predictive",  label: "Predictive Maintenance", icon: "📡",                  path: "/maintenance-predictive" },
         ],
       };
       const adminQual = {
@@ -264,6 +270,12 @@ export default function SlideNav({ hideTrigger = false, raise = false }) {
           icon:   "💨",
           path:   "/maintenance-air-flow",
         });
+        workItems.push({
+          key:    "maintenance-predictive",
+          label:  "Predictive Maintenance",
+          icon:   "📡",
+          path:   "/maintenance-predictive",
+        });
       }
       if (slug === "quality") {
         // Quality dept user: Dashboard already routes to the new
@@ -289,6 +301,7 @@ export default function SlideNav({ hideTrigger = false, raise = false }) {
           icon:  "🔒",
           path:  "/redbin-lock",
         });
+        // 2026-11-12 — Line Rejection now opens from Control Board → Back side.
         // 2026-05-27 — Comments History (per-cycle + NG remarks
         // unified audit log).  Quality team's review tool.
         workItems.push({

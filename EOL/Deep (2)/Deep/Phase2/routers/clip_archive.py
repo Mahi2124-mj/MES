@@ -267,6 +267,87 @@ DIRECT_RENDER = os.environ.get("CLIP_ARCHIVE_DIRECT", "1") != "0"
 # Same clamp the clip endpoint applies, so a direct render and an on-demand one
 # produce the same clip for a very long cycle instead of two different lengths.
 _CLIP_MAX_SECONDS = float(os.environ.get("CLIP_MAX_SECONDS", "120") or 120)
+
+# 2026-11-13 — MAIN-LINE CLIP SHIFT (operator: "YNC seat slider pe 2 cycle ki 1
+# clip kat rhi h").  A main-line log row is the PLC's OK pulse, and the clip was
+# the cycle-time window that ENDS on that pulse.  On YNC-SS Final Inspection
+# (line 2, L108) the pulse fires when the guard door CLOSES, i.e. at the START
+# of the inspection.  Measured on the camera, 13-Nov 15:33-16:03, 132 cycles:
+# the door closes 0.36 s after L108 (130 of 132 within 1 s) and opens ~5 s
+# after it, and the part is in the box by ~+8 s.  So every clip showed the
+# PREVIOUS part's inspection and ended on the next part being loaded (0 of 102
+# clips held their own part's inspection).  For the lines listed here the OK
+# window keeps its length (= the cycle time) but moves later by this many
+# seconds (8 s -> 81 % hold their own part's complete inspection).  An Alarm
+# clip keeps its start (the NG pulse fires at the END of the inspection) and
+# its run-on to the next cycle ends where that cycle's own clip ends.
+# Format "line_id:seconds,..."; an empty value switches the shift off.
+def _parse_main_shift(raw):
+    out = {}
+    for tok in (raw or "").split(","):
+        if ":" not in tok:
+            continue
+        k, v = tok.split(":", 1)
+        try:
+            lid, sec = int(k.strip()), float(v.strip())
+        except ValueError:
+            continue
+        if 0 < sec <= 30:
+            out[lid] = sec
+    return out
+
+
+MAIN_CLIP_SHIFT = _parse_main_shift(os.environ.get("CLIP_MAIN_SHIFT_S", "2:8"))
+# Footage this close to "now" may still be in the recorder's buffer, not on disk.
+_LIVE_EDGE_S = 4.0
+# An Alarm clip runs on to the next cycle; while that cycle has not happened yet
+# the clip is held back, unless the line has been quiet this long.
+_NG_WAIT_NEXT_S = 600.0
+
+
+def main_clip_shift(line_id) -> float:
+    """Seconds to move a main-line clip window later (0 for most lines)."""
+    try:
+        return MAIN_CLIP_SHIFT.get(int(line_id), 0.0)
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def main_clip_window(line_id, ts, ct_value, is_ng, next_ts):
+    """(ts_start, ts_end) of a main-line cycle clip.
+
+    The log keeps only the cycle END (`ts`), so the start comes from ct_value
+    (+1 s pre-roll).  An Alarm clip runs on to `next_ts`, the NEXT row's time,
+    so the alarm and its recovery are one video.  Same arithmetic as the
+    /cycle-video route in routers/lines.py.
+    """
+    sh = main_clip_shift(line_id)
+    end = ts
+    dur = max(3.0, (float(ct_value or 0) or 10.0) + 1.0)
+    if is_ng:
+        if next_ts and next_ts > end:
+            dur += (next_ts - end).total_seconds() + sh
+            end = next_ts + timedelta(seconds=sh)
+    elif sh:
+        end = end + timedelta(seconds=sh)
+    if _CLIP_MAX_SECONDS > 0 and dur > _CLIP_MAX_SECONDS:
+        dur = _CLIP_MAX_SECONDS
+    return end - timedelta(seconds=dur), end
+
+
+def _main_row_ready(line_id, r, next_ts, end) -> bool:
+    """False while a main-line clip cannot be cut complete yet."""
+    now = datetime.now()
+    try:
+        if _naive(end) > now - timedelta(seconds=_LIVE_EDGE_S):
+            return False                 # (shifted) window still being recorded
+        if r["is_ng"] and not next_ts:
+            # The run-on needs the next cycle.  2026-11-13: these used to be
+            # archived without it, and the archive never revisits a clip.
+            return _naive(r["ts"]) < now - timedelta(seconds=_NG_WAIT_NEXT_S)
+    except Exception:
+        return True
+    return True
 # Main-line clips still go through the app/CMS (their window is derived there),
 # so they keep a SMALL allowance — enough to make progress, never enough to
 # refill the queue that operators are waiting in.
@@ -1114,19 +1195,19 @@ def _pending(limit: int):
                     # and an Alarm clip runs on to the NEXT row so the operator
                     # sees the alarm and its recovery as one video.
                     if ln["cam"] and r.get("ts"):
-                        _end = r["ts"]
-                        _dur = max(3.0, (float(r["ct_value"] or 0) or 10.0) + 1.0)
-                        if r["is_ng"]:
-                            _nx = next((x["ts"] for x in _main_rows
-                                        if x["ts"] and x["ts"] > _end), None)
-                            if _nx:
-                                _dur += (_nx - _end).total_seconds()
-                                _end = _nx
-                        if _CLIP_MAX_SECONDS > 0 and _dur > _CLIP_MAX_SECONDS:
-                            _dur = _CLIP_MAX_SECONDS
+                        # 2026-11-13 — the NEXT row is the nearest later one.
+                        # _main_rows is newest-first, so next() here used to
+                        # return the NEWEST row of the batch: Alarm clips ran on
+                        # for minutes (70 of 378 in two days, up to 5,603 s).
+                        _nx = min((x["ts"] for x in _main_rows
+                                   if x["ts"] and x["ts"] > r["ts"]), default=None)
+                        _st, _end = main_clip_window(ln["id"], r["ts"], r["ct_value"],
+                                                     r["is_ng"], _nx)
+                        if not _main_row_ready(ln["id"], r, _nx, _end):
+                            continue
                         row["nf2_camera_id"] = ln["cam"]
                         row["ts_end"]   = _end
-                        row["ts_start"] = _end - timedelta(seconds=_dur)
+                        row["ts_start"] = _st
                     if row.get("nf2_camera_id"):
                         if not _has_footage(_fidx, row["nf2_camera_id"],
                                             row.get("ts_start"), row.get("ts_end")):
@@ -1271,18 +1352,15 @@ def _pending_newest_main(limit: int):
                 # stores only the cycle END, so derive the start from ct_value,
                 # and an Alarm clip runs on into the NEXT cycle.
                 if r.get("ts"):
-                    _end = r["ts"]
-                    _dur = max(3.0, (float(r["ct_value"] or 0) or 10.0) + 1.0)
-                    if r["is_ng"]:
-                        _nx = next((x["ts"] for x in rows
-                                    if x["ts"] and x["ts"] > _end), None)
-                        if _nx:
-                            _dur += (_nx - _end).total_seconds()
-                            _end = _nx
-                    if _CLIP_MAX_SECONDS > 0 and _dur > _CLIP_MAX_SECONDS:
-                        _dur = _CLIP_MAX_SECONDS
+                    # Nearest later row (rows are newest-first; see _pending).
+                    _nx = min((x["ts"] for x in rows
+                               if x["ts"] and x["ts"] > r["ts"]), default=None)
+                    _st, _end = main_clip_window(ln["id"], r["ts"], r["ct_value"],
+                                                 r["is_ng"], _nx)
+                    if not _main_row_ready(ln["id"], r, _nx, _end):
+                        continue
                     row["ts_end"]   = _end
-                    row["ts_start"] = _end - timedelta(seconds=_dur)
+                    row["ts_start"] = _st
                 if not _has_footage(_fidx, cam, row.get("ts_start"), row.get("ts_end")):
                     _stats["nofootage_skip"] = _stats.get("nofootage_skip", 0) + 1
                     continue

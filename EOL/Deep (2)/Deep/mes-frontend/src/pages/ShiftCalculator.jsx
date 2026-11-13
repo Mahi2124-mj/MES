@@ -24,6 +24,7 @@ import { useAuth } from "../context/AuthContext";
 import { api } from "../api/client";
 import AIAssistant from "../components/AIAssistant";
 import PageTopbar from "../components/PageTopbar";
+import LineSelect from "../components/LineSelect";
 
 function Toast({ msg, kind }) {
   if (!msg) return null;
@@ -155,14 +156,14 @@ export default function ShiftCalculator() {
           <div style={{ padding: 18, display: "flex", flexDirection: "column", gap: 14 }}>
 
             <Field label="Production Line">
-              <select value={lineId} onChange={e => setLineId(Number(e.target.value))} style={glassSelect}>
+              <LineSelect value={lineId} onChange={e => setLineId(Number(e.target.value))} style={glassSelect}>
                 {lines.map(l => (
                   <option key={l.id} value={l.id}>
                     {l.line_name} · CT {Number(l.ideal_cycle_time || 15).toFixed(1)}s
                     {l.has_ot ? " · OT" : ""}
                   </option>
                 ))}
-              </select>
+              </LineSelect>
             </Field>
 
             <div>

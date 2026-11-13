@@ -17,6 +17,7 @@ import { PAGE_MODULES, moduleKey, pageHasModules } from "../utils/pageModules";
 import TimerConfigPage from "./TimerConfigPage";
 import PanelMapPage from "./PanelMapPage";
 import { LanRefreshSlot } from "../components/LanRefresh";
+import LineSelect from "../components/LineSelect";
 
 
 // ─── Shared UI helpers ────────────────────────────────────────
@@ -2985,11 +2986,11 @@ function PYStationsPage({ toast, readOnly = false }) {
         {/* LEFT — assign codes */}
         <Card>
           <div style={{fontWeight:700, fontSize:15, color:"#0f172a", marginBottom:10}}>1&#65039;&#8419; Machines &rarr; Station code</div>
-          <select value={lineId||""} onChange={e=>pickLine(e.target.value?Number(e.target.value):null)}
+          <LineSelect value={lineId||""} onChange={e=>pickLine(e.target.value?Number(e.target.value):null)}
                   style={{width:"100%", padding:"9px 11px", border:"1px solid #cbd5e1", borderRadius:8, fontSize:14, marginBottom:12}}>
             <option value="">— Line chuno —</option>
             {lines.map(l => <option key={l.lineId} value={l.lineId}>{l.lineName}</option>)}
-          </select>
+          </LineSelect>
           {!lineId ? <EmptyState text="Line chuno" sub="Uske machines aayenge"/> :
             machines.length===0 ? <EmptyState text="No machines" sub="mes_machines mein is line ke machines nahi mile"/> : (
             <div style={{display:"flex", flexDirection:"column", gap:6, maxHeight:460, overflowY:"auto"}}>
@@ -5862,6 +5863,8 @@ const PAGE_PERM_GROUPS = [
     { key: "bin-filling",       label: "Bin Filling" },
     { key: "prod-breakdown-slip", label: "Breakdown Slip (Production)" },
     { key: "control-board",     label: "Control Board" },
+    { key: "control-board-view", label: "Control Board View (YNC-SS pilot)" },
+    { key: "meeting-videos",    label: "Local Meeting Video" },
     { key: "my-escalations",    label: "My Escalations" },
     { key: "store",             label: "Store" },
     { key: "dispatch",          label: "Dispatch" },
@@ -5881,7 +5884,9 @@ const PAGE_PERM_GROUPS = [
     { key: "maintenance-poka-yoke",  label: "Maintenance Poka Yoke" },
     { key: "maintenance-logbook",    label: "Maintenance Log Book" },
     { key: "maintenance-pm",         label: "Preventive Maintenance" },
+    { key: "maintenance-predictive", label: "Predictive Maintenance" },
     { key: "andon-history",          label: "Andon History" },
+    { key: "line-rejection",         label: "Line Rejection" },
     { key: "admin-maintenance",      label: "Admin → Maintenance Panel" },
   ]},
   { group: "Quality", items: [
@@ -9705,7 +9710,7 @@ export function PyManualsPage({ toast, readOnly = false }) {
           <label style={{ fontSize:11, color:"#64748b", marginRight:8 }}>
             Line:
           </label>
-          <select value={lineId || ""} onChange={e => setLineId(+e.target.value)}
+          <LineSelect value={lineId || ""} onChange={e => setLineId(+e.target.value)}
             style={{ fontSize:12, padding:"5px 10px",
                      border:"1px solid #cbd5e1", borderRadius:6 }}>
             {lines.map(l => (
@@ -9713,7 +9718,7 @@ export function PyManualsPage({ toast, readOnly = false }) {
                 {l.line_name || "—"}
               </option>
             ))}
-          </select>
+          </LineSelect>
           <button onClick={loadPys}
             style={{ fontSize:12, padding:"5px 12px", marginLeft:8,
                      background:"#0369a1", color:"#fff",
@@ -10073,6 +10078,94 @@ function PyManualEditorModal({ py, lineId, token, toast, onClose }) {
   );
 }
 
+
+// ════════════════════════════════════════════════════════════════════
+//  ControlBoardRulesPage — 2026-11-10 (operator: "shift close pe 4M doc close
+//  karne ki limit ke liye tab lagaa de, admin on/off kar sake — documents abhi
+//  development phase me hain").  Switches of /api/control-board/4m/settings:
+//  the Shift Compile close block and the shift-end alarm of the 4M sheet.
+// ════════════════════════════════════════════════════════════════════
+function ControlBoardRulesPage({ toast, readOnly = false }) {
+  const { token } = useAuth();
+  const [rows, setRows] = useState(null);
+  const [busy, setBusy] = useState("");
+  const load = useCallback(async () => {
+    try {
+      const r = await api.get("/api/control-board/4m/settings", token);
+      setRows(Array.isArray(r && r.settings) ? r.settings : []);
+    } catch (e) {
+      setRows([]);
+      toast?.(/404|Not Found/i.test(String(e && e.message))
+        ? "Available after the next MES-API restart" : "Failed to load the rules", "err");
+    }
+  }, [token, toast]);
+  useEffect(() => { load(); }, [load]);
+  const flip = async (s) => {
+    if (readOnly || busy) return;
+    setBusy(s.key);
+    try {
+      const r = await api.put("/api/control-board/4m/settings", { key: s.key, on: !s.on }, token);
+      setRows(Array.isArray(r && r.settings) ? r.settings : []);
+      toast?.(`${TITLE[s.key] || s.key}: ${!s.on ? "ON" : "OFF"} ✓`);
+    } catch (e) { toast?.(e.message || "Save failed", "err"); }
+    finally { setBusy(""); }
+  };
+  const TITLE = {
+    "4m_close_block": "Block shift close while a 4M change is open",
+    "4m_alarm": "4M change pending alarm",
+    "ops_close_block": "Block shift close while the operator status is not filled",
+    "ops_alarm": "Operator sheet pending alarm",
+  };
+  // one card per sheet (setting keys are prefixed by sheet)
+  const GROUPS = [
+    { prefix: "4m_",  title: "4M Change Control Sheet" },
+    { prefix: "ops_", title: "Operator Visualization Sheet" },
+  ];
+  const fmt = (iso) => { try { return new Date(iso).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }); } catch { return iso; } };
+  return (
+    <div className={readOnly ? "ap-readonly" : ""}>
+      <div style={{ fontSize: 12, color: "#64748b", marginBottom: 12, lineHeight: 1.5 }}>
+        The Control Board documents are in development. Switch a rule OFF until the sheet goes live;
+        ON applies it to every line. Entries in the sheets are saved either way.
+      </div>
+      {rows === null ? <Card style={{ padding: 24 }}><Spinner/></Card> : GROUPS.map(g => {
+        const list = rows.filter(s => s.key.startsWith(g.prefix));
+        if (!list.length) return null;
+        return (
+      <Card key={g.prefix} style={{ padding: 24, marginBottom: 14 }}>
+        <div style={{ fontSize: 14, fontWeight: 700, color: "#0f172a", marginBottom: 4 }}>{g.title}</div>
+        {list.map(s => (
+          <div key={s.key} style={{ display: "flex", alignItems: "center", gap: 16, padding: "14px 0",
+                                    borderTop: "1px solid #eef2f7" }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: "#0f172a" }}>{TITLE[s.key] || s.key}</div>
+              <div style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>{s.label}</div>
+              <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 4 }}>
+                {s.updated_by ? `Changed by ${s.updated_by} · ${fmt(s.updated_at)}` : "Default (not changed yet)"}
+              </div>
+            </div>
+            <span style={{ fontSize: 12, fontWeight: 800, color: s.on ? "#15803d" : "#64748b", minWidth: 28 }}>
+              {s.on ? "ON" : "OFF"}</span>
+            <button type="button" role="switch" aria-checked={s.on} disabled={readOnly || !!busy}
+                    onClick={() => flip(s)} title={s.on ? "Switch OFF" : "Switch ON"}
+                    style={{ position: "relative", width: 48, height: 26, borderRadius: 13, border: "none",
+                             background: s.on ? "#16a34a" : "#cbd5e1", cursor: readOnly ? "default" : "pointer",
+                             opacity: busy === s.key ? 0.6 : 1, transition: "background .15s", flexShrink: 0 }}>
+              <span style={{ position: "absolute", top: 3, left: s.on ? 25 : 3, width: 20, height: 20,
+                             borderRadius: "50%", background: "#fff", boxShadow: "0 1px 3px rgba(0,0,0,.3)",
+                             transition: "left .15s" }} />
+            </button>
+          </div>
+        ))}
+      </Card>
+        );
+      })}
+      {rows !== null && rows.length === 0 && (
+        <Card style={{ padding: 24 }}><div style={{ fontSize: 13, color: "#94a3b8" }}>No rules available.</div></Card>
+      )}
+    </div>
+  );
+}
 
 export function BreakdownSlipThresholdPage({ toast, readOnly = false }) {
   const { token } = useAuth();
@@ -10675,6 +10768,9 @@ export const ADMIN_SECTIONS = [
       { key: "departments", label: "Departments",      icon: "🏛" },
       { key: "users",       label: "Users",            icon: "👥" },
       { key: "agents",      label: "Agents",           icon: "🤖" },
+      // 2026-11-10 — Control Board document rules (4M sheet) on / off while
+      // the documents are in development
+      { key: "cbrules",     label: "Alarm Permission", icon: "🔔" },   // 10-Nov: renamed (operator)
       // 2026-09-13 — "Operators" moved OUT of the admin panel into its own
       // assignable page (/operators, OperatorMaster.jsx).  Removed here so it
       // isn't duplicated; the standalone page is authority-based via canAccess.
@@ -10791,10 +10887,10 @@ export function ReportsPage({ toast, readOnly = false }) {
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "end" }}>
             <div>
               <label style={{ fontSize: 11, color: "#64748b" }}>Line</label>
-              <select value={lineId} onChange={e => setLineId(Number(e.target.value))}
+              <LineSelect value={lineId} onChange={e => setLineId(Number(e.target.value))}
                       style={{ display: "block", padding: "6px 8px", fontSize: 13, border: "1px solid #cbd5e1", borderRadius: 6, minWidth: 180 }}>
                 {lines.map(l => <option key={l.id} value={l.id}>{l.line_name}</option>)}
-              </select>
+              </LineSelect>
             </div>
             <div>
               <label style={{ fontSize: 11, color: "#64748b" }}>Date</label>
@@ -10881,11 +10977,11 @@ export function ReportsPage({ toast, readOnly = false }) {
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "end" }}>
                 <div>
                   <label style={{ fontSize: 10, color: "#64748b" }}>Line</label>
-                  <select value={form.line_id} onChange={e => setForm({ ...form, line_id: e.target.value })}
+                  <LineSelect value={form.line_id} onChange={e => setForm({ ...form, line_id: e.target.value })}
                           style={{ display: "block", padding: "6px 8px", fontSize: 13, border: "1px solid #cbd5e1", borderRadius: 6, minWidth: 160 }}>
                     <option value="">— select —</option>
                     {lines.map(l => <option key={l.id} value={l.id}>{l.line_name}</option>)}
-                  </select>
+                  </LineSelect>
                 </div>
                 <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#475569" }}>
                   <input type="checkbox" checked={form.is_active} onChange={e => setForm({ ...form, is_active: e.target.checked })} />
@@ -11075,11 +11171,11 @@ export function OEEAlarmPage({ toast, readOnly = false }) {
             <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
               <div>
                 <label style={{ fontSize: 10, color: "#64748b" }}>Line</label>
-                <select value={form.line_id} onChange={e => setForm({ ...form, line_id: e.target.value })}
+                <LineSelect value={form.line_id} onChange={e => setForm({ ...form, line_id: e.target.value })}
                         style={{ width: "100%", padding: "6px 8px", fontSize: 13, border: "1px solid #cbd5e1", borderRadius: 6 }}>
                   <option value="">— select —</option>
                   {lines.map(l => <option key={l.id} value={l.id}>{l.line_name}</option>)}
-                </select>
+                </LineSelect>
               </div>
               <div>
                 <label style={{ fontSize: 10, color: "#64748b" }}>Threshold %</label>
@@ -11316,10 +11412,10 @@ export function OperatorsPage({ toast, readOnly = false }) {
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "end", marginBottom: 14 }}>
             <div>
               <label style={{ fontSize: 10, color: "#64748b" }}>Line</label>
-              <select value={sumLine} onChange={e => setSumLine(Number(e.target.value))}
+              <LineSelect value={sumLine} onChange={e => setSumLine(Number(e.target.value))}
                       style={{ display: "block", padding: "6px 8px", fontSize: 13, border: "1px solid #cbd5e1", borderRadius: 6, minWidth: 160 }}>
                 {lines.map(l => <option key={l.id} value={l.id}>{l.line_name}</option>)}
-              </select>
+              </LineSelect>
             </div>
             <div>
               <label style={{ fontSize: 10, color: "#64748b" }}>Date</label>
@@ -11552,10 +11648,10 @@ export function ProcessesPage({ toast, readOnly = false }) {
             <div style={{ display: "flex", gap: 10, alignItems: "end" }}>
               <div>
                 <label style={{ fontSize: 10, color: "#64748b" }}>Line</label>
-                <select value={lineId} onChange={e => setLineId(Number(e.target.value))}
+                <LineSelect value={lineId} onChange={e => setLineId(Number(e.target.value))}
                         style={{ display: "block", padding: "6px 8px", fontSize: 13, border: "1px solid #cbd5e1", borderRadius: 6, minWidth: 180 }}>
                   {lines.map(l => <option key={l.id} value={l.id}>{l.line_name}</option>)}
-                </select>
+                </LineSelect>
               </div>
               <Btn onClick={loadRows}>↻ {loading ? "…" : "Reload from Master"}</Btn>
               {!readOnly && dirtyCount > 0 && (
@@ -11743,10 +11839,10 @@ export function ManpowerConfigPage({ toast, readOnly = false }) {
           <div style={{ display: "flex", gap: 10, alignItems: "end", marginBottom: 16, flexWrap: "wrap" }}>
             <div>
               <label style={{ fontSize: 10, color: "#64748b" }}>Line</label>
-              <select value={lineId} onChange={e => setLineId(Number(e.target.value))}
+              <LineSelect value={lineId} onChange={e => setLineId(Number(e.target.value))}
                       style={{ display: "block", padding: "6px 8px", fontSize: 13, border: "1px solid #cbd5e1", borderRadius: 6, minWidth: 200 }}>
                 {lines.map(l => <option key={l.id} value={l.id}>{l.line_name}</option>)}
-              </select>
+              </LineSelect>
             </div>
           </div>
 
@@ -11848,6 +11944,7 @@ export function renderAdminTab(sectionKey, tabKey, props) {
     case "admin/departments": return <DepartmentsPage {...t} />;
     case "admin/users":       return <UsersPage       {...t} />;
     case "admin/agents":      return <AgentsPanel     {...t} />;
+    case "admin/cbrules":     return <ControlBoardRulesPage {...t} />;
     case "admin/operators":   return <OperatorsPage   {...t} />;
     default: return null;
   }

@@ -3461,6 +3461,7 @@ class CollectorEngine:
         _now_mono = time.monotonic()
         _last_acc = getattr(self, accept_attr, None)
         _elapsed = None if _last_acc is None else (_now_mono - _last_acc)
+        _seen_attr = accept_attr.replace("_accept_mono", "_seen_mono")
         # ── SANE-STEP split (2026-05-30 v3) ──────────────────────────
         # A genuine Final-Inspection increment is +1 (rarely +2 when a
         # poll straddled two cycles).  Trust those small steps directly —
@@ -3485,9 +3486,21 @@ class CollectorEngine:
             if _elapsed is None:
                 _accept = 0          # big jump on first climb = garbage
             else:
+                # 2026-11-10 — the clock starts when the register was last SEEN
+                # at `last`, not at the last counted part.  YMC-SS sat idle for
+                # days, read D101 = 0 at 10:26:55, then a desynced frame read
+                # 12336 ("00" from D5004) at 10:27:06: "since the last part"
+                # allowed 12336, "since last seen at 0" (11 s) allows none.
+                # A real catch-up after a comm loss still passes — failed
+                # reads never refresh the seen time.
+                _seen = getattr(self, _seen_attr, None)
+                if _seen is not None:
+                    _elapsed = min(_elapsed, _now_mono - _seen)
                 _accept = min(_delta, int(_elapsed // _cycle))
         if _accept >= 1:
             setattr(self, accept_attr, _now_mono)
+            if _accept == _delta:
+                setattr(self, _seen_attr, _now_mono)   # register == mirror now
             if _accept < _delta:
                 # partial clamp: some of this jump was time-justified,
                 # the rest is garbage -> fold the dropped amount into the
@@ -4051,6 +4064,7 @@ class CollectorEngine:
                         # known and non-GAP.  See _reg_backfill_after_resync.
                         self._reg_resync_seed = _now_val
                         self._reg_resync_pending = True
+                        self._last_ok_seen_mono = time.monotonic()   # see _rate_clamp_climb
                     elif _now_val > _last:
                         # Register climbed → +N parts.  RATE-REALITY guard
                         # (2026-05-30 v2).  v1 (confirm-on-next-poll) FAILED at
@@ -4268,6 +4282,7 @@ class CollectorEngine:
                         self._ok_drop_garbage_streak = 0
                         self._reg_resnap_armed = False   # register steady → heal
                         self._reg_resnap_low1  = None
+                        self._last_ok_seen_mono = time.monotonic()   # see _rate_clamp_climb
                     # 2026-05-31 — Graph-point backfill confirm/abort (single
                     # point, runs the poll AFTER a snap).  A real seed holds
                     # or climbs (_now_val >= seed) -> arm the backfill up to
@@ -9218,6 +9233,20 @@ class CollectorEngine:
         tbl = self.cfg["table_name"] + "_ct_log"
         try:
             cur = self._db.cursor()
+            # 2026-11-10 — catalog check first (no table lock).  The ALTERs
+            # below take ACCESS EXCLUSIVE even when the column exists; a
+            # restart during the 30-min pg_dump (sync_local_to_210.sh) queued
+            # that lock behind the dump, retried every flush and stalled every
+            # reader of the table (YMC-SS 13:32-13:36).
+            cur.execute("""SELECT count(*) FROM pg_attribute
+                            WHERE attrelid = to_regclass(%s)
+                              AND attname IN ('part_code', 'is_ng')
+                              AND NOT attisdropped""", (tbl,))
+            if (cur.fetchone() or [0])[0] == 2:
+                self._db.commit()
+                cur.close()
+                self._ct_log_table_ready = True
+                return True
             cur.execute(f"""
                 CREATE TABLE IF NOT EXISTS {tbl} (
                     id          SERIAL PRIMARY KEY,

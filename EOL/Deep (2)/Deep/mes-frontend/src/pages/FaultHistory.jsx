@@ -204,8 +204,10 @@ export default function FaultHistory() {
             <div style={{ width: 58, textAlign: "right" }}>Times</div>
             <div style={{ width: 52, textAlign: "right" }}>Share</div>
             <div style={{ width: 58, textAlign: "right" }}>Cum</div>
-            <div style={{ width: 66, textAlign: "right" }}>Per day</div>
-            <div style={{ width: 58, textAlign: "right" }}>Days</div>
+            <div style={{ width: 66, textAlign: "right" }}
+                 title="Occurrences per shift, over the A/B shifts it occurred in. Hits in the gap between shifts are not counted here.">Per shift</div>
+            <div style={{ width: 58, textAlign: "right" }}
+                 title="Number of A/B shifts in which this fault occurred">Shifts</div>
           </div>
           {pareto.slice(0, 15).map(p => (
             <div key={p.fault_name} style={{ display: "flex", alignItems: "center", gap: 10,
@@ -220,8 +222,8 @@ export default function FaultHistory() {
               <div style={{ width: 52, textAlign: "right", color: "#64748b" }}>{p.pct}%</div>
               <div style={{ width: 58, textAlign: "right", color: "#94a3b8" }}>Σ {p.cum_pct}%</div>
               <div style={{ width: 66, textAlign: "right", color: "#0891b2", fontWeight: 700 }}>
-                {p.per_day_seen}</div>
-              <div style={{ width: 58, textAlign: "right", color: "#64748b" }}>{p.on_days}</div>
+                {p.per_shift_seen ?? "—"}</div>
+              <div style={{ width: 58, textAlign: "right", color: "#64748b" }}>{p.on_shifts ?? "—"}</div>
             </div>))}
         </div>)}
 

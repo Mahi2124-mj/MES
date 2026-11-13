@@ -5,6 +5,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import PeffDetails from "../components/PeffDetails";
+import LineSelect from "../components/LineSelect";
 
 const today = () => new Date().toISOString().split("T")[0];
 
@@ -51,9 +52,9 @@ export default function PeffDetailsPage() {
                     padding: 14, marginBottom: 16 }}>
         <div style={fld}>
           <span style={lbl}>Line</span>
-          <select value={lineId} onChange={e => setLineId(e.target.value)} style={inp}>
+          <LineSelect value={lineId} onChange={e => setLineId(e.target.value)} style={inp}>
             {lines.map(l => <option key={l.id} value={l.id}>{l.line_name}</option>)}
-          </select>
+          </LineSelect>
         </div>
         <div style={fld}>
           <span style={lbl}>Date</span>

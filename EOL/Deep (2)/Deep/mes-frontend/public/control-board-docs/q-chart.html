@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Q Chart</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        body {
+            background: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .toolbar {
+            width: 100%;
+            max-width: 1100px;
+            display: flex;
+            justify-content: space-between;
+            background: #fff;
+            padding: 12px 20px;
+            border: 1px solid #ccc;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .toolbar button {
+            padding: 6px 16px;
+            font-weight: bold;
+            cursor: pointer;
+            border: 1px solid #333;
+            margin-left: 8px;
+        }
+
+        .page-container {
+            width: 1050px;
+            background: #fff;
+            padding: 20px;
+            border: 2px solid #000;
+            position: relative;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+        }
+
+        /* Header Section */
+        .header-box {
+            width: 100%;
+            margin-bottom: 20px;
+        }
+
+        .header-table {
+            width: 100%;
+            border-collapse: collapse;
+            border: 2px solid #000;
+        }
+
+        .header-table td {
+            border: 2px solid #000;
+            padding: 8px;
+            text-align: center;
+        }
+
+        .logo-box {
+            border: 2px solid #000;
+            color: #000;
+            font-weight: bold;
+            font-size: 16px;
+            display: inline-block;
+            padding: 8px 12px;
+        }
+
+        .main-title {
+            font-size: 28px;
+            font-weight: bold;
+            font-family: "Times New Roman", serif;
+        }
+
+        .sub-title {
+            font-size: 32px;
+            font-weight: bold;
+            font-family: "Times New Roman", serif;
+            letter-spacing: 2px;
+        }
+
+        .info-text {
+            font-size: 16px;
+            font-weight: bold;
+            text-align: left;
+            padding-left: 10px !important;
+        }
+
+        .inp {
+            border: none;
+            border-bottom: 1px dashed #000;
+            outline: none;
+            font-size: 16px;
+            font-weight: bold;
+            width: 150px;
+            font-family: Arial;
+        }
+
+        /* Chart Area */
+        .chart-area {
+            position: relative;
+            width: 1000px;
+            height: 1100px;
+            margin: 0 auto;
+            background: #fff;
+        }
+
+        #svg-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        #months-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        /* Month Container */
+        .month-container {
+            position: absolute;
+            width: 170px;
+            height: 160px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-end;
+            pointer-events: auto;
+        }
+
+        .pyramid-row {
+            display: flex;
+            justify-content: center;
+            margin-top: -1px;
+        }
+
+        .bubble {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            border: 1.5px solid #000;
+            background: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 0 1px;
+            user-select: none;
+            color: #000;
+        }
+
+        .bubble:hover {
+            background-color: #e8f0fe;
+        }
+
+        .month-label {
+            font-size: 14px;
+            font-weight: bold;
+            margin-top: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Colors */
+        .bg-green {
+            background-color: #00B050 !important;
+            color: #fff !important;
+            border-color: #00B050;
+        }
+
+        .bg-yellow {
+            background-color: #FFC000 !important;
+            color: #000 !important;
+            border-color: #FFC000;
+        }
+
+        .bg-red {
+            background-color: #FF0000 !important;
+            color: #fff !important;
+            border-color: #FF0000;
+        }
+
+        /* Legend Area */
+        .legend-table {
+            width: 100%;
+            border-collapse: collapse;
+            border: 2px solid #000;
+            margin-top: 20px;
+        }
+
+        .legend-table td {
+            border: 2px solid #000;
+            text-align: left;
+            padding: 15px 20px;
+            font-size: 15px;
+            font-weight: bold;
+            vertical-align: middle;
+        }
+
+        .legend-circle {
+            display: inline-block;
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            border: 2px solid #000;
+            vertical-align: middle;
+            margin-right: 12px;
+        }
+
+        @media print {
+            body {
+                padding: 0;
+                background: #fff;
+            }
+
+            .toolbar {
+                display: none;
+            }
+
+            .page-container {
+                border: none;
+                box-shadow: none;
+                padding: 0;
+                width: 100%;
+                max-width: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="toolbar">
+        <div>
+            <strong>Q CHART</strong>
+            <span style="margin-left:20px; color:#555;">(Click Bubbles: Blank &rarr; Green &rarr; Yellow &rarr;
+                Red)</span>
+        </div>
+        <div>
+            
+            <button class="cb-pdf-btn" onclick="cbSavePdf()" style="background:#0056b3; color:#fff;">Save PDF</button><button onclick="window.print()">Print</button>
+        </div>
+    </div>
+
+    <div class="page-container sheet">
+
+        <!-- Header -->
+        <div class="header-box">
+            <table class="header-table">
+                <tr>
+                    <td rowspan="2" style="width:15%;">
+                        <div style="text-align:center; line-height:1;"><img src="data:image/png;base64,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" alt="Toyota Boshoku" style="display:block; margin:0 auto; height:44px; max-width:100%; object-fit:contain;"><div style="margin-top:3px; font-size:9px; font-weight:bold; color:#000; letter-spacing:0.3px; white-space:nowrap;">TOYOTA BOSHOKU</div></div>
+                    </td>
+                    <td class="main-title">TOYOTA BOSHOKU DEVICE INDIA PVT. LTD.</td>
+                </tr>
+                <tr>
+                    <td class="sub-title">Q CHART</td>
+                </tr>
+                <tr>
+                    <td colspan="2" style="padding:0; border:none;">
+                        <table style="width:100%; border-collapse:collapse;">
+                            <tr>
+                                <td class="info-text"
+                                    style="width:50%; border-top:2px solid #000; border-right:2px solid #000; padding:10px;">
+                                    CUSTOMER :- <input class="inp" value="KML/BSL"></td>
+                                <td class="info-text" style="width:50%; border-top:2px solid #000; padding:10px;">YEAR
+                                    :- <input class="inp" id="q-year" placeholder="e.g. 2026-27"></td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="chart-area">
+            <svg id="svg-bg" width="1000" height="1100"></svg>
+            <div id="months-layer"></div>
+        </div>
+
+        <table class="legend-table">
+            <tr>
+                <td style="width:33.33%;">
+                    <div class="legend-circle" style="background-color: #00B050;"></div> No Complaint
+                </td>
+                <td style="width:33.33%;">
+                    <div class="legend-circle" style="background-color: #FFC000;"></div> Complaint from resident
+                    engineer
+                </td>
+                <td style="width:33.33%;">
+                    <div class="legend-circle" style="background-color: #FF0000;"></div> Complaint From customer
+                </td>
+            </tr>
+        </table>
+
+    </div>
+
+    <script>
+        // 1. Q OUTLINE (2026-11-12, MES, as the operator's reference drawing): ring and
+        // 12 month dividers; the Q tail is a band through DECEMBER that opens the ring
+        // and goes on into the hole and out at the lower right.
+        const cx = 500, cy = 530;
+        const rxOuter = 455, ryOuter = 510;
+        const rxInner = 205, ryInner = 230;
+
+        let svg = `<ellipse cx="${cx}" cy="${cy}" rx="${rxInner}" ry="${ryInner}" fill="none" stroke="#000" stroke-width="2.5"/>`;
+        svg += `<ellipse cx="${cx}" cy="${cy}" rx="${rxOuter}" ry="${ryOuter}" fill="none" stroke="#000" stroke-width="2.5"/>`;
+
+        // Q tail band (drawn before the dividers so the NOV/DEC and DEC/JAN lines stay on top)
+        svg += `<path d="M645.0,692.6 A205,230 0 0 1 553.1,752.2" fill="none" stroke="#fff" stroke-width="6"/><path d="M821.7,890.6 A455,510 0 0 1 713.6,980.3" fill="none" stroke="#fff" stroke-width="6"/><path d="M645.0,692.6 Q581.7,621.8 507.6,580.1 L438.8,658.1 Q499.8,692.5 553.1,752.2" fill="none" stroke="#000" stroke-width="2.5" stroke-linejoin="miter"/><path d="M821.7,890.6 Q871.7,946.6 937.0,983.4 L828.9,1073.1 Q763.6,1036.2 713.6,980.3" fill="none" stroke="#000" stroke-width="2.5" stroke-linejoin="miter"/>`;
+
+        const divAngles = [-105, -75, -45, -15, 15, 45, 75, 105, 135, 165, 195, 225];
+        divAngles.forEach(a => {
+            let angle = a * Math.PI / 180;
+            let x1 = cx + rxInner * Math.cos(angle);
+            let y1 = cy + ryInner * Math.sin(angle);
+            let x2 = cx + rxOuter * Math.cos(angle);
+            let y2 = cy + ryOuter * Math.sin(angle);
+            svg += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#000" stroke-width="2.5"/>`;
+        });
+
+        document.getElementById('svg-bg').innerHTML = svg;
+
+        // 2. MONTHS: each pyramid placed inside its segment, clear of every line
+        //    (positions from a clearance search, 2026-11-12): [name, days, centre x, top]
+        const months = [["JULY", 31, 500.0, 36.0], ["AUGUST", 31, 683.8, 98.2], ["SEPTEMBER", 30, 815.0, 242.8], ["OCTOBER", 31, 855.0, 455.0], ["NOVEMBER", 30, 810.5, 648.0], ["DECEMBER", 31, 686.1, 802.2], ["JANUARY", 31, 500.0, 867.0], ["FEBRUARY", 29, 313.9, 802.2], ["MARCH", 31, 189.5, 648.0], ["APRIL", 30, 151.2, 455.0], ["MAY", 31, 187.1, 252.5], ["JUNE", 30, 316.2, 98.2]];
+
+        let monthsHTML = '';
+        months.forEach(m => {
+            let html = `<div class="month-container" data-month="${m[0]}" style="left:${m[2] - 85}px; top:${m[3]}px; height:auto; justify-content:flex-start;">`;
+            let day = 1;
+            const rowSizes = [3, 4, 5, 6, 7, 6];
+            rowSizes.forEach(size => {
+                if (day > m[1]) return;
+                html += `<div class="pyramid-row">`;
+                for (let i = 0; i < size; i++) {
+                    if (day <= m[1]) {
+                        html += `<div class="bubble" data-day="${day}" onclick="toggleColor(this)">${day}</div>`;
+                        day++;
+                    }
+                }
+                html += `</div>`;
+            });
+            html += `<div class="month-label">${m[0]}</div>`;
+            html += `</div>`;
+            monthsHTML += html;
+        });
+
+        document.getElementById('months-layer').innerHTML = monthsHTML;
+
+        // 3. FEBRUARY follows the YEAR box (2026-11-12, operator).  The chart is for a
+        //    financial year, April -> March: FY 2026-27 -> February 2027.  "2026-27" (or
+        //    "2026-2027") names both years; one year typed is the FY's first year, so
+        //    "2026" -> February 2027.  Empty: the current FY (from April).  Only the 29th
+        //    is shown or hidden, so the colours already marked stay.
+        function qFebYear() {
+            const el = document.getElementById('q-year');
+            const v = String(el ? el.value : '');
+            let m = v.match(/(\d{4})\s*[-\/–]\s*(\d{2,4})/);
+            if (m) { let y2 = m[2]; if (y2.length === 2) y2 = m[1].slice(0, 2) + y2; return +y2; }
+            m = v.match(/(\d{4})/);
+            if (m) return +m[1] + 1;
+            const t = new Date();
+            return t.getMonth() >= 3 ? t.getFullYear() + 1 : t.getFullYear();   // FY starts in April
+        }
+        function qSyncFeb() {
+            const y = qFebYear(), leap = (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0;
+            const b = document.querySelector('.month-container[data-month="FEBRUARY"] .bubble[data-day="29"]');
+            if (!b) return;
+            b.style.display = leap ? '' : 'none';
+            if (!leap) b.classList.remove('bg-green', 'bg-yellow', 'bg-red');
+            const lab = document.querySelector('.month-container[data-month="FEBRUARY"] .month-label');
+            if (lab) lab.title = 'FY ' + (y - 1) + '-' + String(y).slice(2) + ': February ' + y + ' - ' + (leap ? 29 : 28) + ' days';
+        }
+        const qYearBox = document.getElementById('q-year');
+        if (qYearBox) qYearBox.addEventListener('input', qSyncFeb);
+        qSyncFeb();
+
+        function toggleColor(el) {
+            if (el.classList.contains('bg-green')) {
+                el.classList.remove('bg-green'); el.classList.add('bg-yellow');
+            } else if (el.classList.contains('bg-yellow')) {
+                el.classList.remove('bg-yellow'); el.classList.add('bg-red');
+            } else if (el.classList.contains('bg-red')) {
+                el.classList.remove('bg-red');
+            } else {
+                el.classList.add('bg-green');
+            }
+        }
+    </script>
+
+
+<script src="cb-pdf.js?v=70e072f2"></script>
+
+<script>
+/* MES Control Board: fit-to-width zoom requested by the page around this frame. */
+(function () {
+  var ok = window.CSS && CSS.supports && CSS.supports("zoom", "0.5");
+  window.addEventListener("message", function (e) {
+    if (e.source !== window.parent || !e.data || e.data.type !== "cb-zoom" || !ok) return;
+    var z = Number(e.data.zoom) || 1;
+    document.documentElement.style.zoom = (z === 1) ? "" : String(z);
+    try { window.parent.postMessage({ type: "cb-zoom-ok", zoom: z }, "*"); } catch (x) {}
+  });
+})();
+</script>
+
+<script>
+/* MES Control Board: auto-save what the user types or clicks (2026-11-12).
+   Every input / text box / editable text / click mark of the sheet is keyed (its
+   id, else its position) and, a moment after the user changes it, posted to the
+   Control Board ("cb-cells-save"), which saves it for the sheet's line and
+   period.  Saved entries come back as "cb-cells" and are put in again after
+   every MES fill.  Values MES fills itself (read-only boxes) are never sent, and
+   only the box the user changed is saved (no formula or MES values).
+   2026-11-13 (operator): only TODAY can be entered.  The Control Board sends the
+   line's production day ("today"), the day each saved value was entered ("set")
+   and the period; the sheet says which day a box belongs to (window.cbDateOf:
+   "YYYY-MM-DD", "W:<from>:<to>" for a weekly box, "" for the whole period,
+   "X" never).  Everything else is locked (read-only, clicks blocked); today's
+   boxes get an orange frame on screen (not in the PDF). */
+(function () {
+  if (window.__cbCells) return;
+  window.__cbCells = true;
+  var SKIP = ".toolbar, .no-print, .cb-hov, .cb-tip";
+  var applying = false, canSave = false, scope = "", dirty = {}, timer = null, seq = 0, pend = {}, retry = {};
+  var base = {}, init = null, applied = {};
+  var today = "", setOn = {}, open = true, P = {}, noteAt = 0, admin = false;
+  function skip(el) { return !!(el.closest && el.closest(SKIP)); }
+  function isForm(el) { return /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName); }
+  function isEdit(el) {
+    if (el.hasAttribute && el.hasAttribute("data-cb-ce")) return true;      // ours, locked for now
+    var a = el.getAttribute && el.getAttribute("contenteditable");
+    if (a === "" || a === "true") { el.setAttribute("data-cb-ce", "1"); return true; }
+    return false;
+  }
+  var lcss = document.createElement("style");
+  lcss.textContent = "[data-cb-lock]{cursor:not-allowed!important}" +
+    "[data-cb-lock]:focus{background:transparent!important;outline:none!important}" +
+    ".cb-today.cb-screen{outline:2px solid #f59e0b!important;outline-offset:-2px}";
+  document.head.appendChild(lcss);
+  function two(n) { return (n < 10 ? "0" : "") + n; }
+  window.cbYmd = function (y, m, d) { return y + "-" + two(m) + "-" + two(d); };
+  function dmy(iso) { return iso ? iso.slice(8, 10) + "-" + iso.slice(5, 7) + "-" + iso.slice(0, 4) : ""; }
+  function pinfo(period, kind) {
+    var p = String(period || "");
+    if (kind === "year" && /^\d{4}$/.test(p)) return { kind: kind, y: +p };
+    if (kind === "fy" && /^\d{4}-\d{2}$/.test(p)) return { kind: kind, y0: +p.slice(0, 4) };
+    if (/^\d{4}-\d{2}$/.test(p)) return { kind: "month", y: +p.slice(0, 4), m: +p.slice(5, 7) };
+    return {};
+  }
+  function dateOf(el) {
+    try { return typeof window.cbDateOf === "function" ? String(window.cbDateOf(el, P) || "") : ""; }
+    catch (err) { return "X"; }
+  }
+  function why(k, el) {                     // "" = may be changed, else the reason
+    if (!today) return "";                  // older API without the day rule: as before
+    if (!canSave) return scope ? "Saved copy: read-only" : "Pick a line in the Control Board filter to enter data";
+    if (admin) return dateOf(el) === "X" ? "This box cannot be filled" : "";      // admin: any day
+    if (!open) return "Only today's entries (" + dmy(today) + ") can be made: this sheet is for another period";
+    var dk = dateOf(el), w = /^W:(.{10}):(.{10})$/.exec(dk);
+    if (dk === "X") return "This box cannot be filled";
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dk) && dk !== today) return "Only today's column (" + dmy(today) + ") can be changed";
+    if (w && !(w[1] <= today && today <= w[2])) return "Only the current week's box can be signed";
+    if (setOn[k] && setOn[k] < today) return "Entered on " + dmy(setOn[k]) + ": it cannot be changed";
+    return "";
+  }
+  function setLock(el, reason) {
+    var lock = !!reason;
+    if (isForm(el)) {
+      if (lock) {
+        if (!el.readOnly || el.hasAttribute("data-cb-lock")) { el.readOnly = true; el.setAttribute("data-cb-lock", reason); }
+      } else if (el.hasAttribute("data-cb-lock")) { el.removeAttribute("data-cb-lock"); el.readOnly = false; }
+      if (el.tagName === "SELECT" || /^(checkbox|radio)$/i.test(el.type || "")) el.disabled = el.hasAttribute("data-cb-lock");
+    } else if (el.hasAttribute("data-cb-ce")) {
+      el.setAttribute("contenteditable", lock ? "false" : "true");
+      if (lock) el.setAttribute("data-cb-lock", reason); else el.removeAttribute("data-cb-lock");
+    } else if (lock) el.setAttribute("data-cb-lock", reason);
+    else el.removeAttribute("data-cb-lock");
+  }
+  function lockAll() {
+    var m = keyed();
+    for (var k in m) {
+      var el = m[k], r = why(k, el), mine = !r && !!today && dateOf(el) === today && !(isForm(el) && el.readOnly);
+      setLock(el, r);
+      el.classList.toggle("cb-today", mine);
+      if (mine) el.classList.add("cb-screen");
+    }
+  }
+  function lockNote(el, text) {
+    var t = Date.now();
+    if (t - noteAt < 1500) return;
+    noteAt = t;
+    status(text || el.getAttribute("data-cb-lock") || "Locked", "error");
+  }
+  // a locked click mark does nothing; a locked box says why
+  document.addEventListener("click", function (e) {
+    var t = e.target, el = t && t.closest ? t.closest("[data-cb-lock]") : null;
+    if (!el && t && isForm(t) && t.readOnly && today && !skip(t) && !t.classList.contains("cb-rj-link")) {
+      lockNote(t, "Filled automatically: it cannot be changed");      // MES value / formula
+      return;
+    }
+    if (!el || skip(el)) return;
+    if (!isForm(el) && !el.hasAttribute("data-cb-ce")) { e.stopPropagation(); e.preventDefault(); }
+    lockNote(el);
+  }, true);
+  function keyed() {
+    var m = {}, n = 0;
+    [].forEach.call(document.querySelectorAll("input, textarea, select"), function (el) {
+      if (skip(el) || el.classList.contains("cb-sel")) return;
+      if (/^(button|submit|reset|file|hidden|image)$/i.test(el.type || "")) return;
+      if (el.id) m["#" + el.id] = el; else m["f" + (n++)] = el;
+    });
+    var e = 0;
+    [].forEach.call(document.querySelectorAll("[contenteditable]"), function (el) { if (!skip(el) && isEdit(el)) m["e" + (e++)] = el; });
+    var k = 0;
+    [].forEach.call(document.querySelectorAll("[onclick]"), function (el) {
+      if (skip(el) || /^(BUTTON|A|INPUT|SELECT|TEXTAREA)$/.test(el.tagName) || (el.closest && el.closest("button"))) return;
+      m["k" + (k++)] = el;
+    });
+    return m;
+  }
+  function read(el) {
+    if (isForm(el)) return /^(checkbox|radio)$/i.test(el.type || "") ? (el.checked ? "1" : "") : String(el.value == null ? "" : el.value);
+    if (isEdit(el)) return el.innerText;
+    // our screen-only marks (today's frame) are not part of the saved value
+    var c = String(el.className || "").replace(/(^|\s)cb-(today|screen)(?=\s|$)/g, " ").replace(/\s+/g, " ").trim();
+    return JSON.stringify({ c: c, s: el.getAttribute("data-state"), t: el.children.length ? null : el.textContent });
+  }
+  function write(el, v) {
+    if (isForm(el)) {
+      if (/^(checkbox|radio)$/i.test(el.type || "")) el.checked = v === "1"; else el.value = v;
+      el.dispatchEvent(new Event("input", { bubbles: true }));
+      el.dispatchEvent(new Event("change", { bubbles: true }));
+    } else if (isEdit(el)) {
+      el.innerText = v;
+    } else {
+      try {
+        var o = JSON.parse(v);
+        el.className = o.c || "";
+        if (o.s == null) el.removeAttribute("data-state"); else el.setAttribute("data-state", o.s);
+        if (o.t != null && !el.children.length) el.textContent = o.t;
+      } catch (err) { /* not a mark */ }
+    }
+  }
+  function snap(m) { var b = {}; for (var k in m) b[k] = read(m[k]); return b; }
+  function status(text, state) {
+    try { parent.postMessage({ type: "cb-cells-status", text: text, state: state || "" }, "*"); } catch (e) { /* no parent */ }
+  }
+  function apply(cells, sc) {
+    var m = keyed();
+    if (!init) init = snap(m);
+    applying = true;
+    try {
+      if (sc !== scope) {                  // another line / period: its typed entries go
+        for (var k0 in applied) if (!(k0 in cells) && m[k0] && init[k0] != null) {
+          if (!(isForm(m[k0]) && m[k0].readOnly && !m[k0].hasAttribute("data-cb-lock"))) write(m[k0], init[k0]);
+        }
+        dirty = {};
+      }
+      for (var k in cells) {
+        var el = m[k];
+        // MES has a value there (read-only, not by our lock): MES wins
+        if (!el || (isForm(el) && el.readOnly && !el.hasAttribute("data-cb-lock"))) continue;
+        if (read(el) !== cells[k]) write(el, cells[k]);
+      }
+    } finally { applying = false; }
+    scope = sc; applied = cells;
+    base = snap(keyed());
+  }
+  function mark(el) {
+    if (applying || !el) return;
+    var m = keyed();
+    for (var k in m) if (m[k] === el) { dirty[k] = el; break; }
+    clearTimeout(timer); timer = setTimeout(flush, 600);
+  }
+  function markAllMarks() {                // a button changed many marks at once (all safe / reset)
+    if (applying) return;
+    var m = keyed();
+    for (var k in m) if (k.charAt(0) === "k" && read(m[k]) !== base[k]) dirty[k] = m[k];
+    clearTimeout(timer); timer = setTimeout(flush, 600);
+  }
+  function flush() {
+    var ch = {}, any = false;
+    for (var k in dirty) {
+      var el = dirty[k];
+      if (!el.isConnected || (isForm(el) && el.readOnly)) continue;
+      var v = read(el);
+      if (v !== base[k]) { ch[k] = v; any = true; }
+    }
+    dirty = {};
+    if (!any) return;
+    if (!canSave) { status(scope ? "Not saved: read-only" : "Not saved: pick a line in the Control Board filter", "error"); return; }
+    var s = ++seq, m2 = keyed(), dts = {};
+    for (var k3 in ch) dts[k3] = m2[k3] ? dateOf(m2[k3]) : "";
+    pend[s] = ch;
+    status("Saving…", "busy");
+    parent.postMessage({ type: "cb-cells-save", seq: s, changes: ch, dates: dts, scope: scope }, "*");
+  }
+  document.addEventListener("input", function (e) {
+    var t = e.target;
+    if (!t || skip(t)) return;
+    if (isForm(t)) mark(t);
+    else { var ce = t.closest && t.closest("[contenteditable]"); if (ce && isEdit(ce)) mark(ce); }
+  }, true);
+  document.addEventListener("change", function (e) { var t = e.target; if (t && isForm(t) && !skip(t) && !t.classList.contains("cb-sel")) mark(t); }, true);
+  document.addEventListener("click", function (e) {      // bubble phase: after the sheet's own onclick
+    var t = e.target, el = t && t.closest ? t.closest("[onclick]") : null;
+    if (!el) return;
+    // a button (toolbar too: "Mark all safe", reset) may change many marks at once
+    if (/^(BUTTON|A)$/.test(el.tagName) || el.closest("button")) { setTimeout(markAllMarks, 0); return; }
+    if (skip(el)) return;
+    mark(el);
+  });
+  // the sheet's own Clear button (removed 2026-11-13; the server refuses a clear now)
+  if (false && typeof window.clearSheet === "function") {
+    var clear0 = window.clearSheet;
+    window.clearSheet = function () {
+      var conf0 = window.confirm, said = false;
+      window.confirm = function (msg) { said = conf0.call(window, msg); return said; };
+      try { clear0.apply(this, arguments); } finally { window.confirm = conf0; }
+      if (said && canSave) {
+        var s = ++seq;
+        pend[s] = null;
+        status("Clearing…", "busy");
+        parent.postMessage({ type: "cb-cells-save", seq: s, changes: {}, clear: true, scope: scope }, "*");
+      }
+    };
+  }
+  window.addEventListener("message", function (e) {
+    var d = e.data;
+    if (!d || e.source !== window.parent) return;
+    if (d.type === "cb-cells") {
+      canSave = !!d.canSave;
+      today = /^\d{4}-\d{2}-\d{2}$/.test(d.today || "") ? d.today : "";
+      setOn = d.set || {};
+      open = d.open !== false;
+      admin = !!d.admin;
+      P = pinfo(d.period, d.pkind);
+      apply(d.cells || {}, String(d.scope || ""));
+      lockAll();
+    } else if (d.type === "cb-cells-ack") {
+      var ch = pend[d.seq];
+      delete pend[d.seq];
+      if (d.ok) {
+        if (ch) for (var k in ch) { base[k] = ch[k]; if (today && String(ch[k]).trim()) setOn[k] = setOn[k] || today; }
+        status("Saved", "done");
+      } else if (d.locked) {                  // the day rule said no: put the saved value back
+        status("Not saved: " + (d.error || "locked"), "error");
+        if (ch) {
+          var m1 = keyed();
+          applying = true;
+          try { for (var k1 in ch) if (m1[k1] && base[k1] != null) write(m1[k1], base[k1]); }
+          finally { applying = false; }
+          lockAll();
+        }
+      } else {
+        status("Not saved: " + (d.error || "error"), "error");
+        if (ch) {                             // try again once after 5 s
+          var m = keyed();
+          for (var k2 in ch) if (m[k2] && !retry[k2]) { retry[k2] = 1; dirty[k2] = m[k2]; }
+          clearTimeout(timer); timer = setTimeout(function () { flush(); retry = {}; }, 5000);
+        }
+      }
+    }
+  });
+})();
+</script>
+
+<script>
+(function () {
+  // bubbles carry their day; the month is their month-container.  Financial
+  // year: April-December in the first year, January-March in the next.
+  var M = ["JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST",
+           "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"];
+  window.cbDateOf = function (el, P) {
+    if (!el.classList || !el.classList.contains("bubble")) return "";
+    var mc = el.closest(".month-container"), m = mc ? M.indexOf(String(mc.getAttribute("data-month") || "").toUpperCase()) + 1 : 0;
+    var d = +el.getAttribute("data-day");
+    if (!m || !d || !P.y0) return "X";
+    var y = m >= 4 ? P.y0 : P.y0 + 1;
+    return d <= new Date(y, m, 0).getDate() ? cbYmd(y, m, d) : "X";
+  };
+})();
+</script>
+</body>
+
+</html>

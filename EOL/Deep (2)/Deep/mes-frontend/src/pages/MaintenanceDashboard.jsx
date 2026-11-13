@@ -28,6 +28,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { LanRefreshSlot } from "../components/LanRefresh";
+import LineSelect from "../components/LineSelect";
 
 const API = "";
 
@@ -466,13 +467,13 @@ function KpiPanel({ token, lines }) {
                   style={kpiSelect}>
             {KPI_PERIODS.map(p => <option key={p.key} value={p.key}>{p.label}</option>)}
           </select>
-          <select value={lineId} onChange={(e) => setLineId(e.target.value)}
+          <LineSelect value={lineId} onChange={(e) => setLineId(e.target.value)}
                   style={kpiSelect}>
             <option value="">All lines</option>
             {(lines || []).map(l => (
               <option key={l.id} value={l.id}>{l.line_name}</option>
             ))}
-          </select>
+          </LineSelect>
           <Btn size="sm" onClick={reload} disabled={loading}>{loading?"…":"↻"}</Btn>
           <Btn size="sm" variant="primary" onClick={downloadCsv}>⬇ CSV</Btn>
         </div>

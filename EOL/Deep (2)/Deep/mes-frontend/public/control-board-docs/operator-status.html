@@ -184,12 +184,12 @@
             <strong>TOYOTA BOSHOKU - VISUALIZATION SHEET OF OPERATOR STATUS</strong>
             <span style="margin-left: 15px; color: #444;">
                 (Dates par click karein: <b>Blank &rarr; ● (First Day) &rarr; □ (Training Done) &rarr; ○ (After
-                    Training) &rarr; △ (Vacation) &rarr; P (Unplanned Leave)</b>)
+                    Training) &rarr; △ (Vacation) &rarr; ▲ (Vacation Without Information)</b>)
             </span>
         </div>
         <div>
-            <button onclick="resetSheet()">Clear All</button>
-            <button class="primary" onclick="window.print()">Print / Save PDF</button>
+            
+            <button class="primary cb-pdf-btn" onclick="cbSavePdf()">Save PDF</button><button onclick="window.print()">Print</button>
         </div>
     </div>
 
@@ -212,10 +212,7 @@
                 <!-- Row 1: Company Title & Month -->
                 <tr style="height: 44px;">
                     <td colspan="2" rowspan="2" class="bt-m bb-m bl-m br-m" style="padding: 2px;">
-                        <div
-                            style="border: 2px solid #b30000; color: #b30000; font-weight: bold; font-size: 12px; padding: 4px 2px; line-height: 1.15; text-align: center;">
-                            TOYOTA<br>BOSHOKU
-                        </div>
+                        <div style="text-align:center; line-height:1;"><img src="data:image/png;base64,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" alt="Toyota Boshoku" style="display:block; margin:0 auto; height:44px; max-width:100%; object-fit:contain;"><div style="margin-top:3px; font-size:9px; font-weight:bold; color:#000; letter-spacing:0.3px; white-space:nowrap;">TOYOTA BOSHOKU</div></div>
                     </td>
                     <td colspan="28" class="bt-m bb-m bl-m br-m"
                         style="font-family: Arial, sans-serif; font-size: 22px; font-weight: bold; text-align: center;">
@@ -244,13 +241,13 @@
                         [ STATUS ]
                     </td>
                     <td colspan="8" class="bt-m bb-none bl-none br-none text-left" style="padding-left: 6px;">
-                        ●：FIRST DAY
+                        <span class="cb-sym">●</span>：FIRST DAY
                     </td>
                     <td colspan="11" class="bt-m bb-none bl-none br-none text-left" style="padding-left: 6px;">
-                        □：TRAINING DONE
+                        <span class="cb-sym big">□</span>：TRAINING DONE
                     </td>
                     <td colspan="12" class="bt-m bb-none bl-none br-m text-left" style="padding-left: 6px;">
-                        ○：AFTER TRAINING DONE (2 DAYS)
+                        <span class="cb-sym big">○</span>：AFTER TRAINING DONE (2 DAYS)
                     </td>
                 </tr>
 
@@ -262,10 +259,10 @@
                         ( More than 3 days )
                     </td>
                     <td colspan="11" class="bt-none bb-m bl-none br-none text-left" style="padding-left: 6px;">
-                        △：VACATION
+                        <span class="cb-sym">△</span>：VACATION
                     </td>
                     <td colspan="12" class="bt-none bb-m bl-none br-m text-left" style="padding-left: 6px;">
-                        ▲ ：VACATION WITHOUT INFORMATION
+                        <span class="cb-sym">▲</span> ：VACATION WITHOUT INFORMATION
                     </td>
                 </tr>
 
@@ -307,8 +304,8 @@
                     <td colspan="4" class="bl-m text-left"
                         style="font-weight: bold; font-size: 11px; line-height: 1.25; padding: 2px 6px;">
                         DEPLOYED ALL OPERATOR AS PER SKILL MATRIX<br>
-                        <span style="font-weight: normal; font-size: 10px;">(YES &nbsp;&nbsp;&nbsp;&nbsp; / &nbsp;&nbsp;
-                            NO X &nbsp;&nbsp; / &nbsp;&nbsp; FOR MULTI SKILL)</span>
+                        <span style="font-weight: normal; font-size: 10px;">(YES ✓ / &nbsp;&nbsp;
+                            NO ✕ &nbsp;&nbsp; / &nbsp;&nbsp; FOR MULTI SKILL □)</span>
                     </td>
                     <td><input type="text" class="cell-input"></td>
                     <script>
@@ -323,7 +320,7 @@
                 <tr style="height: 34px;">
                     <td colspan="4" class="bl-m text-left"
                         style="font-weight: bold; font-size: 11px; padding: 2px 6px;">
-                        4 M CHANGE CONTROL SHEET UPDATED YES OR NO &nbsp;&nbsp; ( IF X OR &nbsp;&nbsp;&nbsp;&nbsp; )
+                        4 M CHANGE CONTROL SHEET UPDATED YES OR NO &nbsp;&nbsp; ( IF ✕ OR □ )
                     </td>
                     <td><input type="text" class="cell-input"></td>
                     <script>
@@ -375,7 +372,7 @@
     <script>
         // Operator Status Symbols: Blank -> ● -> □ -> ○ -> △ -> P -> Blank
         function cycleStatus(td) {
-            const symbols = ['', '●', '□', '○', '△', 'P'];
+            const symbols = ['', '●', '□', '○', '△', '▲'];
             const current = td.innerText.trim();
             const idx = symbols.indexOf(current);
             const nextIdx = (idx + 1) % symbols.length;
@@ -384,12 +381,12 @@
 
         // Yes / No / Blank toggle for verification rows
         function cycleYN(td) {
-            const symbols = ['', 'YES', 'X'];
+            const symbols = ['', '✓', '✕', '□'];
             const current = td.innerText.trim();
             const idx = symbols.indexOf(current);
             const nextIdx = (idx + 1) % symbols.length;
             td.innerText = symbols[nextIdx];
-            td.style.color = (symbols[nextIdx] === 'X') ? '#d00' : ((symbols[nextIdx] === 'YES') ? '#080' : '#000');
+            td.style.color = (symbols[nextIdx] === '✕') ? '#d00' : ((symbols[nextIdx] === '✓') ? '#080' : '#000');
         }
 
         function resetSheet() {
@@ -404,6 +401,8 @@
     </script>
 
 
+<script src="cb-pdf.js?v=70e072f2"></script>
+
 <script>
 /* MES Control Board: fit-to-width zoom requested by the page around this frame. */
 (function () {
@@ -414,6 +413,543 @@
     document.documentElement.style.zoom = (z === 1) ? "" : String(z);
     try { window.parent.postMessage({ type: "cb-zoom-ok", zoom: z }, "*"); } catch (x) {}
   });
+})();
+</script>
+
+<script>
+/* MES Control Board: line / month dropdowns (lines posted in by the Control Board). */
+(function () {
+  var CFG = {"title": "Operator Status", "four": false};
+  var MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  function norm(t) { return String(t || "").replace(/\s+/g, " ").trim().toUpperCase(); }
+  function field(re) {
+    var tds = document.querySelectorAll("td");
+    for (var i = 0; i < tds.length; i++) {
+      if (!re.test(norm(tds[i].textContent))) continue;
+      var nx = tds[i].nextElementSibling;
+      return tds[i].querySelector("input") || (nx && nx.querySelector("input")) || null;
+    }
+    return null;
+  }
+  var f = {};
+  if (CFG.four) {
+    var hi = document.querySelectorAll("#tbody4M tr:nth-child(2) input.header-input");
+    f = { line: hi[0], month: hi[1], year: hi[2] };
+  } else {
+    f = { line: field(/^LINE( NAME)? ?:-?$/), month: field(/^MONTH ?:-?$/) };
+  }
+  if (!f.line && !f.month) return;
+  var css = document.createElement("style");
+  css.textContent = "select.cb-sel{background:transparent;cursor:pointer;outline:none;padding:0 2px;box-sizing:border-box;" +
+    "max-width:100%}select.cb-sel:focus{background:#fff9c4}";
+  document.head.appendChild(css);
+  // a dropdown in place of the text box: same font, as wide as the cell allows
+  function toSelect(input) {
+    if (!input) return null;
+    var cs = getComputedStyle(input), td = input.parentNode, sel = document.createElement("select");
+    var room = td.getBoundingClientRect().right - input.getBoundingClientRect().left - 6;
+    sel.className = "cb-sel";
+    sel.style.cssText = "font-family:" + cs.fontFamily + ";font-size:" + cs.fontSize + ";font-weight:" + cs.fontWeight +
+      ";color:" + cs.color + ";width:" + Math.max(input.offsetWidth, Math.floor(room)) + "px;height:" +
+      Math.max(22, input.offsetHeight) + "px;border:none;border-bottom:" + cs.borderBottomWidth + " " +
+      cs.borderBottomStyle + " " + cs.borderBottomColor + ";text-align:" + cs.textAlign + ";text-align-last:" + cs.textAlign;
+    td.replaceChild(sel, input);
+    return sel;
+  }
+  var lineSel = toSelect(f.line), monthSel = toSelect(f.month), yearSel = toSelect(f.year);
+  var now = new Date(), Y = now.getFullYear(), M = now.getMonth();
+  function two(n) { return (n < 10 ? "0" : "") + n; }
+  if (monthSel && yearSel) {
+    monthSel.innerHTML = MONTHS.map(function (m, i) { return '<option value="' + two(i + 1) + '">' + m + "</option>"; }).join("");
+    yearSel.innerHTML = [Y, Y - 1].map(function (y) { return '<option value="' + y + '">' + y + "</option>"; }).join("");
+    monthSel.value = two(M + 1); yearSel.value = String(Y);
+  } else if (monthSel) {
+    var h = "";
+    for (var yy = Y; yy >= Y - 1; yy--) for (var mm = 11; mm >= 0; mm--)
+      h += '<option value="' + yy + "-" + two(mm + 1) + '">' + MONTHS[mm] + " " + yy + "</option>";
+    monthSel.innerHTML = h; monthSel.value = Y + "-" + two(M + 1);
+  }
+  if (lineSel) lineSel.innerHTML = '<option value="">Select line</option>';
+  function month() {
+    if (monthSel && yearSel) return yearSel.value + "-" + monthSel.value;
+    return monthSel ? monthSel.value : "";
+  }
+  function setMonth(ym) {
+    if (!ym || !/^\d{4}-\d{2}$/.test(ym)) return;
+    if (monthSel && yearSel) {
+      if (![].some.call(yearSel.options, function (o) { return o.value === ym.slice(0, 4); }))
+        yearSel.insertAdjacentHTML("beforeend", '<option value="' + ym.slice(0, 4) + '">' + ym.slice(0, 4) + "</option>");
+      yearSel.value = ym.slice(0, 4); monthSel.value = ym.slice(5, 7);
+    } else if (monthSel) {
+      if (![].some.call(monthSel.options, function (o) { return o.value === ym; }))
+        monthSel.insertAdjacentHTML("beforeend", '<option value="' + ym + '">' + MONTHS[+ym.slice(5, 7) - 1] + " " + ym.slice(0, 4) + "</option>");
+      monthSel.value = ym;
+    }
+  }
+  function sel() { return { line_id: lineSel ? lineSel.value : "", month: month() }; }
+  function tell() { try { window.parent.postMessage({ type: "cb-select", line_id: sel().line_id, month: sel().month }, "*"); } catch (x) {} }
+  [lineSel, monthSel, yearSel].forEach(function (s) { if (s) s.addEventListener("change", tell); });
+  function buildLine(lines, pick) {
+    if (!lineSel) return;
+    var keep = pick != null ? String(pick) : lineSel.value, zone = null;
+    var html = '<option value="">Select line</option>';
+    lines.forEach(function (l) {
+      var z = l.zone_name || "No zone";
+      if (z !== zone) { html += (zone === null ? "" : "</optgroup>") + '<optgroup label="' + z.replace(/"/g, "&quot;") + '">'; zone = z; }
+      html += '<option value="' + l.line_id + '">' + String(l.line_name || "").replace(/</g, "&lt;") + "</option>";
+    });
+    lineSel.innerHTML = html + (zone === null ? "" : "</optgroup>");
+    lineSel.value = keep;
+    if (lineSel.value !== keep) lineSel.value = "";
+  }
+  // status note in the toolbar (screen only, like the toolbar)
+  var bar = document.querySelector(".toolbar > div"), note = document.createElement("span");
+  note.style.cssText = "margin-left:14px;font-size:12px;font-weight:600;color:#475569";
+  if (bar) bar.appendChild(note);
+  window.cbNote = function (t) { note.textContent = t || ""; };
+  window.addEventListener("message", function (e) {
+    if (e.source !== window.parent || !e.data || e.data.type !== "cb-data") return;
+    buildLine(Array.isArray(e.data.lines) ? e.data.lines : [], e.data.line_id);
+    setMonth(e.data.month);
+    if (typeof window.cbOnData === "function") window.cbOnData(e.data, sel());
+  });
+  // Save PDF file name: "<sheet> - <line> - <Mon YYYY>"
+  window.cbPdfName = function () {
+    var ln = lineSel && lineSel.value ? lineSel.options[lineSel.selectedIndex].text : "";
+    var m = month(), mo = /^\d{4}-\d{2}$/.test(m) ? MONTHS[+m.slice(5, 7) - 1] + " " + m.slice(0, 4) : "";
+    return [CFG.title, window.cbTitleExtra || "", ln, mo].filter(Boolean).join(" - ");
+  };
+})();
+</script>
+
+<style>
+/* MES Control Board: bigger, darker entries and legend. */
+#operatorTable .cell-input { font-size: 13px; color: #000; }
+#operatorTable .cell-input::placeholder { font-size: 12px; font-weight: normal; }
+#operatorTable td .cb-msvgw { display: inline-block; width: 28px; height: 26px; line-height: 0; vertical-align: middle; }
+#operatorTable td svg.cb-msvg { pointer-events: none; }
+#operatorTable td.status-cell[onclick^="cycleStatus"] { font-size: 22px; line-height: 1;
+  -webkit-text-stroke: 0.6px currentColor; }
+#operatorTable tr.cb-legend { height: 30px !important; }
+#operatorTable tr.cb-legend td { font-size: 15px !important; color: #000 !important; }
+#operatorTable tr.cb-legend td.cb-legend-note { font-size: 13px !important; }
+#operatorTable td.text-left[colspan="4"] { font-size: 13px !important; color: #000; }
+#operatorTable td.text-left[colspan="4"] span { font-size: 12px !important; font-weight: bold !important; }
+#operatorTable .cb-sym { font-size: 18px; line-height: 1; vertical-align: -1px; }
+#operatorTable .cb-sym.big { font-size: 24px; vertical-align: -3px; -webkit-text-stroke: 0.6px currentColor; }
+</style>
+
+<style>
+/* MES Control Board: Operator sheet (saved) */
+#operatorTable td.cb-lock { cursor: not-allowed; }
+#operatorTable .cell-input[readonly] { cursor: default; }
+#operatorTable .cell-input[readonly]:focus { background: transparent; }
+#operatorTable td.cb-today.cb-screen { background: #fff7cc !important; }
+#operatorTable td.cb-openday.cb-screen { background: #ffedd5 !important; }
+#operatorTable .cb-dhide { display: none; }
+#operatorTable td.status-cell[onclick^="cycleYN"] { font-size: 20px; line-height: 1; }
+#operatorTable td.status-cell[onclick^="cycleYN"].cb-sq { font-size: 26px; font-weight: normal; -webkit-text-stroke: 0.6px currentColor; }
+#operatorTable tr.cb-m4row td.status-cell { font-size: 13px; font-weight: bold; }
+#operatorTable tr.cb-m4row td.status-cell.cb-dash { font-size: 18px; cursor: default; }
+#operatorTable img.cb-sign { display: block; max-width: 100%; max-height: 26px; margin: 0 auto; object-fit: contain; }
+#operatorTable input[data-cb-sign] { cursor: default; text-align: center; }
+</style>
+
+<script>
+/* MES Control Board: Operator Visualization Sheet - filled by the user, saved. */
+(function () {
+  var table = document.getElementById("operatorTable");
+  if (!table) return;
+  var MIN_ROWS = 14;
+  // PROCESS gets the room it needs (115 -> 142 px) from S.NO. and EMP. CODE
+  var cols = table.querySelectorAll("col");
+  if (cols.length >= 5) { cols[0].style.width = "48px"; cols[1].style.width = "85px"; cols[3].style.width = "142px"; }
+  [].forEach.call(table.querySelectorAll("td"), function (td) {
+    var t = td.textContent.trim();
+    if (t === "[ STATUS ]") {
+      td.parentNode.classList.add("cb-legend");
+      if (td.parentNode.nextElementSibling) td.parentNode.nextElementSibling.classList.add("cb-legend");
+    }
+    if (t === "( More than 3 days )") td.classList.add("cb-legend-note");
+  });
+  function two(n) { return (n < 10 ? "0" : "") + n; }
+  function note(t) { if (window.cbNote) window.cbNote(t); }
+  function norm(t) { return String(t || "").replace(/\s+/g, " ").trim().toUpperCase(); }
+  function opRows() {
+    return [].slice.call(table.rows).filter(function (r) { return r.querySelector('td.status-cell[onclick^="cycleStatus"]'); });
+  }
+  var first = opRows();
+  if (!first.length) return;
+  var tmpl = first[0].cloneNode(true);
+  [].forEach.call(tmpl.cells, function (td) { td.classList.remove("bb-m"); });
+  var extra = {};
+  [].forEach.call(table.rows, function (tr) {
+    var t = norm(tr.cells[0] && tr.cells[0].textContent);
+    if (t.indexOf("DEPLOYED ALL OPERATOR") === 0) extra.skill = tr;
+    else if (t.indexOf("4 M CHANGE CONTROL SHEET UPDATED") === 0) extra.m4 = tr;
+    else if (t.indexOf("NAME / SIGNATURE OF SUPERVISOR") === 0) extra.sup = tr;
+    else if (t.indexOf("NAME / SIGN OF MANAGER") === 0) extra.mgr = tr;
+  });
+  if (extra.m4) extra.m4.classList.add("cb-m4row");
+  // 2026-11-10 (later): EMP. CODE / NAME / PROCESS come from Shift Allocation
+  // (read-only), START DAY stays blank; the user fills the day marks only.
+  var ops = [], pnames = {};
+  function weekOf(d) { return d <= 6 ? 1 : d <= 12 ? 2 : d <= 18 ? 3 : d <= 24 ? 4 : 5; }
+
+  var on = false, curKey = "", cur = { line_id: "", month: "", days: 31, current: null, open: [] };
+  var cells = {}, pending = {}, sending = {}, waiting = {}, seq = 0, els = {};
+  var supSign = {}, supLeaders = {};
+
+  // rows: the printed 14, more once the last one is used
+  function setRows(n) {
+    var rs = opRows(), want = Math.max(MIN_ROWS, n);
+    while (rs.length < want) { var last = rs[rs.length - 1]; last.parentNode.insertBefore(tmpl.cloneNode(true), last); rs = opRows(); }
+    while (rs.length > want) { var r = rs[rs.length - 2]; r.parentNode.removeChild(r); rs = opRows(); }
+    rs.forEach(function (r, i) { r.cells[0].textContent = String(i + 1); });
+    return rs;
+  }
+  // every cell of the sheet gets its key (data-k)
+  function mapCells() {
+    els = {};
+    [].forEach.call(table.querySelectorAll("[data-k]"), function (el) { el.removeAttribute("data-k"); });
+    [].forEach.call(table.querySelectorAll(".cb-today, .cb-openday, td.cb-lock"), function (el) {
+      el.classList.remove("cb-today", "cb-openday", "cb-lock");      // set again below for this month / crew
+    });
+    var put = function (el, k) { if (el) { el.setAttribute("data-k", k); els[k] = el; } };
+    setRows(ops.length).forEach(function (r, i) {
+      var c = r.cells, o = ops[i];
+      // 2026-11-13: PROCESS = the first day's process (with its number); another
+      // process on a later day shows as that number inside the day's mark
+      [o ? o.code : "", o ? o.name : "", o ? (o.pno ? o.pno + ". " : "") + o.process : "", ""].forEach(function (v, j) {
+        var td = c[1 + j], el = td && td.querySelector("input, textarea");
+        if (!el || !on) return;
+        if (el.tagName === "TEXTAREA") {                  // back to one line, re-fitted below
+          var inp = document.createElement("input");
+          inp.type = "text"; inp.className = el.className.replace(/\s*cb-wrap/, "");
+          td.replaceChild(inp, el); el = inp;
+        }
+        el.value = v || ""; el.readOnly = true; el.tabIndex = -1;
+        fitWrap(el, v || "");
+      });
+      for (var d = 1; d <= 31; d++) {
+        if (o) put(c[4 + d], "o" + o.id + ".d" + d);
+        else if (on && c[4 + d]) { c[4 + d].textContent = ""; c[4 + d].classList.add("cb-lock"); }
+      }
+    });
+    ["skill", "m4", "sup"].forEach(function (p) {
+      var tr = extra[p];
+      if (!tr) return;
+      put(tr.cells[1] && tr.cells[1].querySelector("input"), p + ".e");
+      if (p === "sup") return;              // its day boxes: the leader's signature (paintSup)
+      for (var d = 1; d <= 31; d++) put(tr.cells[1 + d], p + ".d" + d);
+    });
+    if (extra.mgr) {
+      put(extra.mgr.cells[1] && extra.mgr.cells[1].querySelector("input"), "mgr.e");
+      for (var w = 1; w <= 5; w++) put(extra.mgr.cells[1 + w] && extra.mgr.cells[1 + w].querySelector("input"), "mgr.w" + w);
+    }
+    Object.keys(els).forEach(function (k) {
+      var el = els[k];
+      if (el.tagName !== "INPUT" || el._cb) return;
+      el._cb = true;
+      el.addEventListener("input", function () { fitInput(el); if (on) save(k, el.value, false); });
+      el.addEventListener("blur", function () { if (on && pending.hasOwnProperty(k)) flush(k); });
+    });
+  }
+  var meas = document.createElement("canvas").getContext("2d");
+  // long names / processes (read-only, from Shift Allocation): a smaller font on
+  // one line, else two lines (<= 12 px, never below 9 px) - as on 10-Nov
+  function fitWrap(input, text) {
+    input.style.fontSize = ""; input.title = text;
+    if (!text) return;
+    var cs = getComputedStyle(input),
+        w = input.clientWidth - (parseFloat(cs.paddingLeft) || 0) - (parseFloat(cs.paddingRight) || 0) - 2,
+        base = parseFloat(cs.fontSize) || 13, size = base;
+    var tw = function (sz) { meas.font = cs.fontWeight + " " + sz + "px " + cs.fontFamily; return meas.measureText(text).width; };
+    if (w <= 0) return;
+    while (size > base - 3 && tw(size) > w) size -= 0.5;
+    if (tw(size) <= w) { input.style.fontSize = size < base ? size + "px" : ""; return; }
+    size = Math.min(base - 1, 12);
+    while (size > 9 && tw(size) > 1.8 * w) size -= 0.5;
+    var ta = document.createElement("textarea");
+    ta.className = input.className + " cb-wrap"; ta.value = text; ta.title = text; ta.rows = 2;
+    ta.readOnly = true; ta.tabIndex = -1;
+    ta.style.cssText = "resize:none;overflow:hidden;white-space:normal;line-height:1.15;font-size:" + size +
+      "px;padding:" + Math.max(1, Math.round((input.offsetHeight - 2.3 * size) / 2)) + "px 4px 0;height:" + input.offsetHeight + "px";
+    input.parentNode.replaceChild(ta, input);
+  }
+  function fitInput(el) {
+    el.style.fontSize = "";
+    var cs = getComputedStyle(el), base = parseFloat(cs.fontSize) || 13, size = base,
+        w = el.clientWidth - (parseFloat(cs.paddingLeft) || 0) - (parseFloat(cs.paddingRight) || 0) - 2;
+    if (w <= 0 || !el.value) { el.title = el.value || ""; return; }
+    var tw = function (sz) { meas.font = cs.fontWeight + " " + sz + "px " + cs.fontFamily; return meas.measureText(el.value).width; };
+    while (size > 9 && tw(size) > w) size -= 0.5;
+    if (size < base) el.style.fontSize = size + "px";
+    el.title = el.value;
+  }
+  function today() {
+    var c = cur.current;
+    return c && String(c.date).slice(0, 7) === cur.month ? +String(c.date).slice(8, 10) : 0;
+  }
+  function editable(k) {
+    var c = cur.current, t = today(), m = /\.d(\d+)$/.exec(k), w = /\.w(\d)$/.exec(k);
+    if (cur.admin) return !m || +m[1] <= cur.days;                      // admin: any day
+    if (m) return +m[1] <= cur.days && (+m[1] === t || cur.open.indexOf(+m[1]) >= 0);
+    if (w) return !!t && weekOf(t) === +w[1];
+    if (!t) return false;
+    var x = cells[k];
+    return !x || !String(x.v || "").trim() || (x.d === c.date && x.s === c.shift);
+  }
+  function lockMsg(k) {
+    if (!cur.current) return "No shift is running now: the sheet can be filled during the shift only";
+    if (/\.d\d+$/.test(k)) return "Only the running shift's date can be filled: " + cur.current.label;
+    if (/\.w\d$/.test(k)) return "Only this week's box can be signed";
+    return "Filled in an earlier shift: it cannot be changed";
+  }
+  // 2026-11-12 (operator): the skill-matrix row shows the legend's symbols -
+  // tick, cross, square - instead of YES ("YES" / "X" saved before show as tick /
+  // cross).  (later) The 4M row below it shows "-" when the skill row is a tick
+  // (nothing to update) and takes YES / NO only when it is a cross or a square;
+  // blank until the skill row is marked.  "X" saved there before = NO.
+  var SKILL_SHOW = { "YES": "\u2713", "X": "\u2715" };
+  var M4_SHOW = { "X": "NO", "\u2715": "NO", "\u2713": "YES" };
+  var M4_NEXT = { "": "YES", "YES": "NO", "NO": "" };
+  function dayOf(k) { var m = /\.d(\d+)$/.exec(k); return m ? +m[1] : 0; }
+  function skillOf(d) { var el = els["skill.d" + d]; return el ? el.textContent.trim() : ""; }
+  // an operator's day mark drawn as a large shape, thin outline (operator: the marks
+  // were too small for the box, then: borders too bold; then: first-day ● a
+  // little smaller, the numbers a little bigger), with the day's process number inside when it differs
+  // from the PROCESS column - never in the vacation marks (operator)
+  function markSvg(v, no) {
+    var sh, tc = "#000", fs = 16, tx = 14, ty = 13, txt = no;      // one number only (operator)
+    if (v === "\u25cb") sh = '<circle cx="14" cy="13" r="11.8" fill="none" stroke="#000" stroke-width="1.5"/>';
+    else if (v === "\u25cf") { sh = '<circle cx="14" cy="13" r="10.3" fill="#000"/>'; tc = "#fff"; }
+    else if (v === "\u25a1") sh = '<rect x="2.8" y="1.8" width="22.4" height="22.4" fill="none" stroke="#000" stroke-width="1.5"/>';
+    else if (v === "\u25b3") { sh = '<polygon points="14,1.2 27.2,24.8 0.8,24.8" fill="none" stroke="#000" stroke-width="1.5" stroke-linejoin="round"/>'; txt = ""; }
+    else if (v === "\u25b2") { sh = '<polygon points="14,0.5 27.5,25 0.5,25" fill="#000"/>'; txt = ""; }
+    else return "";
+    // no style on the svg itself: the PDF renderer (html2canvas) draws an svg's own
+    // layout styles inside its picture and clips it - the wrapper centres it
+    return '<span class="cb-msvgw"><svg class="cb-msvg" width="28" height="26" viewBox="0 0 28 26">' + sh +
+      (txt ? '<text x="' + tx + '" y="' + ty + '" text-anchor="middle" dy="0.36em" font-family="Arial,sans-serif" font-weight="600" font-size="' +
+             fs + '" fill="' + tc + '">' + txt + "</text>" : "") + "</svg></span>";
+  }
+  function dayNo(k) {                       // "o<id>.d<day>" -> that day's other process number(s)
+    var m = /^o(\d+)\.d(\d+)$/.exec(k);
+    if (!m) return "";
+    for (var i = 0; i < ops.length; i++)
+      if (String(ops[i].id) === m[1]) return (ops[i].day_pno || {})[m[2]] || "";
+    return "";
+  }
+  function showVal(k, el, v) {
+    if (el.tagName === "INPUT") { if (el.value !== v) { el.value = v; } fitInput(el); return; }
+    if (/^o\d+\.d\d+$/.test(k)) {            // an operator's day: the mark, drawn large
+      var no = v ? dayNo(k) : "", svg = v ? markSvg(v, no) : "";
+      if (svg) {
+        el.innerHTML = svg; el.style.color = "";
+        el.title = no && !/[\u25b3\u25b2]/.test(v)
+          ? "Process " + no.split(",").map(function (n) { return n + (pnames[n] ? " (" + pnames[n] + ")" : ""); }).join(" + ") + " this day"
+          : "";
+        return;
+      }
+      el.title = "";
+    }
+    var sv = v, col = "";
+    if (/^skill\.d/.test(k)) {
+      sv = SKILL_SHOW[v] || v;
+      col = sv === "\u2715" ? "#d00" : sv === "\u2713" ? "#080" : "";
+    } else if (/^m4\.d/.test(k) && on) {
+      var sk = skillOf(dayOf(k));
+      sv = sk === "\u2713" ? "-" : !sk ? "" : (M4_SHOW[v] || v);
+      col = sv === "NO" ? "#d00" : sv === "YES" ? "#080" : sv === "-" ? "#475569" : "";
+    }
+    el.textContent = sv;
+    el.style.color = col;
+    el.classList.toggle("cb-sq", sv === "\u25a1" && /^skill\./.test(k));
+    el.classList.toggle("cb-dash", sv === "-");
+  }
+  function paintM4() {
+    for (var d = 1; d <= 31; d++) {
+      var k = "m4.d" + d, el = els[k];
+      if (el && !pending.hasOwnProperty(k)) showVal(k, el, (cells[k] && cells[k].v) || "");
+    }
+  }
+  // Name / Signature of Supervisor (Daily) = the line leader's signature (Shift
+  // Allocation + Employee Master, sent by MES as sup_sign / leaders), shown ONLY
+  // for a day whose two rows above both have a mark - never without values
+  function paintSup() {
+    var tr = extra.sup;
+    if (!tr) return;
+    var standalone = !on && !curKey;
+    for (var d = 1; d <= 31; d++) {
+      var td = tr.cells[1 + d], box = td && td.querySelector("input");
+      if (!box) continue;
+      var old = td.querySelector("img.cb-sign");
+      if (old) td.removeChild(old);
+      box.style.display = "";
+      if (standalone) continue;                   // opened on its own: as drawn
+      box.setAttribute("data-cb-sign", "1"); box.readOnly = true; box.tabIndex = -1; box.value = "";
+      var a = els["skill.d" + d], b = els["m4.d" + d];
+      var marked = !!(on && a && b && a.textContent.trim() && b.textContent.trim());
+      var sg = marked ? supSign[String(d)] : null, L = sg && sg.leader ? supLeaders[String(sg.leader)] : null;
+      // the leader saved in Shift Allocation with THIS crew that day - never the
+      // leader of the shift running now (operator, 12-Nov)
+      box.title = !marked ? "The line leader's signature appears once the rows above are filled for the day"
+                : !sg ? "Loading the line leader\u2026"
+                : !sg.shift ? "Shift Allocation is not saved for this crew on this day: no signature"
+                : !L ? "No line leader saved in Shift Allocation for this crew's " + sg.shift + " shift"
+                : (L.name || "");
+      if (L && L.signature) {
+        var img = document.createElement("img");
+        img.className = "cb-sign"; img.src = L.signature; img.alt = L.name || "";
+        img.title = (L.name || "") + (sg.shift ? " (" + sg.shift + " shift)" : "");
+        box.style.display = "none"; td.insertBefore(img, box);
+      } else if (L && L.name) { box.value = L.name; fitInput(box); }
+    }
+  }
+  // 2026-11-10 (operator): the day columns follow the month — a 28/30-day month
+  // spreads its days over the width instead of leaving the last columns blank
+  var dayCols = [].slice.call(table.querySelectorAll("col"), 5, 36);
+  var headRow = [].filter.call(table.rows, function (r) { return norm(r.cells[0] && r.cells[0].textContent) === "S.NO."; })[0];
+  function applyDays(n) {
+    if (!(n >= 28 && n <= 31)) n = 31;
+    var w = (31 * 38) / n;
+    dayCols.forEach(function (c, i) { c.style.width = (i < n ? w.toFixed(3) : "0") + "px"; });
+    var hide = function (td, d) { if (td) td.classList.toggle("cb-dhide", d > n); };
+    for (var d = 1; d <= 31; d++) {
+      if (headRow) hide(headRow.cells[4 + d], d);
+      opRows().forEach(function (r) { hide(r.cells[4 + d], d); });
+      ["skill", "m4", "sup"].forEach(function (p) { if (extra[p]) hide(extra[p].cells[1 + d], d); });
+    }
+  }
+  function render() {
+    mapCells();
+    if (on) applyDays(cur.days);
+    var t = today(), focus = document.activeElement;
+    Object.keys(els).forEach(function (k) {
+      var el = els[k], ed = on && editable(k);
+      if (!(el === focus || pending.hasOwnProperty(k))) showVal(k, el, (cells[k] && cells[k].v) || "");
+      if (el.tagName === "INPUT") { el.readOnly = on && !ed; el.tabIndex = on && !ed ? -1 : 0; }
+      else el.classList.toggle("cb-lock", on && !ed);
+      var m = /\.d(\d+)$/.exec(k), td = el.tagName === "INPUT" ? el.closest("td") : el;
+      if (m && td) {
+        td.classList.toggle("cb-today", on && +m[1] === t);
+        td.classList.toggle("cb-openday", on && +m[1] !== t && cur.open.indexOf(+m[1]) >= 0);
+        td.classList.add("cb-screen");
+      }
+    });
+    paintM4();
+    paintSup();
+  }
+  // saving: one request per cell at a time; the newest value goes after the ack
+  function save(k, v, now) {
+    pending[k] = v;
+    clearTimeout(save["t" + k]);
+    if (now) flush(k); else save["t" + k] = setTimeout(function () { flush(k); }, 700);
+  }
+  function flush(k) {
+    clearTimeout(save["t" + k]);
+    if (!pending.hasOwnProperty(k) || sending[k]) return;
+    var v = pending[k];
+    sending[k] = true;
+    var s = ++seq;
+    waiting[s] = { k: k, v: v };
+    try { window.parent.postMessage({ type: "cb-ops-save", seq: s, line_id: cur.line_id, month: cur.month, key: k, value: v }, "*"); } catch (x) {}
+    note("Saving\u2026");
+  }
+  window.addEventListener("message", function (e) {
+    if (e.source !== window.parent || !e.data || e.data.type !== "cb-ops-ack") return;
+    var w = waiting[e.data.seq];
+    delete waiting[e.data.seq];
+    if (!w) return;
+    sending[w.k] = false;
+    if (!e.data.ok) {
+      delete pending[w.k];
+      if (els[w.k]) showVal(w.k, els[w.k], (cells[w.k] && cells[w.k].v) || "");
+      paintM4();
+      paintSup();
+      note("Not saved: " + (e.data.error || "error"));
+      return;
+    }
+    var c = cur.current || {};
+    cells[w.k] = { v: w.v, d: c.date || null, s: c.shift || null };
+    if (pending[w.k] !== w.v) flush(w.k); else delete pending[w.k];
+    if (!Object.keys(waiting).length) { var t = new Date(); note("Saved " + two(t.getHours()) + ":" + two(t.getMinutes())); }
+  });
+  var origStatus = window.cycleStatus, origYN = window.cycleYN;
+  function cycle(td, orig) {
+    if (!on && curKey) return;                        // MES sheet still loading
+    if (!on) return orig(td);                         // opened on its own: as drawn
+    var k = td.getAttribute("data-k");
+    if (!k) return;
+    if (!cur.line_id) { note("Select a line first"); return; }
+    if (!editable(k)) { note(lockMsg(k)); return; }
+    var nv;
+    if (/^m4\.d/.test(k)) {                       // the 4M row: "-" / YES / NO by the skill row
+      var d = dayOf(k), sk = skillOf(d);
+      if (pending.hasOwnProperty("skill.d" + d)) { note("Saving the skill-matrix mark\u2026"); return; }
+      if (!sk) { note("Mark the skill-matrix row first: YES / NO is filled when it is \u2715 or \u25a1"); return; }
+      if (sk === "\u2713") { note("Not needed: all operators are deployed as per the skill matrix (\u2713)"); return; }
+      nv = M4_NEXT[td.textContent.trim()];
+      if (nv === undefined) nv = "";
+    } else {
+      td.textContent = pending.hasOwnProperty(k) ? pending[k] : ((cells[k] && cells[k].v) || "");   // the mark without its number
+      orig(td);
+      nv = td.textContent.trim();
+    }
+    showVal(k, td, nv);
+    save(k, nv, true);
+    if (/^skill\.d/.test(k)) paintM4();
+    paintSup();
+  }
+  window.cycleStatus = function (td) { cycle(td, origStatus); };
+  window.cycleYN = function (td) { cycle(td, origYN); };
+  // a click on a read-only box says why
+  table.addEventListener("click", function (e) {
+    var el = e.target && e.target.closest && e.target.closest("input[data-k]");
+    if (el && on && el.readOnly) note(lockMsg(el.getAttribute("data-k")));
+    var st = e.target && e.target.closest && e.target.closest("td");
+    if (on && st && st.parentNode === extra.sup && st.cellIndex > 1) {
+      var im = st.querySelector("img.cb-sign"), bx = st.querySelector("input");
+      note(im ? "Signed: " + (im.title || im.alt) : (bx && bx.title) || "");
+    }
+  });
+  function statusNote() {
+    if (!ops.length) return "No crew saved in Shift Allocation for this sheet this month";
+    return cur.current ? "Fill for " + cur.current.label + (cur.open.length ? " \u00b7 pending day(s) " + cur.open.join(", ") + " may still be filled" : "")
+                       : "No shift is running now: the sheet is read-only";
+  }
+  window.cbOnData = function (d, s) {
+    if (!d || !d.ops) return;
+    window.cbTitleExtra = d.sheet_no ? "Sheet " + d.sheet_no : "";
+    var key = (s.line_id || "") + "|" + (s.month || "");
+    var sh = d.sheetOps;
+    if (!s.line_id) {
+      on = true; curKey = key; cells = {}; pending = {}; ops = []; supSign = {}; supLeaders = {};
+      cur = { line_id: "", month: s.month, days: 31, current: null, open: [] };
+      render(); note("Select a line");
+      return;
+    }
+    if (!sh || String(sh.line_id) !== String(s.line_id) || sh.month !== s.month) {
+      if (key !== curKey) {
+        on = false; curKey = key; cells = {}; pending = {}; ops = []; supSign = {}; supLeaders = {};
+        cur = { line_id: s.line_id, month: s.month, days: 31, current: null, open: [] };
+        render();
+      }
+      note(d.error || (d.loading ? "Loading\u2026" : ""));
+      return;
+    }
+    if (key !== curKey || !on) pending = {};
+    on = true; curKey = key;
+    cur = { line_id: s.line_id, month: s.month, days: sh.days || 31, current: sh.current || null, open: sh.open_days || [],
+            admin: !!sh.admin };
+    cells = sh.cells || {};
+    ops = sh.operators || [];
+    pnames = sh.process_nos || {};
+    supSign = sh.sup_sign || {}; supLeaders = sh.leaders || {};
+    render();
+    if (!Object.keys(waiting).length) note(statusNote());
+  };
 })();
 </script>
 </body>

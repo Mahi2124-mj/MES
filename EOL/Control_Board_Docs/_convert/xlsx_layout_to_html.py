@@ -14,6 +14,7 @@ usage: python3 xlsx_layout_to_html.py <Control_Board_Docs dir> <out_dir>
        (the workbooks and what to draw from each are listed in JOBS below)
 """
 import base64, colorsys, html, re, sys, zipfile
+import os
 import xml.etree.ElementTree as ET
 
 NS = {
@@ -24,6 +25,10 @@ NS = {
 A, XDR = "{%s}" % NS["a"], "{%s}" % NS["xdr"]
 R_EMBED = "{%s}embed" % NS["r"]
 EMU_PX = 9525.0
+# 2026-11-06: company logo in the header box (same TB mark as the Hourly Report
+# and the breakdown slip, mes-frontend/public/logo.jpg trimmed to 200 px).
+with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "tb_logo.png"), "rb") as _f:
+    LOGO_URI = "data:image/png;base64," + base64.b64encode(_f.read()).decode()
 
 
 def px(v):
@@ -430,7 +435,9 @@ def page(title, caption, layout_svg, legend_svg, scope="Seat Slider (except YRA-
   .sheet { max-width: 1960px; margin: 0 auto; background: #fff; padding: 12px; box-shadow: 0 2px 8px rgba(0,0,0,.15); }
   .head { display: flex; align-items: stretch; border: 2px solid #000; border-bottom: none; }
   .head .logo { width: 150px; display: flex; align-items: center; justify-content: center; border-right: 2px solid #000; padding: 4px; }
-  .head .logo div { border: 2px solid #c00; color: #c00; font-weight: bold; font-size: 13px; padding: 4px 6px; line-height: 1.1; text-align: center; }
+  .head .logo .tb { text-align: center; line-height: 1; }
+  .head .logo img { display: block; margin: 0 auto; height: 46px; max-width: 100%%; object-fit: contain; }
+  .head .logo span { display: block; margin-top: 3px; font-size: 9px; font-weight: bold; color: #000; letter-spacing: .3px; white-space: nowrap; }
   .head .ttl { flex: 1; text-align: center; padding: 6px; }
   .head .ttl .c { font-size: 22px; font-weight: bold; }
   .head .ttl .s { font-size: 17px; font-weight: bold; }
@@ -451,20 +458,35 @@ def page(title, caption, layout_svg, legend_svg, scope="Seat Slider (except YRA-
 </head>
 <body>
 <div class="toolbar"><div><strong>TOYOTA BOSHOKU - %(title)s</strong></div>
-<div><button onclick="window.print()">Print / Save PDF</button></div></div>
+<div><button class="cb-pdf-btn" onclick="cbSavePdf()">Save PDF</button> <button onclick="window.print()">Print</button></div></div>
 <div class="sheet">
   <div class="head">
-    <div class="logo"><div>TOYOTA<br>BOSHOKU</div></div>
+    <div class="logo"><div class="tb"><img src="%(logo)s" alt="Toyota Boshoku"><span>TOYOTA BOSHOKU</span></div></div>
     <div class="ttl"><div class="c">TOYOTA BOSHOKU DEVICE INDIA PVT. LTD.</div><div class="s">%(title)s</div></div>
     <div class="meta"><div>%(caption)s</div><div>%(scope)s</div></div>
   </div>
   <div class="frame">%(layout)s</div>
   <div class="legend">%(legend)s</div>
 </div>
+<script src="cb-pdf.js?v=%(pdfv)s"></script>
 </body>
 </html>
 """ % {"title": html.escape(title), "caption": (html.escape(caption) if caption else "&nbsp;"), "layout": layout_svg,
-       "legend": legend_svg, "scope": html.escape(scope)}
+       "legend": legend_svg, "scope": html.escape(scope), "logo": LOGO_URI,
+       "pdfv": _pdf_scripts()[2]}
+
+
+def _pdf_scripts():
+    """Save PDF scripts as installed (same as install_sheets.pdf_scripts): the
+    render version goes into cb-pdf.js, and cb-pdf.js's own version into the tag,
+    so browsers (scripts cached 1 h by serve_prod) load a changed one at once."""
+    import hashlib
+    here = os.path.dirname(os.path.abspath(__file__))
+    with open(os.path.join(here, "cb-pdf-render.js"), encoding="utf-8") as f:
+        render = f.read()
+    with open(os.path.join(here, "cb-pdf.js"), encoding="utf-8") as f:
+        side = f.read().replace("__RENDER_V__", hashlib.md5(render.encode()).hexdigest()[:8])
+    return side, render, hashlib.md5(side.encode()).hexdigest()[:8]
 
 
 def legend_html(book, op=None):
@@ -553,6 +575,11 @@ def build(docs_dir, out_dir, jobs=JOBS):
         with open("%s/%s" % (out_dir, j["out"]), "w", encoding="utf-8") as f:
             f.write(page(j["title"], cap, svg, legend_html(book, icon), j["scope"]))
         print("wrote %s  (%d shapes, caption %r)" % (j["out"], len(nodes), cap))
+    # Save PDF script shared with the operator sheets (2026-11-06)
+    side, render, _v = _pdf_scripts()
+    for js_name, js in (("cb-pdf.js", side), ("cb-pdf-render.js", render)):
+        with open("%s/%s" % (out_dir, js_name), "w", encoding="utf-8") as f:
+            f.write(js)
 
 
 if __name__ == "__main__":

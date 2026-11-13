@@ -3,7 +3,7 @@
 AUTO-GENERATED COLLECTOR — YSD Recliner
 Line ID    : 29
 Table      : ysd_recliner_complete
-Generated  : 2026-11-03 13:53:43
+Generated  : 2026-11-12 15:48:03
 
 DO NOT EDIT MANUALLY — regenerate via admin panel if config changes.
 """
@@ -20,8 +20,8 @@ CONFIG = {
     "table_name": "ysd_recliner_complete",
     "plc_ip":     "192.168.32.97",
     "plc_port":   502,
-    "ok_bit":     "D6001",
-    "ng_bit":     "D6002",
+    "ok_bit":     "D7001",
+    "ng_bit":     "D7002",
     "status_addr":"D6005",
     "model_addr": "D6048",
     "ideal_ct":   15.5,

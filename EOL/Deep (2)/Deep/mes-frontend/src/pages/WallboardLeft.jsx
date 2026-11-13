@@ -597,9 +597,11 @@ function OtModal({ data, metric, setMetric, machineName, onClose, D, otCycles, o
               return `${p(Math.floor(t / 3600))}:${p(Math.floor((t % 3600) / 60))}:${p(t % 60)}`;
             };
             const chip = (label, v, big) => {
+              // 2026-11-12 — green when there is no loss (on plan = 0) or a gain
               const neg = Number(v) < 0;
-              const clr = neg ? "#22c55e" : "#f59e0b";
-              const rgb = neg ? "34,197,94" : "245,158,11";
+              const ok  = Number(v) <= 0;
+              const clr = ok ? "#22c55e" : "#f59e0b";
+              const rgb = ok ? "34,197,94" : "245,158,11";
               return (
                 <div key={label} style={{
                   display: "flex", alignItems: "center", gap: big ? 10 : 10,
@@ -637,6 +639,12 @@ function OtModal({ data, metric, setMetric, machineName, onClose, D, otCycles, o
                   pointerEvents: "none", flex: "0 0 auto",
                 }}>
                   {ordered.map(m => chip(m.name, m.loss, false))}
+                  {lossAll.some(m => m.byPlan) && (
+                    <div style={{ fontSize: 9, color: D ? "#7f8ea6" : "#64748b",
+                                  textAlign: "center", marginTop: 1, letterSpacing: ".02em" }}>
+                      Parts vs plan, shift so far · green = on or ahead of plan
+                    </div>
+                  )}
                 </div>
               );
             }
@@ -650,7 +658,8 @@ function OtModal({ data, metric, setMetric, machineName, onClose, D, otCycles, o
                     always been SUM(ct − ideal) over the running cycles — a pure
                     speed figure — but calling it "Total Loss" read as though it
                     included breakdown / setup / quality time, which it never did. */}
-                {chip(Number(lossSeconds) < 0 ? "Speed Gain" : "Speed Loss", lossSeconds, true)}
+                {chip(Number(lossSeconds) < 0 ? "Speed Gain"
+                      : Number(lossSeconds) > 0 ? "Speed Loss" : "No Loss", lossSeconds, true)}
               </div>
             );
           })()}
@@ -776,7 +785,14 @@ function MachineRow({ machine, idealCt, onPick, onCycleVideo, isMain = false, lo
   // Signed: a machine that beat its ideal all shift reads as a gain.
   // Re-read on every poll (8 s), so the popup ticks live while it is open.
   // Falls back to a client-side sum if an older API omits the field.
-  const lossSec = (machine.loss_seconds != null)
+  // 2026-11-12 — plan vs actual PARTS first (server plan_loss_seconds: parts
+  // short of the plan so far × part time, stoppages excluded; negative = ahead
+  // of plan).  Operator: "plan ke according part ban gaye toh loss show naa ho
+  // aur jyada ban jaaye toh green".  The CT sum below is only the fallback for
+  // a shift with no parts-based plan.
+  const lossSec = (machine.plan_loss_seconds != null)
+    ? Number(machine.plan_loss_seconds)
+    : (machine.loss_seconds != null)
     ? Number(machine.loss_seconds)
     : allCycles.reduce(
         (acc, c) => acc + (c.ct == null ? 0 : (Number(c.ct) - idealOf(c))), 0);
@@ -1689,6 +1705,69 @@ export default function WallboardLeft() {
       { lineId: vLine });
     setVideoCycle({ machine, cy, url, isMain, lineId: vLine });
   }, [lineId]);
+
+  // 2026-11-13 — "Save to meeting": copy the open cycle video to the Local
+  // Meeting Video page (routers/meeting_videos.py), where it stays 10 days, so
+  // it can be shown in the line meeting on the panel without downloading.
+  // Plain fetch, not api.post: a POST through the api client broadcasts
+  // "config changed" to every listening page.
+  // 2026-11-13 — the button first asks for a name; the video is saved as
+  // "<default name> — <typed name>", so the cycle number always stays visible.
+  const [meetSave, setMeetSave] = useState({ state: "", msg: "" });
+  const [meetName, setMeetName] = useState("");
+  const meetPoll = useRef(0);
+  useEffect(() => { setMeetSave({ state: "", msg: "" }); setMeetName(""); meetPoll.current += 1; }, [videoCycle]);
+  const meetLabel = videoCycle
+    ? (videoCycle.isMain ? (videoCycle.machine._label || "Final Inspection") : `M-${videoCycle.machine.machine_seq || "?"}`)
+    : "";
+  const meetDefaultName = videoCycle
+    ? meetLabel
+      + (videoCycle.machine.machine_name && videoCycle.machine.machine_name !== meetLabel ? ` ${videoCycle.machine.machine_name}` : "")
+      + ` · Cycle #${videoCycle.cy._no ?? videoCycle.cy.cycle_seq}`
+    : "";
+  const saveToMeeting = useCallback(async (title) => {
+    const vc = videoCycle;
+    const token = sessionStorage.getItem("mes_token") || "";
+    if (!vc || !token) return;
+    const { machine, cy, isMain } = vc;
+    const run = ++meetPoll.current;
+    setMeetSave({ state: "saving", msg: "Saving…" });
+    const hdr = { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
+    const body = {
+      kind: isMain ? "line" : "sub",
+      owner_id: isMain ? Number(vc.lineId || lineId) : Number(machine.sub_id),
+      line_id: Number(vc.lineId || lineId),
+      cycle_seq: Number(cy.cycle_seq), ng: !!cy.is_ng,
+      cycle_no: cy._no != null ? Number(cy._no) : null,
+      title: String(title || "").trim() || null,
+      date: cy._date || null, shift: cy._date ? (cy._shift || "") : null,
+      machine_name: machine.machine_name || null,
+      machine_label: isMain ? (machine._label || "Final Inspection") : `M-${machine.machine_seq || "?"}`,
+      cycle_ts: cy.ts || null,
+      ct: cy.ct != null ? Number(cy.ct) : null,
+      ideal_ct: Number(cy.ideal) > 0 ? Number(cy.ideal) : (Number(machine.ideal_ct) || null),
+    };
+    try {
+      const r = await fetch("/api/meeting-videos", { method: "POST", headers: hdr, body: JSON.stringify(body) });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(j.detail || `HTTP ${r.status}`);
+      if (run !== meetPoll.current) return;
+      const okMsg = j.already ? "✓ Already in meeting videos"
+                  : (j.title ? `✓ Saved: ${j.title}` : "✓ Saved to meeting");
+      if (j.status === "ready") { setMeetSave({ state: "done", msg: okMsg }); return; }
+      // the copy runs on the server; follow it for up to 3 minutes
+      for (let i = 0; i < 90 && run === meetPoll.current; i++) {
+        await new Promise(res => setTimeout(res, 2000));
+        if (run !== meetPoll.current) return;
+        const s = await fetch(`/api/meeting-videos/${j.id}`, { headers: hdr }).then(x => x.json()).catch(() => null);
+        if (s?.status === "ready") { setMeetSave({ state: "done", msg: okMsg }); return; }
+        if (s?.status === "failed") { setMeetSave({ state: "error", msg: s.error || "Not saved. Try again." }); return; }
+      }
+      if (run === meetPoll.current) setMeetSave({ state: "done", msg: "Saving in the background" });
+    } catch (e) {
+      if (run === meetPoll.current) setMeetSave({ state: "error", msg: e?.message || "Not saved. Try again." });
+    }
+  }, [videoCycle, lineId]);
   const [now, setNow]   = useState(new Date());
 
   // 2026-05-18-r8 — TWO-AXIS ORIENTATION MODEL (mirrors Fullscreen.jsx).
@@ -1868,12 +1947,14 @@ export default function WallboardLeft() {
   // reads as if it were one of them.  Rebuilt on every 8 s poll so it ticks live.
   // 2026-08-11 — Final Inspection's own figure is listed too, alongside the
   // stations, so the column shows the whole line in one place.
+  // 2026-11-12 — plan vs actual parts when the server has it (see lossSec).
   const lossBreakdown = allRows
-    .filter(m => m.loss_seconds != null)
+    .filter(m => m.plan_loss_seconds != null || m.loss_seconds != null)
     .map(m => ({
       name: String(m.machine_name || "").trim() || `M-${m.machine_seq}`,
-      loss: Number(m.loss_seconds),
+      loss: Number(m.plan_loss_seconds != null ? m.plan_loss_seconds : m.loss_seconds),
       isMain: !!m.is_main,
+      byPlan: m.plan_loss_seconds != null,
     }));
   const shiftName  = data?.shift_name || "—";
 
@@ -2313,7 +2394,9 @@ export default function WallboardLeft() {
                   }}>
               <MachineRow machine={m}
                           lossAll={m._line_id
-                            ? [{ name: m._label, loss: Number(m.loss_seconds) || 0, isMain: true }]
+                            ? [{ name: m._label, isMain: true,
+                                 loss: Number(m.plan_loss_seconds != null ? m.plan_loss_seconds : m.loss_seconds) || 0,
+                                 byPlan: m.plan_loss_seconds != null }]
                             : lossBreakdown}
                           idealCt={m.ideal_ct || 15}
                           isMain={!!m.is_main}
@@ -2411,17 +2494,70 @@ export default function WallboardLeft() {
                   </>
                 )}
               </div>
-              <button onClick={() => setVideoCycle(null)}
-                      title="Close (Esc)"
-                      style={{
-                        background:"transparent", border:`1px solid ${border}`,
-                        color: textSub, fontSize: 18, padding: "2px 12px",
-                        borderRadius: 6, cursor:"pointer", fontWeight: 700,
-                        lineHeight: 1,
-                      }}>
-                ×
-              </button>
+              <div style={{ display:"flex", alignItems:"center", gap: 8, flexShrink: 0 }}>
+                {sessionStorage.getItem("mes_token") && (
+                  <button onClick={() => { if (meetSave.state === "" || meetSave.state === "error") { setMeetName(""); setMeetSave({ state: "naming", msg: "" }); } }}
+                          disabled={meetSave.state === "saving" || meetSave.state === "done" || meetSave.state === "naming"}
+                          title={meetSave.state === "error" ? meetSave.msg : "Keep this video on the Local Meeting Video page for 10 days"}
+                          style={{
+                            background: meetSave.state === "done" ? "rgba(22,163,74,.15)"
+                                      : meetSave.state === "error" ? "rgba(220,38,38,.15)" : "transparent",
+                            border: `1px solid ${meetSave.state === "done" ? "#16a34a"
+                                               : meetSave.state === "error" ? "#dc2626" : border}`,
+                            color: meetSave.state === "done" ? "#4ade80"
+                                 : meetSave.state === "error" ? "#f87171" : textSub,
+                            fontSize: 12, padding: "5px 10px", borderRadius: 6, fontWeight: 700,
+                            cursor: meetSave.state === "saving" || meetSave.state === "done" ? "default" : "pointer",
+                            fontFamily: "inherit", lineHeight: 1.2, whiteSpace: "nowrap",
+                            maxWidth: 260, overflow: "hidden", textOverflow: "ellipsis",
+                          }}>
+                    {meetSave.state === "naming" ? "📌 Name the video below" : (meetSave.msg || "📌 Save to meeting")}
+                  </button>
+                )}
+                <button onClick={() => setVideoCycle(null)}
+                        title="Close (Esc)"
+                        style={{
+                          background:"transparent", border:`1px solid ${border}`,
+                          color: textSub, fontSize: 18, padding: "2px 12px",
+                          borderRadius: 6, cursor:"pointer", fontWeight: 700,
+                          lineHeight: 1,
+                        }}>
+                  ×
+                </button>
+              </div>
             </div>
+            {meetSave.state === "naming" && (
+              <div style={{ display:"flex", alignItems:"center", gap: 8, flexWrap:"wrap",
+                            margin: "0 0 10px", padding: "8px 10px", borderRadius: 8,
+                            border: "1px solid rgba(96,165,250,.45)", background: "rgba(59,130,246,.10)",
+                            fontFamily: "'Barlow',sans-serif" }}>
+                <span style={{ fontSize: 11, fontWeight: 800, color: textSub, letterSpacing: ".06em" }}>VIDEO NAME</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: text }}>{meetDefaultName}</span>
+                <span style={{ color: textSub, fontWeight: 700 }}>—</span>
+                <input autoFocus value={meetName} maxLength={120}
+                       onChange={(e) => setMeetName(e.target.value)}
+                       onKeyDown={(e) => {
+                         if (e.key === "Enter") { e.preventDefault(); saveToMeeting(meetName); }
+                         if (e.key === "Escape") { e.stopPropagation(); setMeetSave({ state: "", msg: "" }); }
+                       }}
+                       placeholder="Type a name (optional), e.g. Bin change delay"
+                       style={{ flex: "1 1 240px", minWidth: 180, fontSize: 14, padding: "7px 10px",
+                                borderRadius: 6, border: "1px solid rgba(148,163,184,.5)",
+                                background: "rgba(15,23,42,.55)", color: "#f1f5f9", fontFamily: "inherit" }} />
+                <button onClick={() => saveToMeeting(meetName)}
+                        style={{ background: "#2563eb", border: "1px solid #2563eb", color: "#fff", fontSize: 13,
+                                 fontWeight: 700, padding: "7px 14px", borderRadius: 6, cursor: "pointer",
+                                 fontFamily: "inherit" }}>
+                  Save
+                </button>
+                <button onClick={() => setMeetSave({ state: "", msg: "" })}
+                        style={{ background: "transparent", border: `1px solid ${border}`, color: textSub, fontSize: 13,
+                                 fontWeight: 700, padding: "7px 12px", borderRadius: 6, cursor: "pointer",
+                                 fontFamily: "inherit" }}>
+                  Cancel
+                </button>
+              </div>
+            )}
             {/* Video element — `controls` for play/pause, auto-loads.
                 If the server returns 404 / 401, the browser fires onError.
 
